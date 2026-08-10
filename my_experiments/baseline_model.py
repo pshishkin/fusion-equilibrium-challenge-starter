@@ -35,12 +35,13 @@ from sklearn.preprocessing import StandardScaler
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from experiments import (  # noqa: E402
+    D3D_MAGNETICS_SIGNALS,
     DEFAULT_LOCAL_DATA_DIR,
     EFIT_GRID_SIZE,
     HF_TRAIN_CONFIG,
     TargetPCA,
+    _as_psirz_stack,
     interpolate_magnetics_to_efit,
-    load_shot_from_hf_row,
 )
 
 HERE = Path(__file__).resolve().parent
@@ -50,10 +51,39 @@ SUBMITTED_SCALARS = ["efit_q95", "efit_beta_n"]   # -> q95, betaN
 
 # --------------------------------------------------------------------------- features
 
-def features_for_shot(shot: dict) -> np.ndarray:
+def inputs_only_shot(row) -> dict:
+    """The minimal shot dict the features need: `efit_times` + the magnetics inputs.
+
+    Deliberately NOT experiments.load_shot_from_hf_row — that one reads `efit_psirz`, which the
+    public/private test configs do not have (targets are withheld), so it raises KeyError on
+    exactly the rows a submission is built from. Building inputs only also makes it structurally
+    impossible for inference to peek at `efit_*` targets, which would make any local score
+    meaningless. Works for a streamed dict and for a parquet row alike — `in` hits dict keys and
+    Series index the same way.
+    """
+    times_col = "magnetics_time"
+    shared = np.asarray(row[times_col], dtype=np.float64) if times_col in row else None
+    ip_col = "magnetics_plasma_current_times"
+    ip_times = np.asarray(row[ip_col], dtype=np.float64) if ip_col in row else shared
+
+    magnetics = {}
+    for sig in D3D_MAGNETICS_SIGNALS:
+        col = f"magnetics_{sig}"
+        if col not in row:
+            continue
+        times = ip_times if sig == "plasma_current" else shared
+        if times is None:
+            continue
+        magnetics[sig] = {"values": np.asarray(row[col], dtype=np.float32), "times": times}
+
+    return {"efit_times": np.asarray(row["efit_times"], dtype=np.float64), "magnetics": magnetics}
+
+
+def features_for_row(row) -> np.ndarray:
     """(T, 21) magnetics features on the EFIT time base. Always exactly T rows, so a
-    prediction can never come out misaligned with `efit_times`."""
-    return interpolate_magnetics_to_efit(shot)
+    prediction can never come out misaligned with `efit_times`. Signals missing from the row
+    become a zero column, exactly as interpolate_magnetics_to_efit does for the training rows."""
+    return interpolate_magnetics_to_efit(inputs_only_shot(row))
 
 
 # --------------------------------------------------------------------------- training
@@ -69,17 +99,18 @@ def train(n_shots: int, n_pca: int, alpha: float,
 
     X_parts, Y_parts, S_parts = [], [], []
     for i, path in enumerate(files):
-        shot = load_shot_from_hf_row(pd.read_parquet(path).iloc[0])
-        feats = features_for_shot(shot)
-        psi = shot["efit_psirz"]
+        row = pd.read_parquet(path).iloc[0]
+        feats = features_for_row(row)                 # same code path as inference
+        psi = _as_psirz_stack(row["efit_psirz"])      # train rows only — targets are withheld on test
         T = min(len(feats), len(psi))
 
         scal = np.full((T, len(SUBMITTED_SCALARS)), np.nan, dtype=np.float64)
         for j, name in enumerate(SUBMITTED_SCALARS):
-            arr = shot["scalars"].get(name)
-            if arr is not None:
-                m = min(T, len(arr))
-                scal[:m, j] = arr[:m]
+            if name not in row:
+                continue
+            arr = np.asarray(row[name], dtype=np.float64).ravel()
+            m = min(T, len(arr))
+            scal[:m, j] = arr[:m]
 
         X_parts.append(feats[:T])
         Y_parts.append(psi[:T])
@@ -156,8 +187,7 @@ def predict_row(row, source: str = "DIII-D") -> dict:
     training rows and would make any local score meaningless.
     """
     art = _load()
-    shot = load_shot_from_hf_row(row)
-    T = len(shot["efit_times"])
+    T = len(np.asarray(row["efit_times"]))
 
     if source != "DIII-D":      # trained on DIII-D only; MAST would need its own fit
         return {"psirz": np.zeros((T, EFIT_GRID_SIZE, EFIT_GRID_SIZE), dtype=np.float32),
@@ -165,7 +195,7 @@ def predict_row(row, source: str = "DIII-D") -> dict:
 
     # Every frame must get a prediction — the submission contract is exactly T rows — so
     # non-finite features are imputed to the training mean (0 after scaling) rather than dropped.
-    Xs = np.nan_to_num(art["scaler"].transform(features_for_shot(shot)),
+    Xs = np.nan_to_num(art["scaler"].transform(features_for_row(row)),
                        nan=0.0, posinf=0.0, neginf=0.0)
 
     out = {"psirz": art["pca"].inverse_transform(art["psi_model"].predict(Xs))}
