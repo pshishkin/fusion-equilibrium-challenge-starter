@@ -1,28 +1,23 @@
 #!/usr/bin/env python3
 """
-Train a ψ baseline, SAVE it, and expose it as `predict_row` for scoring/submission.
+The ψ baseline itself: training, the saved artifact, and inference. Not an entry point —
+`train.py` trains it and `evaluate.py` scores it.
 
-`experiments.py` compares models but never persists one — nothing it trains survives the
-process, so there is no artifact for `local_score.py` to score. This script closes that gap:
+`experiments.py` compares models but never persists one, so nothing it trains survives the
+process and there is no artifact for `local_score.py` to score. This module closes that gap:
 
-    train  ->  my_experiments/baseline.joblib  ->  your_model_predict  ->  local_score.py
+    train.py  ->  my_experiments/baseline.joblib  ->  your_model_predict  ->  evaluate.py
 
-The model itself is deliberately the plain baseline from MODELING_GUIDE.md: 21 interpolated
-magnetics features -> StandardScaler -> Ridge -> PCA coefficients -> ψ(R,Z), with a second
-Ridge for q95/betaN. Swap the estimators here once the plumbing is proven.
-
-    # train on the first 30 local shots (sorted order)
-    uv run python my_experiments/baseline_model.py --n-shots 30
-
-    # then score on shots it never saw — --skip must be >= the --n-shots above
-    uv run python local_score.py --source local --n-shots 10 --skip 30
+The model is deliberately the plain baseline from MODELING_GUIDE.md: 21 interpolated magnetics
+features -> StandardScaler -> Ridge -> PCA coefficients -> ψ(R,Z), with a second Ridge for
+q95/betaN. Swap the estimators here once the plumbing is proven.
 
 Shots are taken in sorted-filename order, NOT sampled randomly like `experiments.py --source
-local` does, precisely so that `--skip n_shots` in the scorer is a disjoint set by construction.
+local` does, precisely so that training on the first N and scoring on the last M is a disjoint
+split by construction.
 """
 from __future__ import annotations
 
-import argparse
 import sys
 from pathlib import Path
 
@@ -158,8 +153,7 @@ def train(n_shots: int, n_pca: int, alpha: float,
     }
     joblib.dump(artifact, ARTIFACT)
     print(f"\nSaved {ARTIFACT}")
-    print(f"Now score on unseen shots:  uv run python local_score.py --source local "
-          f"--n-shots 10 --skip {len(files)}")
+    print("Now score on unseen shots:  uv run python my_experiments/evaluate.py --n-shots 20")
     return artifact
 
 
@@ -207,20 +201,5 @@ def predict_row(row, source: str = "DIII-D") -> dict:
     return out
 
 
-# --------------------------------------------------------------------------- cli
-
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--n-shots", type=int, default=30, help="shots to train on (sorted order)")
-    ap.add_argument("--n-pca", type=int, default=50, help="PCA components for ψ")
-    ap.add_argument("--alpha", type=float, default=1.0, help="Ridge regularization")
-    ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR)
-    ap.add_argument("--config", default=HF_TRAIN_CONFIG)
-    args = ap.parse_args()
-    train(args.n_shots, args.n_pca, args.alpha, args.local_data_dir, args.config)
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+# No CLI here on purpose: `train.py` is the one way to train and `evaluate.py` the one way to
+# score, so there is never a second set of defaults to keep in sync. This module is the model.

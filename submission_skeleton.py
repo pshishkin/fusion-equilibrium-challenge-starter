@@ -33,7 +33,7 @@ zip you upload to Codabench.
     # quick format check, 5 shots, build only
     uv run python submission_skeleton.py --max-shots 5
 
-    # the real thing: every shot, pushed, with submission_pointer.zip ready to upload
+    # the real thing: every shot, pushed, with the timestamped pointer zip ready to upload
     uv run python submission_skeleton.py --max-shots 0 \
         --repo your-username/fusion-eq-predictions --read-token hf_...
 
@@ -175,8 +175,10 @@ def main() -> int:
                                    "Given this, the script also pushes and writes the pointer zip.")
     ap.add_argument("--read-token", default=os.environ.get("HF_READ_TOKEN"),
                     help="fine-grained READ token scoped to --repo (or set HF_READ_TOKEN)")
-    ap.add_argument("--zip", dest="zip_out", type=Path, default=Path("submission_pointer.zip"),
-                    help="pointer zip to upload to Codabench (default: submission_pointer.zip)")
+    from push_predictions import POINTER_DIR, default_pointer_path
+    ap.add_argument("--zip", dest="zip_out", type=Path, default=default_pointer_path(),
+                    help=f"pointer zip to upload to Codabench "
+                         f"(default: {POINTER_DIR}/submission_pointer_<UTC timestamp>.zip)")
     ap.add_argument("--skip-validate", action="store_true",
                     help="skip the structure check (not recommended -- it is what catches a "
                          "malformed .npz before you spend a submission slot)")

@@ -48,7 +48,22 @@ import json
 import os
 import zipfile
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
+
+POINTER_DIR = Path("submissions")
+
+
+def default_pointer_path() -> Path:
+    """submissions/submission_pointer_<UTC timestamp>.zip
+
+    Timestamped rather than fixed so a rebuild never overwrites the zip of a submission already
+    sitting on the leaderboard — the manifest inside pins a commit SHA, so an old zip stays a
+    valid record of exactly what was scored. UTC, and sortable, so `ls` puts the newest last.
+    """
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return POINTER_DIR / f"submission_pointer_{ts}.zip"
+
 
 CONFIG_FILENAMES = [
     "diii_d_public_test.npz", "mast_public_test.npz",
@@ -212,6 +227,7 @@ def push_and_write_pointer(repo: str, read_token: str | None, sub_dir: Path,
     manifest = {"repo_id": repo, "revision": sha, "token": read_token}
     mpath = sub_dir / "manifest.json"
     mpath.write_text(json.dumps(manifest, indent=2))
+    out.parent.mkdir(parents=True, exist_ok=True)
     # zipfile, not a `zip` subprocess: the CLI is absent on plenty of Linux installs and on
     # essentially every Windows one. "w" truncates, so re-running never appends a stale manifest.
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
@@ -237,8 +253,9 @@ def main() -> int:
                     help="fine-grained READ token scoped to --repo (or set HF_READ_TOKEN)")
     ap.add_argument("--dir", type=Path, default=Path("submission"),
                     help="directory holding the .npz (default: submission)")
-    ap.add_argument("--out", type=Path, default=Path("submission_pointer.zip"),
-                    help="pointer zip to upload to Codabench (default: submission_pointer.zip)")
+    ap.add_argument("--out", type=Path, default=default_pointer_path(),
+                    help=f"pointer zip to upload to Codabench "
+                         f"(default: {POINTER_DIR}/submission_pointer_<UTC timestamp>.zip)")
     ap.add_argument("--dry-run", action="store_true", help="check everything, upload nothing")
     args = ap.parse_args()
     return push_and_write_pointer(args.repo, args.read_token, args.dir, args.out, args.dry_run)

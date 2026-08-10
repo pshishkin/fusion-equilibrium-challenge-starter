@@ -8,5 +8,6 @@ baseline.joblib
 
 # push_predictions.py writes your scoped HF read token into manifest.json and zips it here.
 # Submitted on purpose, but never committed.
+submissions/
 submission_pointer.zip
 manifest.json

@@ -301,7 +301,9 @@ def score_shot(gt, ref, pred, R, Z, mask_coarse, mask_f, psi_sign, means):
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    # argv is threaded through so my_experiments/evaluate.py can drive the scorer as a function
+    # instead of reimplementing the metric — one definition of the score, one place to fix.
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--n-shots", type=int, default=10, help="held-out shots to score (default 10)")
@@ -318,7 +320,7 @@ def main() -> int:
                          "Used with --source local")
     ap.add_argument("--config", default=TRAIN_CONFIG,
                     help=f"Dataset config / split folder to load (default {TRAIN_CONFIG})")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     mask = np.load(HERE / "fusion_scoring" / "masks" / "d3d_envelope.npz")
     R, Z = mask["grid_R"], mask["grid_Z"]
