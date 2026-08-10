@@ -31,6 +31,9 @@ from pathlib import Path
 import numpy as np
 
 REPO_ID = "Sophelio/fusion-equilibrium-challenge"
+# Downloaded copy of the dataset, same layout and default as the other scripts:
+#   <DEFAULT_LOCAL_DATA_DIR>/data/<config>/*.parquet
+DEFAULT_LOCAL_DATA_DIR = Path(__file__).resolve().parent.parent / "downloaded_huggingface" / "hf_dataset"
 # Native flux grid per machine (rows = Z, cols = R).
 GRID = {"DIII-D": (65, 65), "MAST": (65, 65)}
 # The only two submitted scalars (metric v2): q95 needs F(psi), betaN needs p(psi) — neither is
@@ -74,7 +77,29 @@ def _quantization_warning(arr, key: str):
     return None
 
 
-def validate(npz_path: Path, config: str, max_shots: int) -> int:
+def _iter_reference_rows(config: str, split: str, source: str, local_data_dir: Path):
+    """Reference inputs in stream order — from the Hub, or from a downloaded copy.
+
+    The local order matches the Hub's: datasets resolves data files with `fs.glob`, and fsspec's
+    glob returns them sorted by path, which is what `sorted(dir.glob(...))` reproduces.
+    """
+    if source != "local":
+        from datasets import load_dataset
+        yield from load_dataset(REPO_ID, config, split=split, streaming=True)
+        return
+
+    import pandas as pd
+
+    data_dir = Path(local_data_dir) / "data" / config
+    files = sorted(data_dir.glob("*.parquet"))
+    if not files:
+        raise SystemExit(f"No parquet files in {data_dir} — cannot validate against a local copy.")
+    for path in files:
+        yield pd.read_parquet(path).iloc[0]
+
+
+def validate(npz_path: Path, config: str, max_shots: int, source: str = "hf",
+             local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR) -> int:
     split, machine = CONFIG_INFO[config]
     H, W = GRID[machine]
 
@@ -82,18 +107,16 @@ def validate(npz_path: Path, config: str, max_shots: int) -> int:
         print(f"ERROR: {npz_path} not found", file=sys.stderr)
         return 2
 
-    from datasets import load_dataset
-
     sub = dict(np.load(npz_path, allow_pickle=False))
+    where = ("a local copy of the dataset" if source == "local" else "the Hub")
     print(f"Validating {npz_path.name} against {config} (expects {machine} grid {(H, W)})")
-    print(f"  {len(sub)} arrays in the .npz; streaming reference inputs from the Hub …")
+    print(f"  {len(sub)} arrays in the .npz; reading reference inputs from {where} …")
 
-    ds = load_dataset(REPO_ID, config, split=split, streaming=True)
     errors: list[str] = []
     warnings: list[str] = []
     n = 0
     capped = False
-    for i, row in enumerate(ds):
+    for i, row in enumerate(_iter_reference_rows(config, split, source, local_data_dir)):
         if max_shots and i >= max_shots:
             capped = True
             print(f"  (stopped at --max-shots {max_shots}; full validation needs --max-shots 0)")
@@ -163,8 +186,12 @@ def main() -> int:
     ap.add_argument("--config", required=True, choices=list(CONFIG_INFO),
                     help="which public-test config this .npz targets")
     ap.add_argument("--max-shots", type=int, default=0, help="cap shots checked (0 = all)")
+    ap.add_argument("--source", default="hf", choices=["hf", "local"],
+                    help="'hf' streams the reference inputs, 'local' reads a downloaded copy")
+    ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
+                    help="Root of the downloaded dataset (contains a 'data/' folder)")
     args = ap.parse_args()
-    return validate(args.npz, args.config, args.max_shots)
+    return validate(args.npz, args.config, args.max_shots, args.source, args.local_data_dir)
 
 
 if __name__ == "__main__":

@@ -2,9 +2,9 @@ results/
 .venv/
 __pycache__/
 *.pyc
-my_experiments/
 submission/
 sample_submission/
+baseline.joblib
 
 # push_predictions.py writes your scoped HF read token into manifest.json and zips it here.
 # Submitted on purpose, but never committed.

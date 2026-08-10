@@ -37,6 +37,10 @@ zip you upload to Codabench.
     uv run python submission_skeleton.py --max-shots 0 \
         --repo your-username/fusion-eq-predictions --read-token hf_...
 
+    # build from a downloaded copy instead of streaming the test fold twice (build + validate)
+    uv run python submission_skeleton.py --max-shots 0 --source local \
+        --configs diii_d_public_test
+
 Run it once without --read-token to create the repo; Hugging Face cannot scope a token to a repo
 that does not exist yet. See README -> "5. Build and submit".
 """
@@ -50,6 +54,9 @@ from datasets import load_dataset
 
 REPO_ID = "Sophelio/fusion-equilibrium-challenge"
 TEST_CONFIGS = [("diii_d_public_test", "public_test"), ("mast_public_test", "public_test")]
+# Downloaded copy of the dataset, same layout and same default as experiments.py / local_score.py:
+#   <DEFAULT_LOCAL_DATA_DIR>/data/<config>/*.parquet
+DEFAULT_LOCAL_DATA_DIR = Path(__file__).resolve().parent.parent / "downloaded_huggingface" / "hf_dataset"
 # Native flux grid per machine (rows=Z, cols=R). Both machines are a dense, fully finite 65x65
 # grid — MAST's upstream EFIT 65x129 grid (65 real R columns interleaved with 64 empty ones) is
 # collapsed to a dense 65x65 in the corrected dataset, so there is no central NaN region.
@@ -75,6 +82,19 @@ def your_model_predict(row: dict, source: str) -> dict:
     inputs: `coil_*` (PF-coil positions/turns, joined to the current columns by
     `coil_input_column`) and `thomson_chord_R/Z` (chord positions). Focus on making psi(R,Z)
     right; the geometry terms (boundary, axis, shape, li) all follow from it."""
+    # Delegate to the trained baseline if one has been saved. Only "there is no model yet" is
+    # swallowed — a bug inside the model must surface, not silently score as zeros.
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from my_experiments.baseline_model import predict_row
+        return predict_row(row, source)
+    except (ImportError, FileNotFoundError) as exc:
+        if not getattr(your_model_predict, "_warned", False):
+            print(f"  note: no trained model ({type(exc).__name__}: {exc})\n"
+                  f"        emitting zeros — train one with "
+                  f"'uv run python my_experiments/baseline_model.py --n-shots 30'")
+            your_model_predict._warned = True
+
     T = len(np.asarray(row["efit_times"]))
     H, W = GRID[source]
     out = {"psirz": np.zeros((T, H, W), dtype=np.float32)}      # placeholder baseline
@@ -83,11 +103,39 @@ def your_model_predict(row: dict, source: str) -> dict:
     return out
 
 
-def build_submission(config: str, split: str, out_dir: Path, max_shots: int) -> Path:
-    ds = load_dataset(REPO_ID, config, split=split, streaming=True)
+def iter_dataset_rows(config: str, split: str, source: str, local_data_dir: Path):
+    """Yield the config's rows in the SAME order the Hub stream would.
+
+    Order is not cosmetic: the scorer matches `shot_XXXX_*` keys positionally against its own
+    reference, so a different order silently scores every shot against the wrong ground truth.
+    The local path is safe because the Hub order is itself sorted by filename — datasets resolves
+    data files through `fs.glob` (data_files.py), and fsspec's glob returns `sorted(...)`.
+    """
+    if source != "local":
+        yield from load_dataset(REPO_ID, config, split=split, streaming=True)
+        return
+
+    import pandas as pd
+
+    data_dir = Path(local_data_dir) / "data" / config
+    files = sorted(data_dir.glob("*.parquet"))
+    if not files:
+        raise SystemExit(
+            f"No parquet files in {data_dir}. Download them with:\n"
+            f'  hf download {REPO_ID} --repo-type dataset --local-dir {local_data_dir} '
+            f'--include "data/{config}/*"'
+        )
+    print(f"  {config}: reading {len(files)} local shots from {data_dir}")
+    for path in files:
+        yield pd.read_parquet(path).iloc[0]
+
+
+def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
+                     source: str = "hf",
+                     local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR) -> Path:
     preds: dict[str, np.ndarray] = {}
     n = 0
-    for i, row in enumerate(ds):
+    for i, row in enumerate(iter_dataset_rows(config, split, source, local_data_dir)):
         if max_shots and i >= max_shots:
             break
         source = row.get("source", "DIII-D")
@@ -132,13 +180,23 @@ def main() -> int:
     ap.add_argument("--skip-validate", action="store_true",
                     help="skip the structure check (not recommended -- it is what catches a "
                          "malformed .npz before you spend a submission slot)")
+    ap.add_argument("--source", default="hf", choices=["hf", "local"],
+                    help="'hf' streams the test inputs, 'local' reads a downloaded copy")
+    ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
+                    help="Root of the downloaded dataset (contains a 'data/' folder)")
+    ap.add_argument("--configs", nargs="+", choices=[c for c, _ in TEST_CONFIGS],
+                    help="build only these configs (default: both). A DIII-D-only entry is valid "
+                         "for Challenge 1 and scores G_ratio = 0 on Challenge 2.")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
+    configs = ([(c, s) for c, s in TEST_CONFIGS if c in args.configs]
+               if args.configs else TEST_CONFIGS)
 
-    print("Building submission (placeholder zeros — swap in your_model_predict):")
+    print("Building submission:")
     written = []
-    for config, split in TEST_CONFIGS:
-        written.append(build_submission(config, split, args.out, args.max_shots).name)
+    for config, split in configs:
+        written.append(build_submission(config, split, args.out, args.max_shots,
+                                        args.source, args.local_data_dir).name)
 
     # No manifest is written here: the scorer locates predictions by FILENAME, and on the
     # pointer route push_and_write_pointer() writes the real {repo_id, revision, token} one.
@@ -148,8 +206,9 @@ def main() -> int:
     if not args.skip_validate:
         print("\nValidating structure...")
         from validate_submission import validate
-        for config, _ in TEST_CONFIGS:
-            if validate(args.out / f"{config}.npz", config, args.max_shots):
+        for config, _ in configs:
+            if validate(args.out / f"{config}.npz", config, args.max_shots,
+                        args.source, args.local_data_dir):
                 print(f"\nValidation FAILED for {config}. Fix your_model_predict and rebuild; "
                       "nothing was pushed.", file=sys.stderr)
                 return 1

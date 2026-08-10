@@ -24,6 +24,9 @@ number as a faithful proxy for model selection, not a leaderboard prediction.
     # or score a .npz you already built
     uv run python local_score.py --pred my_preds.npz --n-shots 20 --skip 7000
 
+    # score from a downloaded copy of the dataset instead of streaming the Hub
+    uv run python local_score.py --source local --n-shots 20 --skip 30
+
 By default it imports `your_model_predict` from submission_skeleton.py — the same function that
 builds your real submission. Note the training rows it receives DO contain `efit_*` ground truth:
 if your model reads those, this score is meaningless. Use only the inputs listed in that
@@ -53,6 +56,11 @@ from lcfs import extract_lcfs, extract_lcfs_with_sign, major_radius  # noqa: E40
 from metrics import Accum, finalize_machine                      # noqa: E402
 
 REPO_ID = "Sophelio/fusion-equilibrium-challenge"
+TRAIN_CONFIG = "diii_d_train"
+# Downloaded copy of the dataset, laid out exactly like the Hub repo:
+#   <DEFAULT_LOCAL_DATA_DIR>/data/<config>/*.parquet
+# Same default as experiments.py, so `--source local` needs no extra flag on either script.
+DEFAULT_LOCAL_DATA_DIR = HERE.parent / "downloaded_huggingface" / "hf_dataset"
 MACHINE = "DIII-D"          # the only machine with released ground truth
 N_POINTS = 512
 N_ITER = 22
@@ -61,28 +69,93 @@ LI_IDX = CONS_SCALARS.index("li")
 
 # --------------------------------------------------------------------------- ground truth
 
-def load_shots(n_shots: int, skip: int) -> list[dict]:
-    """Stream `n_shots` DIII-D training shots, keeping ψ and the two value scalars."""
+def _as_psi_stack(psirz_raw) -> np.ndarray:
+    """Normalize efit_psirz to (T, 65, 65) whether it arrives as HF nested lists or as the
+    object-array-of-object-arrays that pandas/pyarrow hands back for parquet. Same logic as
+    experiments.py::_as_psirz_stack — np.asarray raises on the parquet layout rather than
+    returning something with ndim != 3, so the fallback has to be reached via except."""
+    try:
+        psi = np.asarray(psirz_raw, dtype=np.float32)
+        if psi.ndim == 3:
+            return psi
+    except (ValueError, TypeError):
+        pass
+    return np.stack(
+        [np.stack([np.asarray(r, dtype=np.float32) for r in grid]) for grid in psirz_raw]
+    )
+
+
+def _shot_from_row(row) -> dict:
+    """Keep ψ and the two value scalars. Works for a streamed dict or a parquet row."""
+    psi = _as_psi_stack(row["efit_psirz"])
+    return {
+        "row": row,
+        "psi": psi,
+        "q95": np.asarray(row["efit_q95"], dtype=np.float64),
+        "betaN": np.asarray(row["efit_beta_n"], dtype=np.float64),
+    }
+
+
+def load_shots_streaming(n_shots: int, skip: int, config: str) -> list[dict]:
+    """Stream `n_shots` DIII-D training shots from the Hub, after skipping `skip`."""
     from datasets import load_dataset
-    ds = load_dataset(REPO_ID, "diii_d_train", split="train", streaming=True)
+    ds = load_dataset(REPO_ID, config, split="train", streaming=True)
     out = []
     for i, row in enumerate(ds):
         if i < skip:
             continue
         if len(out) >= n_shots:
             break
-        psi = np.asarray(row["efit_psirz"], dtype=np.float32)
-        if psi.ndim != 3:                       # nested list -> (T, 65, 65)
-            psi = np.stack([np.asarray(f, dtype=np.float32) for f in row["efit_psirz"]])
-        out.append({
-            "row": row,
-            "psi": psi,
-            "q95": np.asarray(row["efit_q95"], dtype=np.float64),
-            "betaN": np.asarray(row["efit_beta_n"], dtype=np.float64),
-        })
-        print(f"  loaded shot {i}  T={psi.shape[0]}")
+        shot = _shot_from_row(row)
+        out.append(shot)
+        print(f"  loaded shot {i}  T={shot['psi'].shape[0]}")
+    return out
+
+
+def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str) -> list[dict]:
+    """Read shots from a downloaded copy of the dataset: <dir>/data/<config>/*.parquet.
+
+    Files are taken in sorted order, so `--skip` is deterministic and reproducible — unlike
+    the Hub stream, whose order is only as stable as the shard listing.
+    """
+    import pandas as pd
+
+    data_dir = Path(local_data_dir) / "data" / config
+    files = sorted(data_dir.glob("*.parquet"))
+    if not files:
+        raise SystemExit(
+            f"No parquet files found in {data_dir}. Point --local-data-dir at the downloaded "
+            f"dataset root (the folder that contains a 'data/' directory), or download shots with:\n"
+            f"  hf download {REPO_ID} --repo-type dataset --local-dir {local_data_dir} "
+            f'--include "data/{config}/*"'
+        )
+    print(f"  Local: {data_dir} ({len(files)} shots available)")
+    if skip >= len(files):
+        raise SystemExit(
+            f"--skip {skip} is past the end: only {len(files)} shots in {data_dir}. "
+            f"Download more, or lower --skip."
+        )
+
+    out = []
+    for i, path in enumerate(files[skip:skip + n_shots], start=skip):
+        shot = _shot_from_row(pd.read_parquet(path).iloc[0])
+        out.append(shot)
+        print(f"  loaded shot {i} ({path.name})  T={shot['psi'].shape[0]}")
+    return out
+
+
+def load_shots(n_shots: int, skip: int, source: str = "hf",
+               local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR,
+               config: str = TRAIN_CONFIG) -> list[dict]:
+    if source == "local":
+        out = load_shots_local(n_shots, skip, local_data_dir, config)
+    else:
+        out = load_shots_streaming(n_shots, skip, config)
     if not out:
         raise SystemExit(f"No shots loaded (skip={skip} past the end of the split?)")
+    if len(out) < n_shots:
+        print(f"  note: only {len(out)} shots available after skip={skip} "
+              f"(asked for {n_shots})")
     return out
 
 
@@ -238,6 +311,13 @@ def main() -> int:
     ap.add_argument("--mode", choices=["model", "perfect", "zeros"], default="model",
                     help="perfect/zeros verify the harness itself (S must be 1.0 / 0.0)")
     ap.add_argument("--pred", type=Path, help="score this .npz instead of calling your model")
+    ap.add_argument("--source", default="hf", choices=["hf", "local"],
+                    help="'hf' streams the Hub, 'local' reads a downloaded copy of the dataset")
+    ap.add_argument("--local-data-dir", default=str(DEFAULT_LOCAL_DATA_DIR), type=Path,
+                    help="Root of the downloaded dataset (contains a 'data/' folder). "
+                         "Used with --source local")
+    ap.add_argument("--config", default=TRAIN_CONFIG,
+                    help=f"Dataset config / split folder to load (default {TRAIN_CONFIG})")
     args = ap.parse_args()
 
     mask = np.load(HERE / "fusion_scoring" / "masks" / "d3d_envelope.npz")
@@ -246,8 +326,9 @@ def main() -> int:
     mask_f = mask_coarse.astype(np.float64)
 
     print(f"Fusion Equilibrium Challenge — local scorer (metric v{SCORING_VERSION}, {MACHINE})")
-    print(f"Loading {args.n_shots} training shots (skip={args.skip})...")
-    shots = load_shots(args.n_shots, args.skip)
+    src_label = "local download" if args.source == "local" else "Hugging Face stream"
+    print(f"Loading {args.n_shots} training shots (skip={args.skip}, {src_label})...")
+    shots = load_shots(args.n_shots, args.skip, args.source, args.local_data_dir, args.config)
 
     print("Building reference targets from ground truth (LCFS + 7 derived scalars per frame)...")
     refs, psi_sum, psi_sumsq, psi_n = [], 0.0, 0.0, 0.0
