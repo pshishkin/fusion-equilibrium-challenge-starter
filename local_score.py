@@ -112,13 +112,26 @@ def load_shots_streaming(n_shots: int, skip: int, config: str) -> list[dict]:
     return out
 
 
-def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str) -> list[dict]:
+def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
+                     files: list[Path] | None = None) -> list[dict]:
     """Read shots from a downloaded copy of the dataset: <dir>/data/<config>/*.parquet.
 
     Files are taken in sorted order, so `--skip` is deterministic and reproducible — unlike
     the Hub stream, whose order is only as stable as the shard listing.
+
+    `files` overrides the whole selection: score exactly these paths, in this order. That is how
+    my_experiments/evaluate.py drives the scorer — its split is ordered by a hash of the shot id,
+    not lexicographically, so index arithmetic here would pick the wrong shots.
     """
     import pandas as pd
+
+    if files is not None:
+        out = []
+        for i, path in enumerate(files):
+            shot = _shot_from_row(pd.read_parquet(path).iloc[0])
+            out.append(shot)
+            print(f"  loaded shot {i} ({Path(path).name})  T={shot['psi'].shape[0]}")
+        return out
 
     data_dir = Path(local_data_dir) / "data" / config
     files = sorted(data_dir.glob("*.parquet"))
@@ -146,14 +159,15 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str)
 
 def load_shots(n_shots: int, skip: int, source: str = "hf",
                local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR,
-               config: str = TRAIN_CONFIG) -> list[dict]:
+               config: str = TRAIN_CONFIG,
+               files: list[Path] | None = None) -> list[dict]:
     if source == "local":
-        out = load_shots_local(n_shots, skip, local_data_dir, config)
+        out = load_shots_local(n_shots, skip, local_data_dir, config, files)
     else:
         out = load_shots_streaming(n_shots, skip, config)
     if not out:
         raise SystemExit(f"No shots loaded (skip={skip} past the end of the split?)")
-    if len(out) < n_shots:
+    if files is None and len(out) < n_shots:
         print(f"  note: only {len(out)} shots available after skip={skip} "
               f"(asked for {n_shots})")
     return out
@@ -320,6 +334,9 @@ def main(argv: list[str] | None = None) -> int:
                          "Used with --source local")
     ap.add_argument("--config", default=TRAIN_CONFIG,
                     help=f"Dataset config / split folder to load (default {TRAIN_CONFIG})")
+    ap.add_argument("--files", nargs="+", type=Path,
+                    help="score exactly these parquet files, in this order (overrides "
+                         "--n-shots/--skip; used by my_experiments/evaluate.py)")
     args = ap.parse_args(argv)
 
     mask = np.load(HERE / "fusion_scoring" / "masks" / "d3d_envelope.npz")
@@ -329,8 +346,12 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"Fusion Equilibrium Challenge — local scorer (metric v{SCORING_VERSION}, {MACHINE})")
     src_label = "local download" if args.source == "local" else "Hugging Face stream"
-    print(f"Loading {args.n_shots} training shots (skip={args.skip}, {src_label})...")
-    shots = load_shots(args.n_shots, args.skip, args.source, args.local_data_dir, args.config)
+    if args.files:
+        print(f"Loading {len(args.files)} training shots (явный список файлов)...")
+    else:
+        print(f"Loading {args.n_shots} training shots (skip={args.skip}, {src_label})...")
+    shots = load_shots(args.n_shots, args.skip, args.source, args.local_data_dir, args.config,
+                       args.files)
 
     print("Building reference targets from ground truth (LCFS + 7 derived scalars per frame)...")
     refs, psi_sum, psi_sumsq, psi_n = [], 0.0, 0.0, 0.0

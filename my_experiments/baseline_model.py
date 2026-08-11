@@ -18,6 +18,7 @@ split by construction.
 """
 from __future__ import annotations
 
+import hashlib
 import sys
 from pathlib import Path
 
@@ -42,6 +43,37 @@ from experiments import (  # noqa: E402
 HERE = Path(__file__).resolve().parent
 ARTIFACT = HERE / "baseline.joblib"
 SUBMITTED_SCALARS = ["efit_q95", "efit_beta_n"]   # -> q95, betaN
+
+
+# --------------------------------------------------------------------------- порядок шотов
+
+def shot_key(path: Path) -> str:
+    """Ключ сортировки: sha1 от идентификатора шота.
+
+    Именно hashlib, а НЕ встроенный hash(): тот солится на каждый запуск процесса, и порядок
+    менялся бы от вызова к вызову — train и evaluate разъехались бы, а сплит перестал быть
+    воспроизводимым. sha1 от имени файла даёт один и тот же порядок всегда и на любой машине.
+    """
+    return hashlib.sha1(path.stem.encode()).hexdigest()
+
+
+def sorted_shots(local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR,
+                 config: str = HF_TRAIN_CONFIG) -> list[Path]:
+    """Все шоты конфига, перемешанные детерминированно. Обучение берёт начало списка,
+    оценка — конец, поэтому окна не пересекаются, пока их доли в сумме не превысят 1."""
+    data_dir = Path(local_data_dir) / "data" / config
+    files = sorted(data_dir.glob("*.parquet"), key=shot_key)
+    if not files:
+        raise SystemExit(f"Нет parquet-файлов в {data_dir}")
+    return files
+
+
+def take_share(files: list[Path], share: float, side: str) -> list[Path]:
+    """Доля списка с начала ('head') или с конца ('tail'), минимум один шот."""
+    if not 0 < share <= 1:
+        raise SystemExit(f"--share должен быть в (0, 1], получено {share}")
+    n = max(1, round(len(files) * share))
+    return files[:n] if side == "head" else files[-n:]
 
 
 # --------------------------------------------------------------------------- features
@@ -83,14 +115,12 @@ def features_for_row(row) -> np.ndarray:
 
 # --------------------------------------------------------------------------- training
 
-def train(n_shots: int, n_pca: int, alpha: float,
+def train(share: float, n_pca: int, alpha: float,
           local_data_dir: Path, config: str) -> dict:
-    data_dir = Path(local_data_dir) / "data" / config
-    files = sorted(data_dir.glob("*.parquet"))
-    if not files:
-        raise SystemExit(f"No parquet files in {data_dir}")
-    files = files[:n_shots]
-    print(f"Training on {len(files)} shots from {data_dir}")
+    all_files = sorted_shots(local_data_dir, config)
+    files = take_share(all_files, share, "head")
+    print(f"Обучение на {len(files)} шотах ({share:.1%} от {len(all_files)}), "
+          f"начало списка, порядок по sha1")
 
     X_parts, Y_parts, S_parts = [], [], []
     for i, path in enumerate(files):
@@ -148,12 +178,15 @@ def train(n_shots: int, n_pca: int, alpha: float,
     artifact = {
         "scaler": scaler, "pca": pca, "psi_model": psi_model,
         "scalar_models": scalar_models, "scalar_fallback": scalar_fallback,
+        # Имена файлов, а не индексы: evaluate.py проверяет пересечение по ним напрямую,
+        # и проверка остаётся верной, даже если каталог с данными пополнился.
         "train_files": [p.name for p in files],
-        "n_train_shots": len(files), "n_pca": n_components, "alpha": alpha,
+        "n_train_shots": len(files), "train_share": share, "config": config,
+        "n_pca": n_components, "alpha": alpha,
     }
     joblib.dump(artifact, ARTIFACT)
-    print(f"\nSaved {ARTIFACT}")
-    print("Now score on unseen shots:  uv run python my_experiments/evaluate.py --n-shots 20")
+    print(f"\nСохранено: {ARTIFACT}")
+    print("Оценить:  uv run python my_experiments/evaluate.py --share 0.02")
     return artifact
 
 

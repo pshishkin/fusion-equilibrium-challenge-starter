@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Entry point 1 of 2 — train the baseline on the FIRST N local shots and save it.
+Точка входа 1 из 2 — обучить бейзлайн и сохранить его.
 
-    uv run python my_experiments/train.py --n-shots 20
+    uv run python my_experiments/train.py --share 0.01     # 1% шотов
 
-Writes my_experiments/baseline.joblib, which `your_model_predict` (and therefore evaluate.py and
-submission_skeleton.py) picks up automatically.
+Шоты берутся с НАЧАЛА списка, отсортированного по sha1 от имени файла. evaluate.py берёт
+с конца того же списка, поэтому окна не пересекаются, пока сумма долей не превысит 1.
+Порядок детерминирован, так что сплит воспроизводится на любой машине.
 
-FIRST N, in sorted-filename order — evaluate.py scores the LAST M in that same order, so the two
-sets cannot overlap as long as N + M <= the number of shots you have downloaded. evaluate.py
-enforces that rather than trusting it.
+Пишет my_experiments/baseline.joblib, который дальше подхватывают evaluate.py
+и submission_skeleton.py.
 """
 from __future__ import annotations
 
@@ -26,16 +26,16 @@ from my_experiments.baseline_model import train  # noqa: E402
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--n-shots", type=int, default=20,
-                    help="how many of the FIRST local shots to train on (default 20)")
-    ap.add_argument("--n-pca", type=int, default=50, help="PCA components for ψ")
-    ap.add_argument("--alpha", type=float, default=1.0, help="Ridge regularization")
+    ap.add_argument("--share", type=float, default=0.01,
+                    help="доля шотов для обучения, с начала списка (по умолчанию 0.01)")
+    ap.add_argument("--n-pca", type=int, default=50, help="число компонент PCA для ψ")
+    ap.add_argument("--alpha", type=float, default=1.0, help="регуляризация Ridge")
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
-                    help="root of the downloaded dataset (contains a 'data/' folder)")
+                    help="корень скачанного датасета (папка, содержащая 'data/')")
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
     args = ap.parse_args()
 
-    train(args.n_shots, args.n_pca, args.alpha, args.local_data_dir, args.config)
+    train(args.share, args.n_pca, args.alpha, args.local_data_dir, args.config)
     return 0
 
 
