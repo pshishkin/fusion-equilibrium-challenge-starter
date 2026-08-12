@@ -128,11 +128,11 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
 
     if files is not None:
         out = []
-        bar = tqdm(files, desc="  чтение шотов", unit="шот")
+        bar = tqdm(files, desc="  reading shots", unit="shot")
         for path in bar:
             shot = _shot_from_row(pd.read_parquet(path).iloc[0])
             out.append(shot)
-            bar.set_postfix(кадров=sum(s["psi"].shape[0] for s in out))
+            bar.set_postfix(frames=sum(s["psi"].shape[0] for s in out))
         return out
 
     data_dir = Path(local_data_dir) / "data" / config
@@ -152,11 +152,11 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
         )
 
     out = []
-    bar = tqdm(files[skip:skip + n_shots], desc="  чтение шотов", unit="шот")
+    bar = tqdm(files[skip:skip + n_shots], desc="  reading shots", unit="shot")
     for path in bar:
         shot = _shot_from_row(pd.read_parquet(path).iloc[0])
         out.append(shot)
-        bar.set_postfix(кадров=sum(s["psi"].shape[0] for s in out))
+        bar.set_postfix(frames=sum(s["psi"].shape[0] for s in out))
     return out
 
 
@@ -350,7 +350,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Fusion Equilibrium Challenge — local scorer (metric v{SCORING_VERSION}, {MACHINE})")
     src_label = "local download" if args.source == "local" else "Hugging Face stream"
     if args.files:
-        print(f"Loading {len(args.files)} training shots (явный список файлов)...")
+        print(f"Loading {len(args.files)} training shots (explicit file list)...")
     else:
         print(f"Loading {args.n_shots} training shots (skip={args.skip}, {src_label})...")
     shots = load_shots(args.n_shots, args.skip, args.source, args.local_data_dir, args.config,
@@ -360,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
     refs, psi_sum, psi_sumsq, psi_n = [], 0.0, 0.0, 0.0
     scal_sum, scal_sumsq, scal_n = np.zeros(N_SCALARS), np.zeros(N_SCALARS), np.zeros(N_SCALARS)
     cons_sum, cons_sumsq, cons_n = np.zeros(N_CONS), np.zeros(N_CONS), np.zeros(N_CONS)
-    for s in tqdm(shots, desc="  эталоны из ground truth", unit="шот"):
+    for s in tqdm(shots, desc="  references from ground truth", unit="shot"):
         ref = build_reference(s["psi"], R, Z, mask_coarse, mask_f)
         refs.append(ref)
         g = s["psi"].astype(np.float64)
@@ -402,7 +402,7 @@ def main(argv: list[str] | None = None) -> int:
     print("Scoring...")
     acc = Accum()
     acc.psi_sign = psi_sign
-    for s_, ref, p in tqdm(list(zip(shots, refs, preds)), desc="  счёт метрики", unit="шот"):
+    for s_, ref, p in tqdm(list(zip(shots, refs, preds)), desc="  scoring", unit="shot"):
         acc.add(score_shot(s_, ref, p, R, Z, mask_coarse, mask_f, psi_sign, means))
 
     res = finalize_machine(acc, ref_stats)

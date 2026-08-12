@@ -22,11 +22,11 @@ pytorch = [
 ]
 
 [tool.pyright]
-# Где искать сторонние пакеты: статический анализатор не исполняет код и сам venv не найдёт.
+# Where third-party packages live: a static analyzer does not execute code and will not find the venv.
 venvPath = "."
 venv = ".venv"
-# Корень проекта в путях поиска — это то, что my_experiments/*.py делают в рантайме
-# через sys.path.insert; анализатору ту строку надо продублировать декларативно.
+# Project root on the search path — this is what my_experiments/*.py do at runtime via
+# sys.path.insert; the analyzer needs that line restated declaratively.
 extraPaths = ["."]
 
 [tool.uv]

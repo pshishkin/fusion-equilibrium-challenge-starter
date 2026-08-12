@@ -1,70 +1,78 @@
-# Соглашения этого форка
+# Conventions for this fork
 
-Правила, которых держится код в `my_experiments/`. Читать перед тем, как что-то дописывать.
+Rules the code under `my_experiments/` holds to. Read this before adding anything.
 
-## Fail fast, а не «тихо починить»
+## English only
 
-Данные соревнования полны ловушек: сдвинутые временные базы, пропуски, закодированные нулём,
-переменное число каналов, величины, которые выглядят как входы, но являются целями. Защитный код
-вида «взять минимум» или «подставить среднее» такие ловушки **скрывает**: обучение проходит,
-метрика считается, и ничего не сигнализирует, что треть признаков — мусор.
+All code, comments, docstrings, error messages, progress labels, commit messages and repository
+documents are in English. The conversation around the work can be in any language; the artifacts
+cannot. This fork is public and descends from an English project, so a mixed-language repository is
+unreadable to anyone but its author — including to the organizers, if a data question ends up in an
+issue quoting our code.
 
-Поэтому в `my_experiments/` действует правило: **несоответствие ожиданиям — это исключение,
-а не повод продолжить**.
+## Fail fast, never quietly repair
 
-Конкретно запрещено:
+The competition data is full of traps: shifted time bases, gaps encoded as zeros, a channel count
+that varies per shot, quantities that look like inputs but are targets. Defensive code of the
+"take the minimum" or "substitute the mean" kind **hides** those traps: training completes, the
+metric prints, and nothing signals that a third of the features are garbage.
 
-| вместо этого | делаем так |
+So, in `my_experiments/`: **a mismatch against expectations is an exception, not a reason to
+continue.**
+
+Specifically banned:
+
+| instead of this | do this |
 |---|---|
 | `T = min(len(a), len(b))` | `if len(a) != len(b): raise ValueError(...)` |
-| `if col not in row: continue` | `raise ValueError(f"нет колонки {col}")` |
+| `if col not in row: continue` | `raise ValueError(f"no column {col}")` |
 | `np.nan_to_num(x)` | `if not np.isfinite(x).all(): raise ValueError(...)` |
-| `if mask.sum() >= 10: fit() else: среднее` | обучаемся на всём; если данных мало — исключение |
-| `n = min(n_pca, доступно)` | `if n_pca > доступно: raise ValueError(...)` |
-| вернуть нули для неподдержанного случая | `raise NotImplementedError(...)` |
-| `print("warning: ...")` и продолжить | `raise` |
+| `if mask.sum() >= 10: fit() else: mean` | fit on everything; too little data is an exception |
+| `n = min(n_pca, available)` | `if n_pca > available: raise ValueError(...)` |
+| returning zeros for an unsupported case | `raise NotImplementedError(...)` |
+| `print("warning: ...")` and carry on | `raise` |
 
-Текст исключения обязан содержать **имя файла или колонки и оба числа**, которые не сошлись —
-иначе на выборке в тысячи шотов искать причину невозможно.
+The message must carry **the filename or column and both numbers** that disagreed — on a corpus of
+a few thousand shots an assertion without coordinates is not actionable.
 
-Единственное исключение из правила — `submission_skeleton.your_model_predict`, который откатывается
-к нулям, если модель ещё не обучена. Это стартер-кит, и там откат нужен, чтобы можно было проверить
-цепочку сборки до появления модели. Но и он ловит только `ImportError`/`FileNotFoundError`, то есть
-«модели нет», а не «модель сломалась».
+The one deliberate exception is `submission_skeleton.your_model_predict`, which falls back to zeros
+when no model has been trained yet, so the build pipeline can be exercised before a model exists.
+Even it catches only `ImportError` / `FileNotFoundError` — "no model", never "broken model".
 
-Почему так: за время работы над этим форком тихие ветки успели скрыть отсутствие `efit_psirz` в
-тестовых конфигах, сдвиг оси тока плазмы на 3 секунды и обрезание формы ψ до `(T, 65)`. Каждый раз
-дефект находился случайно, спустя часы после того, как повлиял на числа.
+Why: over the course of this fork, silent branches hid the missing `efit_psirz` on test rows, the
+three-second offset of the plasma-current axis, and a shape helper truncating psi to `(T, 65)`.
+Each was found by accident, hours after it had already influenced the numbers.
 
-## Проверять на данных, а не рассуждать
+## Measure, do not reason
 
-Любое утверждение о данных подтверждается замером на выборке шотов, и в сообщении приводится
-число. «Похоже, ток всегда положительный» не является выводом; «обратный ток у 21 из 200 шотов»
-является.
+Any claim about the data is backed by a measurement over a sample of shots, and the message quotes
+the number. "The current seems to always be positive" is not a conclusion; "reversed current in 21
+of 200 shots" is.
 
-Гипотезы, которые не подтвердились, отмечаем явно — иначе они всплывают повторно. Уже проверено
-и **опровергнуто**:
+Hypotheses that did not survive are recorded, so they do not get re-litigated. Already tested and
+**refuted**:
 
-- Томсон не объясняет провалы модели (корреляция R² с Te −0.07, с ne 0.00 на 200 шотах).
-- Ошибка на провальных шотах — не просто смещение уровня ψ (снятие константы даёт лишь 21%).
-- Нормализация полярности по знаку Iₚ ухудшает результат (0.63 против 0.68).
+- Thomson does not explain the model's failures (R² correlates −0.07 with Te, 0.00 with ne, 200 shots).
+- The error on failing shots is not merely an offset in the psi level (removing the per-shot
+  constant recovers only 21% of it).
+- Normalizing polarity by the sign of Ip makes the score worse (0.63 against 0.68).
 
-## Сплит
+## The split
 
-Порядок шотов — `sha1` от имени файла (`baseline_model.sorted_shots`). Обучение берёт начало
-списка, оценка — конец, доли задаются через `--share`. Никогда не `hash()`: он солится на каждый
-запуск процесса, и сплит перестал бы воспроизводиться, причём молча.
+Shots are ordered by `sha1` of the filename (`baseline_model.sorted_shots`). Training takes the
+head of the list, evaluation the tail, and the sizes are given as `--share`. Never the builtin
+`hash()`: it is salted per process, and the split would stop being reproducible — silently.
 
-Непересечение проверяется по **именам файлов** из артефакта, а не арифметикой индексов — так
-проверка остаётся верной, если каталог с данными пополнился.
+Non-overlap is checked against the **filenames** stored in the artifact, not by index arithmetic,
+so the check stays correct when the data directory grows.
 
-## Одна реализация метрики
+## One implementation of the metric
 
-Счёт всегда через `local_score.py`, вызываемый как функция. Своих R² и своих сумм квадратов не
-писать: метрика соревнования живёт в `fusion_scoring/` и устроена неочевидно (пул по всему фолду с
-одним скалярным средним для R², но среднее по шотам для `D_LCFS`).
+Scoring always goes through `local_score.py`, called as a function. Do not write your own R² or your
+own sums of squares: the competition metric lives in `fusion_scoring/` and is not obvious — R² is
+pooled across the whole fold against a single scalar mean, while `D_LCFS` is averaged per shot.
 
-## Прогресс — через tqdm
+## Progress through tqdm
 
-Одна перерисовывающаяся строка на цикл, а не строка на шот. На выборке в тысячи шотов
-построчная печать делает вывод нечитаемым и скрывает в себе настоящие сообщения.
+One redrawing line per loop, not a line per shot. Over thousands of shots, per-line printing makes
+the output unreadable and buries the messages that matter.

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Точка входа 2 из 2 — оценить сохранённый бейзлайн реальной метрикой соревнования.
+Entry point 2 of 2 — score the saved baseline with the real competition metric.
 
-    uv run python my_experiments/evaluate.py --share 0.02     # 2% шотов
+    uv run python my_experiments/evaluate.py --share 0.02     # 2% of the shots
 
-Шоты берутся с КОНЦА списка, отсортированного по sha1 от имени файла, а train.py берёт с
-начала того же списка. Пересечение проверяется явно — не по арифметике индексов, а по именам
-файлов, записанным в артефакт при обучении: модель, оценённая на шотах, на которых училась,
-даёт бессмысленное число.
+Shots come from the TAIL of the list ordered by sha1 of the filename, while train.py takes the
+head of the same list. The overlap check is explicit — not index arithmetic, but the filenames
+recorded in the artifact at training time: a model scored on shots it was fitted on reports a
+number that means nothing.
 
-Сам счёт делает local_score.py, вызываемый как функция, чтобы метрика имела ровно одну
-реализацию (вендоренные модули fusion_scoring/, те же, что крутит платформа).
+Scoring itself is local_score.py, called as a function so the metric has exactly one
+implementation (the vendored fusion_scoring/ modules, the same ones the platform runs).
 """
 from __future__ import annotations
 
@@ -31,39 +31,39 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--share", type=float, default=0.02,
-                    help="доля шотов для оценки, с конца списка (по умолчанию 0.02)")
+                    help="share of shots to score on, from the tail of the list (default 0.02)")
     ap.add_argument("--mode", choices=["model", "perfect", "zeros"], default="model",
-                    help="perfect/zeros проверяют сам харнесс (S должен быть 1.0 / 0.0)")
+                    help="perfect/zeros verify the harness itself (S must be 1.0 / 0.0)")
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
-                    help="корень скачанного датасета (папка, содержащая 'data/')")
+                    help="root of the downloaded dataset (the folder containing 'data/')")
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
     args = ap.parse_args()
 
     all_files = sorted_shots(args.local_data_dir, args.config)
     files = take_share(all_files, args.share, "tail")
-    print(f"Оценка на {len(files)} шотах ({args.share:.1%} от {len(all_files)}), конец списка")
+    print(f"Scoring {len(files)} shots ({args.share:.1%} of {len(all_files)}), tail of the list")
 
     if args.mode == "model":
         if not ARTIFACT.exists():
             raise SystemExit(
-                f"{ARTIFACT} не найден — без него проверить непересечение сплитов невозможно.\n"
-                f"Сначала обучите:  uv run python my_experiments/train.py --share 0.01"
+                f"{ARTIFACT} not found — without it the splits cannot be checked for overlap.\n"
+                f"Train first:  uv run python my_experiments/train.py --share 0.01"
             )
         art = joblib.load(ARTIFACT)
         if not art.get("train_files"):
-            raise SystemExit(f"в {ARTIFACT} нет списка обучающих файлов — артефакт от старой версии, "
-                             f"переобучите")
+            raise SystemExit(f"{ARTIFACT} carries no list of training files — artifact from an "
+                             f"older version, retrain")
         overlap = {p.name for p in files} & set(art["train_files"])
         if overlap:
             raise SystemExit(
-                f"Пересечение сплитов: {len(overlap)} шотов есть и в обучении, и в оценке "
-                f"(например {sorted(overlap)[:3]}).\n"
-                f"Модель училась на {art['n_train_shots']} шотах "
-                f"({art.get('train_share', '?'):.1%}), сейчас просите {args.share:.1%} с конца — "
-                f"в сумме больше 100%. Уменьшите долю."
+                f"Splits overlap: {len(overlap)} shots appear in both training and scoring "
+                f"(e.g. {sorted(overlap)[:3]}).\n"
+                f"The model was fitted on {art['n_train_shots']} shots "
+                f"({art.get('train_share', '?'):.1%}), and you are asking for {args.share:.1%} "
+                f"from the tail — over 100% together. Lower the share."
             )
-        print(f"Проверка отложенности: обучение {art['n_train_shots']} шотов, "
-              f"оценка {len(files)} — пересечений нет.")
+        print(f"Held-out check: {art['n_train_shots']} shots trained on, {len(files)} scored — "
+              f"no overlap.")
 
     return local_score.main([
         "--source", "local",

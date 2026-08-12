@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-EDA-песочница: обучающий сплит DIII-D. Запуск:
+EDA scratchpad: the DIII-D training split. Run with:
 
     uv run python my_experiments/eda.py
 
-Один parquet — это один шот, одна строка, в каждой ячейке лежит целый массив.
-Соседние файлы делают то же самое для тестовых сплитов:
+One parquet is one shot, one row, and every cell holds a whole array.
+Sibling files do the same for the test splits:
     eda_test_diii_d.py, eda_test_mast.py
 """
 from pathlib import Path
@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 DATA_ROOT = Path(__file__).resolve().parent.parent.parent / "downloaded_huggingface" / "hf_dataset" / "data"
-SHOT = 0          # индекс файла в отсортированном списке
+SHOT = 0          # index of the file in the sorted list
 
 pd.set_option("display.max_rows", 200)
 pd.set_option("display.max_colwidth", 70)
@@ -21,7 +21,7 @@ pd.set_option("display.width", 200)
 
 
 def shape(v):
-    """Спускаемся по вложенности, пока это не строка и не скаляр."""
+    """Descend through the nesting while it is neither a string nor a scalar."""
     s = []
     while hasattr(v, "__len__") and not isinstance(v, str) and len(v):
         s.append(len(v))
@@ -30,12 +30,12 @@ def shape(v):
 
 
 def dump(config: str, shot: int = SHOT) -> None:
-    """Печатает один шот конфига транспонированным, со столбцом форм."""
+    """Print one shot of the config transposed, with a column of shapes."""
     data_dir = DATA_ROOT / config
     files = sorted(data_dir.glob("*.parquet"))
     if not files:
         raise SystemExit(
-            f"Нет parquet-файлов в {data_dir}. Скачать:\n"
+            f"No parquet files in {data_dir}. Download them with:\n"
             f'  hf download Sophelio/fusion-equilibrium-challenge --repo-type dataset '
             f'--local-dir {DATA_ROOT.parent} --include "data/{config}/*"'
         )
@@ -44,8 +44,8 @@ def dump(config: str, shot: int = SHOT) -> None:
     t = df.T
     t["shape"] = [shape(v) for v in df.iloc[0]]
 
-    print(f"{config}: {len(files)} шотов")
-    print(f"{file.name}   {df.shape[0]} строк x {df.shape[1]} колонок\n")
+    print(f"{config}: {len(files)} shots")
+    print(f"{file.name}   {df.shape[0]} rows x {df.shape[1]} columns\n")
     print(t)
 
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-То же, что eda.py, но для публичного теста MAST. Запуск:
+Same as eda.py, but for the MAST public test split. Run with:
 
     uv run python my_experiments/eda_test_mast.py
 
-Другая машина: сферический токамак, свой набор катушек и своя сетка,
-поэтому и список колонок отличается от DIII-D.
+A different machine: a spherical tokamak with its own coil set and its own grid, so the
+column list differs from DIII-D.
 """
 from eda import dump
 

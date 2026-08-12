@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-То же, что eda.py, но для публичного теста DIII-D. Запуск:
+Same as eda.py, but for the DIII-D public test split. Run with:
 
     uv run python my_experiments/eda_test_diii_d.py
 
-Здесь целей нет — колонки efit_psirz / efit_q95 / efit_beta_n и прочие efit_* withheld.
-Разница со списком колонок обучающего сплита и есть то, что вы предсказываете.
+No targets here — efit_psirz / efit_q95 / efit_beta_n and the other efit_* columns are
+withheld. The difference against the training split's column list is exactly what you predict.
 """
 from eda import dump
 

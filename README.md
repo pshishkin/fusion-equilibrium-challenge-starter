@@ -41,7 +41,7 @@ overlap. `hashlib`, never the builtin `hash()`, which is salted per process and 
 reorder between the two runs.
 
 ```bash
-# обучить и сразу оценить: 1% на обучение, 2% на оценку
+# train and score in one go: 1% to fit, 2% held out
 uv run python my_experiments/train_eval.py 0.01 0.02
 
 # 1. train on the head of the list -> my_experiments/baseline.joblib

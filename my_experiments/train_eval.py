@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Обучить и сразу оценить, одной командой.
+Train and immediately score, in one command.
 
     uv run python my_experiments/train_eval.py 0.01 0.02
 
-Первый аргумент — доля шотов на обучение (с начала списка), второй — на оценку (с конца).
-Оба шага используют один и тот же порядок, отсортированный по sha1 от имени файла, поэтому
-сплит воспроизводим, а непересечение проверяется внутри evaluate.py.
+First argument is the share of shots to train on (head of the list), second is the share to
+score on (tail). Both steps walk the same sha1-ordered list, so the split reproduces, and the
+non-overlap is checked inside evaluate.py.
 """
 from __future__ import annotations
 
@@ -24,13 +24,13 @@ def main(argv: list[str]) -> int:
     train_share, eval_share = argv
 
     print("=" * 70)
-    print(f"ОБУЧЕНИЕ, доля {float(train_share):.1%}")
+    print(f"TRAINING on {float(train_share):.1%}")
     print("=" * 70)
     sys.argv = ["train.py", "--share", train_share]
     train.main()
 
     print("\n" + "=" * 70)
-    print(f"ОЦЕНКА, доля {float(eval_share):.1%}")
+    print(f"SCORING on {float(eval_share):.1%}")
     print("=" * 70)
     sys.argv = ["evaluate.py", "--share", eval_share]
     return evaluate.main()
