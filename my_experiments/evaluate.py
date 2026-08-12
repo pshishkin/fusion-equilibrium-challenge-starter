@@ -43,9 +43,17 @@ def main() -> int:
     files = take_share(all_files, args.share, "tail")
     print(f"Оценка на {len(files)} шотах ({args.share:.1%} от {len(all_files)}), конец списка")
 
-    if args.mode == "model" and ARTIFACT.exists():
+    if args.mode == "model":
+        if not ARTIFACT.exists():
+            raise SystemExit(
+                f"{ARTIFACT} не найден — без него проверить непересечение сплитов невозможно.\n"
+                f"Сначала обучите:  uv run python my_experiments/train.py --share 0.01"
+            )
         art = joblib.load(ARTIFACT)
-        overlap = {p.name for p in files} & set(art.get("train_files", []))
+        if not art.get("train_files"):
+            raise SystemExit(f"в {ARTIFACT} нет списка обучающих файлов — артефакт от старой версии, "
+                             f"переобучите")
+        overlap = {p.name for p in files} & set(art["train_files"])
         if overlap:
             raise SystemExit(
                 f"Пересечение сплитов: {len(overlap)} шотов есть и в обучении, и в оценке "

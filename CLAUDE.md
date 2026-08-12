@@ -1,9 +1,10 @@
 # CLAUDE.md
 
-Project documentation lives in [README.md](README.md) — this fork's own guide: data layout, the
-train → score → submit workflow, and the traps worth knowing. The organizers' original guide is
-[README_ORIGINAL.md](README_ORIGINAL.md), kept unmodified.
+Документация проекта — в [README.md](README.md): раскладка данных, цепочка train → score → submit
+и грабли, на которые уже наступали. Соглашения по коду — в [AGENTS.md](AGENTS.md), начиная с
+правила fail fast. Оригинальное руководство организаторов — [README_ORIGINAL.md](README_ORIGINAL.md),
+оставлено без изменений.
 
-**Keep this file empty.** It exists only to point at the README. Conventions, architecture notes
-and anything learned along the way belong in README.md, so there is one place to read and one
-place to keep current.
+**Этот файл держим пустым.** Он существует только как указатель. Всё, что узнаётся по ходу работы,
+идёт в README.md, всё, что касается стиля и правил, — в AGENTS.md, чтобы было одно место для чтения
+и одно для поддержания в актуальном состоянии.

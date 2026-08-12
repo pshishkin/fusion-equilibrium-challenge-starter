@@ -2,12 +2,15 @@
 
 Working notes for this fork. The organizers' full guide — physics, data dictionary, scoring
 detail, submission rules — is [`README_ORIGINAL.md`](README_ORIGINAL.md), kept unmodified.
+Coding conventions, starting with the fail-fast rule, are in [`AGENTS.md`](AGENTS.md) — read that
+before adding code under `my_experiments/`.
 
 ## What this fork adds
 
 | | |
 |---|---|
-| `my_experiments/train.py`, `evaluate.py` | The two entry points: train on the first N shots, score on the last N. The model itself lives in `baseline_model.py`, which **saves** what it trains (`baseline.joblib`) — the starter kit's `experiments.py` never persists a model, so nothing it trains can be scored or submitted. |
+| `my_experiments/train.py`, `evaluate.py` | The two entry points: `--share` of the shot list, ordered by a hash of the shot id — training takes the head, evaluation the tail. The model itself lives in `baseline_model.py`, which **saves** what it trains (`baseline.joblib`) — the starter kit's `experiments.py` never persists a model, so nothing it trains can be scored or submitted. |
+| `my_experiments/eda*.py` | One shot printed transposed with a shape column, for the training split and both public test splits. |
 | `--source local` | Added to `local_score.py`, `submission_skeleton.py`, `validate_submission.py` — read a downloaded copy of the dataset instead of streaming the Hub. `experiments.py` already had it. |
 | `--configs` | On `submission_skeleton.py`, to build a DIII-D-only submission without downloading MAST. |
 
@@ -30,16 +33,22 @@ therefore asks for ~200 GB and gets OOM-killed before the first shot loads.
 
 ## Workflow
 
-Two entry points. Training takes the **first** N shots, evaluation the **last** N, both in sorted
-filename order — the windows grow from opposite ends, so the split is held out by construction.
-`evaluate.py` checks that rather than trusting it and refuses to score if they overlap.
+Two entry points, both taking a **share** of one shot list ordered by `sha1` of the shot id.
+Training takes the head of that list, evaluation the tail — the windows grow from opposite ends, so
+the split is held out as long as the shares sum to under 1. `evaluate.py` checks that against the
+filenames recorded in the artifact rather than trusting index arithmetic, and refuses to score on
+overlap. `hashlib`, never the builtin `hash()`, which is salted per process and would silently
+reorder between the two runs.
 
 ```bash
-# 1. train on the first 20 shots -> my_experiments/baseline.joblib
-uv run python my_experiments/train.py --n-shots 20
+# обучить и сразу оценить: 1% на обучение, 2% на оценку
+uv run python my_experiments/train_eval.py 0.01 0.02
 
-# 2. score on the last 20 shots, with the real competition metric
-uv run python my_experiments/evaluate.py --n-shots 20
+# 1. train on the head of the list -> my_experiments/baseline.joblib
+uv run python my_experiments/train.py --share 0.01
+
+# 2. score on the tail, with the real competition metric
+uv run python my_experiments/evaluate.py --share 0.02
 
 # 3. build the submission (874 local DIII-D test shots, ~1.8 GB .npz)
 uv run python submission_skeleton.py --max-shots 0 --source local \
@@ -57,29 +66,38 @@ and S = 0.0 exactly.
 
 ### Where the baseline stands
 
-Trained on the first 20 shots, scored on the last 20 (of 7034 downloaded):
+`train_eval.py 0.1 0.02` — 704 shots to fit, 141 held out, of 7041:
 
 ```
-COMPOSITE S = 0.0876
-          R2_psi   -0.2166      Consistency    0.0050
-  R2_{q95,betaN}   -1.0901       1 - D_LCFS    0.8657
+COMPOSITE S = 0.7049
+          R2_psi    0.8453      Consistency    0.3888
+  R2_{q95,betaN}    0.4488       1 - D_LCFS    0.9492
+
+  worst derived scalar: volume  R² = -0.80,  best: Z_axis  R² = 0.76
 ```
 
-Negative R² means the model is worse than predicting the training mean — 21 coil currents through
-one linear map do not transfer across shots. Only `1 - D_LCFS` scores, and that term is forgiving.
-The plumbing is proven end to end; the model is the open problem. `MODELING_GUIDE.md` is where to
-start, and the per-scalar breakdown that `evaluate.py` prints says which derived quantity is worst
-(currently `Z_axis`, R² = −24).
+Not comparable to earlier numbers in this file's history — the split changed, so the evaluation set
+is different (141 shots instead of 20, and 6% reversed-current shots instead of 11%). The model
+itself is unchanged.
+
+Reference points measured on the same metric, worth keeping in mind: predicting a single flat
+constant scores R²ψ = 0 by construction, and predicting the mean ψ *image* already scores 0.36. The
+useful range of R²ψ starts around 0.36, not at zero.
 
 ## Things that already cost time
-
-**Train and score must not overlap.** `baseline_model.py` takes shots in sorted filename order
-(`files[:n_shots]`), so `--skip n_shots` in the scorer is disjoint by construction.
-`experiments.py --source local` instead samples randomly, so its splits give no such guarantee.
 
 **Test rows have no `efit_*` targets.** `experiments.load_shot_from_hf_row` reads `efit_psirz`
 unconditionally and dies on every test row; `baseline_model.inputs_only_shot` reads only
 `efit_times` + `magnetics_*`. Anything on the inference path must go through the latter.
+
+**DIII-D: the plasma-current time base is offset ~3 s in 72% of shots.** It correlates with the
+magnetics sampling rate (0.05 ms → shifted, 0.5 ms → aligned); only `magnetics_plasma_current` is
+affected, the coils track `efit_times` fine. Interpolating Ip onto the EFIT grid therefore returns
+pre-shot noise for most shots. Not yet corrected in this fork.
+
+**Roughly 10% of DIII-D shots run reversed plasma current**, and the linear baseline scores worse
+than a constant on every one of them. The whole input vector flips sign with Ip (the shaping coils
+mirror it), so the two polarities are two regimes for one global linear map.
 
 **Shot order is load-bearing.** The scorer matches `shot_XXXX_*` keys positionally. Local reads use
 `sorted(dir.glob(...))`, which reproduces the Hub's order because `datasets` resolves files through
@@ -91,7 +109,8 @@ uv run python validate_submission.py submission/diii_d_public_test.npz \
     --config diii_d_public_test --max-shots 5
 ```
 
-**MAST is unimplemented.** `predict_row` returns zeros for it, so submissions are DIII-D only:
+**MAST is unimplemented.** `predict_row` raises `NotImplementedError` on a MAST row rather than
+returning zeros that would look like a working prediction, so submissions are DIII-D only:
 Challenge 1 scores, Challenge 2 shows `G_ratio = 0`.
 
 ## Pointer zips

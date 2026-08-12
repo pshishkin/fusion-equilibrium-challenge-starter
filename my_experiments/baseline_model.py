@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
+from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -88,29 +89,34 @@ def inputs_only_shot(row) -> dict:
     meaningless. Works for a streamed dict and for a parquet row alike — `in` hits dict keys and
     Series index the same way.
     """
-    times_col = "magnetics_time"
-    shared = np.asarray(row[times_col], dtype=np.float64) if times_col in row else None
-    ip_col = "magnetics_plasma_current_times"
-    ip_times = np.asarray(row[ip_col], dtype=np.float64) if ip_col in row else shared
+    for col in ("magnetics_time", "magnetics_plasma_current_times", "efit_times"):
+        if col not in row:
+            raise ValueError(f"в строке нет колонки {col} — это не строка DIII-D?")
+    shared = np.asarray(row["magnetics_time"], dtype=np.float64)
+    ip_times = np.asarray(row["magnetics_plasma_current_times"], dtype=np.float64)
 
     magnetics = {}
     for sig in D3D_MAGNETICS_SIGNALS:
         col = f"magnetics_{sig}"
         if col not in row:
-            continue
+            raise ValueError(f"в строке нет сигнала {col}; ожидались все "
+                             f"{len(D3D_MAGNETICS_SIGNALS)}: {D3D_MAGNETICS_SIGNALS}")
         times = ip_times if sig == "plasma_current" else shared
-        if times is None:
-            continue
         magnetics[sig] = {"values": np.asarray(row[col], dtype=np.float32), "times": times}
 
     return {"efit_times": np.asarray(row["efit_times"], dtype=np.float64), "magnetics": magnetics}
 
 
 def features_for_row(row) -> np.ndarray:
-    """(T, 21) magnetics features on the EFIT time base. Always exactly T rows, so a
-    prediction can never come out misaligned with `efit_times`. Signals missing from the row
-    become a zero column, exactly as interpolate_magnetics_to_efit does for the training rows."""
-    return interpolate_magnetics_to_efit(inputs_only_shot(row))
+    """(T, 21) magnetics features on the EFIT time base, ровно len(efit_times) строк."""
+    shot = inputs_only_shot(row)
+    feats = interpolate_magnetics_to_efit(shot)
+    if feats.shape != (len(shot["efit_times"]), len(D3D_MAGNETICS_SIGNALS)):
+        raise ValueError(f"признаки {feats.shape}, ожидалось "
+                         f"({len(shot['efit_times'])}, {len(D3D_MAGNETICS_SIGNALS)})")
+    if not np.isfinite(feats).all():
+        raise ValueError(f"в признаках {int((~np.isfinite(feats)).sum())} нефинитных значений")
+    return feats
 
 
 # --------------------------------------------------------------------------- training
@@ -123,66 +129,67 @@ def train(share: float, n_pca: int, alpha: float,
           f"начало списка, порядок по sha1")
 
     X_parts, Y_parts, S_parts = [], [], []
-    for i, path in enumerate(files):
+    bar = tqdm(files, desc="чтение шотов", unit="шот")
+    for path in bar:
         row = pd.read_parquet(path).iloc[0]
-        feats = features_for_row(row)                 # same code path as inference
-        psi = _as_psirz_stack(row["efit_psirz"])      # train rows only — targets are withheld on test
-        T = min(len(feats), len(psi))
+        feats = features_for_row(row)                 # тот же путь, что и в инференсе
+        psi = _as_psirz_stack(row["efit_psirz"])      # только train: на тесте цели withheld
+        T = len(feats)
+        if len(psi) != T:
+            raise ValueError(f"{path.name}: признаков {T} строк, кадров ψ {len(psi)}")
+        if not np.isfinite(psi).all():
+            raise ValueError(f"{path.name}: в ψ {int((~np.isfinite(psi)).sum())} нефинитных значений")
 
-        scal = np.full((T, len(SUBMITTED_SCALARS)), np.nan, dtype=np.float64)
+        scal = np.empty((T, len(SUBMITTED_SCALARS)), dtype=np.float64)
         for j, name in enumerate(SUBMITTED_SCALARS):
             if name not in row:
-                continue
+                raise ValueError(f"{path.name}: нет целевой колонки {name}")
             arr = np.asarray(row[name], dtype=np.float64).ravel()
-            m = min(T, len(arr))
-            scal[:m, j] = arr[:m]
+            if len(arr) != T:
+                raise ValueError(f"{path.name}: {name} длины {len(arr)}, ожидалось {T}")
+            if not np.isfinite(arr).all():
+                raise ValueError(f"{path.name}: в {name} "
+                                 f"{int((~np.isfinite(arr)).sum())} нефинитных значений")
+            scal[:, j] = arr
 
-        X_parts.append(feats[:T])
-        Y_parts.append(psi[:T])
+        X_parts.append(feats)
+        Y_parts.append(psi)
         S_parts.append(scal)
-        print(f"  [{i + 1}/{len(files)}] {path.name}  T={T}")
+        # Кадры копятся в постфиксе: по нему видно и объём выборки, и что прогресс живой,
+        # без строки на каждый шот.
+        bar.set_postfix(кадров=sum(len(x) for x in X_parts))
 
     X = np.concatenate(X_parts)
     Y = np.concatenate(Y_parts)
     S = np.concatenate(S_parts)
     del X_parts, Y_parts, S_parts
 
-    valid = np.isfinite(X).all(axis=1) & np.isfinite(Y.reshape(len(Y), -1)).all(axis=1)
-    if not valid.all():
-        print(f"  dropped {int((~valid).sum())} frames with non-finite inputs or ψ")
-        X, Y, S = X[valid], Y[valid], S[valid]
     print(f"  X {X.shape}  Y {Y.shape}  S {S.shape}")
 
     scaler = StandardScaler().fit(X)
     Xs = scaler.transform(X)
 
-    n_components = min(n_pca, len(Xs), EFIT_GRID_SIZE ** 2)
-    pca = TargetPCA(n_components=n_components).fit(Y)
-    print(f"  PCA: {n_components} components capture "
-          f"{np.cumsum(pca.explained_variance_ratio)[-1] * 100:.1f}% of ψ variance")
+    if n_pca > min(len(Xs), EFIT_GRID_SIZE ** 2):
+        raise ValueError(f"--n-pca {n_pca} больше доступного: кадров {len(Xs)}, "
+                         f"пикселей {EFIT_GRID_SIZE ** 2}. Увеличьте --share или уменьшите --n-pca.")
+    pca = TargetPCA(n_components=n_pca).fit(Y)
+    print(f"  PCA: {n_pca} компонент объясняют "
+          f"{np.cumsum(pca.explained_variance_ratio)[-1] * 100:.1f}% дисперсии ψ")
 
     psi_model = Ridge(alpha=alpha).fit(Xs, pca.transform(Y))
 
-    # One Ridge per submitted scalar: q95 and betaN are undefined on different frames, so a
-    # shared row mask would throw away data that the other target still has.
-    scalar_models, scalar_fallback = {}, {}
+    scalar_models = {}
     for j, name in enumerate(SUBMITTED_SCALARS):
-        m = np.isfinite(S[:, j])
-        scalar_fallback[name] = float(np.nanmean(S[m, j])) if m.any() else 0.0
-        if m.sum() >= 10:
-            scalar_models[name] = Ridge(alpha=alpha).fit(Xs[m], S[m, j])
-            print(f"  {name}: fitted on {int(m.sum())}/{len(S)} frames")
-        else:
-            print(f"  {name}: only {int(m.sum())} valid frames — falling back to the mean")
+        scalar_models[name] = Ridge(alpha=alpha).fit(Xs, S[:, j])
 
     artifact = {
         "scaler": scaler, "pca": pca, "psi_model": psi_model,
-        "scalar_models": scalar_models, "scalar_fallback": scalar_fallback,
+        "scalar_models": scalar_models,
         # Имена файлов, а не индексы: evaluate.py проверяет пересечение по ним напрямую,
         # и проверка остаётся верной, даже если каталог с данными пополнился.
         "train_files": [p.name for p in files],
         "n_train_shots": len(files), "train_share": share, "config": config,
-        "n_pca": n_components, "alpha": alpha,
+        "n_pca": n_pca, "alpha": alpha,
     }
     joblib.dump(artifact, ARTIFACT)
     print(f"\nСохранено: {ARTIFACT}")
@@ -200,37 +207,39 @@ def _load() -> dict:
     if _CACHE is None:
         if not ARTIFACT.exists():
             raise FileNotFoundError(
-                f"{ARTIFACT} not found — train first:\n"
-                f"  uv run python my_experiments/baseline_model.py --n-shots 30"
+                f"{ARTIFACT} не найден — сначала обучите:\n"
+                f"  uv run python my_experiments/train.py --share 0.01"
             )
         _CACHE = joblib.load(ARTIFACT)
     return _CACHE
 
 
 def predict_row(row, source: str = "DIII-D") -> dict:
-    """Predict {psirz (T,65,65), q95 (T,), betaN (T,)} for one dataset row.
+    """Предсказание {psirz (T,65,65), q95 (T,), betaN (T,)} для одной строки датасета.
 
-    Uses only `magnetics_*` and `efit_times` — never the `efit_*` targets, which are present in
-    training rows and would make any local score meaningless.
+    Использует только `magnetics_*` и `efit_times` — никогда `efit_*` цели, которые есть в
+    обучающих строках и обесценили бы любой локальный скор.
     """
     art = _load()
+    if source != "DIII-D":
+        raise NotImplementedError(
+            f"модель обучена только на DIII-D, а строка помечена source={source!r}. "
+            f"Для MAST нужен свой набор катушек и своё обучение — молча выдавать нули нельзя, "
+            f"это выглядело бы как рабочее предсказание."
+        )
+
     T = len(np.asarray(row["efit_times"]))
-
-    if source != "DIII-D":      # trained on DIII-D only; MAST would need its own fit
-        return {"psirz": np.zeros((T, EFIT_GRID_SIZE, EFIT_GRID_SIZE), dtype=np.float32),
-                "q95": np.zeros(T, dtype=np.float32), "betaN": np.zeros(T, dtype=np.float32)}
-
-    # Every frame must get a prediction — the submission contract is exactly T rows — so
-    # non-finite features are imputed to the training mean (0 after scaling) rather than dropped.
-    Xs = np.nan_to_num(art["scaler"].transform(features_for_row(row)),
-                       nan=0.0, posinf=0.0, neginf=0.0)
+    Xs = art["scaler"].transform(features_for_row(row))   # features_for_row уже требует конечности
 
     out = {"psirz": art["pca"].inverse_transform(art["psi_model"].predict(Xs))}
     for name, key in zip(SUBMITTED_SCALARS, ["q95", "betaN"]):
-        model = art["scalar_models"].get(name)
-        vals = (model.predict(Xs) if model is not None
-                else np.full(len(Xs), art["scalar_fallback"][name]))
-        out[key] = vals.astype(np.float32)
+        out[key] = art["scalar_models"][name].predict(Xs).astype(np.float32)
+
+    for key, want in [("psirz", (T, EFIT_GRID_SIZE, EFIT_GRID_SIZE)), ("q95", (T,)), ("betaN", (T,))]:
+        if out[key].shape != want:
+            raise ValueError(f"{key}: форма {out[key].shape}, контракт требует {want}")
+        if not np.isfinite(out[key]).all():
+            raise ValueError(f"{key}: в предсказании есть нефинитные значения")
     return out
 
 

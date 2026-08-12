@@ -41,6 +41,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from tqdm import tqdm
 
 HERE = Path(__file__).resolve().parent
 # The vendored scorer uses flat imports (`from common import ...`) exactly as it does on the
@@ -127,10 +128,11 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
 
     if files is not None:
         out = []
-        for i, path in enumerate(files):
+        bar = tqdm(files, desc="  чтение шотов", unit="шот")
+        for path in bar:
             shot = _shot_from_row(pd.read_parquet(path).iloc[0])
             out.append(shot)
-            print(f"  loaded shot {i} ({Path(path).name})  T={shot['psi'].shape[0]}")
+            bar.set_postfix(кадров=sum(s["psi"].shape[0] for s in out))
         return out
 
     data_dir = Path(local_data_dir) / "data" / config
@@ -150,10 +152,11 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
         )
 
     out = []
-    for i, path in enumerate(files[skip:skip + n_shots], start=skip):
+    bar = tqdm(files[skip:skip + n_shots], desc="  чтение шотов", unit="шот")
+    for path in bar:
         shot = _shot_from_row(pd.read_parquet(path).iloc[0])
         out.append(shot)
-        print(f"  loaded shot {i} ({path.name})  T={shot['psi'].shape[0]}")
+        bar.set_postfix(кадров=sum(s["psi"].shape[0] for s in out))
     return out
 
 
@@ -357,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
     refs, psi_sum, psi_sumsq, psi_n = [], 0.0, 0.0, 0.0
     scal_sum, scal_sumsq, scal_n = np.zeros(N_SCALARS), np.zeros(N_SCALARS), np.zeros(N_SCALARS)
     cons_sum, cons_sumsq, cons_n = np.zeros(N_CONS), np.zeros(N_CONS), np.zeros(N_CONS)
-    for si, s in enumerate(shots):
+    for s in tqdm(shots, desc="  эталоны из ground truth", unit="шот"):
         ref = build_reference(s["psi"], R, Z, mask_coarse, mask_f)
         refs.append(ref)
         g = s["psi"].astype(np.float64)
@@ -371,7 +374,6 @@ def main(argv: list[str] | None = None) -> int:
         for j in range(N_CONS):
             v = cons_gt[cmask[:, j], j]
             cons_sum[j] += v.sum(); cons_sumsq[j] += (v ** 2).sum(); cons_n[j] += v.size
-        print(f"  shot {si}: reference built")
 
     ref_stats = {"psi_sum": psi_sum, "psi_sumsq": psi_sumsq, "psi_n": psi_n,
                  "scal_sum": scal_sum, "scal_sumsq": scal_sumsq, "scal_n": scal_n,
@@ -400,9 +402,8 @@ def main(argv: list[str] | None = None) -> int:
     print("Scoring...")
     acc = Accum()
     acc.psi_sign = psi_sign
-    for si, (s_, ref, p) in enumerate(zip(shots, refs, preds)):
+    for s_, ref, p in tqdm(list(zip(shots, refs, preds)), desc="  счёт метрики", unit="шот"):
         acc.add(score_shot(s_, ref, p, R, Z, mask_coarse, mask_f, psi_sign, means))
-        print(f"  shot {si} scored")
 
     res = finalize_machine(acc, ref_stats)
 
