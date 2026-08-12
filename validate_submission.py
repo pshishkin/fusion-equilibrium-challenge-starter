@@ -13,27 +13,31 @@ submitted flux map by the scorer (with the same functionals it applies to the gr
 scalar can only be earned by a flux map that implies it. For a config this streams the
 public-test inputs from Hugging Face (no ground truth needed) and verifies, for every shot in
 stream order, with T = number of `efit_times`:
-  - `shot_XXXX_psirz`  present, shape `(T, H, W)` in the machine's native grid (both dense 65×65:
-    DIII-D 65×65, MAST 65×65), floating dtype, and (DIII-D only) no NaN/Inf since its GT is finite,
+  - `shot_XXXX_psirz`  present, shape `(T, H, W)` in the machine's native grid (both dense 65x65:
+    DIII-D 65x65, MAST 65x65), floating dtype, and (DIII-D only) no NaN/Inf since its GT is finite,
   - `shot_XXXX_q95` and `shot_XXXX_betaN` present, shape `(T,)`, floating.
 
 Usage:
     python validate_submission.py submission/diii_d_public_test.npz --config diii_d_public_test
     python validate_submission.py submission/mast_public_test.npz  --config mast_public_test
-    python validate_submission.py submission/diii_d_public_test.npz --config diii_d_public_test --max-shots 5
+    python validate_submission.py submission/diii_d_public_test.npz \
+        --config diii_d_public_test --max-shots 5
 """
 from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
 REPO_ID = "Sophelio/fusion-equilibrium-challenge"
 # Downloaded copy of the dataset, same layout and default as the other scripts:
 #   <DEFAULT_LOCAL_DATA_DIR>/data/<config>/*.parquet
-DEFAULT_LOCAL_DATA_DIR = Path(__file__).resolve().parent.parent / "downloaded_huggingface" / "hf_dataset"
+DEFAULT_LOCAL_DATA_DIR = (Path(__file__).resolve().parent.parent
+                          / "downloaded_huggingface" / "hf_dataset")
 # Native flux grid per machine (rows = Z, cols = R).
 GRID = {"DIII-D": (65, 65), "MAST": (65, 65)}
 # The only two submitted scalars (metric v2): q95 needs F(psi), betaN needs p(psi) — neither is
@@ -46,7 +50,7 @@ CONFIG_INFO = {
 }
 
 
-def _quantization_warning(arr, key: str):
+def _quantization_warning(arr: np.ndarray, key: str) -> str | None:
     """Catch fixed-decimal rounding, which silently guts the Consistency term.
 
     `float16` is safe and recommended -- it keeps RELATIVE precision, so the error scales with
@@ -77,7 +81,8 @@ def _quantization_warning(arr, key: str):
     return None
 
 
-def _iter_reference_rows(config: str, split: str, source: str, local_data_dir: Path):
+def _iter_reference_rows(config: str, split: str, source: str,
+                         local_data_dir: Path) -> Iterator[Any]:
     """Reference inputs in stream order — from the Hub, or from a downloaded copy.
 
     The local order matches the Hub's: datasets resolves data files with `fs.glob`, and fsspec's
@@ -136,7 +141,8 @@ def validate(npz_path: Path, config: str, max_shots: int, source: str = "hf",
             if not np.issubdtype(arr.dtype, np.floating):
                 errors.append(f"{k}: dtype {arr.dtype}, expected float")
             if machine == "DIII-D" and not np.isfinite(arr).all():
-                errors.append(f"{k}: contains NaN/Inf (DIII-D is fully finite; those pixels score as error)")
+                errors.append(f"{k}: contains NaN/Inf (DIII-D is fully finite; those "
+                              f"pixels score as error)")
             warn = _quantization_warning(arr, k)
             if warn:
                 warnings.append(warn)

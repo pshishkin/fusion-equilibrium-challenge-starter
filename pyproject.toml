@@ -14,12 +14,79 @@ dependencies = [
     "scikit-image>=0.22",
     "datasets>=2.14",
     "plotly>=5.18",
+    "catboost>=1.2.10",
+    "pyyaml>=6.0.3",
 ]
 
 [dependency-groups]
+dev = [
+    "mypy>=2.3.0",
+    "pandas-stubs>=2.3.3.260113",
+    "ruff>=0.16.2",
+    "types-pyyaml>=6.0.12.20260724",
+]
 pytorch = [
     "torch>=2.0,<2.6",
 ]
+
+# --------------------------------------------------------------------------- lint & types
+#
+#   make ci   ->   ruff check   +   mypy   +   the metric on the standard split
+#
+# Scope: the code this fork wrote or edited. The organizers' files (experiments.py,
+# fusion_data_provider.py, example_usage.py) and the vendored scorer (fusion_scoring/) are kept
+# byte-identical to upstream on purpose — see AGENTS.md — so linting them would only produce
+# findings we must not act on.
+
+[tool.ruff]
+line-length = 100
+extend-exclude = [
+    "fusion_scoring",
+    "experiments.py",
+    "experiments_torch.py",
+    "fusion_data_provider.py",
+    "example_usage.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+# The `# noqa: E402` comments that used to sit on the imports below `sys.path.insert(...)` are
+# gone: ruff exempts imports that follow a sys.path manipulation, so it reported every one of them
+# as an unused suppression (RUF100). The imports are still deliberate — the repo root has to be on
+# the path before `from experiments import ...` can work.
+
+[tool.mypy]
+python_version = "3.12"
+# my_experiments/ is a namespace package (no __init__.py), and its modules are imported as
+# `my_experiments.x` after sys.path.insert. Without these two lines mypy sees each file twice,
+# once as `x` and once as `my_experiments.x`, and refuses to start.
+mypy_path = "."
+explicit_package_bases = true
+files = [
+    "my_experiments",
+    "local_score.py",
+    "submission_skeleton.py",
+    "validate_submission.py",
+    "push_predictions.py",
+]
+# Every function we write is annotated — that is the point of running this at all.
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+# Upstream files are imported for their symbols, not checked: their errors are not ours to fix.
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+# Third-party packages that ship no type information, plus the vendored scorer's flat modules
+# (`from common import ...`), which are only importable after local_score.py extends sys.path.
+module = [
+    "catboost.*", "sklearn.*", "joblib.*", "datasets.*", "tqdm.*", "matplotlib.*",
+    "huggingface_hub.*", "scipy.*", "skimage.*",
+    "common", "contour", "derive", "lcfs", "metrics",
+    "experiments", "fusion_data_provider",
+]
+ignore_missing_imports = true
 
 [tool.pyright]
 # Where third-party packages live: a static analyzer does not execute code and will not find the venv.
@@ -31,6 +98,9 @@ extraPaths = ["."]
 
 [tool.uv]
 package = false
+# torch is no longer optional: params.yaml enables a torch MLP by default, so `uv run` has to
+# install that group as well as the linters.
+default-groups = ["dev", "pytorch"]
 
 # Resolve lockfile for the platforms hackathoners typically use.
 required-environments = [

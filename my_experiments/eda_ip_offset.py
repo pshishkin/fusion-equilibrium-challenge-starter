@@ -24,17 +24,27 @@ from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from my_experiments.baseline_model import IP_ON, sorted_shots  # noqa: E402
+from my_experiments.baseline_model import IP_ON, sorted_shots
+from my_experiments.models import FloatArray
 
 N_SHOTS = 150
+
+
+def coverage(efit_times: FloatArray, axis: FloatArray, ip: FloatArray) -> float:
+    """Fraction of EFIT frames that land where current is actually flowing, reading Ip off
+    `axis`. This is the whole diagnostic: the right time base puts current under nearly every
+    frame, the wrong one under almost none."""
+    peak = np.abs(ip).max()
+    return float((np.abs(np.interp(efit_times, axis, ip)) > IP_ON * peak).mean())
 
 
 def main() -> int:
     files = sorted_shots()
     sel = [files[i] for i in np.linspace(0, len(files) - 1, N_SHOTS).astype(int)]
 
-    ip_axis_hashes, mag_axis_hashes = Counter(), Counter()
-    rows = []
+    ip_axis_hashes: Counter[str] = Counter()
+    mag_axis_hashes: Counter[str] = Counter()
+    rows: list[dict[str, float]] = []
     for path in tqdm(sel, desc="reading shots", unit="shot"):
         r = pd.read_parquet(path).iloc[0]
         te = np.asarray(r["efit_times"], np.float64)
@@ -45,19 +55,13 @@ def main() -> int:
         ip_axis_hashes[hashlib.md5(tip.tobytes()).hexdigest()[:8]] += 1
         mag_axis_hashes[hashlib.md5(tm.tobytes()).hexdigest()[:8]] += 1
 
-        peak = np.abs(ip).max()
-
-        def coverage(axis: np.ndarray) -> float:
-            """Fraction of EFIT frames that land where current is actually flowing."""
-            return float((np.abs(np.interp(te, axis, ip)) > IP_ON * peak).mean())
-
-        rows.append(dict(
-            step=float(np.median(np.diff(tm))),
-            mag_start=float(tm[0]),
-            ip_start=float(tip[0]),
-            cov_raw=coverage(tip),
-            cov_reorigin=coverage(tm[0] + (tip - tip[0])),
-        ))
+        rows.append({
+            "step": float(np.median(np.diff(tm))),
+            "mag_start": float(tm[0]),
+            "ip_start": float(tip[0]),
+            "cov_raw": coverage(te, tip, ip),
+            "cov_reorigin": coverage(te, tm[0] + (tip - tip[0]), ip),
+        })
 
     df = pd.DataFrame(rows)
     fast = df["step"] < 0.2          # the 0.05 ms acquisition
@@ -69,7 +73,7 @@ def main() -> int:
         print(f"     {h}: {n} shots")
     print(f"  distinct magnetics_time arrays:                 {len(mag_axis_hashes)} "
           f"(of {len(sel)} shots)")
-    print(f"  -> the Ip axis is a template; the magnetics axis is genuinely per shot")
+    print("  -> the Ip axis is a template; the magnetics axis is genuinely per shot")
 
     print(f"\n{'=' * 78}\n2. Two acquisition configurations\n{'=' * 78}")
     print(f"  {'group':26s} {'shots':>6} {'magnetics_time[0], ms':>22} {'ip_times[0], ms':>17}")
@@ -89,11 +93,11 @@ def main() -> int:
 
     print(f"\n{'=' * 78}\n4. So the 'offset' is not a constant\n{'=' * 78}")
     implied = df.loc[fast, "ip_start"] - df.loc[fast, "mag_start"]
-    print(f"  implied shift = ip_times[0] - magnetics_time[0], over the 0.05 ms group:")
+    print("  implied shift = ip_times[0] - magnetics_time[0], over the 0.05 ms group:")
     for q in (0, 25, 50, 75, 100):
         print(f"     percentile {q:3d}: {np.percentile(implied, q):8.0f} ms")
-    print(f"  it varies because the template is fixed while each shot's acquisition is not.")
-    print(f"  Quoting '~3 s' is a median, not a constant to subtract.")
+    print("  it varies because the template is fixed while each shot's acquisition is not.")
+    print("  Quoting '~3 s' is a median, not a constant to subtract.")
     return 0
 
 

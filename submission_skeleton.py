@@ -45,10 +45,14 @@ Run it once without --read-token to create the repo; Hugging Face cannot scope a
 that does not exist yet. See README -> "5. Build and submit".
 """
 from __future__ import annotations
+
 import argparse
 import os
 import sys
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
+
 import numpy as np
 from datasets import load_dataset
 
@@ -56,7 +60,8 @@ REPO_ID = "Sophelio/fusion-equilibrium-challenge"
 TEST_CONFIGS = [("diii_d_public_test", "public_test"), ("mast_public_test", "public_test")]
 # Downloaded copy of the dataset, same layout and same default as experiments.py / local_score.py:
 #   <DEFAULT_LOCAL_DATA_DIR>/data/<config>/*.parquet
-DEFAULT_LOCAL_DATA_DIR = Path(__file__).resolve().parent.parent / "downloaded_huggingface" / "hf_dataset"
+DEFAULT_LOCAL_DATA_DIR = (Path(__file__).resolve().parent.parent
+                          / "downloaded_huggingface" / "hf_dataset")
 # Native flux grid per machine (rows=Z, cols=R). Both machines are a dense, fully finite 65x65
 # grid — MAST's upstream EFIT 65x129 grid (65 real R columns interleaved with 64 empty ones) is
 # collapsed to a dense 65x65 in the corrected dataset, so there is no central NaN region.
@@ -64,9 +69,12 @@ GRID = {"DIII-D": (65, 65), "MAST": (65, 65)}
 # The only two submitted scalars (metric v2), each under its own per-shot key (named, not
 # positional, to make column mix-ups impossible). Everything else is derived from your flux map.
 SCALARS = ["q95", "betaN"]
+# Printed once, not once per shot: the zeros placeholder is a state of the repo, not an
+# event of this row.
+_WARNED_NO_MODEL = False
 
 
-def your_model_predict(row: dict, source: str) -> dict:
+def your_model_predict(row: dict, source: str, model: str | None = None) -> dict:
     """REPLACE ME. Return predictions for this shot, aligned to row['efit_times'], as a dict:
         {"psirz":  (T, H, W) flux map,
          "q95":    (T,),
@@ -81,29 +89,34 @@ def your_model_predict(row: dict, source: str) -> dict:
     the target equilibrium) and is neither an input nor a scored target. Also available as
     inputs: `coil_*` (PF-coil positions/turns, joined to the current columns by
     `coil_input_column`) and `thomson_chord_R/Z` (chord positions). Focus on making psi(R,Z)
-    right; the geometry terms (boundary, axis, shape, li) all follow from it."""
+    right; the geometry terms (boundary, axis, shape, li) all follow from it.
+
+    `model` picks one member of the trained zoo by name (params.yaml); None means the default,
+    which is the ensemble. Submissions never pass it — only local_score.py --models does."""
     # Delegate to the trained baseline if one has been saved. Only "there is no model yet" is
     # swallowed — a bug inside the model must surface, not silently score as zeros.
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from my_experiments.baseline_model import predict_row
-        return predict_row(row, source)
+        from my_experiments.baseline_model import ENSEMBLE, predict_row
+        return predict_row(row, source, model if model is not None else ENSEMBLE)
     except (ImportError, FileNotFoundError) as exc:
-        if not getattr(your_model_predict, "_warned", False):
+        global _WARNED_NO_MODEL
+        if not _WARNED_NO_MODEL:
             print(f"  note: no trained model ({type(exc).__name__}: {exc})\n"
                   f"        emitting zeros — train one with "
-                  f"'uv run python my_experiments/baseline_model.py --n-shots 30'")
-            your_model_predict._warned = True
+                  f"'uv run python my_experiments/train.py --share 0.01'")
+            _WARNED_NO_MODEL = True
 
     T = len(np.asarray(row["efit_times"]))
     H, W = GRID[source]
-    out = {"psirz": np.zeros((T, H, W), dtype=np.float32)}      # placeholder baseline
+    out: dict[str, np.ndarray] = {"psirz": np.zeros((T, H, W), dtype=np.float32)}
     for name in SCALARS:
         out[name] = np.zeros(T, dtype=np.float32)               # placeholder scalars
     return out
 
 
-def iter_dataset_rows(config: str, split: str, source: str, local_data_dir: Path):
+def iter_dataset_rows(config: str, split: str, source: str,
+                      local_data_dir: Path) -> Iterator[Any]:
     """Yield the config's rows in the SAME order the Hub stream would.
 
     Order is not cosmetic: the scorer matches `shot_XXXX_*` keys positionally against its own
@@ -143,7 +156,8 @@ def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
         H, W = GRID[source]
         out = your_model_predict(row, source)
 
-        assert out["psirz"].shape == (T, H, W), f"{config} shot {i}: psirz {out['psirz'].shape} != {(T, H, W)}"
+        assert out["psirz"].shape == (T, H, W), \
+            f"{config} shot {i}: psirz {out['psirz'].shape} != {(T, H, W)}"
         # float16 keeps relative precision everywhere and costs ~0.1% of score; the scorer
         # upcasts on read. Do NOT instead round to a fixed number of decimals -- np.round(psi, 3)
         # leaves R2_psi at 0.99997 while destroying ~35% of the MAST Consistency term.
@@ -158,7 +172,10 @@ def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
             print(f"  {config}: {n} shots")
 
     out_path = out_dir / f"{config}.npz"
-    np.savez_compressed(out_path, **preds)
+    # The numpy stubs type savez_compressed's second parameter as a positional flag, so
+    # keyword-splatting the per-shot arrays — the documented way to write named keys —
+    # does not type-check.
+    np.savez_compressed(out_path, **preds)  # type: ignore[arg-type]
     psh = preds.get("shot_0000_psirz", np.empty(0)).shape
     print(f"  {config}: {n} shots -> {out_path.name}  (e.g. shot_0000_psirz {psh}, "
           f"shot_0000_q95 {preds.get('shot_0000_q95', np.empty(0)).shape})")
@@ -171,8 +188,9 @@ def main() -> int:
                     "pointer zip you upload to Codabench.")
     ap.add_argument("--max-shots", type=int, default=5, help="cap shots per config (0 = all)")
     ap.add_argument("--out", type=Path, default=Path("submission"))
-    ap.add_argument("--repo", help="Hugging Face dataset repo to push to, e.g. you/fusion-eq-preds. "
-                                   "Given this, the script also pushes and writes the pointer zip.")
+    ap.add_argument("--repo",
+                    help="Hugging Face dataset repo to push to, e.g. you/fusion-eq-preds. "
+                         "Given this, the script also pushes and writes the pointer zip.")
     ap.add_argument("--read-token", default=os.environ.get("HF_READ_TOKEN"),
                     help="fine-grained READ token scoped to --repo (or set HF_READ_TOKEN)")
     from push_predictions import POINTER_DIR, default_pointer_path

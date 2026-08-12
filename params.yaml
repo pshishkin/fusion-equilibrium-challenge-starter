@@ -1,0 +1,87 @@
+# Model zoo for my_experiments/train.py. Every hyper-parameter lives here and nowhere else —
+# the code has no defaults to fall back on, so a value read from this file is the value used.
+#
+# What is NOT here: how the targets are scaled. That one is fixed in code
+# (my_experiments/models.py::TargetScaler) because the metric fixes it — see README.
+#
+#   uv run python my_experiments/train_eval.py 0.01 0.01 0.002
+#
+# Unknown keys are an error, not a shrug: a mistyped hyper-parameter that is silently ignored
+# looks exactly like one that did not help. See AGENTS.md, "Fail fast, never quietly repair".
+
+features:
+  # PCA components of psi(R,Z). Every model regresses these plus q95 and betaN — 50 components
+  # reconstruct the flux map to ~100% of its variance, so the ceiling is the regression, not the
+  # compression.
+  n_pca: 50
+  # sklearn picks the randomized SVD solver for 50 components out of 4225 pixels, and
+  # experiments.TargetPCA leaves random_state at None. Unpinned, two runs on the same shots fit
+  # different components, so every model gets different targets and the score moves: the torch MLP
+  # scored 0.6769 and 0.6846 on the same 7 shots before this was pinned.
+  pca_seed: 0
+
+models:
+  ridge:
+    type: ridge
+    enabled: true
+    alpha: 1.0
+
+  catboost:
+    type: catboost
+    # enabled: true
+    enabled: false
+
+    # One MultiRMSE model over all n_pca + 2 outputs, not one model per output: gradient boosting
+    # with a shared tree structure and vector leaves. Targets are standardized inside the wrapper,
+    # otherwise the first PCA component (variance ~1e10) is the only thing the loss can see.
+    # `iterations` is a ceiling, not a target: set it far above anything the fit should need and
+    # let the validation split decide. At 70 training shots it stops itself around 2142 and keeps
+    # iteration 1942, so the ceiling costs nothing; with more shots the optimum moves and the fit
+    # is free to follow it.
+    iterations: 3000
+    depth: 8
+    learning_rate: 0.1
+    l2_leaf_reg: 3.0
+    # Generous on purpose: the validation curve is noisy, and a patience of 50 fired on a plateau
+    # at iteration 548, costing 0.7439 -> 0.7392. 0 turns early stopping off entirely — trains the
+    # full ceiling and keeps its LAST iteration, which is the control this feature has to beat.
+    early_stopping_rounds: 50
+    random_seed: 0
+    thread_count: 8
+
+  mlp:
+    type: torch_mlp
+    enabled: true
+    # The sklearn MLPRegressor of experiments.py, rewritten in torch so the training loop is ours:
+    # a plain fully-connected net on the 21 magnetics features, CPU, standardized targets.
+    hidden_sizes: [256, 256]
+    # A ceiling plus the patience that ends the run first (686 epochs of 2000, best at 585). The
+    # weights kept are the best epoch on the validation split, not the last one reached.
+    #
+    # Patience is 100 rather than 20 because the validation curve has a false floor: with 20 this
+    # net stopped at epoch 27, keeping epoch 6 — 192 Adam steps, undertrained by construction —
+    # and scored 0.5521 where the patient version scores 0.7273 on the same shots. An epoch here
+    # is only 32 minibatches, so patience in epochs is a much shorter leash than it sounds.
+    # 0 turns early stopping off entirely.
+    epochs: 2000
+    patience: 100
+    batch_size: 512
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 0
+    # Threads for torch, and not one per core: this net is 21 -> 256 -> 256 -> 52, so a batch is
+    # too small to feed 20 threads and the synchronization dominates. Measured on 10k frames,
+    # per epoch: 1 thread 0.064 s, 4 threads 0.040 s, 20 threads 0.351 s.
+    threads: 4
+
+ensemble:
+  # Predictions of the members, averaged with these weights (renormalized to sum to 1). Averaging
+  # PCA coefficients and averaging the flux maps they decode to are the same thing — the decoder is
+  # affine — so this is an ensemble of flux maps, not merely of coefficients.
+  #
+  # `ridge` is deliberately NOT a member: it is kept enabled as the baseline everything else is
+  # read against, but averaging a model that scores 0.12 into two that score ~0.70 only drags them
+  # down (measured: ensemble 0.5936 with it, against 0.7001 for its best member).
+  members:
+    # catboost: 1.0
+    mlp: 1.0

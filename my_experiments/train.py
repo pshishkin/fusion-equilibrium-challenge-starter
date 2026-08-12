@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
 """
-Entry point 1 of 2 — fit the baseline and save it.
+Entry point 1 of 2 — fit the model zoo and save it.
 
     uv run python my_experiments/train.py --share 0.01     # 1% of the shots
 
-Shots come from the HEAD of the list ordered by sha1 of the filename; evaluate.py takes the tail
-of that same list, so the two windows stay disjoint while the shares sum to under 1. The order is
-deterministic, so the split reproduces on any machine.
+Which models are fitted, and with which hyper-parameters, is params.yaml — not a flag here, so
+there is one place to change a setting and one place to read what a run used. This script only
+decides which SHOTS take part.
+
+Shots come from the HEAD of the list ordered by sha1 of the filename, and the validation window
+sits right behind them; evaluate.py takes the tail of that same list, so all three windows stay
+disjoint while the shares sum to under 1. The order is deterministic, so the split reproduces on
+any machine.
+
+The validation shots are part of fitting, not of measuring: CatBoost and the MLP stop on them and
+keep their best iteration. That is why they come out of the head end — only the tail is untouched
+by the fit, and only an untouched fold measures generalization.
+
+Both shares also take a frame fraction: `--share 0.05/0.1` reads 5% of the shots and keeps every
+tenth frame of each. Neighbouring frames of one shot are near-duplicates, so at a fixed row budget
+more shots and fewer frames each is the better buy.
 
 Writes my_experiments/baseline.joblib, which evaluate.py and submission_skeleton.py pick up.
 """
@@ -18,23 +31,34 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG  # noqa: E402
-from my_experiments.baseline_model import train  # noqa: E402
+from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG
+from my_experiments.baseline_model import train
+from my_experiments.models import DEFAULT_PARAMS_PATH
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--share", type=float, default=0.01,
-                    help="share of shots to train on, from the head of the list (default 0.01)")
-    ap.add_argument("--n-pca", type=int, default=50, help="number of PCA components for psi")
-    ap.add_argument("--alpha", type=float, default=1.0, help="Ridge regularization")
+    ap.add_argument("--share", default="0.01",
+                    help="shots to train on, from the head of the list: 'shots' or "
+                         "'shots/frames', e.g. 0.05/0.1 for 5%% of the shots and every tenth "
+                         "frame of each (default 0.01)")
+    ap.add_argument("--val-share", default="0.002",
+                    help="shots to stop on, taken right behind the training window, same "
+                         "'shots' or 'shots/frames' form (default 0.002). CatBoost and the MLP "
+                         "pick their best iteration by it")
+    ap.add_argument("--params", type=Path, default=DEFAULT_PARAMS_PATH,
+                    help=f"model zoo and its hyper-parameters (default {DEFAULT_PARAMS_PATH.name})")
+    ap.add_argument("--jobs", type=int, default=0,
+                    help="worker processes for reading shots (default 0 = cores - 2, 1 = serial). "
+                         "Fitting itself is threaded by CatBoost and torch, not by this")
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
                     help="root of the downloaded dataset (the folder containing 'data/')")
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
     args = ap.parse_args()
 
-    train(args.share, args.n_pca, args.alpha, args.local_data_dir, args.config)
+    train(args.share, args.val_share, args.local_data_dir, args.config, args.params,
+          args.jobs)
     return 0
 
 

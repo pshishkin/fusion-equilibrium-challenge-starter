@@ -2,11 +2,18 @@
 """
 Train and immediately score, in one command.
 
-    uv run python my_experiments/train_eval.py 0.01 0.02
+    uv run python my_experiments/train_eval.py 0.01 0.002 0.001
 
-First argument is the share of shots to train on (head of the list), second is the share to
-score on (tail). Both steps walk the same sha1-ordered list, so the split reproduces, and the
-non-overlap is checked inside evaluate.py.
+Three shares of one sha1-ordered shot list, in the order they are used:
+
+    train   the head — what the models are fitted on
+    val     right behind it — what CatBoost and the MLP stop on and pick their best iteration by
+    test    the tail — what the metric is computed on, untouched by any fit
+
+Validation is part of fitting, so it cannot double as the score: a model that stopped on those
+shots has already read them. Only the tail is clean. All three windows are disjoint by
+construction while the shares sum to under 1, and evaluate.py checks that against the filenames
+the artifact recorded rather than trusting the arithmetic.
 """
 from __future__ import annotations
 
@@ -15,24 +22,30 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from my_experiments import evaluate, train  # noqa: E402
+from my_experiments import evaluate, train
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    if len(argv) != 3:
         raise SystemExit(__doc__)
-    train_share, eval_share = argv
+    train_share, val_share, test_share = argv
+    if "/" in test_share:
+        raise SystemExit(
+            f"test share {test_share!r} carries a frame fraction. Scoring reads every frame of "
+            f"the shots it scores — that is what the competition metric is — so only the train "
+            f"and validation shares may be thinned."
+        )
 
     print("=" * 70)
-    print(f"TRAINING on {float(train_share):.1%}")
+    print(f"TRAINING on {train_share}, stopping on {val_share}")
     print("=" * 70)
-    sys.argv = ["train.py", "--share", train_share]
+    sys.argv = ["train.py", "--share", train_share, "--val-share", val_share]
     train.main()
 
     print("\n" + "=" * 70)
-    print(f"SCORING on {float(eval_share):.1%}")
+    print(f"SCORING on {float(test_share):.1%}")
     print("=" * 70)
-    sys.argv = ["evaluate.py", "--share", eval_share]
+    sys.argv = ["evaluate.py", "--share", test_share]
     return evaluate.main()
 
 

@@ -9,10 +9,12 @@ Sibling files do the same for the test splits:
     eda_test_diii_d.py, eda_test_mast.py
 """
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
-DATA_ROOT = Path(__file__).resolve().parent.parent.parent / "downloaded_huggingface" / "hf_dataset" / "data"
+DATA_ROOT = (Path(__file__).resolve().parent.parent.parent
+             / "downloaded_huggingface" / "hf_dataset" / "data")
 SHOT = 0          # index of the file in the sorted list
 
 pd.set_option("display.max_rows", 200)
@@ -20,9 +22,9 @@ pd.set_option("display.max_colwidth", 70)
 pd.set_option("display.width", 200)
 
 
-def shape(v):
+def shape(v: Any) -> tuple[int, ...]:
     """Descend through the nesting while it is neither a string nor a scalar."""
-    s = []
+    s: list[int] = []
     while hasattr(v, "__len__") and not isinstance(v, str) and len(v):
         s.append(len(v))
         v = v[0]

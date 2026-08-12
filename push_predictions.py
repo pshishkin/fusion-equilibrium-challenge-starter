@@ -43,13 +43,15 @@ than the scorer needs and both are stored with your submission. Revoke the read 
 competition.
 """
 from __future__ import annotations
+
 import argparse
 import json
 import os
-import zipfile
 import sys
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 POINTER_DIR = Path("submissions")
 
@@ -76,7 +78,7 @@ TOKEN_HELP = (
 )
 
 
-def validate_read_token(api, token: str, repo: str) -> int:
+def validate_read_token(api: Any, token: str, repo: str) -> int:
     """Refuse anything broader than fine-grained read. Returns 0 if acceptable."""
     try:
         who = api.whoami(token=token)
@@ -89,7 +91,8 @@ def validate_read_token(api, token: str, repo: str) -> int:
     role = at.get("role")
 
     if role in ("write", "admin"):
-        print(f"ERROR: that is a {role.upper()} token. It would be stored with your submission and\n"
+        print(f"ERROR: that is a {role.upper()} token. It would be stored with your "
+              f"submission and\n"
               f"       could modify your repos. Use a read-only fine-grained token instead.\n"
               f"       {TOKEN_HELP}", file=sys.stderr)
         return 1
@@ -122,8 +125,10 @@ def validate_read_token(api, token: str, repo: str) -> int:
                   f"         read ALL your private repos there -- not just {repo}. It is stored\n"
                   f"         with your submission. Consider re-scoping it to {repo} alone.")
         else:
-            print(f"WARNING: the token is scoped to {sorted(n for n in names if n)}, which does not\n"
-                  f"         obviously include {repo}. Scoring will fail if it cannot read that repo.")
+            print(f"WARNING: the token is scoped to {sorted(n for n in names if n)}, which "
+                  f"does not\n"
+                  f"         obviously include {repo}. Scoring will fail if it cannot read "
+                  f"that repo.")
         return 0
 
     print(f"NOTE: could not determine the token's scope (role={role!r}). Continuing -- but please\n"
@@ -146,7 +151,8 @@ def push_and_write_pointer(repo: str, read_token: str | None, sub_dir: Path,
     if not npz:
         print(f"ERROR: no recognised .npz in {sub_dir.resolve()}.\n"
               f"       Expected one or more of: {', '.join(CONFIG_FILENAMES)}\n"
-              f"       Build them first: python submission_skeleton.py --out {sub_dir} --max-shots 0",
+              f"       Build them first: python submission_skeleton.py --out {sub_dir} "
+              f"--max-shots 0",
               file=sys.stderr)
         return 1
 
@@ -173,7 +179,8 @@ def push_and_write_pointer(repo: str, read_token: str | None, sub_dir: Path,
         ns = repo.split("/")[0]
         hint = ""
         if "403" in str(exc) or "rights" in str(exc).lower():
-            hint = (f"\n       Your login is '{who['name']}'. If '{ns}' is an organization, you need\n"
+            hint = (f"\n       Your login is '{who['name']}'. If '{ns}' is an organization, "
+                    f"you need\n"
                     f"       write access to it -- or just use your own namespace:\n"
                     f"           --repo {who['name']}/{repo.split('/')[-1]}")
         print(f"ERROR: could not create {repo} ({type(exc).__name__}).{hint}\n\n{exc}",
@@ -217,7 +224,10 @@ def push_and_write_pointer(repo: str, read_token: str | None, sub_dir: Path,
               f"       Re-scope it to that repo -- otherwise scoring will fail.\n"
               f"       {TOKEN_HELP}", file=sys.stderr)
         return 1
-    root = {s.rfilename for s in at_rev.siblings if "/" not in s.rfilename}
+    siblings = getattr(at_rev, "siblings", None)
+    if siblings is None:
+        raise RuntimeError(f"repo_info({repo}) returned no file listing at {sha}")
+    root = {s.rfilename for s in siblings if "/" not in s.rfilename}
     missing = [p.name for p in npz if p.name not in root]
     if missing:
         print(f"ERROR: uploaded, but these are not at the repo ROOT at {sha}: {missing}\n"
