@@ -75,6 +75,19 @@ head of the list, evaluation the tail, and the sizes are given as `--share`. Nev
 Non-overlap is checked against the **filenames** stored in the artifact, not by index arithmetic,
 so the check stays correct when the data directory grows.
 
+## How we test the metric
+
+```bash
+uv run python my_experiments/train_eval.py 0.01 0.001
+```
+
+This is the command. 70 shots to fit, 7 to score, about a minute end to end, and it exercises the
+whole chain: shot ordering, the split's overlap check, feature building, the artifact, inference,
+and the real metric.
+
+Run it after touching anything on the train or score path, and report its numbers. Do not silently
+substitute a larger share — if a run at a different scale is wanted, ask first.
+
 ## One implementation of the metric
 
 Scoring always goes through `local_score.py`, called as a function. Do not write your own R² or your

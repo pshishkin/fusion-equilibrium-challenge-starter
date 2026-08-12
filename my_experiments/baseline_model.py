@@ -77,6 +77,53 @@ def take_share(files: list[Path], share: float, side: str) -> list[Path]:
     return files[:n] if side == "head" else files[-n:]
 
 
+# --------------------------------------------------------- plasma-current time base
+
+# `magnetics_plasma_current_times` is not a per-shot axis: the same template array, always
+# starting at -858.1871 ms, is stamped into every DIII-D shot, while `magnetics_time` genuinely
+# varies. For the ~70% of shots recorded at 0.05 ms it is the wrong axis, so interpolating Ip onto
+# `efit_times` returns pre-shot noise — 4 kA where the trace actually sits at 1000 kA. The correct
+# origin for those is the shot's own `magnetics_time[0]`; the sampling step is fine either way.
+# See my_experiments/eda_ip_offset.py for the evidence, and README for the summary.
+IP_ON = 0.05              # |Ip| above this fraction of its peak counts as "current flowing"
+IP_COVERAGE_OK = 0.9      # fraction of EFIT frames that must see current flowing
+
+
+def align_ip_times(efit_times: np.ndarray, ip_times: np.ndarray, ip_values: np.ndarray,
+                   mag_times: np.ndarray) -> np.ndarray:
+    """`ip_times` re-origined onto the shot's own acquisition clock, or unchanged if it already is.
+
+    Shots whose frames already see the current are left strictly alone: for the 0.5 ms acquisition
+    the template happens to be the right axis, and re-origining those would break them (coverage
+    drops to 0.00, measured).
+
+    For the rest the fix is exact rather than fitted — keep the 0.5 ms sampling, move the origin to
+    `magnetics_time[0]`. Over 150 shots that puts current under 100% of the EFIT frames of every
+    affected shot, where matching waveform windows only reached 93% in the worst case.
+    """
+    peak = np.abs(ip_values).max()
+    if peak <= 0:
+        raise ValueError("plasma current is identically zero")
+
+    def coverage(axis: np.ndarray) -> float:
+        return float((np.abs(np.interp(efit_times, axis, ip_values)) > IP_ON * peak).mean())
+
+    if coverage(ip_times) >= IP_COVERAGE_OK:
+        return ip_times
+
+    corrected = mag_times[0] + (ip_times - ip_times[0])
+    got = coverage(corrected)
+    if got < IP_COVERAGE_OK:
+        raise ValueError(
+            f"cannot align the plasma current: re-origining it at magnetics_time[0] = "
+            f"{mag_times[0]:.0f} ms leaves only {got:.0%} of EFIT frames with current flowing "
+            f"(need {IP_COVERAGE_OK:.0%}). Ip axis starts at {ip_times[0]:.0f} ms and spans "
+            f"{ip_times[-1] - ip_times[0]:.0f} ms; EFIT window is "
+            f"[{efit_times.min():.0f}, {efit_times.max():.0f}] ms."
+        )
+    return corrected
+
+
 # --------------------------------------------------------------------------- features
 
 def inputs_only_shot(row) -> dict:
@@ -93,7 +140,13 @@ def inputs_only_shot(row) -> dict:
         if col not in row:
             raise ValueError(f"row has no column {col} — is this a DIII-D row?")
     shared = np.asarray(row["magnetics_time"], dtype=np.float64)
-    ip_times = np.asarray(row["magnetics_plasma_current_times"], dtype=np.float64)
+    efit_times = np.asarray(row["efit_times"], dtype=np.float64)
+    ip_times = align_ip_times(
+        efit_times,
+        np.asarray(row["magnetics_plasma_current_times"], dtype=np.float64),
+        np.asarray(row["magnetics_plasma_current"], dtype=np.float64),
+        shared,
+    )
 
     magnetics = {}
     for sig in D3D_MAGNETICS_SIGNALS:
@@ -104,7 +157,7 @@ def inputs_only_shot(row) -> dict:
         times = ip_times if sig == "plasma_current" else shared
         magnetics[sig] = {"values": np.asarray(row[col], dtype=np.float32), "times": times}
 
-    return {"efit_times": np.asarray(row["efit_times"], dtype=np.float64), "magnetics": magnetics}
+    return {"efit_times": efit_times, "magnetics": magnetics}
 
 
 def features_for_row(row) -> np.ndarray:

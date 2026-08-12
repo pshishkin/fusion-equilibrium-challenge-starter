@@ -90,10 +90,13 @@ useful range of R²ψ starts around 0.36, not at zero.
 unconditionally and dies on every test row; `baseline_model.inputs_only_shot` reads only
 `efit_times` + `magnetics_*`. Anything on the inference path must go through the latter.
 
-**DIII-D: the plasma-current time base is offset ~3 s in 72% of shots.** It correlates with the
-magnetics sampling rate (0.05 ms → shifted, 0.5 ms → aligned); only `magnetics_plasma_current` is
-affected, the coils track `efit_times` fine. Interpolating Ip onto the EFIT grid therefore returns
-pre-shot noise for most shots. Not yet corrected in this fork.
+**DIII-D: `magnetics_plasma_current_times` is a shared template, not a per-shot axis.** The same
+30719 samples starting at −858.1871 ms are stamped into every shot, while `magnetics_time` really
+does vary. For the ~70% of shots recorded at 0.05 ms that template is the wrong axis, so
+interpolating Ip onto `efit_times` returns pre-shot noise — 4 kA where the trace sits near 1000 kA.
+The correct origin is the shot's own `magnetics_time[0]`, which puts current under 100% of the
+frames of every affected shot. `baseline_model.align_ip_times` applies that, and only to shots that
+need it; `my_experiments/eda_ip_offset.py` prints the evidence.
 
 **Roughly 10% of DIII-D shots run reversed plasma current**, and the linear baseline scores worse
 than a constant on every one of them. The whole input vector flips sign with Ip (the shaping coils
