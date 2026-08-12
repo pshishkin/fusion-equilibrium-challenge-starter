@@ -4,7 +4,14 @@
 # files and the vendored scorer stay byte-identical to upstream, so they are excluded in
 # pyproject.toml rather than fixed. See AGENTS.md.
 
-.PHONY: ci lint format typecheck test quality train eval clean
+# Local secrets, untracked. The leading `-` keeps every other target working without the file.
+# Exported rather than passed on the command line, so the token stays out of `make`'s echo and out
+# of the process list: submission_skeleton.py defaults --read-token to $HF_READ_TOKEN.
+-include .env
+export HF_READ_TOKEN
+HF_REPO ?= pshishkin/fusion-eq-predictions
+
+.PHONY: ci lint format typecheck test quality prod train eval predict_and_submit_to_hf clean
 
 ci: lint typecheck test
 
@@ -18,21 +25,36 @@ format:
 typecheck:
 	uv run mypy
 
-# The two standard runs. AGENTS.md, "How we test the metric".
+# The three standard runs. AGENTS.md, "How we test the metric".
 #
 #   test     does it work, and how fast — 70 shots thinned to a fifth of their frames, 14 scored
 #   quality  what does it score — 352 shots thinned the same way, 70 scored
+#   prod     what a submission is built from — 1408 shots, 70 scored, ~6.5 min
 test:
 	uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002
 
 quality:
 	uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01
 
+prod:
+	uv run python my_experiments/train_eval.py 0.2/0.2 0.2/0.2 0.01
+
 train:
 	uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2
 
 eval:
 	uv run python my_experiments/evaluate.py --share 0.01
+
+# Predict every public-test shot with the trained artifact, push the result to Hugging Face and
+# write the pointer zip to upload to Codabench. Structure validation runs in between; scoring does
+# not — run `make eval` (or a full `make prod`) yourself if you want to know what you are sending.
+#
+# The token comes from .env, which is NOT in git — this file is, and the fork is public.
+predict_and_submit_to_hf:
+	@test -n "$$HF_READ_TOKEN" || { \
+		echo "HF_READ_TOKEN is empty. Copy .env.example to .env and fill it in."; exit 1; }
+	uv run python submission_skeleton.py --max-shots 0 --source local \
+		--configs diii_d_public_test --repo $(HF_REPO)
 
 clean:
 	rm -rf .ruff_cache .mypy_cache my_experiments/__pycache__ __pycache__

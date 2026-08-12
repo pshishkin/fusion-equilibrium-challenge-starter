@@ -6,6 +6,9 @@ submission/
 sample_submission/
 baseline.joblib
 
+# Your Hugging Face read token, included by the Makefile. .env.example is the tracked stub.
+.env
+
 # push_predictions.py writes your scoped HF read token into manifest.json and zips it here.
 # Submitted on purpose, but never committed.
 submissions/

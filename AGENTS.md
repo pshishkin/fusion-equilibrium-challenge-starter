@@ -116,14 +116,30 @@ Non-overlap is checked against the **filenames** stored in the artifact — both
 Two commands, and which one is being quoted must always be said.
 
 ```bash
-# 1. quality — the number that means something
+# 1. production — what a submission is built from
+uv run python my_experiments/train_eval.py 0.2/0.2 0.2/0.2 0.01
+
+# 2. quality — the number that means something, at a tenth of the cost
 uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01
 
-# 2. smoke — does it work at all, and how fast
+# 3. smoke — does it work at all, and how fast
 uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002
 ```
 
-`make quality` and `make test` (the latter is what `make ci` runs). The smoke run is 70 shots
+`make prod`, `make quality` and `make test` (the last is what `make ci` runs). The production run
+is what the artifact behind a submission must come from: 1408 shots to fit, 1408 to stop on, 70
+scored, 6 m 28 s. Measured there, with CatBoost disabled so the ensemble is the MLP alone:
+
+```
+             model         S    R2_psi     R2_qb   1-D_LCFS      Cons
+               mlp    0.9677    0.9990    0.9822     0.9794    0.8648
+          ensemble    0.9677    0.9990    0.9822     0.9794    0.8648
+             ridge    0.7126    0.8079    0.5607     0.9525    0.4444
+```
+
+The MLP fits 62968 frames in 266 s and stops at epoch 767 of the 868 it ran. Note how far this is
+from the quality run (0.9319) on a fifth of the shots: at this scale shots are still buying score,
+so a submission is retrained at 0.2, never at 0.05. The smoke run is 70 shots
 thinned to a fifth of their frames against 14 scored shots, about 2.5 minutes; the quality run is
 352 shots and 70 scored. Any claim about a model scoring better than another comes from the
 quality run — the smoke one fits 3272 rows and exists to prove the chain works: shot ordering, the

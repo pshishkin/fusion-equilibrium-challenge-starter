@@ -62,10 +62,15 @@ uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2
 uv run python my_experiments/evaluate.py --share 0.01
 uv run python my_experiments/evaluate.py --share 0.01 --models catboost ensemble
 
-# 3. build the submission (874 local DIII-D test shots, ~1.8 GB .npz)
+# 3. build the submission (874 local DIII-D test shots, 1.38 GB .npz, ~3 min)
 uv run python submission_skeleton.py --max-shots 0 --source local \
-    --configs diii_d_public_test \
-    --repo pshishkin/fusion-eq-predictions --read-token hf_...
+    --configs diii_d_public_test
+
+# 3b. push the file already built, without spending 3 minutes rebuilding it
+uv run python push_predictions.py --repo pshishkin/fusion-eq-predictions --read-token hf_...
+
+# or all of it in one command: predict, validate, push, write the pointer zip
+make predict_and_submit_to_hf
 
 # 4. upload the newest submissions/submission_pointer_*.zip to codabench.org/competitions/17456
 ```
@@ -222,10 +227,25 @@ test the metric".
 | fitting ridge / CatBoost / MLP | 0.1 s / 87 s / 23 s |
 | scoring 14 shots x 4 models, `--jobs` auto | 28 s |
 
-**`train_eval.py 0.05/0.2 0.05/0.2 0.01`** — the quality run: 352 shots, 70 scored. Its numbers on
-the 70-shot fold are not filled in here yet; on the earlier 14-shot fold the same fit scored
-`ensemble 0.9319 / catboost 0.9304 / mlp 0.9030 / ridge 0.4423`, and CatBoost alone costs ~6 min of
-it.
+**`train_eval.py 0.2/0.2 0.2/0.2 0.01`** — the production run, what a submission is built from:
+1408 shots to fit, 1408 to stop on, 70 scored, **6 m 28 s**. CatBoost disabled for this one, so the
+ensemble is the MLP alone:
+
+```
+             model         S    R2_psi     R2_qb   1-D_LCFS      Cons
+               mlp    0.9677    0.9990    0.9822     0.9794    0.8648
+          ensemble    0.9677    0.9990    0.9822     0.9794    0.8648
+             ridge    0.7126    0.8079    0.5607     0.9525    0.4444
+```
+
+The MLP fits 62968 frames in 266 s, stopping at epoch 767 of the 868 it ran. R²ψ = 0.9990 and every
+derived scalar above 0.68. Against 0.9319 for the same recipe on a fifth of the shots, the lesson
+holds: at this scale shots are still buying score, so a submission is retrained at 0.2 and never at
+0.05.
+
+**`train_eval.py 0.05/0.2 0.05/0.2 0.01`** — the quality run: 352 shots, 70 scored, roughly a tenth
+of the cost. On the earlier 14-shot fold it scored `ensemble 0.9319 / catboost 0.9304 / mlp 0.9030
+/ ridge 0.4423`.
 
 **These numbers are not comparable to the ones in the section above.** The scored fold changed with
 the shares: ridge went from 0.1157 to 0.3693 without a line of code changing, purely because the
@@ -305,5 +325,10 @@ the newest; keep the rest.
 
 ## Not in git
 
-`baseline.joblib` (retrain with the command above), `submission/`, `submissions/` and
-`manifest.json` — the last two hold the read token in plaintext.
+`baseline.joblib` (retrain with the command above), `submission/`, `submissions/`,
+`manifest.json` and `.env` — the last three hold the read token in plaintext.
+
+`.env` is where the token lives, as `HF_READ_TOKEN=hf_...`; the Makefile includes and exports it,
+so `make predict_and_submit_to_hf` needs no argument and the token never reaches the command line.
+`.env.example` is the tracked stub. It is deliberately not the Makefile itself — that file IS
+tracked, and this fork is public.
