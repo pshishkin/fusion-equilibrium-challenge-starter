@@ -19,6 +19,23 @@ committing them. When the work is done, leave the tree dirty, say what is ready,
 Pushing is outward-facing — it lands on a public fork that the organizers may read — so it is the
 author's call, not the assistant's.
 
+## Keep README.md and AGENTS.md current, in the same change
+
+A change is not finished while these two files still describe the world as it was. Before calling
+work done, reread both and update whatever the change invalidated — in the same commit, not later:
+
+- **README.md** — the workflow commands, the numbers quoted for where the baseline stands, the list
+  of known traps, and what is and is not implemented.
+- **AGENTS.md** — a new convention agreed during the work, or an old one the change contradicts.
+
+Numbers get stale silently, which is the worst kind: a README claiming `S = 0.4550` after the split
+changed is not out of date in an obvious way, it is simply wrong, and the next person compares
+against it. When quoting a score, say which command produced it.
+
+This rule exists because it was broken: the plasma-current time base was corrected in code while
+README kept saying "Not yet corrected in this fork" — right underneath the section describing the
+defect.
+
 ## Fail fast, never quietly repair
 
 The competition data is full of traps: shifted time bases, gaps encoded as zeros, a channel count

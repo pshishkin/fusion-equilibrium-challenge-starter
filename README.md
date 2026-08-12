@@ -41,8 +41,8 @@ overlap. `hashlib`, never the builtin `hash()`, which is salted per process and 
 reorder between the two runs.
 
 ```bash
-# train and score in one go: 1% to fit, 2% held out
-uv run python my_experiments/train_eval.py 0.01 0.02
+# train and score in one go — this is the standard command for checking the metric
+uv run python my_experiments/train_eval.py 0.01 0.001
 
 # 1. train on the head of the list -> my_experiments/baseline.joblib
 uv run python my_experiments/train.py --share 0.01
@@ -66,19 +66,19 @@ and S = 0.0 exactly.
 
 ### Where the baseline stands
 
-`train_eval.py 0.1 0.02` — 704 shots to fit, 141 held out, of 7041:
+`train_eval.py 0.01 0.001` — 70 shots to fit, 7 held out, of 7041. This is the command we measure
+with, so quote its numbers:
 
 ```
-COMPOSITE S = 0.7049
-          R2_psi    0.8453      Consistency    0.3888
-  R2_{q95,betaN}    0.4488       1 - D_LCFS    0.9492
-
-  worst derived scalar: volume  R² = -0.80,  best: Z_axis  R² = 0.76
+COMPOSITE S = 0.1157
+          R2_psi   -0.1074      Consistency    0.1196
+  R2_{q95,betaN}   -0.0991       1 - D_LCFS    0.9181
 ```
 
-Not comparable to earlier numbers in this file's history — the split changed, so the evaluation set
-is different (141 shots instead of 20, and 6% reversed-current shots instead of 11%). The model
-itself is unchanged.
+Only compare figures produced by the same command. Seven held-out shots is a small sample, and a
+wider split lands somewhere else entirely — `train_eval.py 0.1 0.02` gave `S = 0.7193`,
+`R2_psi = 0.8469` on 141 held-out shots, measured just before the plasma-current axis fix was
+finalised. Both are the same model; the evaluation sets differ.
 
 Reference points measured on the same metric, worth keeping in mind: predicting a single flat
 constant scores R²ψ = 0 by construction, and predicting the mean ψ *image* already scores 0.36. The
