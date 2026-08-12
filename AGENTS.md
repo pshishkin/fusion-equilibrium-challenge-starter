@@ -10,6 +10,15 @@ cannot. This fork is public and descends from an English project, so a mixed-lan
 unreadable to anyone but its author — including to the organizers, if a data question ends up in an
 issue quoting our code.
 
+## Git: never commit or push unasked
+
+`git commit` and `git push` run only when the current message explicitly asks for them. Consent
+does not carry over from a previous one: "let's do X" or "fix Y" authorizes editing the files, not
+committing them. When the work is done, leave the tree dirty, say what is ready, and ask.
+
+Pushing is outward-facing — it lands on a public fork that the organizers may read — so it is the
+author's call, not the assistant's.
+
 ## Fail fast, never quietly repair
 
 The competition data is full of traps: shifted time bases, gaps encoded as zeros, a channel count
