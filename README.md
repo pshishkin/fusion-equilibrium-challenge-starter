@@ -11,7 +11,8 @@ before adding code under `my_experiments/`.
 |---|---|
 | `my_experiments/train.py`, `evaluate.py` | The two entry points: shares of the shot list, ordered by a hash of the shot id — training takes the head, the validation window sits right behind it, scoring takes the tail. The pipeline lives in `baseline_model.py`, which **saves** what it trains (`baseline.joblib`) — the starter kit's `experiments.py` never persists a model, so nothing it trains can be scored or submitted. |
 | `my_experiments/models.py` + `params.yaml` | The model zoo: ridge, CatBoost, a torch MLP, and a weighted average of the last two. All are fitted on the same features and targets and scored side by side. Every hyper-parameter and the ensemble weights live in `params.yaml`. |
-| `my_experiments/eda*.py` | One shot printed transposed with a shape column, for the training split and both public test splits. |
+| `my_experiments/eda*.py` | One shot printed transposed with a shape column, for the training split and both public test splits. `eda_coil_field.py` is the odd one out — it plots the flux decomposition below. |
+| `my_experiments/coil_field.py` | ψ = ψ_coil + ψ_plasma, with the first term computed from the shipped coil rectangles and currents instead of learned. Not wired into the model yet. |
 | `Makefile` | `make ci` = ruff + mypy + the standard metric run. |
 | `--source local` | Added to `local_score.py`, `submission_skeleton.py`, `validate_submission.py` — read a downloaded copy of the dataset instead of streaming the Hub. `experiments.py` already had it. |
 | `--models` | On `local_score.py` and `evaluate.py`, to score several members of the zoo on one pass over the ground truth. |
@@ -91,8 +92,15 @@ unknown key rather than ignoring it, so a mistyped hyper-parameter fails the run
 quietly not being applied. What is deliberately *not* configurable is how the targets are scaled:
 the metric decides that one, so it lives in code.
 
-All of them regress the same vector — `[50 PCA coefficients of ψ, q95, betaN]` — from the same 21
-scaled magnetics features, which is what makes them comparable and averageable:
+All of them regress the same vector — `[50 PCA coefficients of ψ, q95, betaN]` — from the same
+scaled feature vector, which is what makes them comparable and averageable. Two keys under
+`features:` decide what those two things are, and both default to the behaviour that predates them
+(see "The flux decomposition"):
+
+- `subtract_coil_field` — fit on ψ − ψ_coil and add the coil field back at inference;
+- `inputs` — `currents` (the 21 shipped signals), `coil_pca` (the coil flux in its own principal
+  directions, plus the signals that produce no poloidal flux), or `both`.
+
 
 | | |
 |---|---|
@@ -275,6 +283,121 @@ uv run python my_experiments/evaluate.py --share 0.0005 --mode zeros     # S = 0
 scripts we edited. The organizers' files and the vendored `fusion_scoring/` stay byte-identical to
 upstream and are excluded in `pyproject.toml`.
 
+## The flux decomposition (measured, not yet wired in)
+
+```bash
+uv run python my_experiments/eda_coil_field.py        # -> results/eda_coil_field.png
+```
+
+ψ = ψ_coil + ψ_plasma, and the first term is a Green's function times a current, not a modelling
+problem. Every ingredient ships on every row of every split — `coil_R/Z/width/height`,
+`coil_input_column` to join them to `magnetics_*`, `efit_grid_R/Z` — so `coil_field.py` computes it
+for DIII-D and MAST alike and nothing it reads is withheld at test time.
+
+**The calculation checks out, to about 10%.** Fitted outside the plasma boundary with a per-frame
+plasma filament and a per-frame constant projected out, the F-coils come out as a group at
+**0.87–0.89** depending on the sample, and individually mostly between 0.7 and 1.2 — F6A and F6B,
+the cleanest geometry of the set, at 1.01 and 1.02. Independently, the Green's function annihilates
+the Grad-Shafranov operator to 5·10⁻³ of itself, which is the finite-difference truncation level.
+
+Two things had to be right to get there, and both were wrong first:
+
+- the flux per radian is `μ0 I sqrt(aR)/(π k) [(1-k²/2)K(k) - E(k)]` — dropping the `1/π` puts every
+  gain at 1/π, which is exactly what the first fit reported;
+- the stored ψ has the machine's own sign, `AXIS_SIGN` in `fusion_scoring/common.py` (DIII-D −1,
+  MAST +1). `coil_field` folds it in, so its output is directly comparable to `efit_psirz`.
+
+**Do not quote a calibration from ten shots.** The first fit here gave 0.9969 for the F-coils and
+looked like a confirmation to three decimals. It was not: at 40 shots the same fit gives 0.911, and
+giving each frame its own plasma amplitude — a single filament is a crude 1 MA plasma, and pooling
+its amplitude pushes the misfit into the coils — brings it to 0.87–0.89 at any sample size tried.
+The residual spread across individual coils (F4A at 0.63, F1A at 1.19) is the parallelogram
+approximation on F5/F7, the coils sitting on the grid edge, and the vessel eddy currents nobody
+ships.
+
+**The plasma filament belongs to the calibration and nowhere else.** It reads `efit_r_axis` /
+`efit_z_axis`, which are labels. It is in the design only because without it the coil gains launder
+the plasma's field into themselves — a 1 MA plasma against ~140 kA·turn per shaping coil reaches
+well past the boundary — and the first fit that omitted it returned gains scattered from −0.15 to
+−0.57 and both signs.
+
+**`ECOILA` is not identifiable, so nothing hardcodes it.** It ships in kA with the turn count not
+folded in, `ECOILB` is a second co-located group that is not shipped at all, and a solenoid's field
+over this grid is nearly degenerate with a constant offset: its gain reads +142, +128, +94 or −10
+depending on the sample and on whether a per-frame constant is free. The pipeline therefore fits
+its own gains at training time (`coil_field.fit_flux_gains`) and stores them in the artifact. That
+is a different question with no true value to recover — *what linear-in-current field leaves the
+model the least to learn* — and the split stays exact for any gains at all, since whatever is
+subtracted is added back unchanged at inference.
+
+### What it is worth
+
+Four configurations × three MLP seeds × two scoring folds — 24 runs, all trained the same way
+(`0.05/0.2 0.05/0.2`, 352 shots fitted, CatBoost disabled so the ensemble is the MLP alone), each
+scored on 70 shots (`0.01`) and on 704 (`0.1`). S, mean of the three seeds:
+
+| `subtract_coil_field` | `inputs` | 70 shots | 704 shots |
+|---|---|---|---|
+| false | currents | 0.9271 | 0.9327 |
+| **true** | **currents** | **0.9405** | **0.9416** |
+| false | coil_pca | 0.9336 | 0.9365 |
+| true | coil_pca | 0.9350 | 0.9370 |
+
+**Subtracting the coil field wins on every seed of both folds** — +0.0083, +0.0157, +0.0025 on the
+large fold, +0.0114, +0.0279, +0.0011 on the small — and essentially all of it is Consistency,
+0.7229 → 0.7639 averaged over seeds. That is the term the score is actually losing in, and it
+moved while R²ψ did not. Per derived scalar the gain is broad rather than one lucky functional:
+`Z_axis`, `li`, `volume` and `R_axis` all rise. Three seeds is three replicates, not six — the
+same seed trains the same model on both folds — so a paired t gives p ≈ 0.15. The direction is
+consistent; the magnitude is not pinned down.
+
+**`coil_pca` is indistinguishable from the raw currents**, and the earlier claim that it *helped*
+was noise: its per-seed differences against the baseline are +0.0102, −0.0042, +0.0052. It costs
+nothing, which is what it had to show before MAST can be built on it, and that is all it shows.
+The interaction that a single run suggested — that subtracting and `coil_pca` are substitutes and
+hurt together — did not survive either: on the large fold that cell is 0.9370 against 0.9416 and
+0.9365, inside the noise.
+
+Ridge scores 0.7083 in every one of the twelve large-fold runs (0.7082 with `coil_pca`) and 0.7117
+in every small-fold one. It should: a linear model cannot tell the difference between fitting ψ and
+fitting ψ minus a linear-in-currents field that is added back afterwards, and `coil_pca` spans the
+same subspace as the currents it is built from. That row is the check that the decomposition is
+exact and the add-back is not quietly lossy.
+
+### How precise the metric is, and what makes it imprecise
+
+The spread of S over three MLP seeds, everything else fixed, pooled over the four configurations:
+
+| scoring fold | pooled σ over seeds | wall per run |
+|---|---|---|
+| 70 shots (`0.01`) | **0.0060** | ~120 s |
+| 704 shots (`0.1`) | **0.0060** | ~600 s |
+
+**Ten times the shots bought no precision at all.** The noise is the MLP's optimisation, not the
+choice of scored shots: early stopping lands anywhere between epoch 363 and 1037 across seeds, and
+that is what moves the score. Scoring more shots cannot average it away — it is a property of the
+model, not of the measurement.
+
+The comparison is exact rather than approximate, because training is deterministic: one seed and
+one configuration produce *the same model* in both grids, and only the scored shots differ. The
+same model scored on 704 shots instead of 70 moves by +0.0029 ± 0.0039 — real, but smaller than
+the seed spread and mostly a level shift, since the ranking of the four configurations is
+**identical on both folds**.
+
+So: `make quality` stays at `0.01`. Spend a bigger budget on seeds, never on shots — and treat any
+difference under ~0.006 as unmeasured until it has been repeated.
+
+What the decomposition is **not** worth: a more compact basis. The residual is genuinely simpler —
+a single smooth blob following the plasma, against ψ's blob plus the coils' hot spots at the grid
+edge — and at 10 components it shows: R²ψ ceiling 0.999978 against 0.999619. But `params.yaml` uses
+50, where both targets are exact to six decimals. **The model's R²ψ = 0.9990 is therefore entirely
+regression error and none of it is representation error.** Whatever this buys has to come from
+making the regression easier, not from the basis.
+
+Residual std is 81% of ψ's, so the subtraction removes about a third of the variance and does not
+shrink the target much; the per-frame mean level, which is coil-driven, drops from 0.1453 to
+0.0667.
+
 ## Things that already cost time
 
 **Test rows have no `efit_*` targets.** `experiments.load_shot_from_hf_row` reads `efit_psirz`
@@ -288,6 +411,27 @@ interpolating Ip onto `efit_times` returns pre-shot noise — 4 kA where the tra
 The correct origin is the shot's own `magnetics_time[0]`, which puts current under 100% of the
 frames of every affected shot. `baseline_model.align_ip_times` applies that, and only to shots that
 need it; `my_experiments/eda_ip_offset.py` prints the evidence.
+
+**A low-coverage Ip axis is not the same thing as a wrong one.** The check above used to accept
+the shipped axis when current flowed under 90% of the EFIT frames and force the correction below
+that. On `d3d_shot_21f23b2392` — 1 shot in the 704 scored, 0 in 1104 sampled outside it — that
+inverted the truth: it is a 0.5 ms shot whose shipped axis is correct, but its EFIT window is 15
+frames over 160–440 ms sitting on the current ramp-up, where |Ip| is genuinely below 5% of its
+peak for half of them. Coverage 0.53, "corrected" to 0.00, and the run died at load time.
+`align_ip_times` now takes whichever of the two axes covers more frames and raises only if the
+better one falls under 50%. Over 1104 shots that reproduces every previous decision exactly — 761
+corrected, 342 left alone, none changed — and no shot comes near the floor.
+`results/eda_bad_ip_shot.png` is the picture.
+
+**Scoring a large fold used to need 71 GB.** `local_score` holds every scored shot for the whole
+run, because the metric pools R² across the fold and nothing can be finalized shot by shot. It
+kept the whole parquet row per shot: 101 MB, of which 77 are the raw magnetics traces — 480256
+samples per signal at the 0.05 ms acquisition — whose only use is to be interpolated onto
+`efit_times`, ~300 points, before anything reads them. `baseline_model.slim_row` now does that
+interpolation once at load and keeps the (T, 21) result plus the coil geometry, and `local_score`
+hands the pool 64 shots at a time instead of pickling all of them into the queue at once. The
+marginal cost per shot went from 101 MB to 11.6 MB, so a 704-shot fold holds about 9 GB. The
+metric is untouched — the smoke run scores the same to four decimals.
 
 **The PCA of ψ was not reproducible.** `experiments.TargetPCA` builds `PCA(n_components=50)` and
 leaves `random_state` at `None`, and sklearn picks the *randomized* SVD solver for 50 components

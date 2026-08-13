@@ -43,8 +43,15 @@ from experiments import (
     _as_psirz_stack,
     interpolate_magnetics_to_efit,
 )
+from my_experiments.coil_field import (
+    CoilBasis,
+    build_basis,
+    coil_pca_transform,
+    fit_flux_gains,
+)
 from my_experiments.models import (
     DEFAULT_PARAMS_PATH,
+    INPUT_MODES,
     FloatArray,
     Params,
     TargetScaler,
@@ -153,20 +160,30 @@ def split_train_val(files: list[Path], train_share: float,
 # origin for those is the shot's own `magnetics_time[0]`; the sampling step is fine either way.
 # See my_experiments/eda_ip_offset.py for the evidence, and README for the summary.
 IP_ON = 0.05              # |Ip| above this fraction of its peak counts as "current flowing"
-IP_COVERAGE_OK = 0.9      # fraction of EFIT frames that must see current flowing
+IP_COVERAGE_MIN = 0.5     # the better of the two axes must reach at least this, or something is
+                          # wrong with the shot rather than with the choice between them
 
 
 def align_ip_times(efit_times: FloatArray, ip_times: FloatArray, ip_values: FloatArray,
                    mag_times: FloatArray) -> FloatArray:
-    """`ip_times` re-origined onto the shot's own acquisition clock, or unchanged if it already is.
+    """Whichever Ip axis puts the current under more EFIT frames: the shipped one, or that same
+    sampling re-origined at `magnetics_time[0]`.
 
-    Shots whose frames already see the current are left strictly alone: for the 0.5 ms acquisition
-    the template happens to be the right axis, and re-origining those would break them (coverage
-    drops to 0.00, measured).
+    The correction is exact rather than fitted — keep the 0.5 ms sampling, move the origin to the
+    shot's own acquisition clock. Over 150 shots it puts current under 100% of the EFIT frames of
+    every affected shot, where matching waveform windows only reached 93% in the worst case. Shots
+    recorded at 0.5 ms need no correction at all, and re-origining those breaks them: coverage
+    drops to 0.00, measured.
 
-    For the rest the fix is exact rather than fitted — keep the 0.5 ms sampling, move the origin to
-    `magnetics_time[0]`. Over 150 shots that puts current under 100% of the EFIT frames of every
-    affected shot, where matching waveform windows only reached 93% in the worst case.
+    A COMPARISON, not a threshold, and the difference is not cosmetic. This used to accept the
+    shipped axis at 90% coverage and force the correction below it, which quietly assumed that low
+    coverage means a wrong axis. It can also mean a short EFIT window: `d3d_shot_21f23b2392` has
+    15 frames spanning 160-440 ms, sitting on the current ramp-up where |Ip| is genuinely under 5%
+    of its peak for half of them. Its shipped axis is right and scores 0.53, the correction scores
+    0.00, and the threshold rule "corrected" it and then raised. Picking the better of the two
+    reproduces every other decision exactly — 761 corrected and 342 left alone over 1104 shots,
+    zero changed — so the floor below is what still catches a genuinely broken shot. No shot in
+    that sample comes near it.
     """
     peak = np.abs(ip_values).max()
     if peak <= 0:
@@ -175,20 +192,18 @@ def align_ip_times(efit_times: FloatArray, ip_times: FloatArray, ip_values: Floa
     def coverage(axis: FloatArray) -> float:
         return float((np.abs(np.interp(efit_times, axis, ip_values)) > IP_ON * peak).mean())
 
-    if coverage(ip_times) >= IP_COVERAGE_OK:
-        return ip_times
-
     corrected = mag_times[0] + (ip_times - ip_times[0])
-    got = coverage(corrected)
-    if got < IP_COVERAGE_OK:
+    as_shipped, as_corrected = coverage(ip_times), coverage(corrected)
+    if max(as_shipped, as_corrected) < IP_COVERAGE_MIN:
         raise ValueError(
-            f"cannot align the plasma current: re-origining it at magnetics_time[0] = "
-            f"{mag_times[0]:.0f} ms leaves only {got:.0%} of EFIT frames with current flowing "
-            f"(need {IP_COVERAGE_OK:.0%}). Ip axis starts at {ip_times[0]:.0f} ms and spans "
+            f"cannot align the plasma current: the shipped axis puts current under "
+            f"{as_shipped:.0%} of the EFIT frames and re-origining it at magnetics_time[0] = "
+            f"{mag_times[0]:.0f} ms reaches {as_corrected:.0%}, both below {IP_COVERAGE_MIN:.0%}. "
+            f"Ip axis starts at {ip_times[0]:.0f} ms and spans "
             f"{ip_times[-1] - ip_times[0]:.0f} ms; EFIT window is "
-            f"[{efit_times.min():.0f}, {efit_times.max():.0f}] ms."
+            f"[{efit_times.min():.0f}, {efit_times.max():.0f}] ms over {efit_times.size} frames."
         )
-    return corrected
+    return ip_times if as_shipped >= as_corrected else corrected
 
 
 # --------------------------------------------------------------------------- features
@@ -227,8 +242,55 @@ def inputs_only_shot(row: Row) -> dict[str, Any]:
     return {"efit_times": efit_times, "magnetics": magnetics}
 
 
+# The geometry and time columns inference reads verbatim — small, and needed as they are.
+GEOMETRY_COLUMNS: tuple[str, ...] = (
+    "source", "efit_times", "efit_grid_R", "efit_grid_Z",
+    "coil_input_column", "coil_R", "coil_Z", "coil_width", "coil_height",
+)
+
+# Where `slim_row` parks the already-interpolated magnetics, and where `features_for_row` looks
+# for them before doing the work again.
+FEATURES_KEY = "magnetics_features"
+
+
+def slim_row(row: Row) -> dict[str, Any]:
+    """The inference inputs of one row, detached from the rest of it and reduced to size.
+
+    A dataset row retains 101 MB, of which inference reads 79 — and 77 of those are the raw
+    magnetics traces, 480256 samples per signal at the 0.05 ms acquisition. The first thing
+    inference does with them is interpolate them onto `efit_times`, ~300 points, so what it
+    actually needs is the (T, 21) result: 0.03 MB. Everything else — the flux map, which is a
+    TARGET, and the Thomson profiles this model does not use — is not read at all.
+
+    That distinction only matters because `local_score` holds one row per scored shot for the
+    whole run: the metric pools R² across the fold, so nothing can be finalized shot by shot. At
+    101 MB a 704-shot fold needed 71 GB before a frame had been scored, on a machine with 62, and
+    went to swap. Reduced, the same fold holds about 7 GB.
+
+    Detached, not a view: the parquet row and everything hanging off it must become collectable.
+    The interpolation is the same call inference would have made, so the features are identical
+    to the ones a full row produces — this is a memory change, not a numerical one.
+    """
+    out: dict[str, Any] = {}
+    for col in GEOMETRY_COLUMNS:
+        if col not in row:
+            raise ValueError(f"row has no column {col}, which inference reads — is this a "
+                             f"DIII-D row?")
+        v = row[col]
+        out[col] = v if isinstance(v, str) else np.array(v, copy=True)
+    out[FEATURES_KEY] = features_for_row(row)
+    return out
+
+
 def features_for_row(row: Row) -> FloatArray:
     """(T, 21) magnetics features on the EFIT time base, exactly len(efit_times) rows."""
+    if FEATURES_KEY in row:
+        ready: FloatArray = np.asarray(row[FEATURES_KEY])
+        want = (len(np.asarray(row["efit_times"])), len(D3D_MAGNETICS_SIGNALS))
+        if ready.shape != want:
+            raise ValueError(f"precomputed {FEATURES_KEY} has shape {ready.shape}, expected "
+                             f"{want}")
+        return ready
     shot = inputs_only_shot(row)
     feats: FloatArray = interpolate_magnetics_to_efit(shot)
     if feats.shape != (len(shot["efit_times"]), len(D3D_MAGNETICS_SIGNALS)):
@@ -237,6 +299,88 @@ def features_for_row(row: Row) -> FloatArray:
     if not np.isfinite(feats).all():
         raise ValueError(f"features contain {int((~np.isfinite(feats)).sum())} non-finite values")
     return feats
+
+
+# --------------------------------------------------------------------- the coil field
+
+# Everything the pipeline needs to reproduce the decomposition at inference. The scaled maps are
+# stored rather than rebuilt: 19 x 65 x 65 is 642 kB, against re-evaluating elliptic integrals in
+# every worker process, and it removes any chance of training and inference disagreeing about the
+# geometry. The grid travels with them so a row on a different one is an error, not a silent
+# mismatch.
+CoilPlan = dict[str, Any]
+
+
+def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) -> CoilPlan:
+    """Fit the flux gains and, if the inputs need it, the coil-flux principal directions."""
+    index = [D3D_MAGNETICS_SIGNALS.index(c.removeprefix("magnetics_")) for c in basis.columns]
+    currents = X[:, index].astype(np.float64)
+    gains = fit_flux_gains(basis.maps, currents, Y)
+    maps = basis.maps * gains[:, None, None]
+
+    mean = w = None
+    if params.inputs in ("coil_pca", "both"):
+        mean, w = coil_pca_transform(maps, currents, params.n_coil_pca)
+    return {
+        "subtract": params.subtract_coil_field, "inputs": params.inputs,
+        "columns": list(basis.columns), "index": index, "gains": gains, "maps": maps,
+        "grid_R": basis.grid_R, "grid_Z": basis.grid_Z, "machine": basis.machine,
+        # Signals with no poloidal-plane rectangle, so no map and no principal direction: they
+        # survive `coil_pca` verbatim or the plasma current would be thrown away with the wiring.
+        "passthrough": [i for i, sig in enumerate(D3D_MAGNETICS_SIGNALS)
+                        if f"magnetics_{sig}" not in basis.columns],
+        "cur_mean": mean, "coil_pca_W": w,
+    }
+
+
+def coil_flux(plan: CoilPlan, feats: FloatArray) -> FloatArray:
+    """(T, 65, 65) the coil field of these frames, in the stored flux convention."""
+    maps: FloatArray = plan["maps"]
+    return np.tensordot(feats[:, plan["index"]].astype(np.float64), maps, axes=(1, 0))
+
+
+def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
+    """(T, n_features) — what the models actually see, identical in training and in inference."""
+    mode = plan["inputs"]
+    if mode == "currents":
+        return feats
+    coil = (feats[:, plan["index"]].astype(np.float64) - plan["cur_mean"]) @ plan["coil_pca_W"]
+    if mode == "coil_pca":
+        return np.hstack([coil, feats[:, plan["passthrough"]]])
+    if mode == "both":
+        return np.hstack([feats, coil])
+    raise ValueError(f"unknown input mode {mode!r}; known: {sorted(INPUT_MODES)}")
+
+
+def basis_for_row(row: Row) -> CoilBasis:
+    """The coil basis of this row's machine, built once per process.
+
+    Keyed on the geometry itself, not on the machine name: two rows that disagree about where the
+    coils are must not share a basis, and on this dataset they never do.
+    """
+    key = "|".join(str(np.asarray(row[c]).tobytes() if c != "coil_input_column"
+                       else list(row[c]))
+                   for c in ("coil_input_column", "coil_R", "coil_Z", "coil_width", "coil_height",
+                             "efit_grid_R", "efit_grid_Z"))
+    if key not in _BASIS_CACHE:
+        _BASIS_CACHE[key] = build_basis(row)
+    return _BASIS_CACHE[key]
+
+
+_BASIS_CACHE: dict[str, CoilBasis] = {}
+
+
+def check_grid(plan: CoilPlan, row: Row) -> None:
+    """The artifact's maps only mean anything on the grid they were built on."""
+    for name, want in (("efit_grid_R", plan["grid_R"]), ("efit_grid_Z", plan["grid_Z"])):
+        got = np.asarray(row[name], dtype=np.float64)
+        if got.shape != want.shape or not np.allclose(got, want):
+            raise ValueError(
+                f"{name} of this row spans {got.min():.3f}..{got.max():.3f} in {got.size} points, "
+                f"but the coil maps in {ARTIFACT} were built on "
+                f"{want.min():.3f}..{want.max():.3f} in {want.size}. The decomposition cannot be "
+                f"transferred between grids."
+            )
 
 
 # --------------------------------------------------------------------------- training
@@ -326,12 +470,37 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
 
     print(f"  X {X.shape}  Y {Y.shape}  S {S.shape}   val X {Xv.shape}")
 
+    # The metric's own denominator, per frame: sum over pixels of (psi - m)^2 with m the single
+    # FLAT mean of the training flux — not the mean image. Computed here, on the flux as stored,
+    # BEFORE any decomposition: the metric scores total psi, so the balance the target scaling
+    # strikes between psi and the scalars must not move when the target becomes a residual.
+    # By sums rather than by materializing (Y - m), which would be a 550 MB float64 temporary.
+    psi_total = float(Y.sum(dtype=np.float64))
+    psi_sumsq = float(np.einsum("ijk,ijk->", Y, Y, dtype=np.float64))
+    psi_ss_tot = (psi_sumsq - psi_total ** 2 / Y.size) / len(Y)
+
+    basis = basis_for_row(pd.read_parquet(files[0]).iloc[0])
+    plan = coil_plan(basis, params, X, Y)
+    print(f"  coil field: {len(plan['columns'])} maps on {plan['machine']}, gains "
+          f"{plan['gains'].min():.2f}..{plan['gains'].max():.2f}; "
+          f"subtract={plan['subtract']}, inputs={plan['inputs']}")
+    if plan["subtract"]:
+        # In place and in chunks: at production scale a second copy of Y is 2 GB, and the whole
+        # point of thinning frames was to afford more shots with the memory we have.
+        for Yi, Xi in ((Y, X), (Yv, Xv)):
+            for lo in range(0, len(Yi), 4096):
+                Yi[lo:lo + 4096] -= coil_flux(plan, Xi[lo:lo + 4096]).astype(Yi.dtype)
+        print(f"  targets are now the plasma part alone: psi std "
+              f"{np.sqrt(psi_ss_tot / Y[0].size):.4f} -> {Y.std():.4f} Wb/rad")
+
     # Every preprocessing step is fitted on the training frames alone and merely applied to the
     # validation ones: a scaler or a PCA that had seen the validation set would make early stopping
     # stop on a number that is partly its own reflection.
-    scaler = StandardScaler().fit(X)
-    Xs = scaler.transform(X)
-    Xvs = scaler.transform(Xv)
+    F, Fv = build_inputs(plan, X), build_inputs(plan, Xv)
+    print(f"  inputs: {F.shape[1]} features per frame ({plan['inputs']})")
+    scaler = StandardScaler().fit(F)
+    Xs = scaler.transform(F)
+    Xvs = scaler.transform(Fv)
 
     if params.n_pca > min(len(Xs), EFIT_GRID_SIZE ** 2):
         raise ValueError(f"n_pca {params.n_pca} exceeds what the data supplies: {len(Xs)} frames, "
@@ -361,12 +530,6 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # a property of the problem, not of any one estimator. Ridge is provably indifferent to it
     # (it is separable per output and the scale cancels in the solution), which makes its score a
     # check that this step changed nothing it should not have.
-    # The metric's own denominator, per frame: sum over pixels of (psi - m)^2 with m the single
-    # FLAT mean of the training flux — not the mean image. Computed by sums rather than by
-    # materializing (Y - m), which would be a 550 MB float64 temporary.
-    psi_total = float(Y.sum(dtype=np.float64))
-    psi_sumsq = float(np.einsum("ijk,ijk->", Y, Y, dtype=np.float64))
-    psi_ss_tot = (psi_sumsq - psi_total ** 2 / Y.size) / len(Y)
     target_scaler = TargetScaler(params.n_pca).fit(Tgt, psi_ss_tot)
     Tgt = target_scaler.transform(Tgt)
     Tgt_val = target_scaler.transform(Tgt_val)
@@ -385,7 +548,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     artifact: Artifact = {
         "scaler": scaler, "pca": pca, "target_scaler": target_scaler,
         "models": params.models, "ensemble": params.ensemble,
-        "n_pca": params.n_pca,
+        "n_pca": params.n_pca, "coil": plan,
         # The whole params file, verbatim: the artifact says what produced it even after the file
         # on disk has moved on.
         "params_yaml": params.path.read_text(encoding="utf-8"),
@@ -460,11 +623,27 @@ def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE) -> dict
         )
 
     T = len(np.asarray(row["efit_times"]))
-    Xs = art["scaler"].transform(features_for_row(row))   # features_for_row demands finiteness
+    if "coil" not in art:
+        raise KeyError(
+            f"{ARTIFACT} predates the coil-field decomposition and does not say which features it "
+            f"was fitted on. Retrain rather than guess: uv run python my_experiments/train.py "
+            f"--share 0.05/0.2 --val-share 0.05/0.2"
+        )
+    plan: CoilPlan = art["coil"]
+    feats = features_for_row(row)                          # features_for_row demands finiteness
+    if plan["subtract"] or plan["inputs"] != "currents":
+        check_grid(plan, row)
+    Xs = art["scaler"].transform(build_inputs(plan, feats))
     P = _predict_targets(art, model, Xs)
 
     n_pca = art["n_pca"]
-    out: dict[str, FloatArray] = {"psirz": art["pca"].inverse_transform(P[:, :n_pca])}
+    psirz = np.asarray(art["pca"].inverse_transform(P[:, :n_pca]))
+    if plan["subtract"]:
+        # What was taken off the targets, put back on the prediction — the same maps, the same
+        # gains, the same currents. Exact, so the decomposition can only change how well the
+        # regression does its half, never introduce an error of its own.
+        psirz = psirz + coil_flux(plan, feats).astype(psirz.dtype)
+    out: dict[str, FloatArray] = {"psirz": psirz}
     for j, key in enumerate(["q95", "betaN"]):
         out[key] = P[:, n_pca + j].astype(np.float32)
 

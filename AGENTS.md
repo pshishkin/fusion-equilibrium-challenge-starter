@@ -92,6 +92,36 @@ Hypotheses that did not survive are recorded, so they do not get re-litigated. A
   epochs is only ~640 Adam steps. A validation window and a patience are one decision, not two.
 - A falling validation MSE does not imply a rising composite: the loss sees 52 scaled targets, the
   score also sees D_LCFS and the seven derived scalars.
+- The PCA basis is NOT what limits the score. At 50 components the truncation ceiling is
+  R²ψ = 1.000000 (0.999997 at 25) against a model that scores 0.9990, so every bit of the ψ gap is
+  regression error. Arguments of the form "this representation is more compact" are therefore not
+  arguments for anything; measure the regression instead.
+- **Confirmed:** the coil field can be computed rather than learned. The Green's function
+  annihilates the Grad-Shafranov operator to 5·10⁻³ of itself, and fitted outside the plasma
+  boundary the DIII-D F-coils come out as a group at 0.87 — see README, "The flux decomposition".
+  The calibration fit MUST carry a plasma filament with a PER-FRAME amplitude: without the filament
+  the coil gains absorb the plasma's own external field and land between −0.15 and −0.57, and with
+  a pooled amplitude they read 0.997 on 10 shots but 0.911 on 40.
+- **A single run cannot see a difference under ~0.006 of S.** Measured: three MLP seeds, everything
+  else fixed, give a pooled σ of 0.0060 — and it is 0.0060 whether the fold is 70 shots or 704,
+  because the noise is the MLP's optimisation (early stopping lands between epoch 363 and 1037),
+  not the choice of scored shots. Ten times the shots cost five times the wall clock and bought
+  nothing. Repeat over seeds, never over shots, and quote the mean.
+- **Confirmed, and it lands where the score is actually lost:** fitting on ψ − ψ_coil and adding
+  the coil field back wins on every seed of both folds, mean +0.0088 of S on 704 shots
+  (0.9327 → 0.9416), of which almost all is Consistency (0.7229 → 0.7639) while R²ψ does not move.
+  Three seeds is three replicates, not six — the same seed trains the same model on both folds —
+  so p ≈ 0.15: the direction is solid, the size is not.
+- **Refuted, by the measurement above, having first been believed:** that `inputs: coil_pca` beats
+  the raw currents (+0.0064 from one run; per-seed it is +0.0102, −0.0042, +0.0052), and that it
+  and the subtraction are substitutes that hurt in combination (one run said 0.9336 against 0.9400;
+  three seeds say 0.9370 against 0.9416, inside the noise). `coil_pca` costs nothing and that is
+  its whole claim — which is enough, since MAST has no DIII-D currents to feed. Table in README,
+  "The flux decomposition".
+- Within the Consistency term, `Z_axis` is the weak one: 0.6816 against 0.85–0.97 for the other
+  six on the production fold. Lifting it alone to the level of the rest would be worth about
+  +0.005 of S. Measured with `evaluate.py --share 0.01` on the 0.2/0.2 artifact, which already
+  prints the per-scalar breakdown — read it before theorising about the composite.
 - **Confirmed, and the largest effect measured so far:** at a fixed row budget, more shots with
   thinned frames beat fewer shots with every frame — 0.8111 -> 0.9319 for the ensemble, and ridge
   gains as well, so it is coverage and not capacity. Frames inside a shot are near-duplicates;

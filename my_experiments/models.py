@@ -423,6 +423,9 @@ class Params:
 
     n_pca: int
     pca_seed: int
+    subtract_coil_field: bool
+    inputs: str                         # currents | coil_pca | both
+    n_coil_pca: int
     models: dict[str, TargetModel]      # name -> unfitted model, enabled ones only
     ensemble: dict[str, float]          # name -> weight, already normalized to sum to 1
     path: Path
@@ -430,6 +433,11 @@ class Params:
     @property
     def n_targets(self) -> int:
         return self.n_pca + 2           # + q95, betaN
+
+
+# What `features.inputs` may say. The pipeline builds the feature matrix from this and nothing
+# else, so a typo here is a ValueError naming the file rather than a silently different experiment.
+INPUT_MODES = ("currents", "coil_pca", "both")
 
 
 def _require_keys(got: dict[str, Any], want: set[str], where: str, path: Path) -> None:
@@ -461,7 +469,13 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH) -> Params:
     if not isinstance(doc, dict):
         raise ValueError(f"{path}: expected a mapping at the top level, got {type(doc).__name__}")
     _require_keys(doc, {"features", "models", "ensemble"}, "the top level", path)
-    _require_keys(doc["features"], {"n_pca", "pca_seed"}, "features", path)
+    _require_keys(doc["features"],
+                  {"n_pca", "pca_seed", "subtract_coil_field", "inputs", "n_coil_pca"},
+                  "features", path)
+    inputs = str(doc["features"]["inputs"])
+    if inputs not in INPUT_MODES:
+        raise ValueError(f"{path}: features.inputs is {inputs!r}, expected one of "
+                         f"{sorted(INPUT_MODES)}")
     _require_keys(doc["ensemble"], {"members"}, "ensemble", path)
 
     models: dict[str, TargetModel] = {}
@@ -486,5 +500,9 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH) -> Params:
         raise ValueError(f"{path}: ensemble weights sum to {total}, must be positive")
 
     return Params(n_pca=int(doc["features"]["n_pca"]),
-                  pca_seed=int(doc["features"]["pca_seed"]), models=models,
+                  pca_seed=int(doc["features"]["pca_seed"]),
+                  subtract_coil_field=bool(doc["features"]["subtract_coil_field"]),
+                  inputs=inputs,
+                  n_coil_pca=int(doc["features"]["n_coil_pca"]),
+                  models=models,
                   ensemble={k: float(v) / total for k, v in weights.items()}, path=path)

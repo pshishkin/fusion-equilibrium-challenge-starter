@@ -20,6 +20,26 @@ features:
   # scored 0.6769 and 0.6846 on the same 7 shots before this was pinned.
   pca_seed: 0
 
+  # psi = psi_coil + psi_plasma, and the first term is a Green's function times a current rather
+  # than a modelling problem — see README, "The flux decomposition". With this on, the models are
+  # fitted on the plasma part alone and the coil part is added back, unchanged, at inference. The
+  # split is exact whatever the gains are, so this cannot lose accuracy by itself; what it changes
+  # is what the regression has to represent.
+  subtract_coil_field: true
+
+  # What the models see.
+  #   currents   the 21 shipped magnetics signals — the baseline
+  #   coil_pca   the flux the 19 coils with a rectangle produce, in its own principal directions,
+  #              plus the signals that have NO rectangle and so cannot appear in it
+  #              (plasma_current, and bcoil, which is toroidal and drives no poloidal flux)
+  #   both       the two concatenated
+  # `coil_pca` carries the same information as `currents` — the coil flux is linear in them — but
+  # in machine-independent coordinates, which is the form MAST will need, where DIII-D's 21 columns
+  # do not exist. On DIII-D the question it answers is only "does this cost anything".
+  inputs: currents
+  # At most 19: the coil flux spans one dimension per current column and no more.
+  n_coil_pca: 19
+
 models:
   ridge:
     type: ridge

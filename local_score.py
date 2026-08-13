@@ -70,6 +70,7 @@ from derive import derive_frame  # noqa: E402
 from lcfs import extract_lcfs, extract_lcfs_with_sign, major_radius  # noqa: E402
 from metrics import Accum, finalize_machine  # noqa: E402
 
+from my_experiments.baseline_model import slim_row  # noqa: E402
 from my_experiments.parallel import pimap, resolve_jobs  # noqa: E402
 
 REPO_ID = "Sophelio/fusion-equilibrium-challenge"
@@ -107,10 +108,19 @@ def _as_psi_stack(psirz_raw: Any) -> FloatArray:
 
 
 def _shot_from_row(row: Any) -> dict:
-    """Keep ψ and the two value scalars. Works for a streamed dict or a parquet row."""
+    """Keep ψ, the two value scalars, and the inference inputs. Streamed dict or parquet row alike.
+
+    `row` itself is deliberately NOT kept. Every scored shot stays in memory for the whole run —
+    the metric pools R² across the fold, so nothing can be finalized shot by shot — and a full row
+    retains 101 MB against the ~6 MB inference actually reads, most of the difference being a
+    second copy of the flux map in its stored form plus Thomson profiles this model never touches.
+    On a 704-shot fold that was 71 GB before a single frame had been scored, on a machine with 62.
+    `slim_row` names the columns it keeps, so a column that inference starts reading and this
+    forgets fails with a KeyError rather than a wrong number.
+    """
     psi = _as_psi_stack(row["efit_psirz"])
     return {
-        "row": row,
+        "row": slim_row(row),
         "psi": psi,
         "q95": np.asarray(row["efit_q95"], dtype=np.float64),
         "betaN": np.asarray(row["efit_beta_n"], dtype=np.float64),
@@ -253,11 +263,24 @@ def _score_task(args: tuple) -> dict:
     return score_shot(*args)
 
 
+# Shots handed to the pool at a time. `Executor.map` submits everything it is given at once, and
+# each scoring task carries that shot's flux map, its reference and its prediction — 2.9 MB
+# measured, so a 704-shot fold pickled 2 GB into the queue on top of everything already held.
+# Bounding it costs a barrier every chunk and nothing else; results still come back in order.
+MAP_CHUNK = 64
+
+
 def _map(fn: Callable[[tuple], Any], tasks: list[tuple], jobs: int, desc: str) -> list:
     """`fn` over `tasks` on `jobs` shared-pool processes, in the original order — see
     my_experiments/parallel.py for why order and the start method are not negotiable."""
     label = desc if jobs == 1 else f"{desc} x{jobs}"
-    return list(tqdm(pimap(fn, tasks, jobs), total=len(tasks), desc=label, unit="shot"))
+    out: list = []
+    with tqdm(total=len(tasks), desc=label, unit="shot") as bar:
+        for lo in range(0, len(tasks), MAP_CHUNK):
+            for result in pimap(fn, tasks[lo:lo + MAP_CHUNK], jobs):
+                out.append(result)
+                bar.update(1)
+    return out
 
 
 # --------------------------------------------------------------------------- scoring
