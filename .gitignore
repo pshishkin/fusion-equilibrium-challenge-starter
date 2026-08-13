@@ -6,6 +6,10 @@ submission/
 sample_submission/
 baseline.joblib
 
+# Decoded shots, rebuilt on demand — see my_experiments/shot_cache.py. Tens of GB, and keyed by
+# the source parquet's mtime, so it is worthless to anyone else's checkout.
+.shot_cache/
+
 # Your Hugging Face read token, included by the Makefile. .env.example is the tracked stub.
 .env
 

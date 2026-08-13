@@ -19,6 +19,7 @@ by construction as long as the two shares sum to under 1.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import sys
 import time
@@ -43,6 +44,7 @@ from experiments import (
     _as_psirz_stack,
     interpolate_magnetics_to_efit,
 )
+from my_experiments import shot_cache
 from my_experiments.coil_field import (
     CoilBasis,
     build_basis,
@@ -57,7 +59,15 @@ from my_experiments.models import (
     TargetScaler,
     load_params,
 )
-from my_experiments.parallel import pimap, resolve_jobs
+from my_experiments.parallel import pimap, release, resolve_jobs
+from my_experiments.target_metric import (
+    CONS_SCALARS,
+    boundary_form,
+    factor,
+    jacobian_form,
+    metric_form,
+    scorer_context,
+)
 
 HERE = Path(__file__).resolve().parent
 ARTIFACT = HERE / "baseline.joblib"
@@ -70,22 +80,29 @@ Row = Any                                         # a pandas Series or a streame
 
 # --------------------------------------------------------------------------- shot ordering
 
-def shot_key(path: Path) -> str:
-    """Sort key: sha1 of the shot id.
+def shot_key(path: Path, salt: int = 0) -> str:
+    """Sort key: sha1 of the shot id, optionally salted to draw a different split.
 
     hashlib, NOT the builtin hash(): that one is salted per process, so the order would change
     between the train run and the evaluate run and the split would stop being reproducible —
     silently. sha1 of the filename gives the same order every time, on any machine.
+
+    `salt` reshuffles which shots land in the training, validation and scoring windows, at the same
+    shares. That is the replicate that matters: the MLP seed only varies the optimisation, while
+    the salt varies the DATA, which is what a claim like "this change helps" is really about. Salt
+    0 hashes the bare filename, so it is the split every number recorded so far was measured on and
+    stays the canonical one; only compare absolute scores within one salt.
     """
-    return hashlib.sha1(path.stem.encode()).hexdigest()
+    stem = path.stem if salt == 0 else f"{salt}:{path.stem}"
+    return hashlib.sha1(stem.encode()).hexdigest()
 
 
 def sorted_shots(local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR,
-                 config: str = HF_TRAIN_CONFIG) -> list[Path]:
+                 config: str = HF_TRAIN_CONFIG, salt: int = 0) -> list[Path]:
     """Every shot of the config, deterministically shuffled. Training takes the head of the list
     and evaluation the tail, so the windows stay disjoint while the shares sum to under 1."""
     data_dir = Path(local_data_dir) / "data" / config
-    files = sorted(data_dir.glob("*.parquet"), key=shot_key)
+    files = sorted(data_dir.glob("*.parquet"), key=lambda p: shot_key(p, salt))
     if not files:
         raise SystemExit(f"No parquet files in {data_dir}")
     return files
@@ -385,6 +402,16 @@ def check_grid(plan: CoilPlan, row: Row) -> None:
 
 # --------------------------------------------------------------------------- training
 
+@functools.cache
+def _shot_code_key() -> str:
+    """The fingerprint of every function whose output the shot cache stores. Computed once."""
+    return shot_cache.fingerprint(
+        _read_training_shot, features_for_row, inputs_only_shot, align_ip_times,
+        interpolate_magnetics_to_efit, _as_psirz_stack,
+        extra=f"{D3D_MAGNETICS_SIGNALS}|{SUBMITTED_SCALARS}",
+    )
+
+
 def _read_training_shot(path: Path,
                         frame_share: float = 1.0) -> tuple[FloatArray, FloatArray, FloatArray]:
     """(features, psi, scalars) for one training shot, with every shape checked.
@@ -392,7 +419,19 @@ def _read_training_shot(path: Path,
     `frame_share` thins the frames as they are read, before anything is concatenated: the point of
     thinning is to afford more shots, and holding every frame of every shot in memory first would
     defeat it.
+
+    Decoding is cached — see shot_cache. The cache holds EVERY frame whatever this call asks for,
+    so one build serves any frame share, and the thinning below is applied to the cached arrays
+    exactly as it is to freshly decoded ones.
     """
+    def keep(n_frames: int) -> npt.NDArray[np.intp]:
+        return thin_frames(n_frames, frame_share)
+
+    code = _shot_code_key()
+    hit = shot_cache.load(path, code, keep)
+    if hit is not None:
+        return hit
+
     row = pd.read_parquet(path).iloc[0]
     feats = features_for_row(row)                 # same code path as inference
     psi = _as_psirz_stack(row["efit_psirz"])      # train rows only: targets are withheld on test
@@ -414,8 +453,9 @@ def _read_training_shot(path: Path,
                              f"{int((~np.isfinite(arr)).sum())} non-finite values")
         scal[:, j] = arr
 
-    keep = thin_frames(T, frame_share)
-    return feats[keep], psi[keep], scal[keep]
+    shot_cache.store(path, code, feats, psi, scal)
+    rows = keep(T)
+    return feats[rows], psi[rows], scal[rows]
 
 
 def _read_task(args: tuple) -> tuple[FloatArray, FloatArray, FloatArray]:
@@ -456,7 +496,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     params: Params = load_params(params_path)
     shot_share, frame_share = parse_share(share)
     val_shot_share, val_frame_share = parse_share(val_share)
-    all_files = sorted_shots(local_data_dir, config)
+    all_files = sorted_shots(local_data_dir, config, params.split_salt)
     files, val_files = split_train_val(all_files, shot_share, val_shot_share)
     print(f"Training on {len(files)} shots ({shot_share:.1%} of {len(all_files)}, "
           f"{frame_share:.0%} of their frames), validating on {len(val_files)} "
@@ -466,9 +506,9 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
           f"(ensemble: {', '.join(f'{k} x {w:.2f}' for k, w in params.ensemble.items())})")
 
     X, Y, S = _read_shots(files, "reading train shots", frame_share, jobs)
+    print(f"  train: X {X.shape}  Y {Y.shape}  S {S.shape}, flux {Y.nbytes / 2 ** 30:.2f} GiB")
     Xv, Yv, Sv = _read_shots(val_files, "reading val shots", val_frame_share, jobs)
-
-    print(f"  X {X.shape}  Y {Y.shape}  S {S.shape}   val X {Xv.shape}")
+    print(f"  val:   X {Xv.shape}  Y {Yv.shape}, flux {Yv.nbytes / 2 ** 30:.2f} GiB")
 
     # The metric's own denominator, per frame: sum over pixels of (psi - m)^2 with m the single
     # FLAT mean of the training flux — not the mean image. Computed here, on the flux as stored,
@@ -506,13 +546,21 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         raise ValueError(f"n_pca {params.n_pca} exceeds what the data supplies: {len(Xs)} frames, "
                          f"{EFIT_GRID_SIZE ** 2} pixels. Raise --share or lower n_pca in "
                          f"{params.path}.")
+    # The PCA does not need every frame: 50 components out of 4225 pixels are estimated from a
+    # sample, and a stride over frames covers ramp-up, flat-top and ramp-down by construction (see
+    # thin_frames). Fitting on a share of them is the difference between a randomized SVD over the
+    # whole flux array and one over a fraction of it, in both time and peak memory — the whole
+    # centred copy sklearn makes is the peak of this stage.
+    pca_rows = thin_frames(len(Y), params.pca_frame_share)
+    print(f"  features standardized; fitting PCA on {len(pca_rows)} of {len(Y)} frames "
+          f"({params.pca_frame_share:.0%}) of {EFIT_GRID_SIZE ** 2} pixels")
     pca = TargetPCA(n_components=params.n_pca)
     # Pin the randomized SVD. sklearn chooses that solver for 50 components out of 4225 pixels and
     # TargetPCA leaves random_state at None, so unpinned it fits different components on every run
     # — different targets for every model, and a score that moves without the code changing.
     # Set on the inner estimator rather than by editing the organizers' experiments.py.
     pca.pca.random_state = params.pca_seed
-    pca.fit(Y)
+    pca.fit(Y if params.pca_frame_share >= 1.0 else Y[pca_rows])
     print(f"  PCA: {params.n_pca} components explain "
           f"{np.cumsum(pca.explained_variance_ratio)[-1] * 100:.1f}% of the psi variance")
 
@@ -530,13 +578,55 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # a property of the problem, not of any one estimator. Ridge is provably indifferent to it
     # (it is separable per output and the scale cancels in the solution), which makes its score a
     # check that this step changed nothing it should not have.
-    target_scaler = TargetScaler(params.n_pca).fit(Tgt, psi_ss_tot)
+    # The psi block's loss metric: identity (Parseval — the pixel error of the map, which is
+    # exactly R2_psi) unless loss.metric asks for the measured one. Built from the PCA basis, so it
+    # exists only after the fit above, and folded into the target transform — no model sees it.
+    psi_L = None
+    images = np.asarray(pca.pca.components_).reshape(params.n_pca, EFIT_GRID_SIZE, -1)
+    if params.loss_metric == "jacobian":
+        # The functionals read the TOTAL flux, so the probe has to be applied to it — with the
+        # coil field subtracted, Y holds the plasma part alone and the coil part is a constant
+        # offset that the perturbation does not touch but the LCFS extraction certainly does.
+        probe = thin_frames(len(Y), min(1.0, params.jacobian_frames / len(Y)))
+        total = Y[probe].astype(np.float64)
+        if plan["subtract"]:
+            total = total + coil_flux(plan, X[probe])
+        delta = params.jacobian_delta * float(np.sqrt(psi_ss_tot / params.n_pca))
+        ctx = scorer_context(plan["grid_R"], plan["grid_Z"], plan["machine"])
+        m_cons, var, ratio, n_used = jacobian_form(images, total, delta, ctx, jobs,
+                                                   params.calibrate_scalars)
+        m_bnd = d_probe = None
+        if params.boundary:
+            m_bnd, d_probe, n_bnd, clipped = boundary_form(images, total, delta, ctx, jobs)
+            print(f"  boundary term: {n_bnd} contours, probe moves the boundary "
+                  f"{d_probe:.4g} of rgeo, {clipped:.1%} of contour points on the gradient floor")
+        psi_L = factor(metric_form(m_cons, psi_ss_tot, m_bnd, d_probe or 0.0))
+        print(f"  loss metric: jacobian over {n_used} of {probe.size} probe frames, step "
+              f"{delta:.4g} Wb/rad, condition number {np.linalg.cond(psi_L @ psi_L.T):.1f}")
+        for name, r, v in zip(CONS_SCALARS, ratio, var, strict=True):
+            print(f"    {name:8s} linear/actual {r:6.2f}   spread {np.sqrt(v):10.4g}"
+                  f"{'   (down-weighted)' if params.calibrate_scalars and r > 1.1 else ''}")
+    target_scaler = (TargetScaler(params.n_pca)
+                     .with_psi_metric(psi_L)
+                     .fit(Tgt, psi_ss_tot))
     Tgt = target_scaler.transform(Tgt)
     Tgt_val = target_scaler.transform(Tgt_val)
     var = Tgt.var(axis=0)
     print(f"  targets: {params.n_targets} outputs, scaled as the metric weights them; "
           f"loss share psi {var[:params.n_pca].sum() / var.sum():.0%} / "
           f"scalars {var[params.n_pca:].sum() / var.sum():.0%}")
+
+    # The flux maps are dead from here on: the models see standardized inputs and scaled targets,
+    # and the PCA keeps its own components. At production Y and Yv are over 3 GiB together, which
+    # is the difference between fitting in RAM and fitting against swap — and the fit is the
+    # longest stage, so it is the worst place to be paging.
+    print(f"  releasing {(Y.nbytes + Yv.nbytes) / 2 ** 30:.2f} GiB of flux arrays before fitting")
+    del X, Y, S, Xv, Yv, Sv, F, Fv
+    # And the reader pool with them. Its workers hold far more than the data does — parquet decode
+    # buffers they never return to the OS — and the fit below is the longest stage of the run, so
+    # it is the worst possible time to be holding them. Scoring spawns its own pool later.
+    release()
+    print("  released, reader pool shut down; the fit sees inputs and targets only")
 
     for name, model in params.models.items():
         print(f"\n  fitting {name} ({model.kind}) on {Xs.shape[0]} frames "
@@ -559,6 +649,9 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         "n_train_shots": len(files), "train_share": shot_share, "train_frame_share": frame_share,
         "n_val_shots": len(val_files), "val_share": val_shot_share,
         "val_frame_share": val_frame_share, "config": config,
+        # evaluate.py must order the shots exactly as this run did, or its "tail" is a different
+        # set of shots and the overlap check passes while measuring the wrong thing.
+        "split_salt": params.split_salt,
     }
     joblib.dump(artifact, ARTIFACT)
     print(f"\nSaved {ARTIFACT}: {', '.join(model_names(artifact))}")

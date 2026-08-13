@@ -37,9 +37,11 @@ from my_experiments.baseline_model import (
     sorted_shots,
     take_share,
 )
+from my_experiments.progress import install_timestamps
 
 
 def main() -> int:
+    install_timestamps()
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--share", type=float, default=0.02,
@@ -57,11 +59,10 @@ def main() -> int:
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
     args = ap.parse_args()
 
-    all_files = sorted_shots(args.local_data_dir, args.config)
-    files = take_share(all_files, args.share, "tail")
-    print(f"Scoring {len(files)} shots ({args.share:.1%} of {len(all_files)}), tail of the list")
-
-    extra: list[str] = []
+    # The shot ORDER has to be the one training used, so the salt comes from the artifact rather
+    # than from params.yaml: the file on disk may have moved on since the model was fitted, and a
+    # different order would silently score a different tail while the overlap check still passed.
+    art = None
     if args.mode == "model":
         if not ARTIFACT.exists():
             raise SystemExit(
@@ -69,6 +70,18 @@ def main() -> int:
                 f"Train first:  uv run python my_experiments/train.py --share 0.01"
             )
         art = joblib.load(ARTIFACT)
+        if "split_salt" not in art:
+            raise SystemExit(f"{ARTIFACT} does not say which split salt it was trained on — "
+                             f"artifact from an older version, retrain")
+    salt = int(art["split_salt"]) if art is not None else 0
+
+    all_files = sorted_shots(args.local_data_dir, args.config, salt)
+    files = take_share(all_files, args.share, "tail")
+    print(f"Scoring {len(files)} shots ({args.share:.1%} of {len(all_files)}), tail of the list"
+          f"{'' if salt == 0 else f', split salt {salt}'}")
+
+    extra: list[str] = []
+    if art is not None:
         if not art.get("train_files"):
             raise SystemExit(f"{ARTIFACT} carries no list of training files — artifact from an "
                              f"older version, retrain")

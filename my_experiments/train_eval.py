@@ -23,9 +23,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from my_experiments import evaluate, train
+from my_experiments.progress import install_timestamps
 
 
 def main(argv: list[str]) -> int:
+    # Before either half runs, so training and scoring share one clock and one memory trace.
+    install_timestamps()
     if len(argv) != 3:
         raise SystemExit(__doc__)
     train_share, val_share, test_share = argv

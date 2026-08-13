@@ -75,57 +75,34 @@ Any claim about the data is backed by a measurement over a sample of shots, and 
 the number. "The current seems to always be positive" is not a conclusion; "reversed current in 21
 of 200 shots" is.
 
-Hypotheses that did not survive are recorded, so they do not get re-litigated. Already tested and
-**refuted**:
+**Where the record lives.** Three files, and putting a thing in the wrong one is how it gets lost:
 
-- Thomson does not explain the model's failures (R² correlates −0.07 with Te, 0.00 with ne, 200 shots).
-- The error on failing shots is not merely an offset in the psi level (removing the per-shot
-  constant recovers only 21% of it).
-- Normalizing polarity by the sign of Ip makes the score worse (0.63 against 0.68).
-- Standardizing each PCA component separately is not a neutral preprocessing step: it whitens the
-  loss and costs the ensemble 0.7466 → 0.7155 against scaling the block as the metric weights it.
-- Averaging ridge into the ensemble does not diversify it, it dilutes it (0.7466 → 0.5936).
-- Early stopping buys CatBoost nothing measurable: 0.7435 to 0.7439 across every budget and
-  patience tried, while its chosen stopping point moved from 1942 to 4861 iterations.
-- For the MLP the patience IS the hyper-parameter, not the stopping: 0.5521 at patience 20 against
-  0.7273 at patience 100 on the same shots, because its validation curve has a false floor and 20
-  epochs is only ~640 Adam steps. A validation window and a patience are one decision, not two.
-- A falling validation MSE does not imply a rising composite: the loss sees 52 scaled targets, the
-  score also sees D_LCFS and the seven derived scalars.
-- The PCA basis is NOT what limits the score. At 50 components the truncation ceiling is
-  R²ψ = 1.000000 (0.999997 at 25) against a model that scores 0.9990, so every bit of the ψ gap is
-  regression error. Arguments of the form "this representation is more compact" are therefore not
-  arguments for anything; measure the regression instead.
-- **Confirmed:** the coil field can be computed rather than learned. The Green's function
-  annihilates the Grad-Shafranov operator to 5·10⁻³ of itself, and fitted outside the plasma
-  boundary the DIII-D F-coils come out as a group at 0.87 — see README, "The flux decomposition".
-  The calibration fit MUST carry a plasma filament with a PER-FRAME amplitude: without the filament
-  the coil gains absorb the plasma's own external field and land between −0.15 and −0.57, and with
-  a pooled amplitude they read 0.997 on 10 shots but 0.911 on 40.
-- **A single run cannot see a difference under ~0.006 of S.** Measured: three MLP seeds, everything
-  else fixed, give a pooled σ of 0.0060 — and it is 0.0060 whether the fold is 70 shots or 704,
-  because the noise is the MLP's optimisation (early stopping lands between epoch 363 and 1037),
-  not the choice of scored shots. Ten times the shots cost five times the wall clock and bought
-  nothing. Repeat over seeds, never over shots, and quote the mean.
-- **Confirmed, and it lands where the score is actually lost:** fitting on ψ − ψ_coil and adding
-  the coil field back wins on every seed of both folds, mean +0.0088 of S on 704 shots
-  (0.9327 → 0.9416), of which almost all is Consistency (0.7229 → 0.7639) while R²ψ does not move.
-  Three seeds is three replicates, not six — the same seed trains the same model on both folds —
-  so p ≈ 0.15: the direction is solid, the size is not.
-- **Refuted, by the measurement above, having first been believed:** that `inputs: coil_pca` beats
-  the raw currents (+0.0064 from one run; per-seed it is +0.0102, −0.0042, +0.0052), and that it
-  and the subtraction are substitutes that hurt in combination (one run said 0.9336 against 0.9400;
-  three seeds say 0.9370 against 0.9416, inside the noise). `coil_pca` costs nothing and that is
-  its whole claim — which is enough, since MAST has no DIII-D currents to feed. Table in README,
-  "The flux decomposition".
-- Within the Consistency term, `Z_axis` is the weak one: 0.6816 against 0.85–0.97 for the other
-  six on the production fold. Lifting it alone to the level of the rest would be worth about
-  +0.005 of S. Measured with `evaluate.py --share 0.01` on the 0.2/0.2 artifact, which already
-  prints the per-scalar breakdown — read it before theorising about the composite.
-- **Confirmed, and the largest effect measured so far:** at a fixed row budget, more shots with
-  thinned frames beat fewer shots with every frame — 0.8111 -> 0.9319 for the ensemble, and ridge
-  gains as well, so it is coverage and not capacity. Frames inside a shot are near-duplicates;
-  53% of the psi variance is between shots. Spend the budget on shots.
+| file | what belongs in it |
+|---|---|
+| [README.md](README.md) | what the fork **is** — the workflow, the current numbers, the data traps, what is and is not implemented |
+| [AGENTS.md](AGENTS.md) | what the rules **are** — conventions, and only conventions |
+| [experiments_history.md](experiments_history.md) | what we **learned** — one line per experiment, dated, with its number and a verdict |
+| [ideas.md](ideas.md) | what nobody has measured yet — dated, and explicitly not claims |
+
+An idea starts in `ideas.md`. When it is measured it moves to the history file with a number
+attached, whichever way the number went. **Hypotheses that did not survive stay recorded**, so they
+do not get re-litigated — this fork has already believed and un-believed several things, and the
+record is what stopped them coming back a third time.
+
+Do not restate an experiment's numbers in README or AGENTS. Reference the entry.
+
+Three rules of measurement, which came out of experiments and are now conventions:
+
+- **Replicate over SPLIT SALTS, not over model seeds.** `split.salt` reshuffles which shots train,
+  validate and score; the MLP seed only varies the optimisation. Ridge is deterministic given a
+  split and moves 0.7117 → 0.6219 → 0.5067 across salts 0, 1, 2, against 0.0 for any seed change.
+  Compare configurations PAIRED within a salt; never compare absolute scores between salts.
+- **Read every difference against the measured noise, not against a habit.** At production the
+  seed-to-seed sigma is 0.0009 of S, so one paired run resolves 0.0013 and three seeds on one salt
+  resolve 0.0008 — the full table, per term and per scalar, is in experiments_history. It is very
+  uneven: nearly all of it lives in Consistency, and inside that in `R_axis` and `Z_axis`.
+  More scored shots do not help — the noise is the fit, not the fold.
+- **Quality screens, production decides.** See "How we test the metric".
 
 ## The split
 
@@ -143,29 +120,55 @@ Non-overlap is checked against the **filenames** stored in the artifact — both
 
 ## How we test the metric
 
-Two commands, and which one is being quoted must always be said.
+Three commands, and which one is being quoted must always be said.
 
 ```bash
-# 1. production — what a submission is built from
-uv run python my_experiments/train_eval.py 0.2/0.2 0.2/0.2 0.01
+# 1. production — what a submission is built from, and what DECIDES anything
+uv run python my_experiments/train_eval.py 0.45/0.1 0.15/0.1 0.01
 
-# 2. quality — the number that means something, at a tenth of the cost
+# 2. quality — a SCREEN, at a tenth of the cost. Kills the obviously bad; settles nothing.
 uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01
 
 # 3. smoke — does it work at all, and how fast
 uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002
 ```
 
+**Quality screens; production decides. A change that measures well at quality is a candidate, not
+a result, and nothing reaches a submission without a production-scale confirmation.**
+
+This is not caution, it is measured. `n_pca = 30` beat 50 at quality by +0.0043 on all three salts
+with t = 4.84 — as clean a result as anything here — and at production 50 beat 30. The reversal
+has an ordinary cause: with 352 shots the tail PCA components are noise the model cannot predict
+and the loss over-weights, and with 3168 shots they become signal, so truncating throws it away.
+The optimal capacity grows with the data, and every conclusion drawn at a tenth of the data
+silently assumed it does not.
+
+The corollary is uncomfortable and worth stating: several results in README were measured at
+quality scale and have NOT been confirmed at production. Where that is so, say so.
+
 `make prod`, `make quality` and `make test` (the last is what `make ci` runs). The production run
-is what the artifact behind a submission must come from: 1408 shots to fit, 1408 to stop on, 70
-scored, 6 m 28 s. Measured there, with CatBoost disabled so the ensemble is the MLP alone:
+is what the artifact behind a submission must come from: 3168 shots to fit, 1056 to stop on, 70
+scored, about 5 minutes with the shot cache warm. Measured there, with CatBoost disabled so the
+ensemble is the MLP alone, with the coil field subtracted and the Jacobian loss metric:
 
 ```
              model         S    R2_psi     R2_qb   1-D_LCFS      Cons
-               mlp    0.9677    0.9990    0.9822     0.9794    0.8648
-          ensemble    0.9677    0.9990    0.9822     0.9794    0.8648
-             ridge    0.7126    0.8079    0.5607     0.9525    0.4444
+               mlp    0.9809    0.9993    0.9814     0.9839    0.9283
+          ensemble    0.9809    0.9993    0.9814     0.9839    0.9283
+             ridge    0.7022    0.8076    0.5461     0.9513    0.4050
 ```
+
+Salt 0, MLP seed 0 — and the best of three seeds, not the typical one: three seeds on this salt
+average 0.9795 and three salts average 0.9777. The fork sat at 0.9677 before the coil-field
+decomposition and the Jacobian loss, and at 0.9769 on 1408 shots; Consistency carries essentially
+all of the movement.
+
+`loss.jacobian_delta` is SCALE-DEPENDENT and the one number here that has to be revisited: the
+probe has to sit at the error the model actually makes, so it is sqrt(1 - R2_psi) of the run it is
+used in — 0.05 at quality scale (R2_psi 0.997) and 0.033 at production (0.9989). Refitting it on
+the production model moved S by +0.0029. Against the paired sd of 0.0013 measured later that is
+about two sigma — a real gain, not the "unmeasured" it was first recorded as, because the floor it
+was read against at the time was five times too big.
 
 The MLP fits 62968 frames in 266 s and stops at epoch 767 of the 868 it ran. Note how far this is
 from the quality run (0.9319) on a fifth of the shots: at this scale shots are still buying score,

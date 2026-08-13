@@ -12,7 +12,9 @@ before adding code under `my_experiments/`.
 | `my_experiments/train.py`, `evaluate.py` | The two entry points: shares of the shot list, ordered by a hash of the shot id — training takes the head, the validation window sits right behind it, scoring takes the tail. The pipeline lives in `baseline_model.py`, which **saves** what it trains (`baseline.joblib`) — the starter kit's `experiments.py` never persists a model, so nothing it trains can be scored or submitted. |
 | `my_experiments/models.py` + `params.yaml` | The model zoo: ridge, CatBoost, a torch MLP, and a weighted average of the last two. All are fitted on the same features and targets and scored side by side. Every hyper-parameter and the ensemble weights live in `params.yaml`. |
 | `my_experiments/eda*.py` | One shot printed transposed with a shape column, for the training split and both public test splits. `eda_coil_field.py` is the odd one out — it plots the flux decomposition below. |
-| `my_experiments/coil_field.py` | ψ = ψ_coil + ψ_plasma, with the first term computed from the shipped coil rectangles and currents instead of learned. Not wired into the model yet. |
+| `my_experiments/coil_field.py` | ψ = ψ_coil + ψ_plasma, with the first term computed from the shipped coil rectangles and currents instead of learned. |
+| `my_experiments/target_metric.py` | Which errors of the flux map the loss is allowed to care about, measured from the scored functionals rather than assumed. |
+| `experiments_history.md`, `ideas.md` | Every experiment with its number and verdict; and the ideas nobody has measured yet. |
 | `Makefile` | `make ci` = ruff + mypy + the standard metric run. |
 | `--source local` | Added to `local_score.py`, `submission_skeleton.py`, `validate_submission.py` — read a downloaded copy of the dataset instead of streaming the Hub. `experiments.py` already had it. |
 | `--models` | On `local_score.py` and `evaluate.py`, to score several members of the zoo on one pass over the ground truth. |
@@ -22,15 +24,40 @@ before adding code under `my_experiments/`.
 ## Data
 
 Downloaded copy lives at `../downloaded_huggingface/hf_dataset`, laid out exactly like the Hub
-repo (`data/<config>/*.parquet`). That path is the default for every `--local-data-dir` flag, so
-`--source local` needs no extra argument.
+repo (`data/<config>/*.parquet`) — beside the repo rather than inside it, so a `git clean` cannot
+delete 98 GB. That path is the default for every `--local-data-dir` flag, so `--source local`
+needs no extra argument.
+
+On a fresh machine:
 
 ```bash
-# add more training shots (each parquet is one shot, ~13 MB)
-hf download Sophelio/fusion-equilibrium-challenge --repo-type dataset \
+make download_dataset                                       # all three configs, 98 GB
+make download_dataset DATASET_CONFIGS=diii_d_train          # 88 GB, enough to train
+```
+
+No token: the dataset is public. Resumable, since `hf download` skips what is already there, so a
+killed run only has to be repeated. `diii_d_train` is 7041 shots and 88 GB, `diii_d_public_test`
+6.7 GB, `mast_public_test` 3.1 GB. For a subset of shots, call the tool directly:
+
+```bash
+# each parquet is one shot, ~13 MB
+uv run hf download Sophelio/fusion-equilibrium-challenge --repo-type dataset \
   --local-dir ../downloaded_huggingface/hf_dataset \
   --include "data/diii_d_train/d3d_shot_01*" --max-workers 16
 ```
+
+### The decoded-shot cache
+
+Training reads each parquet once and keeps the result in `.shot_cache/` (gitignored): the
+features, the flux and the two scalar targets, **every frame**, so one build serves any frame
+share. Measured at production, reading 4224 shots went from 80 s to 4.5 s and the peak memory of
+that stage from 21 GiB to 8 GiB, with the score bit-identical. It costs ~3.7 MB per shot — about
+26 GB for the whole training set.
+
+It invalidates itself: the key is the source parquet's size and modification time together with a
+hash of the source text of every function that shapes the arrays, so editing any of them rebuilds
+what it has to. `make clean-cache` drops it by hand, which is only needed for a change the hash
+cannot see, such as a numpy upgrade that decodes a value differently.
 
 **Prefer `--source local` over streaming.** `experiments.py --source hf` fills a shuffle buffer of
 up to 500 rows, and a row costs ~420 MB as a Python dict — measured, not estimated. `--n-shots 50`
@@ -47,7 +74,10 @@ artifact, rather than trusting index arithmetic, and refuses to score on overlap
 the builtin `hash()`, which is salted per process and would silently reorder between the two runs.
 
 ```bash
-# the number that means something: 352 shots at a fifth of their frames, 70 scored
+# what decides anything: 3168 shots at a tenth of their frames, 70 scored, ~9 min
+uv run python my_experiments/train_eval.py 0.45/0.1 0.15/0.1 0.01        # make prod
+
+# a screen, at a tenth of the cost — kills the obviously bad and settles nothing
 uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01        # make quality
 
 # does it work at all, and how fast: 70 shots, 14 scored, ~2.5 min
@@ -87,7 +117,8 @@ and S = 0.0 exactly.
 ## The models
 
 `params.yaml` is the whole configuration: which models are fitted, with which hyper-parameters,
-and how the ensemble weights them. The code carries no defaults to fall back on and rejects an
+and how the ensemble weights them. Which of its settings have been measured, and what they were
+worth, is [experiments_history.md](experiments_history.md). The code carries no defaults to fall back on and rejects an
 unknown key rather than ignoring it, so a mistyped hyper-parameter fails the run instead of
 quietly not being applied. What is deliberately *not* configurable is how the targets are scaled:
 the metric decides that one, so it lives in code.
@@ -235,21 +266,32 @@ test the metric".
 | fitting ridge / CatBoost / MLP | 0.1 s / 87 s / 23 s |
 | scoring 14 shots x 4 models, `--jobs` auto | 28 s |
 
-**`train_eval.py 0.2/0.2 0.2/0.2 0.01`** — the production run, what a submission is built from:
-1408 shots to fit, 1408 to stop on, 70 scored, **6 m 28 s**. CatBoost disabled for this one, so the
-ensemble is the MLP alone:
+**`train_eval.py 0.45/0.1 0.15/0.1 0.01`** — the production run, what a submission is built from:
+3168 shots to fit, 1056 to stop on, 70 scored, **about 5 minutes** with the shot cache warm and
+8.5 the first time it has to fill it. CatBoost disabled for this one, so the ensemble is the MLP
+alone, coil field subtracted, Jacobian loss metric:
 
 ```
              model         S    R2_psi     R2_qb   1-D_LCFS      Cons
-               mlp    0.9677    0.9990    0.9822     0.9794    0.8648
-          ensemble    0.9677    0.9990    0.9822     0.9794    0.8648
-             ridge    0.7126    0.8079    0.5607     0.9525    0.4444
+               mlp    0.9809    0.9993    0.9814     0.9839    0.9283
+          ensemble    0.9809    0.9993    0.9814     0.9839    0.9283
+             ridge    0.7022    0.8076    0.5461     0.9513    0.4050
 ```
 
-The MLP fits 62968 frames in 266 s, stopping at epoch 767 of the 868 it ran. R²ψ = 0.9990 and every
-derived scalar above 0.68. Against 0.9319 for the same recipe on a fifth of the shots, the lesson
-holds: at this scale shots are still buying score, so a submission is retrained at 0.2 and never at
-0.05.
+That is salt 0 with MLP seed 0, and it is the **best of three seeds**, not the typical one: the
+mean over three seeds on this salt is 0.9795, and over three salts 0.9777. See the noise tables in
+[experiments_history.md](experiments_history.md) before reading any difference from it.
+
+The earlier recipe on 1408 shots scored 0.9769, and 0.9677 before the coil-field decomposition and
+the Jacobian loss. Consistency carries essentially all of the movement, while R²ψ barely moves and
+R²qb pays for part of it. At this scale shots are still buying score, so a submission is retrained
+at 0.45 and never at 0.05.
+
+`loss.jacobian_delta` has to be revisited at this scale, because the probe must sit at the error
+the model actually makes: √(1 − R²ψ) is 0.05 at quality scale and **0.033** here. Refitting it on
+the production model moved S by +0.0029 — about two sigma against the paired sd of 0.0013 measured
+later, so it is a real gain. One refit is enough: the refitted model implies 0.030, which is the
+same number again.
 
 **`train_eval.py 0.05/0.2 0.05/0.2 0.01`** — the quality run: 352 shots, 70 scored, roughly a tenth
 of the cost. On the earlier 14-shot fold it scored `ensemble 0.9319 / catboost 0.9304 / mlp 0.9030
@@ -283,7 +325,7 @@ uv run python my_experiments/evaluate.py --share 0.0005 --mode zeros     # S = 0
 scripts we edited. The organizers' files and the vendored `fusion_scoring/` stay byte-identical to
 upstream and are excluded in `pyproject.toml`.
 
-## The flux decomposition (measured, not yet wired in)
+## The flux decomposition
 
 ```bash
 uv run python my_experiments/eda_coil_field.py        # -> results/eda_coil_field.png
@@ -332,71 +374,59 @@ subtracted is added back unchanged at inference.
 
 ### What it is worth
 
-Four configurations × three MLP seeds × two scoring folds — 24 runs, all trained the same way
-(`0.05/0.2 0.05/0.2`, 352 shots fitted, CatBoost disabled so the ensemble is the MLP alone), each
-scored on 70 shots (`0.01`) and on 704 (`0.1`). S, mean of the three seeds:
+**Almost nothing on DIII-D, and that is the measured answer.** +0.0088 of S at quality scale over
+three seeds, and **+0.0007 at production** — with 3168 shots the model learns the coil field
+perfectly well by itself. It stays because MAST has no DIII-D coils to learn from. Numbers and the
+full story in [experiments_history.md](experiments_history.md).
 
-| `subtract_coil_field` | `inputs` | 70 shots | 704 shots |
-|---|---|---|---|
-| false | currents | 0.9271 | 0.9327 |
-| **true** | **currents** | **0.9405** | **0.9416** |
-| false | coil_pca | 0.9336 | 0.9365 |
-| true | coil_pca | 0.9350 | 0.9370 |
+Ridge scores the same to four decimals with the subtraction on and off. It should: a linear model
+cannot tell the difference between fitting ψ and fitting ψ minus a linear-in-currents field that is
+added back afterwards. That row is the check that the decomposition is exact and the add-back is
+not quietly lossy.
 
-**Subtracting the coil field wins on every seed of both folds** — +0.0083, +0.0157, +0.0025 on the
-large fold, +0.0114, +0.0279, +0.0011 on the small — and essentially all of it is Consistency,
-0.7229 → 0.7639 averaged over seeds. That is the term the score is actually losing in, and it
-moved while R²ψ did not. Per derived scalar the gain is broad rather than one lucky functional:
-`Z_axis`, `li`, `volume` and `R_axis` all rise. Three seeds is three replicates, not six — the
-same seed trains the same model on both folds — so a paired t gives p ≈ 0.15. The direction is
-consistent; the magnitude is not pinned down.
+The PCA basis is fitted on the RESIDUAL, not on the raw maps — the model predicts the residual, so
+the basis should span what is predicted, and the coil structure has already been removed exactly.
 
-**`coil_pca` is indistinguishable from the raw currents**, and the earlier claim that it *helped*
-was noise: its per-seed differences against the baseline are +0.0102, −0.0042, +0.0052. It costs
-nothing, which is what it had to show before MAST can be built on it, and that is all it shows.
-The interaction that a single run suggested — that subtracting and `coil_pca` are substitutes and
-hurt together — did not survive either: on the large fold that cell is 0.9370 against 0.9416 and
-0.9365, inside the noise.
+## The loss the metric actually asks for
 
-Ridge scores 0.7083 in every one of the twelve large-fold runs (0.7082 with `coil_pca`) and 0.7117
-in every small-fold one. It should: a linear model cannot tell the difference between fitting ψ and
-fitting ψ minus a linear-in-currents field that is added back afterwards, and `coil_pca` spans the
-same subspace as the currents it is built from. That row is the check that the decomposition is
-exact and the add-back is not quietly lossy.
+The models regress PCA coefficients and the decoder is **affine**, so every quadratic functional of
+the map error is a fixed matrix on those coefficients — no autograd, no decoding to pixels, no
+change to any model. `my_experiments/target_metric.py` builds that matrix; `TargetScaler` applies
+it as one more linear transform of the target block. `loss.metric` picks which one:
 
-### How precise the metric is, and what makes it imprecise
+| `loss.metric` | what the loss measures |
+|---|---|
+| `parseval` | the pixel error of the map. On an orthonormal basis that IS R²ψ, and nothing else. Kept as the **control** every number below is read against, and as the fallback where the probe cannot run. |
+| **`jacobian`** | how the seven scored functionals actually respond to each coefficient, weighted by the competition's own weights. **The default.** |
 
-The spread of S over three MLP seeds, everything else fixed, pooled over the four configurations:
+The problem `parseval` has is not that it is wrong — it is exactly right for R²ψ — but that R²ψ is
+0.55 of the composite and the term the score is losing in is Consistency, which does not read the
+map's values at all. It reads its geometry. The magnetic axis is *defined* as where ∇ψ vanishes, so
+ψ is flat there and a flux error R²ψ cannot see moves the axis a long way.
 
-| scoring fold | pooled σ over seeds | wall per run |
-|---|---|---|
-| 70 shots (`0.01`) | **0.0060** | ~120 s |
-| 704 shots (`0.1`) | **0.0060** | ~600 s |
+`jacobian` closes that by measurement rather than by proxy. Every PCA coefficient is perturbed by
+±δ, the perturbed map goes through the scorer's own `derive_frame`, and the resulting Jacobian
+assembles
 
-**Ten times the shots bought no precision at all.** The noise is the MLP's optimisation, not the
-choice of scored shots: early stopping lands anywhere between epoch 363 and 1037 across seeds, and
-that is what moves the score. Scoring more shots cannot average it away — it is a property of the
-model, not of the measurement.
+    M = W_PSI/SS_tot_psi · I  +  Σ_j (W_CONS/7) · E[J_jᵀJ_j] / var(f_j)
 
-The comparison is exact rather than approximate, because training is deterministic: one seed and
-one configuration produce *the same model* in both grids, and only the scored shots differ. The
-same model scored on 704 shots instead of 70 moves by +0.0029 ± 0.0039 — real, but smaller than
-the seed spread and mostly a level shift, since the ranking of the four configurations is
-**identical on both folds**.
+so the loss becomes `W_PSI·R²ψ + (W_CONS/7)·Σ_j R²_j` — Consistency entering the loss for the first
+time, with **no free parameter**: every weight from `fusion_scoring/common.py`, every denominator
+from the data.
 
-So: `make quality` stays at `0.01`. Spend a bigger budget on seeds, never on shots — and treat any
-difference under ~0.006 as unmeasured until it has been repeated.
+It is the largest confirmed gain in this fork: **+0.0117 of S at quality scale** over three split
+salts and **+0.0097 at production**, essentially all of it Consistency, with R²ψ unmoved and R²qb
+paying 0.02 because the ψ block now carries 0.55 + 0.20 of the composite instead of 0.55. See
+[experiments_history.md](experiments_history.md) for the tables, for the hand-tuned `field` mode
+that preceded it and was removed, and for the boundary term that was tried and refuted.
 
-What the decomposition is **not** worth: a more compact basis. The residual is genuinely simpler —
-a single smooth blob following the plasma, against ψ's blob plus the coils' hot spots at the grid
-edge — and at 10 components it shows: R²ψ ceiling 0.999978 against 0.999619. But `params.yaml` uses
-50, where both targets are exact to six decimals. **The model's R²ψ = 0.9990 is therefore entirely
-regression error and none of it is representation error.** Whatever this buys has to come from
-making the regression easier, not from the basis.
+`loss.jacobian_delta` is the one number here that must be revisited when the scale changes: the
+probe has to sit at the error the model actually makes, √(1 − R²ψ) — 0.05 at quality, 0.033 at
+production.
 
-Residual std is 81% of ψ's, so the subtraction removes about a third of the variance and does not
-shrink the target much; the per-frame mean level, which is coil-driven, drops from 0.1453 to
-0.0667.
+D_LCFS is deliberately absent from `M`: it is a distance, zero at the ground truth, so a central
+difference sees no derivative at all. It improves anyway, because the shape scalars that ARE in `M`
+overlap it.
 
 ## Things that already cost time
 

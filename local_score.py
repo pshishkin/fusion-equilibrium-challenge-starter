@@ -72,6 +72,7 @@ from metrics import Accum, finalize_machine  # noqa: E402
 
 from my_experiments.baseline_model import slim_row  # noqa: E402
 from my_experiments.parallel import pimap, resolve_jobs  # noqa: E402
+from my_experiments.progress import install_timestamps  # noqa: E402
 
 REPO_ID = "Sophelio/fusion-equilibrium-challenge"
 TRAIN_CONFIG = "diii_d_train"
@@ -430,7 +431,9 @@ def report_comparison(results: dict[str, dict], n_shots: int) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     # argv is threaded through so my_experiments/evaluate.py can drive the scorer as a function
-    # instead of reimplementing the metric — one definition of the score, one place to fix.
+    # instead of reimplementing the metric — one definition of the score, one place to fix. When
+    # it does, the stamping is already installed and this call is a no-op that keeps its clock.
+    install_timestamps()
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--n-shots", type=int, default=10, help="held-out shots to score (default 10)")

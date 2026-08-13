@@ -11,7 +11,14 @@
 export HF_READ_TOKEN
 HF_REPO ?= pshishkin/fusion-eq-predictions
 
-.PHONY: ci lint format typecheck test quality prod train eval predict_and_submit_to_hf clean
+.PHONY: ci lint format typecheck test quality prod train eval predict_and_submit_to_hf clean \
+        clean-cache download_dataset
+
+# Where the dataset lives. It sits BESIDE the repo, not inside it, so a `git clean` cannot delete
+# 97 GB — and every `--local-data-dir` flag already defaults to this path.
+DATA_DIR ?= ../downloaded_huggingface/hf_dataset
+DATASET_REPO ?= Sophelio/fusion-equilibrium-challenge
+DATASET_CONFIGS ?= diii_d_train diii_d_public_test mast_public_test
 
 ci: lint typecheck test
 
@@ -25,11 +32,34 @@ format:
 typecheck:
 	uv run mypy
 
+# Everything the pipeline reads: 7041 DIII-D training shots (88 GB), the DIII-D public test set
+# (6.7 GB) and MAST (3.1 GB) — 98 GB, so budget the disk before starting. No token needed; the
+# dataset is public.
+#
+# Resumable: `hf download` skips files already present, so a killed run only has to be repeated.
+# One config at a time rather than one call for all three, so a failure says which one died and a
+# rerun does not re-scan the other two.
+#
+# Fetch less by naming what you want:
+#   make download_dataset DATASET_CONFIGS=diii_d_train
+#   make download_dataset DATASET_CONFIGS="diii_d_train diii_d_public_test"
+#
+# A submission needs diii_d_public_test; training needs diii_d_train; mast_public_test is only for
+# Challenge 2, which this fork does not implement yet.
+download_dataset:
+	@for cfg in $(DATASET_CONFIGS); do \
+		echo "==> $$cfg"; \
+		uv run hf download $(DATASET_REPO) --repo-type dataset \
+			--local-dir $(DATA_DIR) --include "data/$$cfg/*" --max-workers 16 || exit 1; \
+	done
+	@du -sh $(DATA_DIR)/data/* 2>/dev/null || true
+
 # The three standard runs. AGENTS.md, "How we test the metric".
 #
 #   test     does it work, and how fast — 70 shots thinned to a fifth of their frames, 14 scored
 #   quality  what does it score — 352 shots thinned the same way, 70 scored
-#   prod     what a submission is built from — 1408 shots, 70 scored, ~6.5 min
+#   prod     what a submission is built from — 3168 shots to fit, 1056 to stop on, 70 scored,
+#            ~5 min with the shot cache warm and ~8.5 min the first time it has to fill it
 test:
 	uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002
 
@@ -37,7 +67,7 @@ quality:
 	uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01
 
 prod:
-	uv run python my_experiments/train_eval.py 0.2/0.2 0.2/0.2 0.01
+	uv run python my_experiments/train_eval.py 0.45/0.1 0.15/0.1 0.01
 
 train:
 	uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2
@@ -58,3 +88,10 @@ predict_and_submit_to_hf:
 
 clean:
 	rm -rf .ruff_cache .mypy_cache my_experiments/__pycache__ __pycache__
+
+# The decoded-shot cache. It invalidates itself when the code that fills it changes — the key is a
+# hash of that code plus the source parquet's size and mtime — so this is for the case the hash
+# cannot see, such as a numpy upgrade that decodes a value differently. Rebuilding costs the read
+# time of whatever the next run touches, and nothing else.
+clean-cache:
+	rm -rf .shot_cache

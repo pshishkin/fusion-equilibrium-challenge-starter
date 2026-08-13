@@ -24,6 +24,7 @@ from __future__ import annotations
 import abc
 import itertools
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -84,6 +85,29 @@ class TargetScaler:
     n_pca: int
     _center: FloatArray | None = field(default=None, init=False, repr=False)
     _scale: FloatArray | None = field(default=None, init=False, repr=False)
+    # (n_pca, n_pca) `L` with `M = L L^T`, applied to the psi block after the scalar divisor above.
+    # The divisor is one number over that whole block, so the two commute and the block ratio the
+    # metric asks for survives untouched. Identity — today's Parseval loss — unless set.
+    _psi_L: FloatArray | None = field(default=None, init=False, repr=False)
+    _psi_L_inv: FloatArray | None = field(default=None, init=False, repr=False)
+
+    def with_psi_metric(self, factor: FloatArray | None) -> TargetScaler:
+        """Set the psi block's loss metric to `M = L L^T` by supplying `L`; None means Parseval.
+
+        `L` carries its own absolute scale, deliberately: `metric_form` adds a term of the
+        composite the loss did not represent before, so the psi block's share of the loss is meant
+        to GROW — the map now carries W_PSI + W_CONS instead of W_PSI alone. Nothing here
+        renormalises that away.
+        """
+        if factor is not None:
+            if factor.shape != (self.n_pca, self.n_pca):
+                raise ValueError(f"psi metric factor {factor.shape}, expected "
+                                 f"{(self.n_pca, self.n_pca)}")
+            if np.allclose(factor, np.eye(self.n_pca)):
+                factor = None
+        self._psi_L = factor
+        self._psi_L_inv = None if factor is None else np.linalg.inv(factor)
+        return self
 
     def fit(self, Y: FloatArray, psi_ss_tot_per_frame: float) -> TargetScaler:
         """`psi_ss_tot_per_frame` is the metric's own denominator, per frame: the mean over frames
@@ -117,10 +141,15 @@ class TargetScaler:
 
     def transform(self, Y: FloatArray) -> FloatArray:
         center, scale = self._fitted()
-        return (Y - center) / scale
+        out = (Y - center) / scale
+        if self._psi_L is not None:
+            out = np.hstack([out[:, :self.n_pca] @ self._psi_L, out[:, self.n_pca:]])
+        return out
 
     def inverse_transform(self, Y: FloatArray) -> FloatArray:
         center, scale = self._fitted()
+        if self._psi_L_inv is not None:
+            Y = np.hstack([Y[:, :self.n_pca] @ self._psi_L_inv, Y[:, self.n_pca:]])
         return Y * scale + center
 
 
@@ -330,6 +359,30 @@ class TorchMLPModel(TargetModel):
             batch_size=self.batch_size, shuffle=True,
             generator=torch.Generator().manual_seed(self.seed),
         )
+
+        def batch_indices() -> Iterator[list[int]]:
+            """One epoch of batches, as index lists, from the DataLoader's OWN sampler.
+
+            The rows are then gathered in one indexing operation instead of item by item through
+            the loader's fetch-and-collate path. Measured on the production shapes — 70414 rows,
+            138 batches of 512 — that path costs 0.270 s per epoch against 0.128 s for the same
+            batches by indexing: 53% of every epoch was bookkeeping, and the shuffle itself is 4%.
+
+            Going through a real iterator is the part that matters. `DataLoader` draws a base seed
+            from `generator` every time one is created, so a hand-rolled `randperm` loop agrees
+            with it on the first epoch and diverges from the second on — checked, not assumed.
+            Driving its sampler keeps the batches bit-for-bit what they were, so every number
+            measured before this change still compares.
+            """
+            it = iter(loader)
+            sampler_iter = getattr(it, "_sampler_iter", None)
+            if sampler_iter is None:
+                raise RuntimeError(
+                    "this torch no longer exposes DataLoader._sampler_iter, so the batch order "
+                    "cannot be reproduced. Iterate `loader` directly again — it is 2x slower per "
+                    "epoch but correct — and re-measure the baseline, since the shuffle changes."
+                )
+            return sampler_iter
         Xvt = torch.from_numpy(np.ascontiguousarray(X_val, dtype=np.float32))
         Yvt = torch.from_numpy(np.ascontiguousarray(Y_val, dtype=np.float32))
         opt = torch.optim.Adam(net.parameters(), lr=self.learning_rate,
@@ -342,7 +395,8 @@ class TorchMLPModel(TargetModel):
         bar = tqdm(range(self.epochs), desc="    mlp", unit="epoch")
         for epoch in bar:
             total, n = 0.0, 0
-            for xb, yb in loader:
+            for idx in batch_indices():
+                xb, yb = Xt[idx], Yt[idx]
                 opt.zero_grad()
                 loss = loss_fn(net(xb), yb)
                 loss.backward()
@@ -423,6 +477,13 @@ class Params:
 
     n_pca: int
     pca_seed: int
+    pca_frame_share: float
+    split_salt: int
+    loss_metric: str
+    calibrate_scalars: bool
+    jacobian_frames: int
+    jacobian_delta: float
+    boundary: bool
     subtract_coil_field: bool
     inputs: str                         # currents | coil_pca | both
     n_coil_pca: int
@@ -438,6 +499,12 @@ class Params:
 # What `features.inputs` may say. The pipeline builds the feature matrix from this and nothing
 # else, so a typo here is a ValueError naming the file rather than a silently different experiment.
 INPUT_MODES = ("currents", "coil_pca", "both")
+
+# What the psi block's loss metric is. `parseval` is the pixel error of the map, which is exactly
+# R2_psi and nothing else — the control, and the fallback where the probe cannot run. `jacobian`
+# measures how the seven scored functionals actually respond to each coefficient and assembles the
+# metric from the competition's own weights, with no knob anywhere.
+LOSS_METRICS = ("parseval", "jacobian")
 
 
 def _require_keys(got: dict[str, Any], want: set[str], where: str, path: Path) -> None:
@@ -468,10 +535,24 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH) -> Params:
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(doc, dict):
         raise ValueError(f"{path}: expected a mapping at the top level, got {type(doc).__name__}")
-    _require_keys(doc, {"features", "models", "ensemble"}, "the top level", path)
+    _require_keys(doc, {"features", "split", "loss", "models", "ensemble"},
+                  "the top level", path)
+    _require_keys(doc["split"], {"salt"}, "split", path)
+    _require_keys(doc["loss"],
+                  {"metric", "calibrate_scalars", "jacobian_frames", "jacobian_delta", "boundary"},
+                  "loss", path)
+    loss_metric = str(doc["loss"]["metric"])
+    if loss_metric not in LOSS_METRICS:
+        raise ValueError(f"{path}: loss.metric is {loss_metric!r}, expected one of "
+                         f"{sorted(LOSS_METRICS)}")
     _require_keys(doc["features"],
-                  {"n_pca", "pca_seed", "subtract_coil_field", "inputs", "n_coil_pca"},
+                  {"n_pca", "pca_seed", "pca_frame_share", "subtract_coil_field", "inputs",
+                   "n_coil_pca"},
                   "features", path)
+    pca_frame_share = float(doc["features"]["pca_frame_share"])
+    if not 0.0 < pca_frame_share <= 1.0:
+        raise ValueError(f"{path}: features.pca_frame_share is {pca_frame_share}, expected a "
+                         f"share in (0, 1]")
     inputs = str(doc["features"]["inputs"])
     if inputs not in INPUT_MODES:
         raise ValueError(f"{path}: features.inputs is {inputs!r}, expected one of "
@@ -501,6 +582,13 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH) -> Params:
 
     return Params(n_pca=int(doc["features"]["n_pca"]),
                   pca_seed=int(doc["features"]["pca_seed"]),
+                  pca_frame_share=pca_frame_share,
+                  split_salt=int(doc["split"]["salt"]),
+                  loss_metric=loss_metric,
+                  calibrate_scalars=bool(doc["loss"]["calibrate_scalars"]),
+                  jacobian_frames=int(doc["loss"]["jacobian_frames"]),
+                  jacobian_delta=float(doc["loss"]["jacobian_delta"]),
+                  boundary=bool(doc["loss"]["boundary"]),
                   subtract_coil_field=bool(doc["features"]["subtract_coil_field"]),
                   inputs=inputs,
                   n_coil_pca=int(doc["features"]["n_coil_pca"]),

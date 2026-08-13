@@ -20,6 +20,14 @@ features:
   # scored 0.6769 and 0.6846 on the same 7 shots before this was pinned.
   pca_seed: 0
 
+  # Frames the PCA is FITTED on, as a share of the training frames. It is only an estimate of 50
+  # directions in a 4225-dimensional space, and neighbouring EFIT frames are 20 ms apart and nearly
+  # duplicates, so the sample does not have to be every frame — while the randomized SVD's centred
+  # copy of the flux array is the memory peak of that stage. Everything is still TRANSFORMED with
+  # every frame; this only thins what the components are estimated from.
+  # Thinning is a stride, not a draw (see thin_frames): it covers ramp-up, flat-top and ramp-down.
+  pca_frame_share: 1.0
+
   # psi = psi_coil + psi_plasma, and the first term is a Green's function times a current rather
   # than a modelling problem — see README, "The flux decomposition". With this on, the models are
   # fitted on the plasma part alone and the coil part is added back, unchanged, at inference. The
@@ -39,6 +47,76 @@ features:
   inputs: currents
   # At most 19: the coil flux spans one dimension per current column and no more.
   n_coil_pca: 19
+
+split:
+  # Which shots land in the training, validation and scoring windows. The shares stay the same;
+  # the salt only reshuffles who is where, by hashing "<salt>:<shot id>" instead of the bare id.
+  #
+  # This is the replicate that matters. The MLP seed varies only the optimisation; the salt varies
+  # the DATA, and "does this change help" is a claim about new shots, not about these 352. Compare
+  # configurations PAIRED within a salt and read the spread across salts as the uncertainty of the
+  # effect — never compare absolute scores between salts, the scored shots differ.
+  #
+  # 0 hashes the bare filename and is therefore the split every number in README was measured on.
+  # Keep it for headline figures.
+  salt: 0
+
+loss:
+  # Which errors of the flux map the loss is allowed to care about — see
+  # my_experiments/target_metric.py. The models regress PCA coefficients and the decoder is
+  # affine, so any quadratic functional of the map error is a fixed matrix on those coefficients.
+  #
+  # Consistency and D_LCFS are 30% of the composite and where the score is actually lost, and
+  # neither reads the map's VALUES — they read its geometry. The magnetic axis sits where grad psi
+  # vanishes, so psi is flat there and an error R2_psi cannot see moves the axis a long way.
+  #
+  #   parseval  the pixel error of the map — exactly R2_psi, and nothing else. Kept as the CONTROL
+  #             every claim in README is measured against, and as the fallback for a machine whose
+  #             functionals the probe below cannot evaluate.
+  #   jacobian  measure how the seven scored functionals respond to each coefficient and build the
+  #             metric from the competition's own weights. No knob: the loss becomes
+  #             W_PSI * R2_psi + (W_CONS/7) * sum_j R2_j, which is Consistency entering the loss
+  #             for the first time. The psi block's share of the loss grows, and should.
+  #
+  # A third mode, `field`, moved a hand-set share of the psi budget onto the poloidal-field error.
+  # It is gone. It did its job — it showed the effect was real (+0.0059 at its best against +0.0117
+  # for `jacobian`) — but its optimum was a flat plateau from 0.01 to 0.1, so the data could say
+  # that some field weighting helps and never how much. That is the argument for measuring the
+  # metric instead of tuning it. `target_metric.poloidal_field_form` stays: li is exactly <B_p^2>
+  # and deserves that exact form rather than a linearisation.
+  metric: jacobian
+
+  # `jacobian` only. Frames probed, and the size of the probe. The probe is ISOTROPIC — the same
+  # step for every coefficient, because on an orthonormal basis that is the same size of flux
+  # error whichever component it is — and it is measured in units of the per-frame flux spread,
+  # sqrt(psi_ss_tot / n_pca). It has to sit near the errors the model actually makes: these
+  # functionals extract a contour and a sub-pixel maximum, so a derivative taken at an
+  # infinitesimal step describes a regime the model never occupies. 0.05 is ~ the model's own
+  # relative flux error at R2_psi = 0.997.
+  # `jacobian` only. Divide each scalar's block in M by how badly its own linearisation misses.
+  # The per-component differences say how each direction acts alone; whether their sum still
+  # describes reality when every coefficient is wrong at once is a different question, and random
+  # full-vector probes on the same frames answer it. Measured on a trained model the Jacobian
+  # over-states `li` by 1.65x and `tri_bot` by 1.51x, and an over-stated sensitivity is an
+  # over-weighted scalar. No new input: the ratio comes from the probe, not from a model.
+  calibrate_scalars: false
+
+  jacobian_frames: 300
+  jacobian_delta: 0.0332
+
+  # `jacobian` only. Add the BOUNDARY term: how far the plasma boundary moves when the
+  # coefficients are wrong. A flux error displaces a level set along its normal by
+  # dpsi / |grad psi|, which is linear in the error and so is one more fixed matrix.
+  #
+  # It supplies what the Jacobian structurally cannot. D_LCFS is a distance — zero at the ground
+  # truth, so a central difference sees no derivative and the loss has never contained it. And
+  # kappa/volume/tri ARE in the Jacobian, but as four scalar summaries of a 512-point curve; they
+  # cannot express a rigid shift or a local dimple. Its weight comes from W_LCFS and from the
+  # displacement the probe itself produces, so it adds no knob.
+  #
+  # Honest limit: D_LCFS is a symmetric HAUSDORFF distance, a maximum over the contour, and this
+  # is a mean square. A surrogate for that term, not that term.
+  boundary: false
 
 models:
   ridge:
