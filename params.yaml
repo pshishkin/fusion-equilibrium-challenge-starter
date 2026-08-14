@@ -230,10 +230,21 @@ models:
     # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
     # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
     dropout: 0.0
-    # Batch norm on the hidden pre-activations. It changes the convergence badly enough that it
-    # cannot be screened at the learning rate tuned without it — sweep the two JOINTLY or the
-    # result is a statement about the rate, not about the normalisation.
-    batch_norm: false
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
@@ -269,10 +280,21 @@ models:
     # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
     # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
     dropout: 0.0
-    # Batch norm on the hidden pre-activations. It changes the convergence badly enough that it
-    # cannot be screened at the learning rate tuned without it — sweep the two JOINTLY or the
-    # result is a statement about the rate, not about the normalisation.
-    batch_norm: false
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
@@ -308,10 +330,21 @@ models:
     # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
     # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
     dropout: 0.0
-    # Batch norm on the hidden pre-activations. It changes the convergence badly enough that it
-    # cannot be screened at the learning rate tuned without it — sweep the two JOINTLY or the
-    # result is a statement about the rate, not about the normalisation.
-    batch_norm: false
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
@@ -347,10 +380,21 @@ models:
     # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
     # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
     dropout: 0.0
-    # Batch norm on the hidden pre-activations. It changes the convergence badly enough that it
-    # cannot be screened at the learning rate tuned without it — sweep the two JOINTLY or the
-    # result is a statement about the rate, not about the normalisation.
-    batch_norm: false
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,

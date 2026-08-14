@@ -473,6 +473,43 @@ it was a 20-30% tail. Cutting it is plausibly a 2x speed-up — and it is exactl
 cost 0.5521 against 0.7273 when it was done carelessly on 08-12, so it is a measurement, not an
 edit.
 
+## A18. The ten, pre-registered — *2026-08-14*
+
+Ten arms declared BEFORE any of them runs, five on the architecture and five on the features and
+the loss. Written here first because thirty screened configurations have already taught this fork
+what happens otherwise: the best of grids A+B+C was +0.0013 against the +0.0029 selection alone
+produces over that many arms, and the two that were carried to confirmation both went NEGATIVE on
+unseen salts.
+
+**The arithmetic, once, for all ten.** Sigma is 0.0013 for a single net. Over ten arms selection
+alone is expected to produce a best of 0.0013 * sqrt(2 ln 10) = **+0.0028**. So an arm that beats
+the control by less than that on the screening salt has shown nothing, whatever its rank in the
+table. Only an arm above it earns the two confirmation runs on salts nothing selected against, and
+only agreeing signs there earn a place in the submission.
+
+They are ordered by expected value over cost, and the tail is the part that gets dropped if the
+clock runs out — which will be recorded as dropped, not quietly omitted.
+
+### Architecture
+
+| # | arm | why it might pay | costs |
+|---|---|---|---|
+| 1 | **Shorter leash**: `patience_steps` 18400 → 6000 | measured on 08-14: the best step arrives at 7-13k while the leash is 18400, so **60-70% of every fit runs after the best point is already found**. The leash was calibrated at batch 512, where the same tail was 20-30% | config only |
+| 2 | **LayerNorm** on the hidden pre-activations | batch norm was refuted at four learning rates, but its mechanism is batch COUPLING — LN normalises within a sample and has none of it. The refutation of one is not evidence about the other | a `norm` knob in `build_mlp` |
+| 3 | **Residual trunk**, 4-6 blocks with skip connections | the model is bias-limited, not variance-limited (three regularisers all closed the train/val gap while validation stayed flat), so it wants effective depth — and plain depth 3 already went slightly negative, which is what untrainable depth looks like | a `residual` knob |
+| 4 | **Pyramid** [1024, 256] against [512, 512] | equal parameters, different allocation. If the mapping is "lift 122 inputs into a wide space, then compress", the first layer is where the capacity belongs | config only |
+| 5 | **Split heads** for the PCA block and the two scalars | one linear layer produces all 52 outputs today, so the flux coefficients and q95/betaN share a final representation although the metric weights them 71/29 and they have different statistics | a small head change |
+
+### Features and loss
+
+| # | arm | why it might pay | costs |
+|---|---|---|---|
+| 6 | **`derivatives: both`, `derivative_signals: poloidal`** | A10 screened this at 0.60/0.1 and got +0.0007 at best, below the selection floor. The data is 5-10x bigger now, and a feature that needs data to pay is exactly the kind that a small screen refutes wrongly | config only |
+| 7 | **`n_pca: 75`** | saturated at the OLD data scale (75 gave −0.0010 at production). More components need more frames to estimate and to fit; there are five times as many now | config only |
+| 8 | **Thomson profile groups** added to the four in use | the profile block is computed and cached and simply not selected. The cheapest untried feature in the repo | config only |
+| 9 | **Huber loss** on the scaled targets | the loss is MSE over 52 scaled outputs, so one badly reconstructed frame moves the gradient as much as thirty ordinary ones. Huber at 2-3 sigma keeps the quadratic centre and bounds the tail | a loss selector |
+| 10 | **Per-frame weighting by the Jacobian** (B6) | `jacobian_form` already measures how the seven scored functionals respond to each coefficient, and the loss charges every frame equally although equal coefficient error costs unequal scalar error across frames | the largest of the ten |
+
 ## A15. Capacity and light dropout TOGETHER — *2026-08-14*
 
 **Queued after the nonlinearity and depth arms of grid C.**

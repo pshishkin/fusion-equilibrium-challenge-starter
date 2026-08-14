@@ -348,38 +348,91 @@ ACTIVATIONS = ("relu", "gelu", "silu", "tanh")
 # a 16% rate cut, not an annealing schedule. Set `lr_t_max_steps` near where the fit actually ends.
 LR_SCHEDULES = ("none", "cosine")
 
+# What `loss` may say. `mse` is what every number recorded so far was fitted on. `huber` is the
+# same curve near zero and linear past `huber_delta`, so a frame the model reconstructs badly stops
+# dominating the gradient of the batch it lands in.
+LOSSES = ("mse", "huber")
+
 
 def build_mlp(n_in: int, hidden_sizes: list[int], n_out: int, activation: str = "relu",
-              dropout: float = 0.0, batch_norm: bool = False) -> Any:
-    """The architecture, in one place, as an ordinary `nn.Sequential`.
+              dropout: float = 0.0, norm: str = "none", residual: bool = False,
+              n_scalars: int = 0) -> Any:
+    """The architecture, in one place.
 
     The net is DECLARED once here and nothing downstream restates its shape; `predict` rebuilds
     from this same function, so the artifact and the fit cannot drift apart.
 
-    Layer order is `Linear -> BatchNorm -> activation -> Dropout`: batch norm sees the linear
+    Block order is `Linear -> norm -> activation -> Dropout`: a normaliser sees the linear
     pre-activations it is meant to normalise, and dropout does not feed zeroed units into the
     running statistics.
+
+    `norm` is `none`, `batch` or `layer`. They are not two settings of one idea — batch norm
+    couples the examples in a minibatch and layer norm does not — which is why the refutation of
+    one says nothing about the other. **`batch` is 2-D only**: it takes (N, C), so a caller that
+    passes (B, T, C), as the sequence model does, must use `none` or `layer`.
+
+    `residual` wraps every block whose input and output widths match in a skip connection, which
+    needs the hidden sizes to be equal. The first block never is — it maps `n_in` to the width —
+    so a 3-block trunk gets two skips.
+
+    `n_scalars`, when nonzero, gives the LAST `n_scalars` outputs their own head. The target
+    vector is `[pca coefficients..., q95, betaN]`, and those two blocks are weighted 71/29 by the
+    metric and have quite different statistics; one shared final layer makes them share a
+    representation whether or not that helps.
     """
     import torch
 
     acts = {"relu": torch.nn.ReLU, "gelu": torch.nn.GELU, "silu": torch.nn.SiLU,
             "tanh": torch.nn.Tanh}
+    norms = {"none": None, "batch": torch.nn.BatchNorm1d, "layer": torch.nn.LayerNorm}
     if activation not in acts:
         raise ValueError(f"unknown activation {activation!r}; known {sorted(acts)}")
+    if norm not in norms:
+        raise ValueError(f"unknown norm {norm!r}; known {sorted(norms)}")
     if not 0.0 <= dropout < 1.0:
         raise ValueError(f"dropout must be a share in [0, 1), got {dropout}")
+    if residual and len(set(hidden_sizes)) > 1:
+        raise ValueError(f"residual needs one width for the whole trunk, so a skip has matching "
+                         f"ends; hidden_sizes is {hidden_sizes}")
+    if n_scalars >= n_out:
+        raise ValueError(f"n_scalars {n_scalars} leaves nothing for the other head of {n_out}")
+
+    class Skip(torch.nn.Module):
+        """`x + block(x)`, for a block whose ends match."""
+
+        def __init__(self, block: Any) -> None:
+            super().__init__()
+            self.block = block
+
+        def forward(self, x: Any) -> Any:
+            return x + self.block(x)
+
+    class Split(torch.nn.Module):
+        """Two heads on one trunk, concatenated back into the target vector's own order."""
+
+        def __init__(self, width: int, n_first: int, n_last: int) -> None:
+            super().__init__()
+            self.first = torch.nn.Linear(width, n_first)
+            self.last = torch.nn.Linear(width, n_last)
+
+        def forward(self, x: Any) -> Any:
+            return torch.cat([self.first(x), self.last(x)], dim=-1)
 
     sizes = [n_in, *hidden_sizes]
-    layers: list[Any] = []
+    blocks: list[Any] = []
+    make_norm = norms[norm]
     for a, b in itertools.pairwise(sizes):
-        layers.append(torch.nn.Linear(a, b))
-        if batch_norm:
-            layers.append(torch.nn.BatchNorm1d(b))
+        layers: list[Any] = [torch.nn.Linear(a, b)]
+        if make_norm is not None:
+            layers.append(make_norm(b))
         layers.append(acts[activation]())
         if dropout:
             layers.append(torch.nn.Dropout(dropout))
-    layers.append(torch.nn.Linear(sizes[-1], n_out))
-    return torch.nn.Sequential(*layers)
+        block = torch.nn.Sequential(*layers)
+        blocks.append(Skip(block) if residual and a == b else block)
+    head = (Split(sizes[-1], n_out - n_scalars, n_scalars) if n_scalars
+            else torch.nn.Linear(sizes[-1], n_out))
+    return torch.nn.Sequential(*blocks, head)
 
 
 def resolve_device(name: str, where: str) -> str:
@@ -443,7 +496,22 @@ class TorchMLPModel(TargetModel):
     # output layer is not among them.
     activation: str
     dropout: float
-    batch_norm: bool
+    # `none`, `batch` or `layer` on the hidden pre-activations. Batch norm was measured at four
+    # learning rates and gave parity for 38% more time; layer norm is a different mechanism (no
+    # coupling between the examples of a minibatch), so that result is not evidence about it.
+    norm: str
+    # Skip connections around every hidden block. Needs one width for the whole trunk. The model is
+    # bias-limited rather than variance-limited, so it wants effective depth — and plain depth 3
+    # already scored slightly below depth 2, which is what depth that will not train looks like.
+    residual: bool
+    # Give q95 and betaN their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: bool
+    # `mse`, or `huber` with the transition at `huber_delta` standard deviations of the scaled
+    # target. MSE lets one badly reconstructed frame contribute as much gradient as thirty ordinary
+    # ones; Huber keeps the quadratic centre and bounds the tail.
+    loss: str
+    huber_delta: float
     # Constant `none`, or `cosine` decaying to lr * lr_final_factor over `lr_t_max_steps`. The
     # schedule is driven by a declared horizon rather than by the step early stopping happens to
     # reach, so it does not depend on when the fit ends — a schedule whose shape moves with its own
@@ -466,7 +534,7 @@ class TorchMLPModel(TargetModel):
 
     def _build(self, n_in: int, n_out: int) -> Any:
         return build_mlp(n_in, self.hidden_sizes, n_out, self.activation, self.dropout,
-                         self.batch_norm)
+                         self.norm, self.residual, N_SCALARS if self.split_heads else 0)
 
     def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
             shots: npt.NDArray[np.int64] | None = None,
@@ -478,7 +546,7 @@ class TorchMLPModel(TargetModel):
         # BatchNorm1d cannot normalise a batch of one — it raises "Expected more than 1 value per
         # channel" in training mode — and the last batch of an epoch is whatever is left over. Said
         # here, with both numbers, rather than a thousand epochs into a run.
-        if self.batch_norm and len(X) % self.batch_size == 1:
+        if self.norm == "batch" and len(X) % self.batch_size == 1:
             raise ValueError(
                 f"torch_mlp(seed={self.seed}): {len(X)} training rows at batch_size "
                 f"{self.batch_size} leaves a final batch of ONE row, and batch norm cannot "
@@ -542,7 +610,11 @@ class TorchMLPModel(TargetModel):
                 raise ValueError(f"torch_mlp(seed={self.seed}): lr_t_max_steps resolves to {t_max}")
             sched = torch.optim.lr_scheduler.CosineAnnealingLR(
                 opt, T_max=t_max, eta_min=self.learning_rate * self.lr_final_factor)
-        loss_fn = torch.nn.MSELoss()
+        if self.loss not in LOSSES:
+            raise ValueError(f"torch_mlp(seed={self.seed}): unknown loss {self.loss!r}; "
+                             f"known {sorted(LOSSES)}")
+        loss_fn = (torch.nn.MSELoss() if self.loss == "mse"
+                   else torch.nn.HuberLoss(delta=self.huber_delta))
         for name, value in (("max_steps", self.max_steps),
                             ("eval_every_steps", self.eval_every_steps)):
             if value < 1:
