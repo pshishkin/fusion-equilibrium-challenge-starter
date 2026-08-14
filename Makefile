@@ -14,12 +14,14 @@ SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -c
 
 # Every run writes logs/<UTC timestamp>-<target>.log and the terminal at the same time, and points
-# logs/latest.log at the newest, so `tail -f logs/latest.log` always follows whatever is running.
+# logs/latest.log at the newest, so `tail -F logs/latest.log` always follows whatever is running.
+# CAPITAL -F: `tail -f` follows an INODE, so when the next run replaces the symlink it keeps
+# watching the finished file forever and the terminal looks frozen.
 # The directory is gitignored: these hold tqdm's carriage returns and run to megabytes.
 LOG_DIR ?= logs
 LOG_START = mkdir -p $(LOG_DIR); LOG=$(LOG_DIR)/$$(date -u +%Y%m%d-%H%M%S)-$@.log; \
             ln -sfn $$(basename $$LOG) $(LOG_DIR)/latest.log; \
-            echo "--> $$LOG  (tail -f $(LOG_DIR)/latest.log)"
+            echo "--> $$LOG  (tail -F $(LOG_DIR)/latest.log)"
 TEE = 2>&1 | tee -a $$LOG
 
 -include .env
@@ -105,12 +107,12 @@ test:
 
 quality:
 	@$(LOG_START); \
-	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01 \
+	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.80/0.2 0.19/0.2 0.01 \
 		--only ridge mlp --jobs $(JOBS) $(TEE)
 
 prod:
 	@$(LOG_START); \
-	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01 \
+	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.80/0.2 0.19/0.2 0.01 \
 		--jobs $(JOBS) $(TEE)
 
 # A pre-declared grid of configurations, one at a time, collected into a CSV. Each run tees into

@@ -382,6 +382,136 @@ the single-net sigma of 0.0013.
 even at ΔS = 0 exactly, a 4x cheaper production fit makes everything else on this list cheaper to
 test, and that is worth a grid.
 
+## A17. Settle the frames axis past 0.2, if an hour is ever spare — *2026-08-14*
+
+**Not a hypothesis, a resolution problem.** `0.80/1.0` against `0.80/0.2` measured +0.0005 /
+−0.0002 / +0.0025 on salts 0 / 3 / 4. Mean +0.0009 with disagreeing signs, which is 1.2 sigma on
+the standard error of three runs — too small for three salts to call, in either direction.
+
+**The cost of settling it.** Resolving +0.0009 at two sigma needs the standard error down to
+0.00045, so n = (0.0013 / 0.00045)² ≈ **8 salts**. Salts 0, 3 and 4 already have both arms, so it
+is five more salts x two arms = **ten runs, about 75 minutes** — the grid is written and ready at
+`grids/h_frames_8salts.json`. Both arms per salt, because the comparison is paired within a salt
+and absolute scores are not comparable across them.
+
+**Why it is not ranked higher.** Even if the full +0.0009 is real it costs **2.2x the wall clock**
+and 2x the memory for every run thereafter, against +0.0037 for the step to 0.2 at one extra
+minute. So the honest position is that 0.2 is where the knee is for practical purposes, and this
+entry exists so that "we never checked" does not get mistaken for "we checked and it was zero".
+
+**Cheaper variant worth doing first:** 0.4 and 0.6 on three salts, which would say whether the
+curve rises smoothly or the 1.0 arm's spread is noise. Six runs, ~40 min.
+
+## A16. Count the schedule and the patience in STEPS, not epochs — *2026-08-14*
+
+**Not a hypothesis about the score.** This one removes a class of bug that has already fired, and
+it deletes a lookup table that AGENTS.md forbids. Rank it as infrastructure, not as ΔS.
+
+**The problem.** `patience`, `epochs` and `lr_t_max` are all counted in EPOCHS, and an epoch is
+`rows / batch_size` optimizer steps — so every one of them silently changes meaning when the batch
+or the data changes. On 2026-08-14 that forced three manual rescalings:
+
+| change | rescaling it forced | factor |
+|---|---|---|
+| batch 512 → 4096 | patience 100 → 800 | 8x |
+| data 0.60/0.1 → 0.80/0.2 | patience 800 → 302 | 2.7x |
+| data → 0.80/1.0 | patience 800 → 60 | 13x |
+
+and **one of them was got wrong**: `lr_t_max` was driven by the `epochs` CEILING, which sits far
+above any real fit, so a 533-epoch cosine run traversed only the flat first quarter of its curve.
+The rate fell from 1e-3 to 8.4e-4 and never went below 84% of its start. It was recorded as an
+annealing experiment for an hour before the arithmetic was checked. In steps that mistake cannot be
+made, because the horizon would not be expressed in a unit that depends on the dataset.
+
+Worse, params.yaml now carries this, which is exactly the second-value-to-keep-in-sync the
+conventions ban:
+
+    #   0.60/0.1 -> patience 836, epochs 16727
+    #   0.80/0.2 -> patience 302, epochs 6033
+    #   0.80/1.0 -> patience  60, epochs 1207
+
+Moving to steps deletes the table rather than documenting it better.
+
+**It is also what everyone else does.** `transformers` schedules take `num_training_steps` and
+`warmup_steps`; Lightning's `val_check_interval` is in steps; large-scale training plans in steps
+and tokens. Epochs survive as a unit mainly in vision benchmarks, where the dataset is fixed and
+the question never comes up.
+
+**The design.** Four settings, none of which depends on the data:
+
+| now | after |
+|---|---|
+| `epochs: 6033` | `max_steps: 368000` |
+| `patience: 302` | `patience_steps: 18400` |
+| `lr_t_max: 0` | `lr_t_max_steps: 18400` |
+| — | `eval_every_steps` |
+
+The last one is new and necessary: validation is currently computed once per epoch, so early
+stopping lives on that grid whatever unit the patience is in. Making the cadence explicit is a
+small win of its own — at batch 4096 the validation set is currently evaluated every 23 steps,
+which is far more often than the curve needs.
+
+**Acceptance is a reproduction, not an improvement.** A configuration expressed in steps must
+reproduce the score of the same configuration expressed in epochs, on one salt, to four decimals or
+within the 0.0013 sigma. Without that check there is no way to tell a translation error from a real
+effect.
+
+**What it unlocks.** With the units fixed, the patience can finally be tuned once and stay correct.
+It needs tuning: measured on 2026-08-14, at batch 4096 the best epoch arrives after 7-13 thousand
+steps while the leash is 18400, so **60-70% of the fit runs after the best point is already
+found**. That leash was calibrated at batch 512, where the optimum took 50-115 thousand steps and
+it was a 20-30% tail. Cutting it is plausibly a 2x speed-up — and it is exactly the change that
+cost 0.5521 against 0.7273 when it was done carelessly on 08-12, so it is a measurement, not an
+edit.
+
+## A15. Capacity and light dropout TOGETHER — *2026-08-14*
+
+**Queued after the nonlinearity and depth arms of grid C.**
+
+**Hypothesis.** A much wider net (1024 or 2048 per layer, possibly deeper) with dropout 0.05-0.2
+beats both of its halves, because the dropout makes the extra capacity usable and doubles as an
+implicit ensemble over sub-networks.
+
+**Why this is not already refuted, when both halves are.** The two experiments that look like they
+settle it tested opposite corners and never the same cell:
+
+| | dropout 0 | dropout 0.05-0.2 |
+|---|---|---|
+| 512x512 | the baseline, 0.9873 | **grid C: −0.0015 to −0.0050, monotone in strength** |
+| 1024x1024 | **it-11: 0.9866 against 0.9868, refuted** | **never run** |
+
+it-11 grew the width at ZERO regularisation and found nothing; grid C regularised at the BASE width
+and made things worse. Neither says what happens when the capacity has something holding it
+together. The 2x2 has one empty cell and it is the interesting one.
+
+**Mechanism, and why it is worth a run despite the diagnosis.** Grid C's three-way result —
+batch norm, dropout and weight decay all close the train/val gap and all fail to move validation or
+actively hurt it — says the model is limited by BIAS, not variance. That is an argument FOR
+capacity, not against it: bias is what capacity buys down. What the same result says is that
+capacity has to arrive without paying the regularisation tax that the base-width runs paid, which
+is the whole question here. Dropout at 0.05 is a much smaller tax than at 0.2, and grid C's own
+curve is monotone in strength, so the low end is where to look.
+
+**What makes it affordable now.** Two things that were not true this morning: the fit runs on the
+GPU, and batch 4096 with a sqrt-scaled rate is score-neutral at **1.89x** (grid B). A wider net
+also uses the GPU better than the current one, which is launch-bound rather than arithmetic-bound —
+though whether 2048-wide is still launch-bound is a measurement, not an assumption, and it is
+step 0.
+
+**Test.** Step 0, free: measure s/epoch at 1024 and 2048 wide, at batch 4096, before committing to
+a grid — if a wide net is no longer launch-bound the whole thing costs several times more and the
+grid has to shrink. Then width in {1024, 2048} x dropout in {0.0, 0.05, 0.1}, with 0.0 included as
+the control that reproduces it-11 at the current recipe. Everything else at whatever grid B and the
+nonlinearity arms leave as the best configuration.
+
+**Refuted if** the best cell fails to beat the base width by more than the 0.0013 single-net sigma,
+on salt 0 and then on salts nothing selected against.
+
+**ΔS ≈ 0…+0.004, confidence 0.35.** The confidence is not higher because the nearest-neighbour
+ceiling measured earlier (R² 0.97-0.997 against the 0.90-0.93 the model reaches) says the inputs
+themselves may be the binding constraint, in which case no amount of capacity helps and the answer
+is features or A13's loss, not width.
+
 ## A13. Stop on the composite, not on the validation MSE — *2026-08-14*
 
 **Hypothesis.** Early stopping picks the epoch with the lowest validation MSE, which is not the

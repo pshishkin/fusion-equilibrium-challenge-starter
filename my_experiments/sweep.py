@@ -11,14 +11,21 @@ SKIPPED — so an interrupted sweep resumes instead of restarting, and a killed 
 configuration rather than the sweep. To re-run something, delete its row.
 
 Every run also lands in `logs/<UTC timestamp>-<name>.log` with `logs/latest.log` pointing at the
-newest, so `tail -f logs/latest.log` follows whatever is training right now — see AGENTS.md,
+newest, so `tail -F logs/latest.log` follows whatever is training right now — capital F, since
+the symlink is repointed per run and `-f` would stay on the finished file — see AGENTS.md,
 "Every run is watchable while it runs".
 
     uv run python my_experiments/sweep.py grid.json results.csv
     make sweep GRID=grids/a.json OUT=results/a.csv
 
-The grid is a JSON list of `{"name": ..., "sets": [...], "salt": N}`; `sets` are `--set` overrides
-and the name is both the CSV key and the log filename, so it has to be unique and filesystem-safe.
+The grid is a JSON list of `{"name": ..., "sets": [...], "salt": N, "shares": [...]}`; `sets` are
+`--set` overrides, `shares` replaces the three default shares, and the name is both the CSV key and
+the log filename, so it has to be unique and filesystem-safe.
+
+**When `shares` changes the row count, `patience` and `epochs` have to move with it.** Both are
+counted in EPOCHS and an epoch is `rows / batch_size` steps, so ten times the rows is ten times the
+leash unless it is rescaled — the sweep would then measure the leash and call it data. Match the
+step budget instead: `patience = 18400 / (rows // batch_size)`.
 """
 from __future__ import annotations
 
@@ -89,7 +96,9 @@ def main() -> int:
             print(f"[{i}/{len(grid)}] {name}: already in {csv_path.name}, skipping", flush=True)
             continue
         sets = cfg.get("sets", [])
-        cmd = ["uv", "run", "python", "my_experiments/train_eval.py", *SHARES,
+        # A grid entry may carry its own shares. Growing the data is a configuration like any
+        # other, and it is the one axis params.yaml cannot express — the shares are arguments.
+        cmd = ["uv", "run", "python", "my_experiments/train_eval.py", *cfg.get("shares", SHARES),
                "--only", "ridge", "mlp", "--jobs", "24",
                *(["--salt", str(cfg["salt"])] if "salt" in cfg else []),
                *(["--set", *sets] if sets else [])]
@@ -104,7 +113,7 @@ def main() -> int:
         latest.unlink(missing_ok=True)
         latest.symlink_to(log.name)
         print(f"[{i}/{len(grid)}] {name}: {' '.join(sets) or 'baseline'}\n"
-              f"    --> {log.relative_to(REPO)}  (tail -f logs/latest.log)", flush=True)
+              f"    --> {log.relative_to(REPO)}  (tail -F logs/latest.log)", flush=True)
 
         t0 = time.perf_counter()
         with log.open("w") as fh:

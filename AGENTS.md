@@ -269,7 +269,9 @@ pooled across the whole fold against a single scalar mean, while `D_LCFS` is ave
 ## Every run is watchable while it runs
 
 Every long recipe tees into `logs/<UTC timestamp>-<target>.log` and repoints `logs/latest.log` at
-the newest, so `tail -f logs/latest.log` follows whatever is training right now. `logs/` is
+the newest, so `tail -F logs/latest.log` follows whatever is training right now. **Capital -F**:
+`-f` follows an inode, so when the next run repoints the symlink it goes on watching a
+file that will never grow again, and the terminal looks frozen while the fit runs. `logs/` is
 gitignored; the grids under `grids/` are not, because a grid file IS the pre-registration and a
 description in experiments_history can be rewritten afterwards while a committed JSON cannot.
 
@@ -293,8 +295,9 @@ Two traps, both measured on a smoke run that started at 788 KB of log:
 - **`mininterval` must go to 0 alongside `miniters`.** tqdm redraws when EITHER threshold is met,
   so the default 0.1 s keeps the per-second spam whatever `miniters` says.
 - **`bar.set_postfix()` defaults to `refresh=True`** and forces a redraw every single call,
-  quietly defeating both. It is the larger of the two effects: fixing `miniters` alone took the
-  log to 104 KB, and `refresh=False` took it to **25 KB**, with the score unchanged.
+  quietly defeating both. It is the larger of the two effects, and it has to be fixed at EVERY
+  call site: patching the MLP's alone left the shot reader spamming, which was 2835 of the 2849
+  segments in a production log. `grep -rn set_postfix` before believing a bar is quiet.
 
 ## Progress through tqdm
 

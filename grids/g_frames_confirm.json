@@ -1,0 +1,8 @@
+[
+  {"name": "70_full_s3", "salt": 3, "shares": ["0.80/1.0", "0.19/1.0", "0.01"],
+   "sets": ["models.mlp.patience=60", "models.mlp.epochs=1207",
+            "features.pca_frame_share=0.1"]},
+  {"name": "71_full_s4", "salt": 4, "shares": ["0.80/1.0", "0.19/1.0", "0.01"],
+   "sets": ["models.mlp.patience=60", "models.mlp.epochs=1207",
+            "features.pca_frame_share=0.1"]}
+]

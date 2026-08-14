@@ -1,0 +1,11 @@
+[
+  {"name": "40_base_s3",        "salt": 3, "sets": []},
+  {"name": "41_cos600_s3",      "salt": 3, "sets": ["models.mlp.lr_schedule=cosine", "models.mlp.lr_t_max=600", "models.mlp.patience=300"]},
+  {"name": "42_deep3_s3",       "salt": 3, "sets": ["models.mlp.hidden_sizes=[512,512,512]"]},
+  {"name": "43_fast_s3",        "salt": 3, "sets": ["models.mlp.batch_size=4096", "models.mlp.learning_rate=2.8e-3", "models.mlp.patience=800", "models.mlp.epochs=16000", "models.mlp.activation=gelu"]},
+
+  {"name": "44_base_s4",        "salt": 4, "sets": []},
+  {"name": "45_cos600_s4",      "salt": 4, "sets": ["models.mlp.lr_schedule=cosine", "models.mlp.lr_t_max=600", "models.mlp.patience=300"]},
+  {"name": "46_deep3_s4",       "salt": 4, "sets": ["models.mlp.hidden_sizes=[512,512,512]"]},
+  {"name": "47_fast_s4",        "salt": 4, "sets": ["models.mlp.batch_size=4096", "models.mlp.learning_rate=2.8e-3", "models.mlp.patience=800", "models.mlp.epochs=16000", "models.mlp.activation=gelu"]}
+]

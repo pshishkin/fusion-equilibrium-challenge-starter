@@ -72,6 +72,21 @@ not assumed — see "The noise, measured properly" below: at production a single
 | 08-14 | do the two devices stop at the same epoch? | GPU 626 epochs keeping 525, CPU 704 keeping 603, same data and seed | measured — they do NOT, and should not be expected to: Adam turns float round-off into a different realisation of the same fit within a few dozen steps |
 | 08-14 | is README's production table still the configuration it describes? | its `ridge` row says **0.7022**, which it-10 records as the PRE-Thomson value (Thomson took ridge to 0.7562); measured now, ridge is **0.7615** on the same command | the table was stale — ridge is deterministic, so it cannot disagree by chance, and the row had never been re-measured after a change it-10 records as kept |
 | 08-14 | does batch size move the epoch time? | 183 batches 0.307 s, 91 → 0.152, 45 → 0.080, 22 → 0.033, 11 → 0.020 — time tracks the NUMBER of batches, not their size | measured; a candidate in ideas.md, NOT a free speed-up — it changes the optimisation |
+| 08-14 | **grid E** more data: 0.60/0.1 → 0.80/0.1 → 0.80/0.2 → 0.80/1.0, with patience and the epoch ceiling rescaled per arm to hold the step budget at 18400 | against a measured `fast` control of 0.9885 on salt 0: **+0.0000 / +0.0020 / +0.0025**. The frames axis flattens hard — 0.1→0.2 is +0.0020 and 0.2→1.0 is only +0.0005 for 2.3x the wall clock and 51.9 GiB of RSS | **0.80/0.2 is the knee.** Five times more frames beyond it buys nothing measurable |
+| 08-14 | **grid F, the confirmation**: 0.80/0.2 against 0.60/0.1 on salts 3 and 4 | **+0.0048 and +0.0025, mean +0.0037**, signs agree, for one extra minute of wall clock | **ACCEPTED** — and note the gain is LARGER on the salts nothing selected against (+0.0037) than on the selection salt (+0.0020), which is the opposite of selection bias. The largest confirmed gain in this fork |
+| 08-14 | **grid G**: is the frames axis really flat past 0.2? 0.80/1.0 on salts 3 and 4 | the 0.2→1.0 increment is **+0.0005 / −0.0002 / +0.0025** on salts 0 / 3 / 4 — mean **+0.0009**, signs disagree, 1.2 sigma on the standard error of three | **not accepted, and not refuted either.** The effect is below what three runs resolve; settling it at 2 sigma needs ~8 salts, about 90 min. Left at 0.2 because the possible +0.0009 costs 2.2x the wall clock and 2x the memory, where the step TO 0.2 bought +0.0037 for one extra minute |
+| 08-14 | did the frames-beat-shots prediction hold? | predicted shots would buy more, from the 08-12 result at a fixed ROW budget. Measured: shots 0.60→0.80 gave +0.0000, frames 0.1→0.2 gave +0.0020 | **prediction wrong, and recorded as wrong.** The 08-12 measurement traded frames AGAINST shots at a fixed budget; this one adds both, which is a different question |
+| 08-14 | **grid D, the confirmation**: the two quality candidates re-measured on salts 3 and 4, which nothing selected against | `cos600` +0.0013 on salt 0 → **+0.0001 / −0.0014**, mean −0.0007. `deep3` +0.0012 → **−0.0014 / +0.0008**, mean −0.0003. Both have OPPOSITE signs on the two salts | **both refuted.** Not "fell short" — they went negative. Opposite signs across folds is the signature of noise, and the pre-registered arithmetic said this would happen: the observed best (+0.0013) was already below what selection alone produces over thirty arms (+0.0029) |
+| 08-14 | **grid D**: batch 4096 with a sqrt-scaled rate AND gelu, composed | S **+0.0007 / −0.0005**, mean **+0.0001**; fit **2.29x and 2.31x** faster on the two salts | **kept** — parity to within a tenth of a sigma, and the two accelerators compose as their mechanisms predict: 1.89x from the batch, 1.61x from gelu's faster convergence, 2.30x together |
+| 08-14 | **grid B** batch size, with patience AND the epoch ceiling rescaled so every arm sees the same 18400 steps of leash and 368000 of budget | 256 → +0.0009, 512 → baseline, 1024 → −0.0011, 2048 → +0.0001, **4096 → +0.0002 at 1.89x the speed**. All five inside the 0.0013 sigma | **score is insensitive to batch size over 256-4096**, and the time falls almost twofold. The speed result of the day |
+| 08-14 | sqrt vs linear rate scaling with the batch | batch 4096 at 2.8e-3 (sqrt) gives +0.0002; the same batch at 8e-3 (linear) gives **−0.0047** | sqrt is right and linear is wrong here, by four sigma with an unambiguous sign |
+| 08-14 | **grid C** weight_decay 1e-5 / 1e-4 / 1e-3 | +0.0009, −0.0009, **−0.0123**; monotone in strength | refuted — only the near-off setting is non-negative |
+| 08-14 | **grid C** dropout 0.1 / 0.2, at patience 100 and 300 | −0.0015, −0.0050, −0.0008, −0.0061; monotone in strength at both patiences | refuted, and the longer patience did not rescue it |
+| 08-14 | **the pre-registered prediction, tested**: do dropout and weight decay close the gap without moving validation? | train/val gap goes 3.39x (baseline) → 1.90x (BN) → 1.19x (wd 1e-3) → **0.56x** (dropout 0.2), and validation goes 0.0650 → 0.0662 → 0.1511 → 0.0965 | **confirmed, and worse than predicted.** Three independent regularisers, one answer, monotone in strength: the model is limited by BIAS, not variance, and the 3.4x gap is not overfitting worth removing |
+| 08-14 | **grid C** gelu / silu instead of relu — is the dying-ReLU story real? | **+0.0000 and +0.0002**, the agreeing sign that was declared the criterion in advance | refuted. Both smooth activations land on exactly zero — but they converge in 392 and 425 epochs against 626, which is **1.6x of free speed** |
+| 08-14 | **grid C** tanh in the hidden layers | −0.0031 | refuted, as written down before the run: it saturates on BOTH sides, so it cures dying units less well than relu, not better |
+| 08-14 | **grid C** a third hidden layer, [512, 512, 512] | **+0.0012** — the best thing in grid C and second-best of all thirty runs | at the threshold, not past it. Note it-11 refuted extra WIDTH; depth behaves differently, which is what the bias-limited diagnosis predicts |
+| 08-14 | **what thirty screened configurations are worth, honestly** | best result over grids A+B+C is **+0.0013**, against an expected maximum from selection alone of σ·sqrt(2 ln n) = **+0.0029** over the ~12 plausibly-neutral arms and +0.0034 over all thirty | **nothing here has been shown to help.** The observed best is SMALLER than pure selection would be expected to produce, which is the strongest available evidence that these knobs do nothing |
 | 08-14 | **grid A** batch norm x learning rate, jointly, on `make quality` (one net, salt 0) | BN peaks at lr 3e-3 with **0.9873 against the baseline's 0.9873**, and falls away either side (1e-3 0.9866, 1e-2 0.9861, 3e-2 0.9816); it costs 30-38% more per epoch | **refuted at its own best rate** — the strong form. Measuring it at the baseline's rate alone would have called it harmful, which is a different and wrong claim |
 | 08-14 | is the learning rate itself already right? | 3e-4 gives 0.9858, **1e-3 gives 0.9873**, 3e-3 gives 0.9830 — unimodal, peak on the value the fork has always used | measured; the rate was never tuned and is nonetheless optimal. Axis closed |
 | 08-14 | does BN buy learning-rate robustness? | lr 3e-3 costs −0.0043 without BN and 0.0000 with it | measured — BN delivers exactly what it promises, and here that is worth nothing, because 1e-3 was already the optimum |
@@ -565,6 +580,28 @@ ends of the net were well conditioned before batch norm saw them.
 **Pre-registered prediction, written before grid C ran:** dropout and `weight_decay` should do the
 same thing — close the train/val gap without moving validation. If either moves validation, this
 explanation is wrong and has to be replaced rather than patched.
+
+## What the thirty-eight-run architecture sweep settled — 2026-08-14
+
+Grids A, B and C screened thirty configurations on salt 0; grid D re-measured the two survivors
+plus the speed composition on salts 3 and 4, which the selection never saw.
+
+**Nothing improves S.** Batch norm, dropout, weight decay, the learning rate, its schedule, four
+activations, depth, and batch size from 256 to 4096 — the best screen result was +0.0013, and it
+did not survive contact with an unseen fold. The single most useful number in the whole sweep is
+that +0.0013 was already SMALLER than the +0.0029 that selection alone produces over that many
+arms, so the screen was telling the truth before the confirmation ran.
+
+**What did come out of it is 2.30x of speed at parity**, confirmed on two unseen salts to within
+0.02x of each other: batch 4096 with a sqrt-scaled rate, plus gelu. And a diagnosis, from three
+independent regularisers agreeing: the model is limited by **bias, not variance**. Every one of
+them closed the train/val gap — 3.39x to 1.90x to 1.19x to 0.56x — and validation moved the wrong
+way or not at all.
+
+**Where that points.** Not at the architecture, which is now well covered: at the inputs, where the
+nearest-neighbour ceiling is R² 0.97-0.997 against the 0.90-0.93 the model reaches, or at what the
+loss asks for (A13). The one loose thread inside the architecture is A15's empty cell — capacity
+and light regularisation together, which neither it-11 nor grid C tested.
 
 ## Measurement facts worth not re-deriving
 

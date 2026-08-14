@@ -1,0 +1,137 @@
+[
+  {
+    "name": "80_f02_s1",
+    "salt": 1,
+    "shares": [
+      "0.80/0.2",
+      "0.19/0.2",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=302",
+      "models.mlp.epochs=6033"
+    ]
+  },
+  {
+    "name": "81_f10_s1",
+    "salt": 1,
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=60",
+      "models.mlp.epochs=1207",
+      "features.pca_frame_share=0.1"
+    ]
+  },
+  {
+    "name": "80_f02_s2",
+    "salt": 2,
+    "shares": [
+      "0.80/0.2",
+      "0.19/0.2",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=302",
+      "models.mlp.epochs=6033"
+    ]
+  },
+  {
+    "name": "81_f10_s2",
+    "salt": 2,
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=60",
+      "models.mlp.epochs=1207",
+      "features.pca_frame_share=0.1"
+    ]
+  },
+  {
+    "name": "80_f02_s5",
+    "salt": 5,
+    "shares": [
+      "0.80/0.2",
+      "0.19/0.2",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=302",
+      "models.mlp.epochs=6033"
+    ]
+  },
+  {
+    "name": "81_f10_s5",
+    "salt": 5,
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=60",
+      "models.mlp.epochs=1207",
+      "features.pca_frame_share=0.1"
+    ]
+  },
+  {
+    "name": "80_f02_s6",
+    "salt": 6,
+    "shares": [
+      "0.80/0.2",
+      "0.19/0.2",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=302",
+      "models.mlp.epochs=6033"
+    ]
+  },
+  {
+    "name": "81_f10_s6",
+    "salt": 6,
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=60",
+      "models.mlp.epochs=1207",
+      "features.pca_frame_share=0.1"
+    ]
+  },
+  {
+    "name": "80_f02_s7",
+    "salt": 7,
+    "shares": [
+      "0.80/0.2",
+      "0.19/0.2",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=302",
+      "models.mlp.epochs=6033"
+    ]
+  },
+  {
+    "name": "81_f10_s7",
+    "salt": 7,
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "models.mlp.patience=60",
+      "models.mlp.epochs=1207",
+      "features.pca_frame_share=0.1"
+    ]
+  }
+]

@@ -199,10 +199,17 @@ models:
     # and scored 0.5521 where the patient version scores 0.7273 on the same shots. An epoch here
     # is only 32 minibatches, so patience in epochs is a much shorter leash than it sounds.
     # 0 turns early stopping off entirely.
-    epochs: 2000
-    patience: 100
-    batch_size: 512
-    learning_rate: 0.001
+    # COUPLED TO THE SHARES IN THE MAKEFILE. Both are counted in EPOCHS, and an epoch is
+    # rows / batch_size steps, so changing the data changes what they mean: at 0.80/0.2 an epoch is
+    # 61 batches and these give the 18400-step leash and 368000-step budget everything was
+    # calibrated on. Move the shares and both of these move, or the run measures the leash.
+    #   0.60/0.1 -> patience 836, epochs 16727
+    #   0.80/0.2 -> patience 302, epochs 6033   <- the default
+    #   0.80/1.0 -> patience  60, epochs 1207
+    epochs: 6033
+    patience: 302
+    batch_size: 4096
+    learning_rate: 0.0028
     weight_decay: 0.0
     seed: 0
     # Threads for torch, and not one per core: this net is 21 -> 256 -> 256 -> 52, so a batch is
@@ -215,7 +222,7 @@ models:
     # would cap the tails of the distribution being regressed.
     #   relu  the baseline every number before 2026-08-14 was measured on
     #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
-    activation: relu
+    activation: gelu
     # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
     # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
     # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
@@ -239,10 +246,10 @@ models:
     type: torch_mlp
     enabled: true
     hidden_sizes: [512, 512]
-    epochs: 2000
-    patience: 100
-    batch_size: 512
-    learning_rate: 0.001
+    epochs: 6033
+    patience: 302
+    batch_size: 4096
+    learning_rate: 0.0028
     weight_decay: 0.0
     seed: 1
     threads: 4
@@ -252,7 +259,7 @@ models:
     # would cap the tails of the distribution being regressed.
     #   relu  the baseline every number before 2026-08-14 was measured on
     #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
-    activation: relu
+    activation: gelu
     # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
     # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
     # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
@@ -276,10 +283,10 @@ models:
     type: torch_mlp
     enabled: true
     hidden_sizes: [512, 512]
-    epochs: 2000
-    patience: 100
-    batch_size: 512
-    learning_rate: 0.001
+    epochs: 6033
+    patience: 302
+    batch_size: 4096
+    learning_rate: 0.0028
     weight_decay: 0.0
     seed: 2
     threads: 4
@@ -289,7 +296,7 @@ models:
     # would cap the tails of the distribution being regressed.
     #   relu  the baseline every number before 2026-08-14 was measured on
     #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
-    activation: relu
+    activation: gelu
     # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
     # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
     # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
@@ -313,10 +320,10 @@ models:
     type: torch_mlp
     enabled: true
     hidden_sizes: [512, 512]
-    epochs: 2000
-    patience: 100
-    batch_size: 512
-    learning_rate: 0.001
+    epochs: 6033
+    patience: 302
+    batch_size: 4096
+    learning_rate: 0.0028
     weight_decay: 0.0
     seed: 3
     threads: 4
@@ -326,7 +333,7 @@ models:
     # would cap the tails of the distribution being regressed.
     #   relu  the baseline every number before 2026-08-14 was measured on
     #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
-    activation: relu
+    activation: gelu
     # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
     # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
     # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.

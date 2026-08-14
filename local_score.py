@@ -163,7 +163,7 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
         for path in bar:
             shot = _shot_from_row(pd.read_parquet(path).iloc[0])
             out.append(shot)
-            bar.set_postfix(frames=sum(s["psi"].shape[0] for s in out))
+            bar.set_postfix(frames=sum(s["psi"].shape[0] for s in out), refresh=False)
         return out
 
     data_dir = Path(local_data_dir) / "data" / config
@@ -189,7 +189,7 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
     for path in bar:
         shot = _shot_from_row(pd.read_parquet(path).iloc[0])
         out.append(shot)
-        bar.set_postfix(frames=sum(s["psi"].shape[0] for s in out))
+        bar.set_postfix(frames=sum(s["psi"].shape[0] for s in out), refresh=False)
     return out
 
 

@@ -832,8 +832,10 @@ def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
         Y_parts.append(psi)
         S_parts.append(scal)
         # Frames accumulate in the postfix: it shows both the sample size and that progress is
-        # alive, without a line per shot.
-        bar.set_postfix(frames=sum(len(x) for x in X_parts))
+        # alive, without a line per shot. refresh=False or it redraws the bar on EVERY shot and
+        # defeats the thinning that keeps a teed log readable — measured, it was 2835 of the
+        # 2849 segments in a production log.
+        bar.set_postfix(frames=sum(len(x) for x in X_parts), refresh=False)
     return np.concatenate(X_parts), np.concatenate(Y_parts), np.concatenate(S_parts)
 
 

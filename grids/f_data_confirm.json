@@ -1,0 +1,11 @@
+[
+  {"name": "60_fast_base_s0", "shares": ["0.60/0.1", "0.15/0.1", "0.01"]},
+
+  {"name": "61_base_s3",  "salt": 3, "shares": ["0.60/0.1", "0.15/0.1", "0.01"]},
+  {"name": "62_data_s3",  "salt": 3, "shares": ["0.80/0.2", "0.19/0.2", "0.01"],
+   "sets": ["models.mlp.patience=302", "models.mlp.epochs=6033"]},
+
+  {"name": "63_base_s4",  "salt": 4, "shares": ["0.60/0.1", "0.15/0.1", "0.01"]},
+  {"name": "64_data_s4",  "salt": 4, "shares": ["0.80/0.2", "0.19/0.2", "0.01"],
+   "sets": ["models.mlp.patience=302", "models.mlp.epochs=6033"]}
+]

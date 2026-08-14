@@ -2,9 +2,15 @@
   {"name": "20_wd1e-5",  "sets": ["models.mlp.weight_decay=1e-5"]},
   {"name": "21_wd1e-4",  "sets": ["models.mlp.weight_decay=1e-4"]},
   {"name": "22_wd1e-3",  "sets": ["models.mlp.weight_decay=1e-3"]},
+
   {"name": "23_drop0.1", "sets": ["models.mlp.dropout=0.1"]},
   {"name": "24_drop0.2", "sets": ["models.mlp.dropout=0.2"]},
-  {"name": "25_gelu",    "sets": ["models.mlp.activation=gelu"]},
-  {"name": "26_silu",    "sets": ["models.mlp.activation=silu"]},
-  {"name": "27_deep3",   "sets": ["models.mlp.hidden_sizes=[512,512,512]"]}
+  {"name": "25_drop0.1_p300", "sets": ["models.mlp.dropout=0.1", "models.mlp.patience=300"]},
+  {"name": "26_drop0.2_p300", "sets": ["models.mlp.dropout=0.2", "models.mlp.patience=300"]},
+
+  {"name": "27_gelu", "sets": ["models.mlp.activation=gelu"]},
+  {"name": "28_silu", "sets": ["models.mlp.activation=silu"]},
+  {"name": "29_tanh", "sets": ["models.mlp.activation=tanh"]},
+
+  {"name": "30_deep3", "sets": ["models.mlp.hidden_sizes=[512,512,512]"]}
 ]
