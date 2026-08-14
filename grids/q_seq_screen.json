@@ -1,0 +1,91 @@
+[
+  {
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "salt": 0,
+    "model": "seq",
+    "name": "q1_base",
+    "sets": [
+      "features.frame_gaps=true",
+      "features.pca_frame_share=0.2"
+    ]
+  },
+  {
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "salt": 0,
+    "model": "seq",
+    "name": "q2_lr3e-4",
+    "sets": [
+      "features.frame_gaps=true",
+      "features.pca_frame_share=0.2",
+      "models.seq.learning_rate=3e-4"
+    ]
+  },
+  {
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "salt": 0,
+    "model": "seq",
+    "name": "q3_lr3e-3",
+    "sets": [
+      "features.frame_gaps=true",
+      "features.pca_frame_share=0.2",
+      "models.seq.learning_rate=3e-3"
+    ]
+  },
+  {
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "salt": 0,
+    "model": "seq",
+    "name": "q4_hidden512",
+    "sets": [
+      "features.frame_gaps=true",
+      "features.pca_frame_share=0.2",
+      "models.seq.seq_hidden=512"
+    ]
+  },
+  {
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "salt": 0,
+    "model": "seq",
+    "name": "q5_layers2",
+    "sets": [
+      "features.frame_gaps=true",
+      "features.pca_frame_share=0.2",
+      "models.seq.seq_layers=2"
+    ]
+  },
+  {
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "salt": 0,
+    "model": "seq",
+    "name": "q6_drop0.1",
+    "sets": [
+      "features.frame_gaps=true",
+      "features.pca_frame_share=0.2",
+      "models.seq.dropout=0.1"
+    ]
+  }
+]

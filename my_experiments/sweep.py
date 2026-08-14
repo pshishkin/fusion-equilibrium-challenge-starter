@@ -18,9 +18,11 @@ the symlink is repointed per run and `-f` would stay on the finished file — se
     uv run python my_experiments/sweep.py grid.json results.csv
     make sweep GRID=grids/a.json OUT=results/a.csv
 
-The grid is a JSON list of `{"name": ..., "sets": [...], "salt": N, "shares": [...]}`; `sets` are
-`--set` overrides, `shares` replaces the three default shares, and the name is both the CSV key and
-the log filename, so it has to be unique and filesystem-safe.
+The grid is a JSON list of `{"name": ..., "sets": [...], "salt": N, "shares": [...],
+"model": ...}`; `sets` are `--set` overrides, `shares` replaces the three default shares, `model`
+names which row of the comparison table is the result and which models are fitted (default `mlp`),
+and the name is both the CSV key and the log filename, so it has to be unique and
+filesystem-safe.
 
 `shares` is now safe to change on its own: `patience_steps` and `max_steps` are counted in Adam
 steps, so more rows buy more data rather than a longer leash. They had to be rescaled by hand for
@@ -51,19 +53,24 @@ FIELDS = ["name", "S", "R2_psi", "R2_qb", "D_LCFS", "Cons", "ridge_S",
           "fit_s", "best_step", "ran_steps", "wall_s", "sets"]
 
 
-def parse(text: str) -> dict[str, object]:
-    """Pull the scored table and the fit report out of one run's log."""
+def parse(text: str, model: str = "mlp") -> dict[str, object]:
+    """Pull the scored table and the fit report out of one run's log.
+
+    `model` is which row of the comparison table is THE result. It is the MLP unless a grid entry
+    says otherwise — the sequence model's row is called `seq`, and reading the wrong row would
+    leave the CSV silently empty rather than wrong, which is the same problem one step later.
+    """
     out: dict[str, object] = {}
     for line in text.splitlines():
         m = ROW.match(line)
         if m:
             name, *vals = m.groups()
-            if name == "mlp":
+            if name == model:
                 out.update(zip(("S", "R2_psi", "R2_qb", "D_LCFS", "Cons"), vals, strict=True))
             elif name == "ridge":
                 out["ridge_S"] = vals[0]
         m = FIT.search(line)
-        if m and m.group(1) == "mlp":
+        if m and m.group(1) == model:
             out["fit_s"] = m.group(2)
             b = BEST.search(m.group(3))
             if b:
@@ -97,8 +104,9 @@ def main() -> int:
         sets = cfg.get("sets", [])
         # A grid entry may carry its own shares. Growing the data is a configuration like any
         # other, and it is the one axis params.yaml cannot express — the shares are arguments.
+        model = cfg.get("model", "mlp")
         cmd = ["uv", "run", "python", "my_experiments/train_eval.py", *cfg.get("shares", SHARES),
-               "--only", "ridge", "mlp", "--jobs", "24",
+               "--only", "ridge", model, "--jobs", "24",
                *(["--salt", str(cfg["salt"])] if "salt" in cfg else []),
                *(["--set", *sets] if sets else [])]
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
@@ -127,7 +135,7 @@ def main() -> int:
             row = {"name": name, "S": "FAILED", "wall_s": f"{wall:.0f}", "sets": " ".join(sets)}
         else:
             row = {"name": name, "wall_s": f"{wall:.0f}", "sets": " ".join(sets),
-                   **parse(log.read_text())}
+                   **parse(log.read_text(), model)}
             print(f"    S={row.get('S', '?')}  fit={row.get('fit_s', '?')}s  "
                   f"best={row.get('best_step', '?')}/{row.get('ran_steps', '?')}  "
                   f"wall={wall / 60:.1f}m", flush=True)
