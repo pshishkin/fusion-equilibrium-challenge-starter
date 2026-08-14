@@ -863,6 +863,18 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
           f"{frame_share:.0%} of their frames), validating on {len(val_files)} "
           f"({val_shot_share:.1%}, {val_frame_share:.0%} of frames), head of the list, "
           f"ordered by sha1")
+    # A model whose unit is the shot is fitted on a TIME SERIES, and thinning the frames changes
+    # the spacing of that series without changing anything it can see: at 0.2 the steps are ~100 ms
+    # apart while inference feeds it every frame at 20 ms, so it would learn the dynamics at one
+    # spacing and be asked for them at another. It cannot detect this for itself — all it receives
+    # is frame counts — so the check belongs here, where the shares are known.
+    sequential = [n for n, m in params.models.items() if m.kind == "torch_seq"]
+    if sequential and (frame_share < 1.0 or val_frame_share < 1.0):
+        raise SystemExit(
+            f"model(s) {sequential} read the shot as a sequence and need every frame, but the "
+            f"shares thin them to {frame_share:.0%} of training and {val_frame_share:.0%} of "
+            f"validation frames. Use '<shots>/1.0' for both."
+        )
     print(f"Models from {params.path}: {', '.join(params.models)}  "
           f"(ensemble: {', '.join(f'{k} x {w:.2f}' for k, w in params.ensemble.items())})")
 
