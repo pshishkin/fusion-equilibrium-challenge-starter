@@ -62,6 +62,7 @@ not assumed — see "The noise, measured properly" below: at production a single
 | 08-14 | **it-18** the whole accepted stack, on salts **3 and 4** which no iteration ever saw | +0.0077 and +0.0057 against +0.0115 on the three salts used for selection | measured — about 40% of the claimed gain was selection bias; the real gain is **+0.0067** |
 | 08-14 | **it-19** CatBoost at production, as a fifth ensemble member | ensemble 0.9916 against 0.9914; CatBoost alone 0.9838 against 0.9875–0.9885 for the MLPs, and it took **3829 s against 296 s**, hitting the iteration ceiling undertrained | refuted on both counts — the gain is noise and the cost would have made the iteration loop impossible |
 | 08-14 | **it-20** raw Thomson PRESSURE profile (16 points per system) instead of / beside the summaries | summaries 0.9914, summaries+raw 0.9901, raw alone 0.9900 | refuted — raw alone equals raw+summaries, so the summaries add nothing to it, and yet three numbers per system BEAT sixteen points by 0.0014 |
+| 08-14 | **submitted** the four-change stack | leaderboard **0.9896**, 4th place, against 0.9764 for the previous submission — **+0.0132** where the local salt-0 gain was +0.0145 | 91% of the local gain transferred; the fresh-fold estimate of 58% was too pessimistic |
 | 08-13 | is the EFIT frame step really 20 ms? | 98.0% of intervals are, but **31% of shots carry a gap over 100 ms**, up to 900 ms | measured — any derivative or time window must use the real step |
 | 08-13 | `pca_frame_share: 0.2` | PCA fit 9.1 s → 4.6 s of a 295 s run, memory 7.79 → 7.81 GiB, S 0.9809 → 0.9816 (+0.0007, sd 0.0013) | not measured on score, negligible on cost — knob kept at 1.0 for when shots grow |
 
@@ -318,6 +319,31 @@ while a single profile point carries all of it.
 One asymmetry worth keeping: the raw profile is the best of the three on `R2_qb` (0.9939) and the
 worst on Consistency (0.9615). Pointwise pressure helps the pressure scalars; integrated pressure
 helps the geometry.
+
+## The leaderboard, and how the two estimates of selection bias compared
+
+Submitted 2026-08-14: **0.9896, 4th place**, against 0.9764 for the previous submission.
+
+| | local, salt 0 | leaderboard |
+|---|---|---|
+| previous submission | 0.9769 | 0.9764 |
+| this one | 0.9914 | **0.9896** |
+| gain | +0.0145 | **+0.0132** |
+
+**91% of the local gain transferred.** The two-fresh-salt estimate below said 58% would — it was
+too pessimistic, and by a lot. Both numbers are worth keeping, because the disagreement is the
+lesson:
+
+- Salts 3 and 4 are **70 scored shots each**. A paired difference between two configurations that
+  differ in four ways carries fold-specific variance far beyond the 0.0009 seed sigma, and two
+  such folds cannot pin a number to better than a few thousandths.
+- The leaderboard is **874 shots** — twelve times the fold — and it is the only estimate here with
+  no selection history at all.
+
+So the honest reading is that the held-out-salt check correctly showed selection bias EXISTS and
+correctly refused to endorse the headline, but its magnitude (+0.0067) was itself a noisy estimate.
+The gap between local and leaderboard is 0.0018 this time against 0.0005 for the previous
+submission — small, and consistent with a modest amount of fold-tuning rather than a large one.
 
 ## What seventeen rounds of choosing on the same folds actually cost
 

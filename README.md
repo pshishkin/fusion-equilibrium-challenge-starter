@@ -21,6 +21,36 @@ before adding code under `my_experiments/`.
 | `--jobs` | Everything per-shot on one shared process pool: reading shots (22.6 s to 8.5 s for 352) and the per-shot half of scoring (85.7 s to 28.5 s for 14 x 4 models). Results are bit-identical — see `my_experiments/parallel.py`. |
 | `--configs` | On `submission_skeleton.py`, to build a DIII-D-only submission without downloading MAST. |
 
+## Where this stands
+
+**Leaderboard 0.9896, 4th place** (submitted 2026-08-14), against 0.9764 for the previous one.
+Local production score on salt 0 is 0.9914; the gap of 0.0018 is the price of having chosen
+against the same folds many times, measured rather than assumed — see
+[experiments_history.md](experiments_history.md).
+
+## Continuing on another machine
+
+Everything needed is in git except the data and the cache, both of which are rebuilt by two
+commands. Budget about 98 GB of download, 25 GB of cache, and half an hour before the first
+production run:
+
+```bash
+make download_dataset      # 98 GB, resumable, no token needed
+make warm-cache            # decode all 7041 shots once, ~25 GB, a few minutes
+make prod                  # 4225 shots, four MLP seeds, ~25 min
+```
+
+Two things a bigger machine changes, both measured here and both left undone:
+
+- **The four ensemble members train one after another**, on 4 torch threads each — 434% of 2000%
+  of this machine's CPU. They are independent and could run at once; the loop in
+  `baseline_model.train` predates the ensemble. That is ~20 min of a 25 min production run.
+  Threads per net must stay near 4 whatever the core count: measured, an epoch takes 0.064 s on
+  one thread, 0.040 on four and **0.351 on twenty**.
+- **The training share stopped at 0.60 for no principled reason.** 0.45 → 0.60 was worth +0.0018
+  and the curve had not flattened; the obstacle was always memory, and the shot cache plus
+  `parallel.release()` removed most of it.
+
 ## Data
 
 Downloaded copy lives at `../downloaded_huggingface/hf_dataset`, laid out exactly like the Hub

@@ -43,6 +43,24 @@ MAST / Challenge 2 is deliberately absent: it moves `G_ratio`, not S, and this l
 
 ---
 
+## Where to start on a bigger machine — 2026-08-14
+
+Ranked by what twenty measured iterations actually showed, not by what looked promising before
+them. Every physics idea below survived only because it is untested, not because it is likely: of
+the twenty iterations, the four that paid were capacity, an independent measurement, averaging and
+more data, and every physics construction was refuted.
+
+1. **Train the ensemble members in parallel.** Not a hypothesis — a 2.5x cheaper production run,
+   which makes every hypothesis below cheaper. See README, "Continuing on another machine".
+2. **More shots, past 0.60.** +0.0018 at the last step and no sign of flattening; memory was
+   always the obstacle and the cache removed most of it.
+3. **More ensemble members**, once they train in parallel. Four seeds were worth +0.0042 and the
+   curve of that has never been probed at all.
+4. **Frames per shot.** Production trains on every tenth frame. That ratio was set at a fixed row
+   budget in a much smaller regime and never revisited.
+5. **MAST.** `predict_row` still raises `NotImplementedError`, so Challenge 2 scores zero — the
+   largest structural gap left, and worth more than any refinement on DIII-D.
+
 # Group A — one to a few production runs
 
 **A principle several of these share.** The model sees one frame at a time, 21 instantaneous
