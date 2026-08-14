@@ -191,23 +191,26 @@ models:
     # The sklearn MLPRegressor of experiments.py, rewritten in torch so the training loop is ours:
     # a plain fully-connected net on the 21 magnetics features, CPU, standardized targets.
     hidden_sizes: [512, 512]
-    # A ceiling plus the patience that ends the run first (686 epochs of 2000, best at 585). The
-    # weights kept are the best epoch on the validation split, not the last one reached.
+    # A ceiling plus the patience that ends the run first, both in ADAM STEPS. The weights kept
+    # are the best evaluation on the validation split, not the last one reached; 0 patience turns
+    # early stopping off entirely.
     #
-    # Patience is 100 rather than 20 because the validation curve has a false floor: with 20 this
-    # net stopped at epoch 27, keeping epoch 6 — 192 Adam steps, undertrained by construction —
-    # and scored 0.5521 where the patient version scores 0.7273 on the same shots. An epoch here
-    # is only 32 minibatches, so patience in epochs is a much shorter leash than it sounds.
-    # 0 turns early stopping off entirely.
-    # COUPLED TO THE SHARES IN THE MAKEFILE. Both are counted in EPOCHS, and an epoch is
-    # rows / batch_size steps, so changing the data changes what they mean: at 0.80/0.2 an epoch is
-    # 61 batches and these give the 18400-step leash and 368000-step budget everything was
-    # calibrated on. Move the shares and both of these move, or the run measures the leash.
-    #   0.60/0.1 -> patience 836, epochs 16727
-    #   0.80/0.2 -> patience 302, epochs 6033   <- the default
-    #   0.80/1.0 -> patience  60, epochs 1207
-    epochs: 6033
-    patience: 302
+    # Steps, not epochs, because an epoch is `rows / batch_size` steps: counted in epochs these
+    # two silently mean something different every time the data share or the batch size moves,
+    # and this fork moves both. They used to carry a table of one value per share for exactly that
+    # reason. In steps there is one number, and it is the number every result so far was
+    # calibrated on — 18400 of leash inside a 368000 budget.
+    #
+    # The leash is long on purpose: the validation curve has a false floor. A patience of ~600
+    # steps stopped this net while it was still undertrained, keeping weights that scored 0.5521
+    # where the patient version scores 0.7273 on the same shots.
+    max_steps: 368000
+    patience_steps: 18400
+    # How often the validation loss is measured — the resolution at which the best weights are
+    # picked and the patience is judged, and the cadence the training log inherits. One forward
+    # pass over the validation rows, so it is cheap; the reason not to make it 1 is that the best
+    # of many more draws from a noisy curve is a slightly luckier one.
+    eval_every_steps: 50
     batch_size: 4096
     learning_rate: 0.0028
     weight_decay: 0.0
@@ -232,22 +235,24 @@ models:
     # result is a statement about the rate, not about the normalisation.
     batch_norm: false
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
-    # learning_rate * lr_final_factor over the EPOCH CEILING, not over the epoch early stopping
-    # reaches — a schedule whose shape depends on its own outcome is a feedback loop, not a setting.
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
     lr_schedule: none
     lr_final_factor: 0.01
-    # Epochs the schedule spans; 0 = use `epochs`. `epochs` is a CEILING set far above any real
-    # fit, so leaving this at 0 makes a cosine traverse only its flat first quarter — measured, it
-    # cut the rate by 16% over a 533-epoch run and called itself an annealing schedule. Set it near
-    # where the fit actually ends.
-    lr_t_max: 0
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
 
   mlp1:
     type: torch_mlp
     enabled: true
     hidden_sizes: [512, 512]
-    epochs: 6033
-    patience: 302
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
     batch_size: 4096
     learning_rate: 0.0028
     weight_decay: 0.0
@@ -269,22 +274,24 @@ models:
     # result is a statement about the rate, not about the normalisation.
     batch_norm: false
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
-    # learning_rate * lr_final_factor over the EPOCH CEILING, not over the epoch early stopping
-    # reaches — a schedule whose shape depends on its own outcome is a feedback loop, not a setting.
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
     lr_schedule: none
     lr_final_factor: 0.01
-    # Epochs the schedule spans; 0 = use `epochs`. `epochs` is a CEILING set far above any real
-    # fit, so leaving this at 0 makes a cosine traverse only its flat first quarter — measured, it
-    # cut the rate by 16% over a 533-epoch run and called itself an annealing schedule. Set it near
-    # where the fit actually ends.
-    lr_t_max: 0
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
 
   mlp2:
     type: torch_mlp
     enabled: true
     hidden_sizes: [512, 512]
-    epochs: 6033
-    patience: 302
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
     batch_size: 4096
     learning_rate: 0.0028
     weight_decay: 0.0
@@ -306,22 +313,24 @@ models:
     # result is a statement about the rate, not about the normalisation.
     batch_norm: false
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
-    # learning_rate * lr_final_factor over the EPOCH CEILING, not over the epoch early stopping
-    # reaches — a schedule whose shape depends on its own outcome is a feedback loop, not a setting.
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
     lr_schedule: none
     lr_final_factor: 0.01
-    # Epochs the schedule spans; 0 = use `epochs`. `epochs` is a CEILING set far above any real
-    # fit, so leaving this at 0 makes a cosine traverse only its flat first quarter — measured, it
-    # cut the rate by 16% over a 533-epoch run and called itself an annealing schedule. Set it near
-    # where the fit actually ends.
-    lr_t_max: 0
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
 
   mlp3:
     type: torch_mlp
     enabled: true
     hidden_sizes: [512, 512]
-    epochs: 6033
-    patience: 302
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
     batch_size: 4096
     learning_rate: 0.0028
     weight_decay: 0.0
@@ -343,15 +352,16 @@ models:
     # result is a statement about the rate, not about the normalisation.
     batch_norm: false
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
-    # learning_rate * lr_final_factor over the EPOCH CEILING, not over the epoch early stopping
-    # reaches — a schedule whose shape depends on its own outcome is a feedback loop, not a setting.
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
     lr_schedule: none
     lr_final_factor: 0.01
-    # Epochs the schedule spans; 0 = use `epochs`. `epochs` is a CEILING set far above any real
-    # fit, so leaving this at 0 makes a cosine traverse only its flat first quarter — measured, it
-    # cut the rate by 16% over a 533-epoch run and called itself an annealing schedule. Set it near
-    # where the fit actually ends.
-    lr_t_max: 0
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
 
 ensemble:
   # Predictions of the members, averaged with these weights (renormalized to sum to 1). Averaging

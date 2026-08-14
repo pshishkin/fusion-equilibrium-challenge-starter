@@ -402,7 +402,16 @@ entry exists so that "we never checked" does not get mistaken for "we checked an
 **Cheaper variant worth doing first:** 0.4 and 0.6 on three salts, which would say whether the
 curve rises smoothly or the 1.0 arm's spread is noise. Six runs, ~40 min.
 
-## A16. Count the schedule and the patience in STEPS, not epochs — *2026-08-14*
+## A16. Count the schedule and the patience in STEPS, not epochs — *2026-08-14* — **DONE**
+
+**Done 2026-08-14.** Built as designed below, with `lr_t_max_steps` left at 0 (meaning `max_steps`)
+rather than pinned, since no schedule is on by default. Accepted on the reproduction criterion:
+salt 0 gave 0.9906 against a recorded 0.9905 and salt 3 gave 0.9886 against 0.9890 — +0.0001 and
+−0.0004, both a third of a sigma. The shares→patience table is deleted from params.yaml.
+
+The tail measurement below is now the open half of this entry: **60–70% of the fit runs after the
+best step is already found**, and cutting the leash is worth a 2x screen. It is a measurement, not
+an edit — see the warning in the last paragraph — and it belongs in the ten experiments.
 
 **Not a hypothesis about the score.** This one removes a class of bug that has already fired, and
 it deletes a lookup table that AGENTS.md forbids. Rank it as infrastructure, not as ΔS.
@@ -639,6 +648,50 @@ of work.
 concatenates frames today, and the training unit would become the shot (3168 of them, not 63k).
 
 **Gate.** Run A10 first, for the reason above. **ΔS ≈ +0.001…+0.004, confidence 0.3.**
+
+### What the interface already gives, and the one thing it does not — *2026-08-14*
+
+Three facts about the pipeline, checked before designing anything:
+
+- `predict` needs **no change at all**. `predict_row` (`baseline_model.py`) is called with one
+  shot's frames, in efit time order — so a sequence model gets its natural unit at inference for
+  free.
+- The **ensemble is free too**. `_predict_targets` is a weighted sum over the members' `predict` in
+  the scaled target space, so a sequence model earns a weight in `params.yaml` beside the MLPs and
+  the two can be averaged without either knowing about the other.
+- **`fit` is the only thing that has to change.** `_read_shots` concatenates every shot into one
+  block and drops the boundaries, and `TargetModel.fit(X, Y, X_val, Y_val)` has nowhere to say
+  which rows belong to which shot. It gets an optional per-shot boundary argument; ridge, CatBoost
+  and the MLP ignore it.
+
+### The frame clock, measured — *2026-08-14*
+
+202 shots, 44729 steps of `efit_times`:
+
+| step | share |
+| ---: | ---: |
+| 20 ms | 97.86% |
+| 40 ms | 1.59% |
+| 60 ms | 0.24% |
+| ≥ 80 ms | 0.31% |
+
+Every step is a multiple of 20 ms, **77% of shots contain at least one gap** (median 2.0% of that
+shot's steps), the largest is 2580 ms, and a shot is 2 to 373 frames long (median 234). So the
+clock is not per-shot: it is one 20 ms clock with dropped frames.
+
+Two consequences for this entry, both settled:
+
+- **Train it at `frame_share = 1.0` only.** Training on `0.80/0.2` takes a stride-5 subsample —
+  ~100 ms apart — and inference sees every frame at 20 ms. For a memoryless MLP that is only
+  "fewer samples"; for a model over time it is learning the dynamics at one dt and applying them
+  at another. The model raises rather than accepting a smaller share, per AGENTS.md.
+- **Feed Δt as an input regardless**, because 1.0 still is not a regular grid — the gaps remain.
+  In units of the base step, not milliseconds, so a gap reads as "this step was 3 frames long":
+  Δt to the previous frame for the forward pass, Δt to the next for the backward one.
+
+Windowing — thinning by whole windows instead of by frames inside them — was the third option and
+is worse than it looks: a stride on a clock that already has holes makes the spacing vary from two
+mixed causes at once, where `1.0` plus a Δt column leaves exactly one.
 
 ## B6. A per-frame heteroscedastic metric — *2026-08-13* — ~half a day
 

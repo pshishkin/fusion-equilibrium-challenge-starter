@@ -48,11 +48,13 @@ FloatArray = npt.NDArray[np.floating[Any]]
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PARAMS_PATH = REPO_ROOT / "params.yaml"
 
-# How often the MLP writes a train/val line. A logging cadence, not a hyper-parameter, so it stays
-# in code — CatBoost's own `verbose` is set the same way. In a log file this line is the ONLY
-# training output: the bar is switched off there (progress.bar_kwargs), because the line already
-# carries everything the bar showed and a timestamp besides.
-MLP_LOG_EVERY = 50
+# How often the MLP writes a train/val line, in optimizer steps. A logging cadence, not a
+# hyper-parameter, so it stays in code — CatBoost's own `verbose` is set the same way. In a log
+# file this line is the ONLY training output: the bar is switched off there (progress.bar_kwargs),
+# because the line already carries everything the bar showed and a timestamp besides.
+# Rounded DOWN to the evaluation cadence, since a line can only be written where there is a
+# validation number to put in it.
+MLP_LOG_EVERY_STEPS = 2000
 
 
 # --------------------------------------------------------------------------- target scaling
@@ -323,15 +325,14 @@ ACTIVATIONS = ("relu", "gelu", "silu", "tanh")
 
 # What `lr_schedule` may say. `none` is the constant rate every number before 2026-08-14 was
 # measured on. `cosine` decays from `learning_rate` to `learning_rate * lr_final_factor` over
-# `lr_t_max` epochs, then HOLDS at that floor.
+# `lr_t_max_steps` steps, then HOLDS at that floor.
 #
-# The horizon is its own setting, and that was learned the hard way. It was first driven by
-# `epochs`, on the reasoning that using the epoch early stopping happens to reach would make the
-# schedule's shape depend on its own outcome — true, but `epochs` is a ceiling set far above any
-# real run, so with epochs=2000 and a fit that stops near 530 the cosine only ever traverses its
-# first flat quarter: the rate fell from 1e-3 to 8.4e-4 and never went below 84% of its start.
-# That measured a 16% rate cut, not an annealing schedule. Set `lr_t_max` near where the fit
-# actually ends.
+# The horizon is its own setting, and that was learned the hard way. It was first driven by the
+# training ceiling, on the reasoning that using the point early stopping happens to reach would
+# make the schedule's shape depend on its own outcome — true, but the ceiling is set far above any
+# real run, so a fit that stops near a quarter of it only ever traverses the cosine's first flat
+# quarter: the rate fell from 1e-3 to 8.4e-4 and never went below 84% of its start. That measured
+# a 16% rate cut, not an annealing schedule. Set `lr_t_max_steps` near where the fit actually ends.
 LR_SCHEDULES = ("none", "cosine")
 
 
@@ -390,7 +391,14 @@ class TorchMLPModel(TargetModel):
     The fitted weights are kept as numpy arrays rather than as an `nn.Module`, so the artifact
     unpickles on a machine without torch — the module is rebuilt from `hidden_sizes` on first use.
     Like CatBoostModel it expects targets that TargetScaler has already scaled, and like it,
-    `patience: 0` turns early stopping off — trains all `epochs` and keeps the LAST one.
+    `patience_steps: 0` turns early stopping off — trains all `max_steps` and keeps the LAST
+    evaluation.
+
+    **Everything here is counted in optimizer STEPS, not epochs.** An epoch is `rows / batch_size`
+    steps, so an epoch-counted leash silently means something different the moment the data share
+    or the batch size moves — and this fork changes both. Counted in steps, `patience_steps` is
+    the same amount of optimization whatever it is measured on, and a share that quintuples the
+    rows no longer quintuples the budget behind the experimenter's back.
 
     `device` selects where the FIT runs. Inference is always on the CPU: the artifact has to
     unpickle and predict where a submission is scored, which is a machine this fork does not
@@ -398,8 +406,17 @@ class TorchMLPModel(TargetModel):
     """
 
     hidden_sizes: list[int]
-    epochs: int
-    patience: int
+    # The ceiling, in optimizer steps. Batches keep coming from reshuffled passes over the data
+    # until this is reached or the patience runs out; there is no epoch boundary in the loop.
+    max_steps: int
+    # Steps without a better validation loss before the fit stops. 0 turns early stopping off.
+    # Only checked where validation is computed, so it is effectively rounded up to a multiple of
+    # `eval_every_steps`.
+    patience_steps: int
+    # How often the validation loss is computed — and therefore the resolution at which the best
+    # weights are picked and the patience is judged. The final step is always evaluated, so a
+    # budget that is not a multiple of this still ends on a real measurement.
+    eval_every_steps: int
     batch_size: int
     learning_rate: float
     weight_decay: float
@@ -411,21 +428,21 @@ class TorchMLPModel(TargetModel):
     activation: str
     dropout: float
     batch_norm: bool
-    # Constant `none`, or `cosine` decaying to lr * lr_final_factor over `epochs`. The schedule is
-    # driven by the EPOCH ceiling rather than by the epoch early stopping happens to reach, so it
-    # does not depend on when the fit ends — a schedule whose shape moves with its own outcome is
-    # not a setting, it is a feedback loop.
+    # Constant `none`, or `cosine` decaying to lr * lr_final_factor over `lr_t_max_steps`. The
+    # schedule is driven by a declared horizon rather than by the step early stopping happens to
+    # reach, so it does not depend on when the fit ends — a schedule whose shape moves with its own
+    # outcome is not a setting, it is a feedback loop.
     lr_schedule: str
     lr_final_factor: float
-    # Epochs the schedule is spread over; 0 means "use `epochs`". Past it the rate HOLDS at
+    # Steps the schedule is spread over; 0 means "use `max_steps`". Past it the rate HOLDS at
     # learning_rate * lr_final_factor rather than cycling back up, which is what
     # CosineAnnealingLR does on its own if it is stepped past T_max.
-    lr_t_max: int
+    lr_t_max_steps: int
     _state: dict[str, np.ndarray] | None = field(default=None, init=False, repr=False)
     _n_in: int = field(default=0, init=False, repr=False)
     _n_out: int = field(default=0, init=False, repr=False)
-    _best_epoch: int = field(default=-1, init=False, repr=False)
-    _ran_epochs: int = field(default=0, init=False, repr=False)
+    _best_step: int = field(default=-1, init=False, repr=False)
+    _ran_steps: int = field(default=0, init=False, repr=False)
 
     @property
     def kind(self) -> str:
@@ -468,16 +485,16 @@ class TorchMLPModel(TargetModel):
         )
 
         def batch_indices() -> Iterator[list[int]]:
-            """One epoch of batches, as index lists, from the DataLoader's OWN sampler.
+            """One pass over the data, as index lists, from the DataLoader's OWN sampler.
 
             The rows are then gathered in one indexing operation instead of item by item through
             the loader's fetch-and-collate path. Measured on the production shapes — 70414 rows,
-            138 batches of 512 — that path costs 0.270 s per epoch against 0.128 s for the same
-            batches by indexing: 53% of every epoch was bookkeeping, and the shuffle itself is 4%.
+            138 batches of 512 — that path costs 0.270 s per pass against 0.128 s for the same
+            batches by indexing: 53% of every pass was bookkeeping, and the shuffle itself is 4%.
 
             Going through a real iterator is the part that matters. `DataLoader` draws a base seed
             from `generator` every time one is created, so a hand-rolled `randperm` loop agrees
-            with it on the first epoch and diverges from the second on — checked, not assumed.
+            with it on the first pass and diverges from the second on — checked, not assumed.
             Driving its sampler keeps the batches bit-for-bit what they were, so every number
             measured before this change still compares.
             """
@@ -501,25 +518,36 @@ class TorchMLPModel(TargetModel):
             raise ValueError(f"torch_mlp(seed={self.seed}): unknown lr_schedule "
                              f"{self.lr_schedule!r}; known {sorted(LR_SCHEDULES)}")
         sched = None
-        t_max = self.lr_t_max or self.epochs
+        t_max = self.lr_t_max_steps or self.max_steps
         if self.lr_schedule == "cosine":
             if t_max < 1:
-                raise ValueError(f"torch_mlp(seed={self.seed}): lr_t_max resolves to {t_max}")
+                raise ValueError(f"torch_mlp(seed={self.seed}): lr_t_max_steps resolves to {t_max}")
             sched = torch.optim.lr_scheduler.CosineAnnealingLR(
                 opt, T_max=t_max, eta_min=self.learning_rate * self.lr_final_factor)
         loss_fn = torch.nn.MSELoss()
+        for name, value in (("max_steps", self.max_steps),
+                            ("eval_every_steps", self.eval_every_steps)):
+            if value < 1:
+                raise ValueError(f"torch_mlp(seed={self.seed}): {name} is {value}, must be >= 1")
+        # The step loop restarts an exhausted pass, so a dataset with no rows would spin forever
+        # instead of failing. It cannot happen through train.py, which is exactly why it is worth
+        # one line here rather than a debugging session if it ever does.
+        if not len(X):
+            raise ValueError(f"torch_mlp(seed={self.seed}): no training rows")
 
-        # Early stopping keeps the BEST epoch, not the last one: without it the saved weights are
-        # whichever epoch the counter happened to end on, which is a coin flip against overfitting.
+        # Early stopping keeps the BEST evaluation, not the last one: without it the saved weights
+        # are whichever step the counter happened to end on, a coin flip against overfitting.
         best_loss, best_state, since_best = float("inf"), None, 0
-        bar = tqdm(range(self.epochs), desc="    mlp", unit="epoch",
+        # Since the last evaluation, not since the start: the reported training loss is then a
+        # window comparable to the validation number printed beside it, whatever the window is.
+        total_t, n, stop = torch.zeros((), device=dev), 0, False
+        step = 0
+        bar = tqdm(total=self.max_steps, desc="    mlp", unit="step",
                    **bar_kwargs(off_in_log=True))
-        for epoch in bar:
-            # Accumulated ON the device and read once per epoch. `float(loss)` inside the batch
-            # loop is a full device sync every batch, which serialises exactly the overlap a GPU
-            # exists to provide; on the CPU it costs nothing either way.
-            total_t = torch.zeros((), device=dev)
-            n = 0
+        while not stop:
+            # Each call is one reshuffled pass over the rows. Passes are exhausted and restarted
+            # rather than counted: the loop's clock is `step`, and where a pass happens to end
+            # carries no meaning worth branching on.
             for idx in batch_indices():
                 ib = torch.as_tensor(idx, device=dev)
                 xb, yb = Xt[ib], Yt[ib]
@@ -527,60 +555,71 @@ class TorchMLPModel(TargetModel):
                 loss = loss_fn(net(xb), yb)
                 loss.backward()
                 opt.step()
+                # Accumulated ON the device and read once per evaluation. `float(loss)` inside the
+                # batch loop is a full device sync every batch, which serialises exactly the
+                # overlap a GPU exists to provide; on the CPU it costs nothing either way.
                 total_t += loss.detach() * len(idx)
                 n += len(idx)
-            total = float(total_t)
+                step += 1
 
-            net.eval()
-            with torch.no_grad():
-                val_loss = float(loss_fn(net(Xvt), Yvt))
-            net.train()
+                # Stepped only up to the horizon: past it CosineAnnealingLR would carry the rate
+                # back UP toward its start, which is a warm restart nobody asked for.
+                if sched is not None and step <= t_max:
+                    sched.step()
 
-            # Stepped only up to the horizon: past it CosineAnnealingLR would carry the rate back
-            # UP toward its start, which is a warm restart nobody asked for.
-            if sched is not None and epoch < t_max:
-                sched.step()
+                self._ran_steps = step
+                last = step >= self.max_steps
+                if step % self.eval_every_steps and not last:
+                    continue
 
-            self._ran_epochs = epoch + 1
-            if val_loss < best_loss or not self.patience:
-                best_loss, since_best, self._best_epoch = val_loss, 0, epoch
-                best_state = {k: v.detach().cpu().numpy().copy()
-                              for k, v in net.state_dict().items()}
-            else:
-                since_best += 1
-            # refresh=False, or the postfix forces a redraw EVERY epoch and quietly defeats the
-            # `miniters` that keeps a teed log readable. The values still ride along on the next
-            # redraw the bar makes on its own.
-            bar.set_postfix(mse=f"{total / n:.4f}", val=f"{val_loss:.4f}",
-                            best=f"{best_loss:.4f}@{self._best_epoch}", refresh=False)
-            # The bar shows the last epoch; these lines are the history — a val loss that turned
-            # around 400 epochs ago is invisible in a postfix that only ever shows "now".
-            # MultiRMSE alongside MSE so the line can be read against CatBoost's own log, which
-            # reports sqrt of the SUM over the 52 outputs where torch reports their MEAN:
-            # MultiRMSE = sqrt(n_targets * MSE). Without it the two models' validation curves look
-            # like they are measuring different things — they are not.
-            multi_rmse = float(np.sqrt(self._n_out * val_loss))
-            if epoch % MLP_LOG_EVERY == 0:
-                bar.write(f"    mlp epoch {epoch:5d}: train {total / n:.6f}  val {val_loss:.6f}"
-                          f"  (MultiRMSE {multi_rmse:.4f})  best {best_loss:.6f} @ "
-                          f"{self._best_epoch}")
-            if self.patience and since_best >= self.patience:
-                bar.write(f"    mlp epoch {epoch:5d}: train {total / n:.6f}  val {val_loss:.6f}"
-                          f"  (MultiRMSE {multi_rmse:.4f})  -> stopping, {self.patience} epochs "
-                          f"since best {best_loss:.6f} @ {self._best_epoch}")
-                break
+                net.eval()
+                with torch.no_grad():
+                    val_loss = float(loss_fn(net(Xvt), Yvt))
+                net.train()
+                train_loss = float(total_t) / n
+                total_t, n = torch.zeros((), device=dev), 0
+
+                if val_loss < best_loss or not self.patience_steps:
+                    best_loss, since_best, self._best_step = val_loss, 0, step
+                    best_state = {k: v.detach().cpu().numpy().copy()
+                                  for k, v in net.state_dict().items()}
+                else:
+                    since_best += self.eval_every_steps
+                # refresh=False, or the postfix forces a redraw at EVERY evaluation and quietly
+                # defeats the `miniters` that keeps a teed log readable. The values still ride
+                # along on the next redraw the bar makes on its own.
+                bar.update(step - bar.n)
+                bar.set_postfix(mse=f"{train_loss:.4f}", val=f"{val_loss:.4f}",
+                                best=f"{best_loss:.4f}@{self._best_step}", refresh=False)
+                # The bar shows the last step; these lines are the history — a val loss that turned
+                # around 20000 steps ago is invisible in a postfix that only ever shows "now".
+                # MultiRMSE alongside MSE so the line can be read against CatBoost's own log, which
+                # reports sqrt of the SUM over the 52 outputs where torch reports their MEAN:
+                # MultiRMSE = sqrt(n_targets * MSE). Without it the two models' validation curves
+                # look like they are measuring different things — they are not.
+                multi_rmse = float(np.sqrt(self._n_out * val_loss))
+                head = (f"    mlp step {step:7d}: train {train_loss:.6f}  val {val_loss:.6f}"
+                        f"  (MultiRMSE {multi_rmse:.4f})")
+                if step % MLP_LOG_EVERY_STEPS < self.eval_every_steps:
+                    bar.write(f"{head}  best {best_loss:.6f} @ {self._best_step}")
+                if last or (self.patience_steps and since_best >= self.patience_steps):
+                    if not last:
+                        bar.write(f"{head}  -> stopping, {since_best} steps since best "
+                                  f"{best_loss:.6f} @ {self._best_step}")
+                    stop = True
+                    break
 
         if best_state is None:
-            raise RuntimeError("torch_mlp: no epoch completed — epochs must be at least 1")
+            raise RuntimeError("torch_mlp: no evaluation completed — the fit ran no steps")
         self._state = best_state
 
     def fit_report(self) -> str:
-        if self._best_epoch < 0:
+        if self._best_step < 0:
             return ""
-        if not self.patience:
-            return f", early stopping off, kept epoch {self._best_epoch}"
-        return (f", best epoch {self._best_epoch} of {self._ran_epochs} run"
-                f"{f' (of {self.epochs} allowed)' if self._ran_epochs < self.epochs else ''}")
+        if not self.patience_steps:
+            return f", early stopping off, kept step {self._best_step}"
+        return (f", best step {self._best_step} of {self._ran_steps} run"
+                f"{f' (of {self.max_steps} allowed)' if self._ran_steps < self.max_steps else ''}")
 
     def predict(self, X: FloatArray) -> FloatArray:
         if self._state is None:

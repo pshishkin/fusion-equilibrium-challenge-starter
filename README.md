@@ -73,9 +73,11 @@ handful per tensor, measured equivalent to the default implementation to 3.5e-7 
 **The batch size is the larger lever, and it is not free.** Because the loop is launch-bound, epoch
 time tracks the NUMBER of batches and barely notices their size — 183 batches cost 0.307 s, 45 cost
 0.080, 11 cost 0.020. But raising `batch_size` changes the optimisation rather than the arithmetic:
-at 8192 an epoch is 11 Adam steps instead of 183, so `patience: 100` means an eighteenth of the
-leash it means now, and the learning rate would have to be refitted with it. It belongs in
-ideas.md, not in a speed change.
+at 8192 an epoch is 11 Adam steps instead of 183, so an epoch-counted patience means an eighteenth
+of the leash it meant before, and the learning rate has to be refitted with it. That first half is
+now impossible to get wrong — the leash is counted in steps (see "Steps, not epochs") — and the
+second half was measured: batch 4096 with the rate scaled as sqrt is worth 2.3x the speed at
+parity.
 
 **A GPU run is not bit-identical to a CPU one and cannot be.** What is checked instead: the score,
 paired within a salt and read against the 0.0009 seed sigma, with `ridge` — deterministic, and
@@ -306,6 +308,25 @@ until the patience was fixed to match. The window and the patience are one decis
 **Validation MSE is not the composite.** The MLP's validation loss keeps improving past the epoch
 where its score peaks. The loss sees 52 scaled targets; the score also sees `D_LCFS` and the seven
 derived scalars. Do not read a falling validation curve as a rising S.
+
+### Steps, not epochs
+
+Everything above is stated in epochs because that is the unit those measurements were made in. The
+MLP no longer has one. `max_steps`, `patience_steps`, `eval_every_steps` and `lr_t_max_steps` are
+counted in Adam steps, and the training loop has no epoch boundary in it at all — it draws batches
+from reshuffled passes until the budget or the patience ends it.
+
+The reason is that an epoch is `rows / batch_size` steps, so an epoch-counted leash means something
+different every time either moves, and this fork moved both: batch 512 → 4096 is 8x, and shares
+0.60/0.1 → 0.80/1.0 is another 13x the other way. `params.yaml` used to carry a table of one
+patience per share, with a warning that a grid which forgot to rescale would measure the leash and
+call it data. The table is gone. One number now: **18400 steps of patience inside a 368000-step
+budget**, which is exactly what every result recorded here was calibrated on.
+
+The evaluation cadence became explicit in the same change. It used to be "once per epoch" by
+accident of the loop's shape — 61 steps at the production shares, 515 at batch 512 — and it decides
+both the resolution at which the best weights are picked and the granularity of the patience. It is
+`eval_every_steps: 50` now, and it is a setting rather than a consequence.
 
 ### Where the models stand
 

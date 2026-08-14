@@ -305,7 +305,7 @@ One redrawing line per loop, not a line per shot. Over thousands of shots, per-l
 the output unreadable and buries the messages that matter.
 
 Periodic lines ALONGSIDE the bar are fine, and both long fits use them: CatBoost prints its own
-loss every `iterations / 10` steps, and the MLP writes a train/val line every `MLP_LOG_EVERY`
-epochs through `bar.write`. A postfix only ever shows "now" — it cannot show that the validation
-loss turned around four hundred epochs ago, which is exactly what one wants to see in a fit that
-runs for minutes. What stays banned is a line per shot in a loop over thousands of shots.
+loss every `iterations / 10` steps, and the MLP writes a train/val line every
+`MLP_LOG_EVERY_STEPS` through `bar.write`. A postfix only ever shows "now" — it cannot show that
+the validation loss turned around twenty thousand steps ago, which is exactly what one wants to
+see in a fit that runs for minutes. What stays banned is a line per shot in a loop over thousands of shots.

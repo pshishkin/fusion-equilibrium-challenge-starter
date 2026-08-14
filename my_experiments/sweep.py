@@ -22,10 +22,9 @@ The grid is a JSON list of `{"name": ..., "sets": [...], "salt": N, "shares": [.
 `--set` overrides, `shares` replaces the three default shares, and the name is both the CSV key and
 the log filename, so it has to be unique and filesystem-safe.
 
-**When `shares` changes the row count, `patience` and `epochs` have to move with it.** Both are
-counted in EPOCHS and an epoch is `rows / batch_size` steps, so ten times the rows is ten times the
-leash unless it is rescaled — the sweep would then measure the leash and call it data. Match the
-step budget instead: `patience = 18400 / (rows // batch_size)`.
+`shares` is now safe to change on its own: `patience_steps` and `max_steps` are counted in Adam
+steps, so more rows buy more data rather than a longer leash. They had to be rescaled by hand for
+every share until 2026-08-14, and a grid that forgot measured the leash and called it data.
 """
 from __future__ import annotations
 
@@ -47,9 +46,9 @@ ENV_CAPS = {"OMP_NUM_THREADS": "4", "OPENBLAS_NUM_THREADS": "4", "MKL_NUM_THREAD
 # `[  5:32.9   +0.0s 10.38G]                mlp    0.9873    0.9995 ...`
 ROW = re.compile(r"^\[[^\]]*\]\s+(\w+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*$")
 FIT = re.compile(r"(\w+): fitted in ([\d.]+) s(.*)")
-BEST = re.compile(r"best epoch (\d+) of (\d+) run")
+BEST = re.compile(r"best step (\d+) of (\d+) run")
 FIELDS = ["name", "S", "R2_psi", "R2_qb", "D_LCFS", "Cons", "ridge_S",
-          "fit_s", "best_epoch", "ran_epochs", "wall_s", "sets"]
+          "fit_s", "best_step", "ran_steps", "wall_s", "sets"]
 
 
 def parse(text: str) -> dict[str, object]:
@@ -68,7 +67,7 @@ def parse(text: str) -> dict[str, object]:
             out["fit_s"] = m.group(2)
             b = BEST.search(m.group(3))
             if b:
-                out["best_epoch"], out["ran_epochs"] = b.group(1), b.group(2)
+                out["best_step"], out["ran_steps"] = b.group(1), b.group(2)
     return out
 
 
@@ -130,7 +129,7 @@ def main() -> int:
             row = {"name": name, "wall_s": f"{wall:.0f}", "sets": " ".join(sets),
                    **parse(log.read_text())}
             print(f"    S={row.get('S', '?')}  fit={row.get('fit_s', '?')}s  "
-                  f"best={row.get('best_epoch', '?')}/{row.get('ran_epochs', '?')}  "
+                  f"best={row.get('best_step', '?')}/{row.get('ran_steps', '?')}  "
                   f"wall={wall / 60:.1f}m", flush=True)
         with csv_path.open("a", newline="") as fh:
             csv.DictWriter(fh, FIELDS).writerow({k: row.get(k, "") for k in FIELDS})

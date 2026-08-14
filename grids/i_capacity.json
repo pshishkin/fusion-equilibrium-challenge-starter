@@ -1,0 +1,158 @@
+[
+  {
+    "name": "a15_w512_d2_p0",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[512,512]",
+      "models.mlp.dropout=0.0"
+    ]
+  },
+  {
+    "name": "a15_w512_d3_p0",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[512,512,512]",
+      "models.mlp.dropout=0.0"
+    ]
+  },
+  {
+    "name": "a15_w700_d2_p0",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[700,700]",
+      "models.mlp.dropout=0.0"
+    ]
+  },
+  {
+    "name": "a15_w700_d3_p0",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[700,700,700]",
+      "models.mlp.dropout=0.0"
+    ]
+  },
+  {
+    "name": "a15_w512_d2_p002",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[512,512]",
+      "models.mlp.dropout=0.02"
+    ]
+  },
+  {
+    "name": "a15_w512_d3_p002",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[512,512,512]",
+      "models.mlp.dropout=0.02"
+    ]
+  },
+  {
+    "name": "a15_w700_d2_p002",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[700,700]",
+      "models.mlp.dropout=0.02"
+    ]
+  },
+  {
+    "name": "a15_w700_d3_p002",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[700,700,700]",
+      "models.mlp.dropout=0.02"
+    ]
+  },
+  {
+    "name": "a15_w512_d2_p01",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[512,512]",
+      "models.mlp.dropout=0.1"
+    ]
+  },
+  {
+    "name": "a15_w512_d3_p01",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[512,512,512]",
+      "models.mlp.dropout=0.1"
+    ]
+  },
+  {
+    "name": "a15_w700_d2_p01",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[700,700]",
+      "models.mlp.dropout=0.1"
+    ]
+  },
+  {
+    "name": "a15_w700_d3_p01",
+    "shares": [
+      "0.80/1.0",
+      "0.19/1.0",
+      "0.01"
+    ],
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[700,700,700]",
+      "models.mlp.dropout=0.1"
+    ]
+  }
+]

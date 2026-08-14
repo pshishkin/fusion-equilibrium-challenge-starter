@@ -93,6 +93,8 @@ not assumed — see "The noise, measured properly" below: at production a single
 | 08-14 | **cosine** LR decay to 0.01x over the epoch ceiling | **0.9882 (+0.0009)** and the fit drops 191.2 s → **161.1 s**, 626 → 533 epochs | +0.0009 is BELOW the pre-registered 0.0013, so the score is not confirmed. Carried to the confirmation phase on the SPEED argument instead, which is a different criterion and is labelled as one |
 | 08-14 | cosine on top of batch norm | 0.9879 against 0.9882 for cosine alone, at 228.3 s against 161.1 | BN adds nothing over the schedule either, and costs 42% more time |
 | 08-14 | did anything else drift across the nine grid-A runs? | `ridge` is **0.7615 in all nine**, to four decimals | the deterministic control held — between configurations, only what was set changed |
+| 08-14 | **A16**, the training loop recounted in STEPS: `max_steps` / `patience_steps` / `eval_every_steps` / `lr_t_max_steps`, no epoch boundary left in it | acceptance on two salts against the recorded controls: salt 0 **0.9906 against 0.9905**, salt 3 **0.9886 against 0.9890** — +0.0001 and −0.0004, both a third of a sigma | **accepted.** Not a result, a unit change: the shares→patience table in params.yaml is deleted and a grid can now move the data without silently moving the leash with it |
+| 08-14 | the EFIT frame clock, measured over 202 shots and 44729 steps | 97.86% of steps are 20 ms and every step is a multiple of it, but **77% of shots contain at least one dropped frame** (largest gap 2580 ms), and a shot is 2 to 373 frames long | settles the sequence model's design before it is written: train it at frames 1.0 only, and feed Δt in units of the base step, because 1.0 is still not a regular grid |
 
 ## The two reversals, and what they cost us
 
