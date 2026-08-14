@@ -165,12 +165,19 @@ class TargetModel(abc.ABC):
     """One regressor from scaled features (n_frames, 21) to targets (n_frames, n_pca + 2)."""
 
     @abc.abstractmethod
-    def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray) -> None:
+    def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
+            shots: npt.NDArray[np.int64] | None = None,
+            shots_val: npt.NDArray[np.int64] | None = None) -> None:
         """Fit on the training frames, stopping on the validation ones.
 
         The validation set is mandatory, not optional: a model that quietly trains to its full
         iteration count because nobody passed one is exactly the silent failure AGENTS.md bans.
         A model with nothing to stop on (ridge) says so in its docstring and ignores it.
+
+        `shots` and `shots_val` are the per-shot frame COUNTS of the two blocks, in the order the
+        frames are concatenated in — the only thing the flat arrays cannot say. Every model that
+        scores frames independently ignores them; a model whose unit is the shot cannot be fitted
+        without them and says so rather than inventing boundaries.
         """
 
     @abc.abstractmethod
@@ -222,7 +229,9 @@ class RidgeModel(TargetModel):
     the PCA coefficients and the two scalars in one call is not a shortcut: it is the same fit.
 
     It has no iterations, so there is nothing to stop early: the validation set is accepted and
-    ignored. Tuning alpha on it would be a different model (RidgeCV), not early stopping.
+    ignored. Tuning alpha on it would be a different model (RidgeCV), not early stopping. The shot
+    boundaries are ignored for the stronger reason — every row is an independent example here, and
+    which shot it came from is not in the model's hypothesis class at all.
     """
 
     alpha: float
@@ -232,7 +241,9 @@ class RidgeModel(TargetModel):
     def kind(self) -> str:
         return "ridge"
 
-    def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray) -> None:
+    def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
+            shots: npt.NDArray[np.int64] | None = None,
+            shots_val: npt.NDArray[np.int64] | None = None) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         self._est = Ridge(alpha=self.alpha).fit(X, Y)
 
@@ -270,7 +281,9 @@ class CatBoostModel(TargetModel):
     def kind(self) -> str:
         return "catboost"
 
-    def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray) -> None:
+    def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
+            shots: npt.NDArray[np.int64] | None = None,
+            shots_val: npt.NDArray[np.int64] | None = None) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         from catboost import CatBoostRegressor
 
@@ -403,6 +416,9 @@ class TorchMLPModel(TargetModel):
     `device` selects where the FIT runs. Inference is always on the CPU: the artifact has to
     unpickle and predict where a submission is scored, which is a machine this fork does not
     control, and a forward pass over one shot's ~300 frames is microseconds either way.
+
+    Shot boundaries are accepted and ignored: this model scores every frame from that frame alone.
+    `seq_model.TorchSeqModel` is the one that reads them.
     """
 
     hidden_sizes: list[int]
@@ -452,7 +468,9 @@ class TorchMLPModel(TargetModel):
         return build_mlp(n_in, self.hidden_sizes, n_out, self.activation, self.dropout,
                          self.batch_norm)
 
-    def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray) -> None:
+    def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
+            shots: npt.NDArray[np.int64] | None = None,
+            shots_val: npt.NDArray[np.int64] | None = None) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         import torch
 
@@ -647,6 +665,18 @@ MODEL_TYPES: dict[str, type[TargetModel]] = {
 }
 
 
+def _register_sequence_model() -> None:
+    """Add `torch_seq` to the registry, from the module that defines it.
+
+    It lives in `seq_model.py` rather than here because it is a different KIND of model — its unit
+    is the shot, not the frame — and because it needs `build_mlp` and `TargetModel` from this
+    module, which is a cycle if the import goes the other way. Imported at call time, so the cycle
+    never exists: by the time anything asks for a model, this module is fully defined.
+    """
+    from my_experiments.seq_model import TorchSeqModel
+    MODEL_TYPES.setdefault("torch_seq", TorchSeqModel)
+
+
 @dataclass(frozen=True)
 class Params:
     """params.yaml, parsed and validated."""
@@ -711,6 +741,7 @@ def _require_keys(got: dict[str, Any], want: set[str], where: str, path: Path) -
 
 def _build_model(name: str, cfg: dict[str, Any], path: Path) -> TargetModel:
     kind = cfg.pop("type")
+    _register_sequence_model()
     if kind not in MODEL_TYPES:
         raise ValueError(f"{path}: model '{name}' has type '{kind}', "
                          f"known types are {sorted(MODEL_TYPES)}")

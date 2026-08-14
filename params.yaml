@@ -363,6 +363,41 @@ models:
     # itself an annealing schedule. Set it near where the fit actually ends.
     lr_t_max_steps: 0
 
+  seq:
+    type: torch_seq
+    # Off by default: it is the only model here whose unit is the SHOT rather than the frame, and
+    # it is not yet measured against the zoo. `--only ridge seq` screens it; a weight in the
+    # ensemble block below is what would put it into a submission.
+    enabled: false
+    # REQUIRES `frame_share: 1.0` in the shares and `frame_gaps: true` above. Trained on thinned
+    # frames it would learn the dynamics at a 100 ms spacing and be asked for them at 20 ms.
+    #
+    # The per-frame trunk, identical to the MLP's. The recurrence is a CORRECTION to this, added
+    # through a zero-initialised layer, so at step 0 this model is exactly the MLP and everything
+    # the sequence branch does it has to earn.
+    hidden_sizes: [512, 512]
+    # The recurrent state per direction, and how many GRU layers. Both directions run — a shot is
+    # scored offline and complete, so a frame may be informed by what came after it, and a causal
+    # model would be throwing away half the context for a constraint this task does not have.
+    seq_hidden: 256
+    seq_layers: 1
+    # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
+    # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
+    batch_shots: 32
+    max_steps: 60000
+    patience_steps: 6000
+    eval_every_steps: 200
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 0
+    threads: 4
+    device: cuda
+    activation: gelu
+    dropout: 0.0
+    lr_schedule: none
+    lr_final_factor: 0.01
+    lr_t_max_steps: 0
+
 ensemble:
   # Predictions of the members, averaged with these weights (renormalized to sum to 1). Averaging
   # PCA coefficients and averaging the flux maps they decode to are the same thing — the decoder is

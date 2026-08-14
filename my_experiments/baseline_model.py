@@ -815,8 +815,13 @@ def _read_task(args: tuple) -> tuple[FloatArray, FloatArray, FloatArray]:
 
 
 def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
-                jobs: int = 0) -> tuple[FloatArray, FloatArray, FloatArray]:
-    """Every kept frame of every shot, concatenated: features, psi, and the two scalar targets.
+                jobs: int = 0) -> tuple[FloatArray, FloatArray, FloatArray, npt.NDArray[np.int64]]:
+    """Every kept frame of every shot, concatenated: features, psi, the two scalar targets — and
+    how many frames each shot contributed.
+
+    That last array is the only thing concatenation destroys, and a model whose unit is the shot
+    cannot be fitted without it. It is returned always rather than on request: a boundary that is
+    computed only when someone asks is a boundary that can be wrong for everyone else.
 
     Shots are independent, so this is the easiest parallelism in the repo: parquet decode plus
     interpolation, one process per shot, results collected in order so the frame order does not
@@ -836,7 +841,8 @@ def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
         # defeats the thinning that keeps a teed log readable — measured, it was 2835 of the
         # 2849 segments in a production log.
         bar.set_postfix(frames=sum(len(x) for x in X_parts), refresh=False)
-    return np.concatenate(X_parts), np.concatenate(Y_parts), np.concatenate(S_parts)
+    lengths = np.array([len(x) for x in X_parts], dtype=np.int64)
+    return (np.concatenate(X_parts), np.concatenate(Y_parts), np.concatenate(S_parts), lengths)
 
 
 def train(share: str, val_share: str, local_data_dir: Path, config: str,
@@ -860,9 +866,9 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     print(f"Models from {params.path}: {', '.join(params.models)}  "
           f"(ensemble: {', '.join(f'{k} x {w:.2f}' for k, w in params.ensemble.items())})")
 
-    X, Y, S = _read_shots(files, "reading train shots", frame_share, jobs)
+    X, Y, S, shots = _read_shots(files, "reading train shots", frame_share, jobs)
     print(f"  train: X {X.shape}  Y {Y.shape}  S {S.shape}, flux {Y.nbytes / 2 ** 30:.2f} GiB")
-    Xv, Yv, Sv = _read_shots(val_files, "reading val shots", val_frame_share, jobs)
+    Xv, Yv, Sv, shots_val = _read_shots(val_files, "reading val shots", val_frame_share, jobs)
     print(f"  val:   X {Xv.shape}  Y {Yv.shape}, flux {Yv.nbytes / 2 ** 30:.2f} GiB")
 
     # The metric's own denominator, per frame: sum over pixels of (psi - m)^2 with m the single
@@ -997,7 +1003,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         print(f"\n  fitting {name} ({model.kind}) on {Xs.shape[0]} frames "
               f"-> {params.n_targets} targets, stopping on {Xvs.shape[0]} validation frames")
         t0 = time.perf_counter()
-        model.fit(Xs, Tgt, Xvs, Tgt_val)
+        model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val)
         print(f"  {name}: fitted in {time.perf_counter() - t0:.1f} s{model.fit_report()}")
 
     artifact: Artifact = {
