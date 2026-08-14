@@ -1,0 +1,37 @@
+[
+  {
+    "name": "r1_w700d3_lr14",
+    "salt": 0,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[700,700,700]",
+      "models.mlp.learning_rate=1.4e-3"
+    ]
+  },
+  {
+    "name": "r2_w700d3_lr7",
+    "salt": 0,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[700,700,700]",
+      "models.mlp.learning_rate=7e-4"
+    ]
+  },
+  {
+    "name": "r3_w700d3_lr35",
+    "salt": 0,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.hidden_sizes=[700,700,700]",
+      "models.mlp.learning_rate=3.5e-4"
+    ]
+  },
+  {
+    "name": "r4_w512d2_lr7",
+    "salt": 0,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.learning_rate=7e-4"
+    ]
+  }
+]

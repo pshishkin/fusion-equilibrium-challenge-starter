@@ -1,0 +1,43 @@
+[
+  {
+    "salt": 0,
+    "name": "j0_control",
+    "sets": []
+  },
+  {
+    "salt": 0,
+    "name": "j1_leash6000",
+    "sets": [
+      "models.mlp.patience_steps=6000"
+    ]
+  },
+  {
+    "salt": 0,
+    "name": "j4_pyramid",
+    "sets": [
+      "models.mlp.hidden_sizes=[1024,256]"
+    ]
+  },
+  {
+    "salt": 0,
+    "name": "j6_derivs",
+    "sets": [
+      "features.derivatives=both",
+      "features.derivative_signals=poloidal"
+    ]
+  },
+  {
+    "salt": 0,
+    "name": "j7_npca75",
+    "sets": [
+      "features.n_pca=75"
+    ]
+  },
+  {
+    "salt": 0,
+    "name": "j8_thomson_raw",
+    "sets": [
+      "features.thomson=te,ne,p,pos,raw"
+    ]
+  }
+]
