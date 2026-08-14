@@ -114,6 +114,7 @@ class TorchSeqModel(TargetModel):
     _n_out: int = field(default=0, init=False, repr=False)
     _best_step: int = field(default=-1, init=False, repr=False)
     _ran_steps: int = field(default=0, init=False, repr=False)
+    _delta_share: float = field(default=float("nan"), init=False, repr=False)
 
     @property
     def kind(self) -> str:
@@ -140,16 +141,28 @@ class TorchSeqModel(TargetModel):
                 torch.nn.init.zeros_(self.delta.weight)
                 torch.nn.init.zeros_(self.delta.bias)
 
-            def forward(self, x: Any, lengths: Any) -> Any:
-                # (B, T, n_in) -> (B, T, n_out). `lengths` is on the CPU, as pack_padded_sequence
-                # requires, and enforce_sorted=False lets the batch keep its natural order.
-                per_frame = self.head(x)
+            def parts(self, x: Any, lengths: Any) -> tuple[Any, Any]:
+                """The per-frame prediction and the correction the shot adds to it, separately.
+
+                Kept apart because their RELATIVE size is the diagnostic this architecture exists
+                to produce: `delta` starts at zero, so how big it grows is how much the model
+                decided the rest of the shot was worth. A score that matches the MLP with a
+                correction near zero and a score that matches it with a large one are different
+                results, and the composite cannot tell them apart.
+                """
+                # `lengths` is on the CPU, as pack_padded_sequence requires, and
+                # enforce_sorted=False lets the batch keep its natural order.
                 packed = torch.nn.utils.rnn.pack_padded_sequence(
                     self.enc(x), lengths, batch_first=True, enforce_sorted=False)
                 out, _ = self.gru(packed)
                 seq, _ = torch.nn.utils.rnn.pad_packed_sequence(
                     out, batch_first=True, total_length=x.shape[1])
-                return per_frame + self.delta(seq)
+                return self.head(x), self.delta(seq)
+
+            def forward(self, x: Any, lengths: Any) -> Any:
+                # (B, T, n_in) -> (B, T, n_out).
+                per_frame, correction = self.parts(x, lengths)
+                return per_frame + correction
 
         return Net(self)
 
@@ -229,7 +242,7 @@ class TorchSeqModel(TargetModel):
             return ids
 
         best_loss, best_state, since_best = float("inf"), None, 0
-        run_t, run_n, stop = torch.zeros((), device=dev), 0, False
+        run_t, run_n = torch.zeros((), device=dev), 0
         bar = tqdm(total=self.max_steps, desc="    seq", unit="step",
                    **bar_kwargs(off_in_log=True))
         for step in range(1, self.max_steps + 1):
@@ -277,19 +290,37 @@ class TorchSeqModel(TargetModel):
                 if not last:
                     bar.write(f"{head}  -> stopping, {since_best} steps since best "
                               f"{best_loss:.6f} @ {self._best_step}")
-                stop = True
                 break
-        if not stop and best_state is None:
+        if best_state is None:
             raise RuntimeError("torch_seq: no evaluation completed — the fit ran no steps")
         self._state = best_state
+
+        # How much of the answer came from the shot rather than from the frame, measured on the
+        # weights that were actually kept. Reported whatever it says: a model that scores well with
+        # a correction of 1% of the per-frame prediction has NOT shown that reading the shot helps,
+        # and one that scores the same with a correction of 40% has found something real and spent
+        # it badly. The score cannot distinguish those two.
+        net.load_state_dict({k: torch.from_numpy(v) for k, v in best_state.items()})
+        net.eval()
+        with torch.no_grad():
+            ids = np.arange(min(self.batch_shots, len(lengths_val)))
+            rows, mask = _pad_index(starts_val, lengths_val, ids)
+            keep = torch.from_numpy(mask).to(dev)[:, :, None]
+            frame, corr = net.parts(Xvt[torch.from_numpy(rows).to(dev)],
+                                    torch.from_numpy(lengths_val[ids]))
+            rms = [float(torch.sqrt(((p * keep) ** 2).sum() / keep.sum() / p.shape[2]))
+                   for p in (frame, corr)]
+        self._delta_share = rms[1] / rms[0] if rms[0] > 0 else float("nan")
 
     def fit_report(self) -> str:
         if self._best_step < 0:
             return ""
         if not self.patience_steps:
-            return f", early stopping off, kept step {self._best_step}"
-        return (f", best step {self._best_step} of {self._ran_steps} run"
-                f"{f' (of {self.max_steps} allowed)' if self._ran_steps < self.max_steps else ''}")
+            where = f", early stopping off, kept step {self._best_step}"
+        else:
+            ceiling = f" (of {self.max_steps} allowed)" if self._ran_steps < self.max_steps else ""
+            where = f", best step {self._best_step} of {self._ran_steps} run{ceiling}"
+        return f"{where}, the shot moved the prediction by {self._delta_share:.1%} of it"
 
     def predict(self, X: FloatArray) -> FloatArray:
         """(T, n_targets) for ONE shot, whose frames are `X` in time order.

@@ -730,6 +730,37 @@ Windowing — thinning by whole windows instead of by frames inside them — was
 is worse than it looks: a stride on a clock that already has holes makes the spacing vary from two
 mixed causes at once, where `1.0` plus a Δt column leaves exactly one.
 
+### The screen, pre-registered — *2026-08-14*
+
+Six arms on one salt, declared before any of them runs. None of the hyper-parameters here has ever
+been measured on this problem — the MLP's were tuned over thirty runs and none of that transfers to
+a recurrence — so the first number this model produces is worth nothing as a verdict on the
+architecture, and this exists so that it is not read as one.
+
+**The control is the MLP at the same shares and the same salt**, not the MLP at its own best
+shares: `81_f10_s0 = 0.9907` at `0.80/1.0`, salt 0.
+
+| arm | what it varies | why |
+|---|---|---|
+| `q1` | the block as it stands: lr 1e-3, `seq_hidden` 256, one layer, 32 shots | the reference the other five are read against |
+| `q2` | lr 3e-4 | recurrences are usually run below the rate a feed-forward net of the same width takes, and the MLP's 2.8e-3 was tuned for a batch of frames, not of shots |
+| `q3` | lr 3e-3 | the other side of it — the argument above is a convention, not a measurement |
+| `q4` | `seq_hidden` 512 | how much state the shot actually needs is the question the architecture exists to ask |
+| `q5` | `seq_layers` 2 | depth in the recurrence rather than width |
+| `q6` | `dropout` 0.1 | **the one arm with a real prior.** The training set is 5633 SEQUENCES where the MLP sees 1.25M independent rows, so this model has three orders of magnitude fewer examples per parameter and the overfitting argument that failed for the MLP — measured bias-limited — need not fail here |
+
+**Thresholds.** Six arms, sigma 0.0013, so selection alone clears +0.0023 over the best. But this
+is not a selection problem yet: the question is whether the best arm beats the MLP control at all.
+Read it as **refuted if no arm reaches the control**, since the residual form means the model can
+always fall back to being the MLP and failing to is evidence the recurrence actively hurts.
+Anything that beats the control by more than +0.0023 goes to two unseen salts like everything else.
+
+**And a second reading that costs nothing.** The `delta` branch starts at zero, so the size of its
+output at the end of training measures how much the model decided to use the shot. If the best arm
+matches the control with a `delta` that stayed near zero, the recurrence found nothing; if it
+matches with a large `delta`, it found something and paid for it elsewhere. Those are different
+results and the score alone cannot tell them apart.
+
 ## B6. A per-frame heteroscedastic metric — *2026-08-13* — ~half a day
 
 **Hypothesis.** The fixed `M` (JᵀJ averaged over 300 probe frames) under-weights high-sensitivity
