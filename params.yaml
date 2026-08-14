@@ -45,6 +45,42 @@ features:
   # in machine-independent coordinates, which is the form MAST will need, where DIII-D's 21 columns
   # do not exist. On DIII-D the question it answers is only "does this cost anything".
   inputs: currents
+
+  # Rates, not levels. The net sees one frame of 21 instantaneous numbers and cannot differentiate
+  # them, so every quantity whose physical role is a RATE is absent from its inputs however well
+  # the level is represented. dI_sol/dt is the loop voltage — the thing that actually drives the
+  # plasma current, where I_sol itself drives nothing — and it correlates -0.665 with dIp/dt
+  # against +0.515 for the level, so the derivative carries the relationship and the level dilutes
+  # it. dIp/dt separates ramp-up, flat-top and ramp-down, which have different current profiles.
+  #
+  #   none     the 21 levels alone — the baseline every number so far was measured on
+  #   raw      + d/dt of each signal on ITS OWN 0.05 ms time base, then interpolated to the frames
+  #   interp   + d/dt of the interpolated series, at the 20 ms frame spacing
+  #   both     + all 42 columns
+  #
+  # `raw` and `interp` are not a right and a wrong way, they are two physical timescales: one is
+  # the rate the coil supply actually produced, the other the rate the equilibrium had time to
+  # respond to. Both blocks are ALWAYS computed and cached, so switching arms costs a training run
+  # and not a rebuild of the 25 GB shot cache.
+  derivatives: none
+  # Which signals get one. `driving` is the two the physics names — ECOILA, whose dI/dt IS the loop
+  # voltage, and plasma_current, whose dIp/dt separates the ramp phases. `poloidal` is every signal
+  # that produces poloidal flux, i.e. all but `bcoil`, which is toroidal and cannot inform psi at
+  # all. Taking all twenty-one tests a weaker claim than the one that was argued for, so `driving`
+  # is the sharp arm and `poloidal` the broad one.
+  derivative_signals: driving
+
+  # Thomson scattering, as twelve numbers per frame. Pressure is one of the two free functions of
+  # Grad-Shafranov and the one quantity the magnetics cannot see. The geometry decides what is
+  # computable: the CORE system is a vertical chord (44 channels at R = 1.940, varying Z) and the
+  # EDGE one is a horizontal cut across the outboard edge (10 channels at Z ~ -0.06, R 1.68..2.06),
+  # so the radial derivative the equation actually asks for exists on the edge system — and lands
+  # on the pedestal. Six summaries per system: peak, where the peak is, the line integral of Te and
+  # Five summaries per system: peak, where the peak is, the line integrals of Te and of the
+  # pressure, and the least-squares slope along the chord.
+  #
+  # Missing samples are exact ZEROS in this dataset, not nan, so every reduction runs on a mask.
+  thomson: "te,ne,p,pos"
   # At most 19: the coil flux spans one dimension per current column and no more.
   n_coil_pca: 19
 
@@ -126,7 +162,9 @@ models:
 
   catboost:
     type: catboost
-    # enabled: true
+    # Measured at production on 2026-08-14 and switched back off: 3829 s to fit against 296 s
+    # for one MLP, it scores 0.9838 alone against 0.9875-0.9885, and adds +0.0002 to the
+    # ensemble. It did not even converge — 'best iteration 7999 of 8000'.
     enabled: false
 
     # One MultiRMSE model over all n_pca + 2 outputs, not one model per output: gradient boosting
@@ -136,7 +174,7 @@ models:
     # let the validation split decide. At 70 training shots it stops itself around 2142 and keeps
     # iteration 1942, so the ceiling costs nothing; with more shots the optimum moves and the fit
     # is free to follow it.
-    iterations: 3000
+    iterations: 8000
     depth: 8
     learning_rate: 0.1
     l2_leaf_reg: 3.0
@@ -152,7 +190,7 @@ models:
     enabled: true
     # The sklearn MLPRegressor of experiments.py, rewritten in torch so the training loop is ours:
     # a plain fully-connected net on the 21 magnetics features, CPU, standardized targets.
-    hidden_sizes: [256, 256]
+    hidden_sizes: [512, 512]
     # A ceiling plus the patience that ends the run first (686 epochs of 2000, best at 585). The
     # weights kept are the best epoch on the validation split, not the last one reached.
     #
@@ -172,6 +210,42 @@ models:
     # per epoch: 1 thread 0.064 s, 4 threads 0.040 s, 20 threads 0.351 s.
     threads: 4
 
+  mlp1:
+    type: torch_mlp
+    enabled: true
+    hidden_sizes: [512, 512]
+    epochs: 2000
+    patience: 100
+    batch_size: 512
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 1
+    threads: 4
+
+  mlp2:
+    type: torch_mlp
+    enabled: true
+    hidden_sizes: [512, 512]
+    epochs: 2000
+    patience: 100
+    batch_size: 512
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 2
+    threads: 4
+
+  mlp3:
+    type: torch_mlp
+    enabled: true
+    hidden_sizes: [512, 512]
+    epochs: 2000
+    patience: 100
+    batch_size: 512
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 3
+    threads: 4
+
 ensemble:
   # Predictions of the members, averaged with these weights (renormalized to sum to 1). Averaging
   # PCA coefficients and averaging the flux maps they decode to are the same thing — the decoder is
@@ -182,4 +256,14 @@ ensemble:
   # down (measured: ensemble 0.5936 with it, against 0.7001 for its best member).
   members:
     # catboost: 1.0
+    # Four nets differing only in their seed. The seed-to-seed sigma at production is 0.0009 of S
+    # and averaging removes exactly that variance; averaging PCA coefficients IS averaging flux
+    # maps, since the decoder is affine and the weights sum to 1.
     mlp: 1.0
+    mlp1: 1.0
+    mlp2: 1.0
+    mlp3: 1.0
+    # catboost: 1.0   # measured, +0.0002 for 13x the fit time — see models above
+    # Trees against smooth ReLU surfaces: averaging is paid for by errors that are INDEPENDENT,
+    # and four seeds of one architecture were already worth +0.0042. Weighted as one member
+    # against four, so a weak CatBoost cannot drag the ensemble far.

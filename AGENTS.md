@@ -98,8 +98,8 @@ Three rules of measurement, which came out of experiments and are now convention
   split and moves 0.7117 → 0.6219 → 0.5067 across salts 0, 1, 2, against 0.0 for any seed change.
   Compare configurations PAIRED within a salt; never compare absolute scores between salts.
 - **Read every difference against the measured noise, not against a habit.** At production the
-  seed-to-seed sigma is 0.0009 of S, so one paired run resolves 0.0013 and three seeds on one salt
-  resolve 0.0008 — the full table, per term and per scalar, is in experiments_history. It is very
+  seed-to-seed sigma is 0.0013 of S for a single net and about half that for the four-seed
+  ensemble that production now uses — the full table, per term and per scalar, is in experiments_history. It is very
   uneven: nearly all of it lives in Consistency, and inside that in `R_axis` and `Z_axis`.
   More scored shots do not help — the noise is the fit, not the fold.
 - **Quality screens, production decides.** See "How we test the metric".
@@ -124,7 +124,7 @@ Three commands, and which one is being quoted must always be said.
 
 ```bash
 # 1. production — what a submission is built from, and what DECIDES anything
-uv run python my_experiments/train_eval.py 0.45/0.1 0.15/0.1 0.01
+uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01
 
 # 2. quality — a SCREEN, at a tenth of the cost. Kills the obviously bad; settles nothing.
 uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01
@@ -147,21 +147,21 @@ The corollary is uncomfortable and worth stating: several results in README were
 quality scale and have NOT been confirmed at production. Where that is so, say so.
 
 `make prod`, `make quality` and `make test` (the last is what `make ci` runs). The production run
-is what the artifact behind a submission must come from: 3168 shots to fit, 1056 to stop on, 70
+is what the artifact behind a submission must come from: 4225 shots to fit, 1056 to stop on, 70
 scored, about 5 minutes with the shot cache warm. Measured there, with CatBoost disabled so the
 ensemble is the MLP alone, with the coil field subtracted and the Jacobian loss metric:
 
 ```
              model         S    R2_psi     R2_qb   1-D_LCFS      Cons
-               mlp    0.9809    0.9993    0.9814     0.9839    0.9283
-          ensemble    0.9809    0.9993    0.9814     0.9839    0.9283
+               mlp    0.9875    0.9994    0.9905     0.9860    0.9530
+          ensemble    0.9914    0.9997    0.9937     0.9879    0.9685
              ridge    0.7022    0.8076    0.5461     0.9513    0.4050
 ```
 
-Salt 0, MLP seed 0 — and the best of three seeds, not the typical one: three seeds on this salt
-average 0.9795 and three salts average 0.9777. The fork sat at 0.9677 before the coil-field
-decomposition and the Jacobian loss, and at 0.9769 on 1408 shots; Consistency carries essentially
-all of the movement.
+Salt 0; the same recipe gives 0.9889 on salt 1 and 0.9898 on salt 2. The fork sat at
+0.9677 before the coil-field decomposition and the Jacobian loss, 0.9769 on 1408 shots, and 0.9809 with a
+256x256 MLP and no Thomson features until 2026-08-13. Consistency carries essentially all of the
+movement.
 
 `loss.jacobian_delta` is SCALE-DEPENDENT and the one number here that has to be revisited: the
 probe has to sit at the error the model actually makes, so it is sqrt(1 - R2_psi) of the run it is

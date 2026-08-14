@@ -145,16 +145,21 @@ N_CALIBRATION_PROBES = 3
 def _jacobian_task(args: tuple[Any, ...]) -> tuple[FloatArray, FloatArray, FloatArray]:
     """Central-difference d(scalar)/d(coefficient) for a chunk of frames, and a linearity check.
 
-    Returns the baseline scalar values (T, N_CONS), the Jacobians (T, N_CONS, n), and (T, 2,
-    N_CONS) holding the squared ACTUAL and squared LINEAR-PREDICTED change of each scalar under a
-    full-vector perturbation of realistic size. A frame whose extraction fails on the baseline or
-    on either side of any perturbation contributes nan and is dropped by the caller.
+    Returns the baseline scalar values (T, N_CONS), the Jacobians (T, N_CONS, n), and (T, 3,
+    N_CONS) holding the squared ACTUAL change, the squared LINEAR-PREDICTED change, and the number
+    of probes that produced a number at all, under full-vector perturbations of realistic size. A
+    frame whose extraction fails on the baseline or on either side of any single-component
+    perturbation contributes nan and is dropped by the caller.
     """
     psi_chunk, components, delta, ctx, seed = args
     n = len(components)
     base = np.full((len(psi_chunk), N_CONS), np.nan)
     jac = np.full((len(psi_chunk), N_CONS, n), np.nan)
-    check = np.zeros((len(psi_chunk), 2, N_CONS))
+    # Three planes, not two: squared actual change, squared linear prediction, and how many probes
+    # actually produced a number. A full-vector perturbation is large enough to push a frame into a
+    # state where a functional is undefined — `li` needs a closed contour to integrate B_p over —
+    # and one such probe would otherwise turn the whole fold's sum into nan.
+    check = np.zeros((len(psi_chunk), 3, N_CONS))
     rng = np.random.default_rng(seed)
     for i, psi in enumerate(psi_chunk):
         base[i] = _derive(psi, ctx)
@@ -169,17 +174,21 @@ def _jacobian_task(args: tuple[Any, ...]) -> tuple[FloatArray, FloatArray, Float
         for _ in range(N_CALIBRATION_PROBES):
             dc = rng.normal(size=n) * delta
             actual = _derive(psi + np.tensordot(dc, components, axes=(0, 0)), ctx) - base[i]
-            check[i, 0] += actual ** 2
-            check[i, 1] += (jac[i] @ dc) ** 2
+            ok = np.isfinite(actual)
+            check[i, 0] += np.where(ok, actual ** 2, 0.0)
+            check[i, 1] += np.where(ok, (jac[i] @ dc) ** 2, 0.0)
+            check[i, 2] += ok
     return base, jac, check
 
 
 def jacobian_form(components: FloatArray, psi: FloatArray, delta: float, ctx: dict[str, Any],
                   jobs: int = 0,
-                  calibrate: bool = False) -> tuple[FloatArray, FloatArray, FloatArray, int]:
+                  calibrate: bool = False,
+                  ) -> tuple[FloatArray, FloatArray, FloatArray, int, FloatArray]:
     """Measure how the seven scored functionals respond to each PCA coefficient.
 
-    Returns `(M_cons, variances, linearity_ratio, n_used)` where `M_cons` is the (n, n) form with
+    Returns `(M_cons, variances, linearity_ratio, n_used, probe_ok)` where `M_cons` is the (n, n)
+    form with
 
         dc^T M_cons dc  =  sum_j (W_CONS / N_CONS) * (df_j)^2 / var(f_j)
 
@@ -233,15 +242,27 @@ def jacobian_form(components: FloatArray, psi: FloatArray, delta: float, ctx: di
     # How far the linearisation is from the truth when EVERY coefficient is wrong at once, per
     # scalar. 1.0 means the Jacobian describes that functional correctly at this error size; above
     # 1.0 means it over-states the response and the scalar would be over-weighted in M.
+    # Only over probes that produced a number. A perturbation big enough to be realistic is also
+    # big enough to leave a frame with no closed contour, and those probes say nothing about the
+    # linearisation — but how often it happens is worth knowing, so it is returned rather than
+    # swallowed.
     chk = chk[good]
+    finite = chk[:, 2, :].sum(axis=0)
+    attempted = float(N_CALIBRATION_PROBES * len(chk))
+    if not (finite > 0).all():
+        dead = [CONS_SCALARS[j] for j in np.nonzero(finite <= 0)[0]]
+        raise ValueError(f"every calibration probe left {dead} undefined over {len(chk)} frames, "
+                         f"so the linearisation cannot be checked. The probe step {delta:.4g} is "
+                         f"almost certainly too large for this scale.")
     ratio = np.sqrt(chk[:, 1, :].sum(axis=0) / np.maximum(chk[:, 0, :].sum(axis=0), 1e-300))
+    probe_ok = finite / attempted
     cal = np.ones(N_CONS) if not calibrate else 1.0 / np.maximum(ratio, 1e-6)
 
     m = np.zeros((len(components), len(components)))
     for j in range(N_CONS):
         jj = jac[:, j, :]
         m += (W_CONS / N_CONS) * cal[j] ** 2 / var[j] * (jj.T @ jj) / len(jj)
-    return m, var, ratio, int(good.sum())
+    return m, var, ratio, int(good.sum()), probe_ok
 
 
 # Where the boundary form stops trusting itself. The normal displacement of a level set is

@@ -12,7 +12,7 @@ export HF_READ_TOKEN
 HF_REPO ?= pshishkin/fusion-eq-predictions
 
 .PHONY: ci lint format typecheck test quality prod train eval predict_and_submit_to_hf clean \
-        clean-cache download_dataset
+        clean-cache warm-cache download_dataset
 
 # Where the dataset lives. It sits BESIDE the repo, not inside it, so a `git clean` cannot delete
 # 97 GB — and every `--local-data-dir` flag already defaults to this path.
@@ -58,8 +58,8 @@ download_dataset:
 #
 #   test     does it work, and how fast — 70 shots thinned to a fifth of their frames, 14 scored
 #   quality  what does it score — 352 shots thinned the same way, 70 scored
-#   prod     what a submission is built from — 3168 shots to fit, 1056 to stop on, 70 scored,
-#            ~5 min with the shot cache warm and ~8.5 min the first time it has to fill it
+#   prod     what a submission is built from — 4225 shots to fit, 1056 to stop on, 70 scored.
+#            Four MLP seeds averaged, so ~20 min with the shot cache warm.
 test:
 	uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002
 
@@ -67,7 +67,7 @@ quality:
 	uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01
 
 prod:
-	uv run python my_experiments/train_eval.py 0.45/0.1 0.15/0.1 0.01
+	uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01
 
 train:
 	uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2
@@ -95,3 +95,9 @@ clean:
 # time of whatever the next run touches, and nothing else.
 clean-cache:
 	rm -rf .shot_cache
+
+# Decode every training shot once, so no later run pays for parquet. ~26 GB and a few minutes.
+# Worth it before a sweep over split.salt: the cache is keyed by shot, but the salt decides which
+# shots the training window pulls in, so a new salt otherwise re-reads whatever salt 0 never saw.
+warm-cache:
+	uv run python my_experiments/warm_cache.py

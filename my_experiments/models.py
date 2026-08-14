@@ -478,6 +478,9 @@ class Params:
     n_pca: int
     pca_seed: int
     pca_frame_share: float
+    derivatives: str                    # none | raw | interp | both
+    derivative_signals: str             # driving | poloidal
+    thomson: str                        # "" for off, else comma-separated group names
     split_salt: int
     loss_metric: str
     calibrate_scalars: bool
@@ -499,6 +502,16 @@ class Params:
 # What `features.inputs` may say. The pipeline builds the feature matrix from this and nothing
 # else, so a typo here is a ValueError naming the file rather than a silently different experiment.
 INPUT_MODES = ("currents", "coil_pca", "both")
+
+# What `features.derivatives` may say. `raw` differentiates each signal on its own
+# 0.05 ms time base before interpolating onto the EFIT frames; `interp` differentiates
+# the interpolated series at the 20 ms frame spacing. They are different physical
+# timescales, not a right and a wrong way, which is why both are offered.
+DERIV_MODES = ("none", "raw", "interp", "both")
+
+# Which signals are differentiated. Defined here so params.yaml can be validated without
+# importing the pipeline; the membership itself lives in baseline_model.
+DERIV_SIGNAL_SET_NAMES = ("driving", "poloidal")
 
 # What the psi block's loss metric is. `parseval` is the pixel error of the map, which is exactly
 # R2_psi and nothing else — the control, and the fallback where the probe cannot run. `jacobian`
@@ -547,12 +560,20 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH) -> Params:
                          f"{sorted(LOSS_METRICS)}")
     _require_keys(doc["features"],
                   {"n_pca", "pca_seed", "pca_frame_share", "subtract_coil_field", "inputs",
-                   "n_coil_pca"},
+                   "n_coil_pca", "derivatives", "derivative_signals", "thomson"},
                   "features", path)
     pca_frame_share = float(doc["features"]["pca_frame_share"])
     if not 0.0 < pca_frame_share <= 1.0:
         raise ValueError(f"{path}: features.pca_frame_share is {pca_frame_share}, expected a "
                          f"share in (0, 1]")
+    derivatives = str(doc["features"]["derivatives"])
+    if derivatives not in DERIV_MODES:
+        raise ValueError(f"{path}: features.derivatives is {derivatives!r}, expected "
+                         f"one of {sorted(DERIV_MODES)}")
+    deriv_signals = str(doc["features"]["derivative_signals"])
+    if deriv_signals not in DERIV_SIGNAL_SET_NAMES:
+        raise ValueError(f"{path}: features.derivative_signals is {deriv_signals!r}, expected one "
+                         f"of {sorted(DERIV_SIGNAL_SET_NAMES)}")
     inputs = str(doc["features"]["inputs"])
     if inputs not in INPUT_MODES:
         raise ValueError(f"{path}: features.inputs is {inputs!r}, expected one of "
@@ -583,6 +604,9 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH) -> Params:
     return Params(n_pca=int(doc["features"]["n_pca"]),
                   pca_seed=int(doc["features"]["pca_seed"]),
                   pca_frame_share=pca_frame_share,
+                  derivatives=derivatives,
+                  derivative_signals=deriv_signals,
+                  thomson=str(doc["features"]["thomson"] or ""),
                   split_salt=int(doc["split"]["salt"]),
                   loss_metric=loss_metric,
                   calibrate_scalars=bool(doc["loss"]["calibrate_scalars"]),

@@ -74,13 +74,13 @@ artifact, rather than trusting index arithmetic, and refuses to score on overlap
 the builtin `hash()`, which is salted per process and would silently reorder between the two runs.
 
 ```bash
-# what decides anything: 3168 shots at a tenth of their frames, 70 scored, ~9 min
+# what decides anything: 3168 shots at a tenth of their frames, 70 scored, ~6 min
 uv run python my_experiments/train_eval.py 0.45/0.1 0.15/0.1 0.01        # make prod
 
 # a screen, at a tenth of the cost — kills the obviously bad and settles nothing
 uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01        # make quality
 
-# does it work at all, and how fast: 70 shots, 14 scored, ~2.5 min
+# does it work at all, and how fast: 70 shots, 14 scored, ~1 min
 uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002       # make test
 
 # the smoke run plus the linter and the type checker
@@ -266,24 +266,26 @@ test the metric".
 | fitting ridge / CatBoost / MLP | 0.1 s / 87 s / 23 s |
 | scoring 14 shots x 4 models, `--jobs` auto | 28 s |
 
-**`train_eval.py 0.45/0.1 0.15/0.1 0.01`** — the production run, what a submission is built from:
-3168 shots to fit, 1056 to stop on, 70 scored, **about 5 minutes** with the shot cache warm and
+**`train_eval.py 0.60/0.1 0.15/0.1 0.01`** — the production run, what a submission is built from:
+4225 shots to fit, 1056 to stop on, 70 scored, **about 5 minutes** with the shot cache warm and
 8.5 the first time it has to fill it. CatBoost disabled for this one, so the ensemble is the MLP
 alone, coil field subtracted, Jacobian loss metric:
 
 ```
              model         S    R2_psi     R2_qb   1-D_LCFS      Cons
-               mlp    0.9809    0.9993    0.9814     0.9839    0.9283
-          ensemble    0.9809    0.9993    0.9814     0.9839    0.9283
+               mlp    0.9875    0.9994    0.9905     0.9860    0.9530
+          ensemble    0.9914    0.9997    0.9937     0.9879    0.9685
              ridge    0.7022    0.8076    0.5461     0.9513    0.4050
 ```
 
-That is salt 0 with MLP seed 0, and it is the **best of three seeds**, not the typical one: the
-mean over three seeds on this salt is 0.9795, and over three salts 0.9777. See the noise tables in
-[experiments_history.md](experiments_history.md) before reading any difference from it.
+Salt 0. The ensemble is four MLPs differing only in their seed; it scores 0.9889 on salt 1 and 0.9898 on salt 2 — never compare
+absolute scores across salts, only paired differences within one. See the noise tables in
+[experiments_history.md](experiments_history.md) before reading any difference from these.
 
-The earlier recipe on 1408 shots scored 0.9769, and 0.9677 before the coil-field decomposition and
-the Jacobian loss. Consistency carries essentially all of the movement, while R²ψ barely moves and
+Four changes took this from 0.9809 on 2026-08-13/14: widening the MLP from 256x256 to 512x512
+(+0.0022 over three salts), adding the Thomson profiles as features (+0.0039), averaging four
+seeds (+0.0042), and 3168 → 4225 training shots (+0.0018). The earlier recipe on 1408 shots scored 0.9769, and 0.9677 before the
+coil-field decomposition and the Jacobian loss. Consistency carries essentially all of the movement, while R²ψ barely moves and
 R²qb pays for part of it. At this scale shots are still buying score, so a submission is retrained
 at 0.45 and never at 0.05.
 

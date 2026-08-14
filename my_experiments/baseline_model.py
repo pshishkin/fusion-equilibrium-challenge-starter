@@ -53,6 +53,7 @@ from my_experiments.coil_field import (
 )
 from my_experiments.models import (
     DEFAULT_PARAMS_PATH,
+    DERIV_MODES,
     INPUT_MODES,
     FloatArray,
     Params,
@@ -299,20 +300,295 @@ def slim_row(row: Row) -> dict[str, Any]:
     return out
 
 
+# Half-width of the raw-grid derivative, in milliseconds. The magnetics are sampled at 0.05 ms, so
+# an adjacent-sample difference there is mostly digitizer noise, while the quantity that acts
+# physically — the loop voltage that drives the plasma current — lives on the plasma's own response
+# time. One millisecond is twenty samples: short against the equilibrium, long against the noise.
+RAW_DERIV_HALF_MS = 1.0
+
+# Every feature block, always computed and always cached. Which of them the models SEE is
+# `features.derivatives` in params.yaml, applied in `build_inputs` — so switching arms costs a
+# training run and not a 25 GB cache rebuild.
+DERIV_BLOCKS = ("raw", "interp")
+
+# Which signals get a derivative. The physics names two of the twenty-one, and taking all of them
+# tests a weaker claim than the one that was argued for:
+#   ECOILA          the ohmic solenoid. dI/dt is the LOOP VOLTAGE, which is what drives the plasma
+#                   current — the level drives nothing.
+#   plasma_current  dIp/dt separates ramp-up, flat-top and ramp-down, regimes with different
+#                   current profiles, and `li` is a current-profile quantity.
+# The eighteen F-coils are the eddy-current argument, which is real but weaker — and weaker still
+# since the per-shot constant turned out not to be explained by current history at all.
+# `bcoil` is toroidal and drives NO poloidal flux, which is why it has no rectangle in the coil
+# basis either; its derivative cannot inform psi and is excluded from both sets.
+DERIV_SIGNAL_SETS = {
+    "driving": ("ECOILA", "plasma_current"),
+    "poloidal": tuple(s for s in D3D_MAGNETICS_SIGNALS if s != "bcoil"),
+}
+N_SIGNALS = len(D3D_MAGNETICS_SIGNALS)
+# Twelve Thomson summaries follow the derivative blocks; see N_THOMSON below.
+FEATURE_WIDTH = N_SIGNALS * (1 + len(DERIV_BLOCKS)) + 27 + 2 * 16   # = N_THOMSON_BLOCK
+
+
+def _raw_derivatives(shot: dict[str, Any]) -> FloatArray:
+    """d/dt of each signal on ITS OWN time base, then interpolated onto the EFIT times.
+
+    This order is the point. Differentiating after interpolation measures the interpolator: the
+    EFIT frames are 20 ms apart while the signal is sampled at 0.05 ms, so everything between two
+    frames has already been thrown away by the time the difference is taken.
+
+    A centred difference over a fixed PHYSICAL half-width, not over one sample: the sampling
+    interval varies between shots (~70% are at 0.05 ms), so a fixed index offset would mean a
+    different derivative on different shots.
+    """
+    efit_times = shot["efit_times"]
+    out = []
+    for sig in D3D_MAGNETICS_SIGNALS:
+        if sig not in shot["magnetics"]:
+            out.append(np.zeros(len(efit_times), dtype=np.float32))
+            continue
+        mag = shot["magnetics"][sig]
+        t = np.asarray(mag["times"], dtype=np.float64)
+        v = np.asarray(mag["values"], dtype=np.float64)
+        if len(t) < 3:
+            raise ValueError(f"signal {sig} has {len(t)} samples, too few to differentiate")
+        step = float(np.median(np.diff(t)))
+        if not step > 0:
+            raise ValueError(f"signal {sig} has a median sample step of {step}, expected positive")
+        k = max(1, round(RAW_DERIV_HALF_MS / step))
+        lo = np.clip(np.arange(len(t)) - k, 0, len(t) - 1)
+        hi = np.clip(np.arange(len(t)) + k, 0, len(t) - 1)
+        dt = t[hi] - t[lo]
+        d = np.where(dt > 0, (v[hi] - v[lo]) / np.maximum(dt, 1e-30), 0.0)
+        out.append(np.interp(efit_times, t, d).astype(np.float32))
+    return np.column_stack(out)
+
+
+def _interp_derivatives(feats: FloatArray, efit_times: FloatArray) -> FloatArray:
+    """d/dt of the already-interpolated features, on the EFIT time base.
+
+    The cheap arm, and not obviously the wrong one: it measures the rate on the timescale the
+    equilibrium actually moves on rather than on the digitizer's. `np.gradient` is given the times
+    themselves because the EFIT step is 20 ms for 98% of intervals and up to 900 ms for the rest.
+    """
+    if len(feats) < 2:
+        return np.zeros_like(feats)
+    return np.gradient(feats.astype(np.float64), efit_times, axis=0).astype(feats.dtype)
+
+
+# Thomson scattering, reduced to a few numbers per frame. Pressure is one of the two free
+# functions of Grad-Shafranov and the one thing the magnetics genuinely cannot see: coil currents
+# constrain the flux at the boundary, not how the pressure sits inside.
+#
+# The geometry is not what the name suggests, and it decides what is computable. Measured on the
+# shipped rows: the CORE system's 44 channels all sit at R = 1.940 and differ in Z — a VERTICAL
+# chord through the upper half of the plasma. The EDGE system's 10 channels sit near Z = -0.06 and
+# span R = 1.68..2.06 — a horizontal cut across the outboard edge. So the radial derivative that
+# Grad-Shafranov actually asks for, dp/dR, exists on the EDGE system and nowhere else, and it lands
+# exactly on the pedestal.
+#
+# Missing data is encoded as an exact ZERO, not as nan — the trap AGENTS warns about. Inside the
+# EFIT window 14.1% of core values are zero; outside it, where there is no plasma, most are. Every
+# reduction below therefore runs on a validity mask, never on the raw array.
+N_THOMSON = 27          # 13 per system + a validity flag; matches FEATURE_WIDTH above
+# Points of the resampled RAW pressure profile, per system. The summaries above compress a
+# 44-channel chord into three numbers, and the group sweep showed temperature summaries are
+# worth nothing while pressure carries everything — so the question is whether the SHAPE that
+# a summary throws away is what matters. Grad-Shafranov reads p(psi), not its peak.
+N_PROFILE = 16
+# The whole Thomson block as it sits in a cached row: summaries, the validity flag, then the two
+# raw profiles. Kept separate from N_THOMSON so that adding to one end cannot silently truncate
+# the other — which it did once, on the day the profiles were added.
+N_THOMSON_BLOCK = 27 + 2 * N_PROFILE
+THOMSON_MIN_LIVE = 3
+
+
+# The Thomson summaries, in groups that `features.thomson_groups` can select. Order matters: it is
+# the column order of every cached row, and the group slices below index into it.
+THOMSON_STATS = (
+    "peak_te", "at_te", "int_te", "slope_te",
+    "peak_ne", "int_ne", "slope_ne",
+    "peak_p", "at_p", "int_p", "slope_p",
+    "peaking_te", "width_te",
+)
+THOMSON_GROUPS = {
+    "te": ("peak_te", "int_te", "slope_te"),
+    "ne": ("peak_ne", "int_ne", "slope_ne"),
+    # `slope_p` is the one the equation names: Grad-Shafranov's source term is p'(psi), so the
+    # pressure GRADIENT is the physical quantity and the profile is its integral.
+    "p": ("peak_p", "int_p", "slope_p"),
+    # WHERE along the chord the peak sits. Measured by permutation importance at 0.1% to 2.3% —
+    # the four least useful columns of the block, and unsurprising: the chord is fixed in the
+    # machine and the plasma barely moves along it, so this is nearly a constant.
+    "pos": ("at_te", "at_p"),
+    # Dimensionless shape, independent of the absolute calibration of either channel. Measured at
+    # exactly zero: `te,ne,p` and `te,ne,p,shape` scored 0.9874 alike.
+    "shape": ("peaking_te", "width_te"),
+}
+
+
+def _masked_slope(values: FloatArray, coord: FloatArray, live: FloatArray,
+                  n: FloatArray) -> FloatArray:
+    """Least-squares slope of the live points, per time sample: cov(x, y) / var(x), all masked.
+
+    A slope rather than the largest step between neighbours: the local version needs two ADJACENT
+    live channels, and outside the discharge — where most of a Thomson record sits — the live ones
+    are few and scattered, so it is undefined for whole shots.
+    """
+    x = np.broadcast_to(coord, values.shape)
+    k = np.maximum(n, 1)[:, None]
+    dx = np.where(live, x - (np.where(live, x, 0.0).sum(axis=1, keepdims=True) / k), 0.0)
+    dy = np.where(live, values - (np.where(live, values, 0.0).sum(axis=1, keepdims=True) / k), 0.0)
+    var = (dx * dx).sum(axis=1)
+    return np.where(var > 0, (dx * dy).sum(axis=1) / np.where(var > 0, var, 1.0), np.nan)
+
+
+def _profile_stats(values: FloatArray, dens: FloatArray, coord: FloatArray) -> FloatArray:
+    """(n_times, 13) summaries of one Thomson system, per time sample, over live channels only.
+
+    `coord` is the spatial axis of that system — Z for the vertical core chord, R for the
+    horizontal edge one — and must be sorted, because the channels are NOT stored in positional
+    order and a difference taken in channel order would be meaningless.
+
+    A channel is live where its TEMPERATURE is non-zero: missing samples are encoded as exact
+    zeros in this dataset, not as nan, and density and pressure are read on the same mask so all
+    thirteen numbers describe the same set of channels.
+    """
+    live = values != 0
+    n = live.sum(axis=1)
+    enough = n >= THOMSON_MIN_LIVE
+    span = float(coord[-1] - coord[0]) or 1.0
+    press = values * dens
+
+    def masked(a: FloatArray) -> FloatArray:
+        return np.where(live, a, np.nan)
+
+    with np.errstate(invalid="ignore", divide="ignore"):
+        te, ne_, pr = masked(values), masked(dens), masked(press)
+        peak_te, peak_ne, peak_p = (np.nanmax(v, axis=1) for v in (te, ne_, pr))
+        at_te = coord[np.nanargmax(np.where(np.isnan(te), -np.inf, te), axis=1)]
+        at_p = coord[np.nanargmax(np.where(np.isnan(pr), -np.inf, pr), axis=1)]
+        mean_te, mean_ne, mean_p = (np.nanmean(v, axis=1) for v in (te, ne_, pr))
+        slope_te = _masked_slope(values, coord, live, n)
+        slope_ne = _masked_slope(dens, coord, live, n)
+        slope_p = _masked_slope(press, coord, live, n)
+        peaking = peak_te / np.where(mean_te > 0, mean_te, np.nan)
+        # Profile-weighted spread of the coordinate: how wide the temperature sits on the chord.
+        w = np.where(live & (values > 0), values, 0.0)
+        wsum = np.maximum(w.sum(axis=1), 1e-30)
+        cbar = (w * coord).sum(axis=1) / wsum
+        width = np.sqrt(np.maximum((w * (coord - cbar[:, None]) ** 2).sum(axis=1) / wsum, 0.0))
+
+    out = np.column_stack([peak_te, at_te, mean_te * span, slope_te,
+                           peak_ne, mean_ne * span, slope_ne,
+                           peak_p, at_p, mean_p * span, slope_p,
+                           peaking, width])
+    if out.shape[1] != len(THOMSON_STATS):
+        raise ValueError(f"produced {out.shape[1]} Thomson stats, THOMSON_STATS lists "
+                         f"{len(THOMSON_STATS)}")
+    out[~enough] = np.nan
+    return out
+
+
+def _profile_raw(values: FloatArray, dens: FloatArray, coord: FloatArray) -> FloatArray:
+    """(n_times, N_PROFILE) the PRESSURE profile itself, on a fixed grid along the chord.
+
+    A fixed grid rather than the channels as they come: channels die and revive from frame to
+    frame, so a column tied to a channel would mean a different place at different times. Resampled
+    from the live points only, which is also what makes a missing channel harmless rather than a
+    zero the model has to learn around.
+    """
+    live = values != 0
+    press = values * dens
+    grid = np.linspace(float(coord[0]), float(coord[-1]), N_PROFILE)
+    out = np.zeros((len(values), N_PROFILE), dtype=np.float32)
+    for t in range(len(values)):
+        m = live[t]
+        if m.sum() < 2:
+            out[t] = np.nan
+            continue
+        out[t] = np.interp(grid, coord[m], press[t, m]).astype(np.float32)
+    return out
+
+
+def _fill_in_time(feats: FloatArray, src_times: FloatArray,
+                  efit_times: FloatArray) -> tuple[FloatArray, bool]:
+    """Put a per-Thomson-sample feature series onto the EFIT frames, and say whether it is real.
+
+    The reduction happens on the Thomson time base and the INTERPOLATION afterwards, never the
+    other way round: a profile averaged across time would mix a live channel with a dead one.
+
+    A shot whose Thomson never fired returns zeros and False rather than raising. That is NOT the
+    banned "substitute the mean and carry on": the caller turns the flag into a feature column, so
+    the model is told which shots have no measurement instead of being handed a fabricated one,
+    and `train` prints the rate. Measured: `d3d_shot_5a79f2123a` has 1884 core samples and 423
+    edge samples with zero live channels in every one of them — the diagnostic simply did not run
+    for that discharge, which is a property of the data and not a mismatch to fail on.
+    """
+    out = np.zeros((len(efit_times), feats.shape[1]), dtype=np.float32)
+    for j in range(feats.shape[1]):
+        ok = np.isfinite(feats[:, j])
+        if ok.sum() < 2:
+            return out, False
+        out[:, j] = np.interp(efit_times, src_times[ok], feats[ok, j]).astype(np.float32)
+    return out, True
+
+
+def _thomson_features(row: Row, efit_times: FloatArray) -> FloatArray:
+    """(T, 27 + 2*N_PROFILE) — the summaries and the flag, then the raw pressure profiles."""
+    names = [str(x) for x in np.asarray(row["thomson_chord_name"])]
+    chord_R = np.asarray(row["thomson_chord_R"], dtype=np.float64)
+    chord_Z = np.asarray(row["thomson_chord_Z"], dtype=np.float64)
+
+    blocks: list[FloatArray] = []
+    raws: list[FloatArray] = []
+    valid: list[bool] = []
+    for prefix, key, coords in (("TS_core", "thomson_core", chord_Z),
+                                ("TS_tangential", "thomson_edge", chord_R)):
+        te = np.stack([np.asarray(x, dtype=np.float64) for x in row[f"{key}_Te"]])
+        ne = np.stack([np.asarray(x, dtype=np.float64) for x in row[f"{key}_ne"]])
+        times = np.asarray(row[f"{key}_times"], dtype=np.float64)
+        n_ch = te.shape[1]
+        start = 0 if prefix == "TS_core" else len(np.asarray(row["thomson_core_Te"][0]))
+        labels = names[start:start + n_ch]
+        if not labels or not all(n.startswith(prefix) for n in labels):
+            raise ValueError(f"chords {start}..{start + n_ch} are {labels[:3]}..., expected "
+                             f"{prefix}* — the Thomson channel blocks are not laid out as assumed")
+        order = np.argsort(coords[start:start + n_ch])
+        c = coords[start:start + n_ch][order]
+        stats, ok = _fill_in_time(_profile_stats(te[:, order], ne[:, order], c), times, efit_times)
+        raw, ok_raw = _fill_in_time(_profile_raw(te[:, order], ne[:, order], c), times, efit_times)
+        blocks.append(stats)
+        raws.append(raw)
+        valid.append(ok and ok_raw)
+    flag = np.full((len(efit_times), 1), float(all(valid)), dtype=np.float32)
+    return np.hstack([*blocks, flag, *raws])
+
+
 def features_for_row(row: Row) -> FloatArray:
-    """(T, 21) magnetics features on the EFIT time base, exactly len(efit_times) rows."""
+    """(T, 90) — 21 magnetics levels, two derivative blocks of 21, and 27 Thomson columns.
+
+    Every block is always produced. `build_inputs` decides which reach the model, so an experiment
+    over `features.derivatives` or `features.thomson` never has to rebuild the shot cache.
+    """
     if FEATURES_KEY in row:
         ready: FloatArray = np.asarray(row[FEATURES_KEY])
-        want = (len(np.asarray(row["efit_times"])), len(D3D_MAGNETICS_SIGNALS))
+        want = (len(np.asarray(row["efit_times"])), FEATURE_WIDTH)
         if ready.shape != want:
             raise ValueError(f"precomputed {FEATURES_KEY} has shape {ready.shape}, expected "
                              f"{want}")
         return ready
     shot = inputs_only_shot(row)
-    feats: FloatArray = interpolate_magnetics_to_efit(shot)
-    if feats.shape != (len(shot["efit_times"]), len(D3D_MAGNETICS_SIGNALS)):
+    levels: FloatArray = interpolate_magnetics_to_efit(shot)
+    if levels.shape != (len(shot["efit_times"]), N_SIGNALS):
+        raise ValueError(f"features {levels.shape}, expected "
+                         f"({len(shot['efit_times'])}, {N_SIGNALS})")
+    feats = np.hstack([levels, _raw_derivatives(shot),
+                       _interp_derivatives(levels, shot["efit_times"]),
+                       _thomson_features(row, shot["efit_times"])])
+    if feats.shape != (len(shot["efit_times"]), FEATURE_WIDTH):
         raise ValueError(f"features {feats.shape}, expected "
-                         f"({len(shot['efit_times'])}, {len(D3D_MAGNETICS_SIGNALS)})")
+                         f"({len(shot['efit_times'])}, {FEATURE_WIDTH})")
     if not np.isfinite(feats).all():
         raise ValueError(f"features contain {int((~np.isfinite(feats)).sum())} non-finite values")
     return feats
@@ -331,6 +607,8 @@ CoilPlan = dict[str, Any]
 def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) -> CoilPlan:
     """Fit the flux gains and, if the inputs need it, the coil-flux principal directions."""
     index = [D3D_MAGNETICS_SIGNALS.index(c.removeprefix("magnetics_")) for c in basis.columns]
+    # `index` numbers the magnetics signals, so it addresses the LEVEL block; the derivative
+    # blocks that follow carry the same signal order and must not be picked up here.
     currents = X[:, index].astype(np.float64)
     gains = fit_flux_gains(basis.maps, currents, Y)
     maps = basis.maps * gains[:, None, None]
@@ -340,6 +618,9 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         mean, w = coil_pca_transform(maps, currents, params.n_coil_pca)
     return {
         "subtract": params.subtract_coil_field, "inputs": params.inputs,
+        "derivatives": params.derivatives,
+        "derivative_signals": params.derivative_signals,
+        "thomson": params.thomson,
         "columns": list(basis.columns), "index": index, "gains": gains, "maps": maps,
         "grid_R": basis.grid_R, "grid_Z": basis.grid_Z, "machine": basis.machine,
         # Signals with no poloidal-plane rectangle, so no map and no principal direction: they
@@ -353,20 +634,68 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
 def coil_flux(plan: CoilPlan, feats: FloatArray) -> FloatArray:
     """(T, 65, 65) the coil field of these frames, in the stored flux convention."""
     maps: FloatArray = plan["maps"]
+    # The level block only: `index` numbers the magnetics signals, and the derivative blocks that
+    # follow them carry the same signal order.
     return np.tensordot(feats[:, plan["index"]].astype(np.float64), maps, axes=(1, 0))
 
 
+@functools.cache
+def thomson_columns(groups: str) -> tuple[int, ...]:
+    """Indices into the 27-column Thomson block for a comma-separated list of groups.
+
+    The validity flag is always last and always kept: a model told that a measurement is missing
+    can learn to ignore the zeros beside it, and a model not told cannot.
+    """
+    names: list[str] = []
+    raw = False
+    for g in groups.split(","):
+        g = g.strip()
+        if g == "raw":
+            raw = True
+            continue
+        if g not in THOMSON_GROUPS:
+            raise ValueError(f"unknown thomson group {g!r}; known: raw, {sorted(THOMSON_GROUPS)}")
+        names += [n for n in THOMSON_GROUPS[g] if n not in names]
+    per = len(THOMSON_STATS)
+    idx = [THOMSON_STATS.index(n) + block * per for block in (0, 1) for n in names]
+    tail = list(range(2 * per + 1, 2 * per + 1 + 2 * N_PROFILE)) if raw else []
+    return (*sorted(idx), 2 * per, *tail)   # + the validity flag, then the raw profiles
+
+
 def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
-    """(T, n_features) — what the models actually see, identical in training and in inference."""
+    """(T, n_features) — what the models actually see, identical in training and in inference.
+
+    `feats` always carries every block `features_for_row` produces; the two selections here are
+    orthogonal. `inputs` decides how the LEVELS are represented (raw currents, or the coil flux in
+    its own principal directions); `derivatives` decides which rate blocks are appended to that.
+    """
+    levels = feats[:, :N_SIGNALS]
     mode = plan["inputs"]
     if mode == "currents":
-        return feats
-    coil = (feats[:, plan["index"]].astype(np.float64) - plan["cur_mean"]) @ plan["coil_pca_W"]
-    if mode == "coil_pca":
-        return np.hstack([coil, feats[:, plan["passthrough"]]])
-    if mode == "both":
-        return np.hstack([feats, coil])
-    raise ValueError(f"unknown input mode {mode!r}; known: {sorted(INPUT_MODES)}")
+        base = levels
+    else:
+        coil = (levels[:, plan["index"]].astype(np.float64) - plan["cur_mean"]) @ plan["coil_pca_W"]
+        if mode == "coil_pca":
+            base = np.hstack([coil, levels[:, plan["passthrough"]]])
+        elif mode == "both":
+            base = np.hstack([levels, coil])
+        else:
+            raise ValueError(f"unknown input mode {mode!r}; known: {sorted(INPUT_MODES)}")
+
+    want = plan["derivatives"]
+    tail = ([feats[:, -N_THOMSON_BLOCK:][:, thomson_columns(plan["thomson"])]]
+            if plan["thomson"] else [])
+    if want == "none":
+        return np.hstack([base, *tail]) if tail else base
+    if want not in DERIV_MODES:
+        raise ValueError(f"unknown derivative mode {want!r}; known: {sorted(DERIV_MODES)}")
+    blocks = DERIV_BLOCKS if want == "both" else (want,)
+    pick = [D3D_MAGNETICS_SIGNALS.index(s) for s in DERIV_SIGNAL_SETS[plan["derivative_signals"]]]
+    cols = [base]
+    for name in blocks:
+        k = DERIV_BLOCKS.index(name) + 1
+        cols.append(feats[:, k * N_SIGNALS:(k + 1) * N_SIGNALS][:, pick])
+    return np.hstack([*cols, *tail])
 
 
 def basis_for_row(row: Row) -> CoilBasis:
@@ -405,10 +734,16 @@ def check_grid(plan: CoilPlan, row: Row) -> None:
 @functools.cache
 def _shot_code_key() -> str:
     """The fingerprint of every function whose output the shot cache stores. Computed once."""
+    # EVERY function whose output reaches the cache. Missing one is the failure this key exists to
+    # prevent: on 2026-08-13 the Thomson reduction was rewritten while `_profile_stats` was absent
+    # from this list, and the stale entries were caught only because the column count happened to
+    # change too. `extra` carries the widths for the same reason — a formula change that keeps the
+    # shape would otherwise be invisible.
     return shot_cache.fingerprint(
         _read_training_shot, features_for_row, inputs_only_shot, align_ip_times,
         interpolate_magnetics_to_efit, _as_psirz_stack,
-        extra=f"{D3D_MAGNETICS_SIGNALS}|{SUBMITTED_SCALARS}",
+        _raw_derivatives, _interp_derivatives, _thomson_features, _profile_stats, _fill_in_time,
+        extra=f"{D3D_MAGNETICS_SIGNALS}|{SUBMITTED_SCALARS}|{FEATURE_WIDTH}|{RAW_DERIV_HALF_MS}",
     )
 
 
@@ -433,7 +768,12 @@ def _read_training_shot(path: Path,
         return hit
 
     row = pd.read_parquet(path).iloc[0]
-    feats = features_for_row(row)                 # same code path as inference
+    try:
+        feats = features_for_row(row)             # same code path as inference
+    except ValueError as exc:
+        # Every message from in there describes a property of ONE shot, and on a corpus of
+        # thousands an assertion without coordinates is not actionable.
+        raise ValueError(f"{path.name}: {exc}") from exc
     psi = _as_psirz_stack(row["efit_psirz"])      # train rows only: targets are withheld on test
     T = len(feats)
     if len(psi) != T:
@@ -537,7 +877,16 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # validation ones: a scaler or a PCA that had seen the validation set would make early stopping
     # stop on a number that is partly its own reflection.
     F, Fv = build_inputs(plan, X), build_inputs(plan, Xv)
-    print(f"  inputs: {F.shape[1]} features per frame ({plan['inputs']})")
+    print(f"  inputs: {F.shape[1]} features per frame ({plan['inputs']}, "
+          f"derivatives={plan['derivatives']}/{plan['derivative_signals']}, "
+          f"thomson={plan['thomson'] or 'off'})")
+    if plan["thomson"]:
+        # The validity flag sits at the end of the SUMMARY part of the Thomson block, before the raw
+        # profiles; a shot whose diagnostic never fired
+        # contributes zeros and a 0 here, and the rate belongs in the log rather than in a feature.
+        dead = float((X[:, -N_THOMSON_BLOCK + N_THOMSON - 1] == 0).mean())
+        print(f"  thomson: {1 - dead:.1%} of training frames carry a real measurement"
+              f"{'' if dead == 0 else f', {dead:.1%} are flagged missing'}")
     scaler = StandardScaler().fit(F)
     Xs = scaler.transform(F)
     Xvs = scaler.transform(Fv)
@@ -593,8 +942,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
             total = total + coil_flux(plan, X[probe])
         delta = params.jacobian_delta * float(np.sqrt(psi_ss_tot / params.n_pca))
         ctx = scorer_context(plan["grid_R"], plan["grid_Z"], plan["machine"])
-        m_cons, var, ratio, n_used = jacobian_form(images, total, delta, ctx, jobs,
-                                                   params.calibrate_scalars)
+        m_cons, var, ratio, n_used, probe_ok = jacobian_form(images, total, delta, ctx, jobs,
+                                                             params.calibrate_scalars)
         m_bnd = d_probe = None
         if params.boundary:
             m_bnd, d_probe, n_bnd, clipped = boundary_form(images, total, delta, ctx, jobs)
@@ -603,8 +952,9 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         psi_L = factor(metric_form(m_cons, psi_ss_tot, m_bnd, d_probe or 0.0))
         print(f"  loss metric: jacobian over {n_used} of {probe.size} probe frames, step "
               f"{delta:.4g} Wb/rad, condition number {np.linalg.cond(psi_L @ psi_L.T):.1f}")
-        for name, r, v in zip(CONS_SCALARS, ratio, var, strict=True):
+        for name, r, v, ok in zip(CONS_SCALARS, ratio, var, probe_ok, strict=True):
             print(f"    {name:8s} linear/actual {r:6.2f}   spread {np.sqrt(v):10.4g}"
+                  f"{'' if ok > 0.999 else f'   ({1 - ok:.1%} of probes undefined)'}"
                   f"{'   (down-weighted)' if params.calibrate_scalars and r > 1.1 else ''}")
     target_scaler = (TargetScaler(params.n_pca)
                      .with_psi_metric(psi_L)
