@@ -9,6 +9,11 @@
 # of the process list: submission_skeleton.py defaults --read-token to $HF_READ_TOKEN.
 -include .env
 export HF_READ_TOKEN
+# Downloads only. huggingface_hub reads HF_TOKEN straight from the environment, so this raises the
+# anonymous rate limit for download_dataset without touching a command line. A different token from
+# HF_READ_TOKEN on purpose: that one is read-only because it travels inside the pointer zip, while
+# this one never leaves the machine.
+export HF_TOKEN
 HF_REPO ?= pshishkin/fusion-eq-predictions
 
 .PHONY: ci lint format typecheck test quality prod train eval predict_and_submit_to_hf clean \
@@ -57,17 +62,38 @@ download_dataset:
 # The three standard runs. AGENTS.md, "How we test the metric".
 #
 #   test     does it work, and how fast — 70 shots thinned to a fifth of their frames, 14 scored
-#   quality  what does it score — 352 shots thinned the same way, 70 scored
-#   prod     what a submission is built from — 4225 shots to fit, 1056 to stop on, 70 scored.
-#            Four MLP seeds averaged, so ~20 min with the shot cache warm.
+#   quality  what does it score — production's own data, 4225 shots, 70 scored, ONE net
+#   prod     what a submission is built from — the same data, FOUR MLP seeds averaged
+#
+# `quality` and `prod` now differ in ONE thing: one net against four. The data is identical.
+#
+# That is the point. The old screen ran on 352 shots, and the reversal AGENTS.md records — n_pca 30
+# beating 50 at quality by +0.0043 on three salts, then losing at production — was caused by that
+# scale and not by the ensemble: with 352 shots the tail PCA components are noise, with 4225 they
+# are signal. A screen at production's data cannot make that class of mistake, because the only
+# thing left varying is the seed count.
+#
+# What the screen still costs is noise: the seed sigma is 0.0013 of S for one net against about
+# half that for four, so a difference read here must clear twice the floor a production run's does.
+# Quality numbers recorded before 2026-08-14 came from 352 shots and four nets, and compare to
+# neither of these.
+#
+# JOBS is the reader/scorer pool. It is capped here because os.cpu_count() reports the HOST's
+# cores, not this container's share, and the pids ceiling is shared with everything else running.
+JOBS ?= 24
+TORCH_ENV = OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4
+
 test:
-	uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002
+	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002 \
+		--only mlp --jobs $(JOBS)
 
 quality:
-	uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01
+	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01 \
+		--only ridge mlp --jobs $(JOBS)
 
 prod:
-	uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01
+	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01 \
+		--jobs $(JOBS)
 
 train:
 	uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2

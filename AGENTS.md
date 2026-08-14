@@ -123,15 +123,33 @@ Non-overlap is checked against the **filenames** stored in the artifact — both
 Three commands, and which one is being quoted must always be said.
 
 ```bash
-# 1. production — what a submission is built from, and what DECIDES anything
-uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01
+# 1. production — what a submission is built from, and what DECIDES anything. FOUR nets.
+make prod       # train_eval.py 0.60/0.1 0.15/0.1 0.01 --jobs 24
 
-# 2. quality — a SCREEN, at a tenth of the cost. Kills the obviously bad; settles nothing.
-uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01
+# 2. quality — a SCREEN at a quarter of the cost, on production's OWN data. ONE net.
+make quality    # train_eval.py 0.60/0.1 0.15/0.1 0.01 --only ridge mlp --jobs 24
 
-# 3. smoke — does it work at all, and how fast
-uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002
+# 3. smoke — does it work at all, and how fast. ONE net.
+make test       # train_eval.py 0.01/0.2 0.01/0.2 0.002 --only mlp --jobs 24
 ```
+
+**The screen and production now differ in ONE thing: one net against four. The data is
+identical.** That is deliberate, and it repairs the failure this section was written about. The
+reversal below — `n_pca = 30` beating 50 at quality on three salts, then losing at production — was
+caused by the screen's 352 shots, not by its ensemble: at that scale the tail PCA components are
+noise the model cannot predict, and at 4225 they are signal. A screen run on production's own data
+cannot make that class of mistake.
+
+What the screen still costs is noise. The seed sigma is 0.0013 of S for one net against about half
+that for four, so a difference read at quality must clear twice the floor a production run's does —
+and a change that helps the ensemble by averaging away seed variance will not show here at all.
+**Quality numbers recorded before 2026-08-14 came from 352 shots and four nets, and compare to
+neither of these.**
+
+`--only` and `--salt` override params.yaml for one run. That is not a second home for
+hyper-parameters — they have no defaults of their own, they are printed at the top of the run, and
+the artifact stores the EFFECTIVE configuration rather than the file's text, so a screening run
+still says exactly what produced it.
 
 **Quality screens; production decides. A change that measures well at quality is a candidate, not
 a result, and nothing reaches a submission without a production-scale confirmation.**
@@ -219,6 +237,28 @@ way to hang. And there is exactly one pool for the whole run: a pool per phase p
 five times over and gave back most of the speed-up.
 
 New per-shot loops go through `pimap`, not through a private pool.
+
+## The core count must not change the score. The device does, and that is a different rule
+
+The paragraph above is about *parallelism*, and it stays absolute: `--jobs` must never move a
+number. `device` is not parallelism, and cannot be held to it — a GPU reduces in a different order
+than a CPU does, Adam amplifies that round-off to the size of `lr` within a few dozen steps, and no
+two such runs agree on the weights afterwards. So:
+
+- **Do not check a device change for bit-identity.** It will fail, and failing means nothing. Check
+  the arithmetic instead, where round-off has not yet been amplified: the forward pass and the
+  gradient at initialisation, against the same net on the CPU.
+- **Then check the SCORE against the measured noise** — paired within a salt, read against the
+  0.0009 seed sigma at production, exactly as any other change is.
+- **Keep a deterministic control in the run.** `ridge` is fitted on the same features and is
+  unaffected by any of this, so it reproducing to four decimals is free evidence that the change
+  touched only what it claimed to.
+- **`device: auto` does not exist, on purpose.** A run whose arithmetic depends on which hardware
+  happened to be free is not reproducible, and pinning `split.salt` and `features.pca_seed` was
+  only worth doing because everything else about a configuration is fixed too.
+
+Inference is exempt and stays on the CPU whatever `device` says: the artifact has to unpickle and
+predict where a submission is scored, which is a machine this fork does not control.
 
 ## One implementation of the metric
 

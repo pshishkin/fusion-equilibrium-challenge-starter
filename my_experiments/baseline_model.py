@@ -826,14 +826,15 @@ def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
 
 
 def train(share: str, val_share: str, local_data_dir: Path, config: str,
-          params_path: Path = DEFAULT_PARAMS_PATH, jobs: int = 0) -> Artifact:
+          params_path: Path = DEFAULT_PARAMS_PATH, jobs: int = 0, salt: int | None = None,
+          only: list[str] | None = None) -> Artifact:
     """Fit every enabled model of params.yaml on the head of the split, and save them together.
 
     Both shares are `"shots"` or `"shots/frames"` (see parse_share). `val_share` is the window
     right behind the training one; it never enters a fit as data, it is what CatBoost and the MLP
     stop on and pick their best iteration by.
     """
-    params: Params = load_params(params_path)
+    params: Params = load_params(params_path, salt, only)
     shot_share, frame_share = parse_share(share)
     val_shot_share, val_frame_share = parse_share(val_share)
     all_files = sorted_shots(local_data_dir, config, params.split_salt)
@@ -991,7 +992,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         "n_pca": params.n_pca, "coil": plan,
         # The whole params file, verbatim: the artifact says what produced it even after the file
         # on disk has moved on.
-        "params_yaml": params.path.read_text(encoding="utf-8"),
+        "params_yaml": params.effective_yaml,
         # Filenames, not indices: evaluate.py intersects them directly, and the check stays
         # correct even if the data directory grows.
         "train_files": [p.name for p in files],

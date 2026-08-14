@@ -40,16 +40,46 @@ make warm-cache            # decode all 7041 shots once, ~25 GB, a few minutes
 make prod                  # 4225 shots, four MLP seeds, ~25 min
 ```
 
-Two things a bigger machine changes, both measured here and both left undone:
+Two things a bigger machine changes:
 
-- **The four ensemble members train one after another**, on 4 torch threads each — 434% of 2000%
-  of this machine's CPU. They are independent and could run at once; the loop in
-  `baseline_model.train` predates the ensemble. That is ~20 min of a 25 min production run.
-  Threads per net must stay near 4 whatever the core count: measured, an epoch takes 0.064 s on
-  one thread, 0.040 on four and **0.351 on twenty**.
+- **The four ensemble members train one after another.** They are independent and could run at
+  once; the loop in `baseline_model.train` predates the ensemble. Batching them into one
+  vectorized model was built and measured on 2026-08-14 — 13.1x on the fit, score unchanged — and
+  then removed as not worth its complexity; see experiments_history.md before rebuilding it.
 - **The training share stopped at 0.60 for no principled reason.** 0.45 → 0.60 was worth +0.0018
   and the curve had not flattened; the obstacle was always memory, and the shot cache plus
   `parallel.release()` removed most of it.
+
+## The MLP fits on the GPU
+
+`device` in each `torch_mlp` block decides where the fit runs — `cpu` or `cuda`, and there is no
+`auto`, on purpose (AGENTS.md, "The core count must not change the score. The device does").
+
+The net is 44 → 512 → 512 → 52 on batches of 512, about 50 MFLOP against a V100's 15.7 TFLOP/s, so
+every kernel finishes long before the next is launched and the training loop measures **launch
+overhead, not arithmetic**. Two things follow, both measured at production shapes (93736 rows):
+
+| | s/epoch |
+|---|---|
+| CPU, 4 threads | 0.864 |
+| CUDA | 0.237 |
+| CUDA, no per-batch sync | 0.233 |
+| **CUDA, + fused Adam** | **0.200** |
+
+`float(loss)` inside the batch loop was a full device sync every batch; it is accumulated on the
+device and read once per epoch instead. `fused=True` on Adam is one kernel per step rather than a
+handful per tensor, measured equivalent to the default implementation to 3.5e-7 over 20 steps.
+
+**The batch size is the larger lever, and it is not free.** Because the loop is launch-bound, epoch
+time tracks the NUMBER of batches and barely notices their size — 183 batches cost 0.307 s, 45 cost
+0.080, 11 cost 0.020. But raising `batch_size` changes the optimisation rather than the arithmetic:
+at 8192 an epoch is 11 Adam steps instead of 183, so `patience: 100` means an eighteenth of the
+leash it means now, and the learning rate would have to be refitted with it. It belongs in
+ideas.md, not in a speed change.
+
+**A GPU run is not bit-identical to a CPU one and cannot be.** What is checked instead: the score,
+paired within a salt and read against the 0.0009 seed sigma, with `ridge` — deterministic, and
+untouched by any of this — reproducing to four decimals as the control.
 
 ## Data
 
@@ -104,20 +134,25 @@ artifact, rather than trusting index arithmetic, and refuses to score on overlap
 the builtin `hash()`, which is salted per process and would silently reorder between the two runs.
 
 ```bash
-# what decides anything: 3168 shots at a tenth of their frames, 70 scored, ~6 min
-uv run python my_experiments/train_eval.py 0.45/0.1 0.15/0.1 0.01        # make prod
+# what decides anything: 4225 shots at a tenth of their frames, 70 scored, FOUR seeds
+make prod        # train_eval.py 0.60/0.1 0.15/0.1 0.01 --jobs 24
 
-# a screen, at a tenth of the cost — kills the obviously bad and settles nothing
-uv run python my_experiments/train_eval.py 0.05/0.2 0.05/0.2 0.01        # make quality
+# the screen: the SAME data, ONE net, so a quarter of the fit
+make quality     # train_eval.py 0.60/0.1 0.15/0.1 0.01 --only ridge mlp --jobs 24
 
-# does it work at all, and how fast: 70 shots, 14 scored, ~1 min
-uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002       # make test
+# does it work at all, and how fast: 70 shots, 14 scored, one net, ~1 min
+make test        # train_eval.py 0.01/0.2 0.01/0.2 0.002 --only mlp --jobs 24
 
 # the smoke run plus the linter and the type checker
 make ci
 
 # 1. train on the head of the list -> my_experiments/baseline.joblib
 uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2
+
+# --only narrows the zoo for one run, --salt reshuffles which shots land where. Neither is a
+# second home for hyper-parameters: they have no defaults, they are printed, and the artifact
+# records the EFFECTIVE configuration rather than whatever params.yaml says at the time.
+uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01 --only mlp --salt 1
 
 # 2. score on the tail, with the real competition metric — every model, then the comparison table
 uv run python my_experiments/evaluate.py --share 0.01
@@ -167,7 +202,7 @@ scaled feature vector, which is what makes them comparable and averageable. Two 
 |---|---|
 | `ridge` | The linear baseline this fork started from. Trained and scored, but **not** an ensemble member — averaging a model that scores 0.12 into two that score ~0.7 only drags them down — 0.5936 with it against 0.7466 without, both measured on the same run. It stays as the figure everything else is read against. |
 | `catboost` | Gradient-boosted trees, one `MultiRMSE` model over all 52 outputs. |
-| `mlp` | 21 → 256 → 256 → 52 on CPU torch, our own training loop. |
+| `mlp` | 44 → 512 → 512 → 52 in torch, our own training loop, `device` deciding where the fit runs. The architecture itself is `models.build_mlp` and nothing else restates it, so batch norm, dropout or another layer is an edit in one function. |
 | `ensemble` | The weighted average of `ensemble.members`. Averaging coefficients and averaging flux maps are the same thing here — the PCA decoder is affine and the weights sum to 1. |
 
 ### Target scaling, and why it is not a setting
@@ -277,24 +312,28 @@ derived scalars. Do not read a falling validation curve as a rising S.
 Two commands, and which one produced a number has to be said every time — see AGENTS.md, "How we
 test the metric".
 
-**`train_eval.py 0.01/0.2 0.01/0.2 0.002`** — the smoke run: 70 shots at a fifth of their frames
-(3272 rows), 14 scored. **2 m 24 s** end to end, which is what makes it usable after every change:
+**`make test`** — the smoke run: 70 shots at a fifth of their frames (3272 rows), 14 scored, one
+net on the GPU. **1 m 03 s** end to end, which is what makes it usable after every change:
 
 ```
              model         S    R2_psi     R2_qb   1-D_LCFS      Cons
-          ensemble    0.7980    0.9131    0.8047     0.9414    0.4047
-          catboost    0.7874    0.9181    0.7259     0.9275    0.4040
-               mlp    0.7399    0.8882    0.7101     0.9371    0.2561
-             ridge    0.3566    0.3416    0.2669     0.9401    0.1735
+               mlp    0.7566    0.8692    0.7718     0.9464    0.3408
+          ensemble    0.7566    0.8692    0.7718     0.9464    0.3408
 ```
+
+`ensemble` repeats `mlp` because `--only mlp` leaves it the sole member. Measured 2026-08-14:
 
 | | |
 |---|---|
-| ruff + mypy | ~10 s |
-| reading 140 shots (3272 + 3111 rows kept) | 8 s |
-| PCA of psi + target scaling | ~5 s |
-| fitting ridge / CatBoost / MLP | 0.1 s / 87 s / 23 s |
-| scoring 14 shots x 4 models, `--jobs` auto | 28 s |
+| reading 140 shots (3272 + 3111 rows kept) | 2.6 s |
+| PCA of psi + target scaling | 0.4 s |
+| the Jacobian probe, 299 of 300 frames | 23.4 s |
+| fitting the MLP, 755 epochs keeping 654 | 11.9 s |
+| scoring 14 shots x 2 names, `--jobs 24` | ~24 s |
+
+Note where the time went once the fit stopped dominating: **the Jacobian probe is now the longest
+stage of a smoke run**, twice the fit. It is `jacobian_frames: 300` of per-frame scorer calls on
+the CPU pool, and nothing about it got faster.
 
 **`train_eval.py 0.60/0.1 0.15/0.1 0.01`** — the production run, what a submission is built from:
 4225 shots to fit, 1056 to stop on, 70 scored, **about 5 minutes** with the shot cache warm and

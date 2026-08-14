@@ -50,8 +50,14 @@ them. Every physics idea below survived only because it is untested, not because
 the twenty iterations, the four that paid were capacity, an independent measurement, averaging and
 more data, and every physics construction was refuted.
 
-1. **Train the ensemble members in parallel.** Not a hypothesis — a 2.5x cheaper production run,
-   which makes every hypothesis below cheaper. See README, "Continuing on another machine".
+1. **Train the ensemble members in parallel.** Built and measured on 2026-08-14 — 13.1x on the
+   fit, score unchanged at quality — and then **removed**: it needed the architecture written down
+   a second time, in a form that would rot the first time anyone added a layer. The gain is real
+   and the entry in experiments_history.md has the numbers; rebuilding it means doing it through
+   `torch.func.stack_module_state` + `vmap`, which stacks an ordinary `nn.Sequential` and carries
+   buffers and per-seed randomness, so batch norm and dropout survive it. Read that entry first.
+   What the exercise did establish, and what outlived it: the GPU epoch is **launch** overhead, not
+   arithmetic — which is what makes A14 below the bigger lever.
 2. **More shots, past 0.60.** +0.0018 at the last step and no sign of flattening; memory was
    always the obstacle and the cache removed most of it.
 3. **More ensemble members**, once they train in parallel. Four seeds were worth +0.0042 and the
@@ -335,6 +341,85 @@ the q95 sign convention survives mirroring, which the labels can settle first.
 **Refuted if** the per-polarity gap for the MLP is under 0.005 of per-shot S. Likely.
 
 **ΔS ≈ 0…+0.001, confidence 0.2.** Last in Group A on purpose.
+
+## A14. Raise `batch_size`, and refit the schedule with it — *2026-08-14*
+
+**Hypothesis.** `batch_size: 512` was never chosen; it is the value the fit has always had. A
+larger batch is several times cheaper per epoch on a GPU, and the score is at worst unchanged.
+
+**Mechanism, measured.** The training loop is bound by kernel launches, so epoch time tracks the
+NUMBER of batches and barely notices their size. On production shapes, 93736 rows on a V100:
+
+| batch | batches/epoch | s/epoch |
+|---|---|---|
+| 512 | 183 | 0.307 |
+| 1024 | 91 | 0.152 |
+| 2048 | 45 | 0.080 |
+| 4096 | 22 | 0.033 |
+| 8192 | 11 | 0.020 |
+
+Halving the batch count halves the time, almost exactly, up to about 4096.
+
+**Why this is not a free speed-up, and belongs here rather than in a speed change.** It changes the
+optimisation, not the arithmetic. At 8192 an epoch is 11 Adam steps instead of 183, so:
+
+- `patience: 100` becomes an eighteenth of the leash it is now, in gradient steps. The measurement
+  that fixed patience at 100 (experiments_history, 08-12) was made at 512 and does not carry over.
+- The learning rate has to move with it. The usual linear or square-root scaling is a starting
+  point, not an answer.
+- Gradient noise falls with the batch, and for a 75k-parameter net on ~90k rows that noise is
+  plausibly doing regularisation work.
+
+**Test.** A grid over `batch_size` x `learning_rate` at production shares with `--only mlp` — which
+is exactly what `make quality` now is, at a fifth of a production run's cost. Patience must be
+converted to steps rather than left at 100 epochs, or the comparison measures the leash and not the
+batch.
+
+**Refuted if** the best cell at any batch above 512 does not beat 512's own best cell by more than
+the single-net sigma of 0.0013.
+
+**ΔS ≈ −0.002…+0.002, confidence 0.3.** It is on this list for the wall clock, not for the score:
+even at ΔS = 0 exactly, a 4x cheaper production fit makes everything else on this list cheaper to
+test, and that is worth a grid.
+
+## A13. Stop on the composite, not on the validation MSE — *2026-08-14*
+
+**Hypothesis.** Early stopping picks the epoch with the lowest validation MSE, which is not the
+epoch with the highest S, and the difference is worth something.
+
+**Mechanism.** The composite weighs `W_PSI 0.55, W_QB 0.15, W_LCFS 0.10, W_CONS 0.20`
+(`fusion_scoring/common.py:57`). With `loss.metric: jacobian` the loss now covers 0.90 of that,
+which is far better than the 0.70 it covered under `parseval` — but four gaps remain, and they are
+gaps in kind, not in size:
+
+- **D_LCFS, 0.10, is structurally absent.** It is a distance, zero at the ground truth, so a
+  central difference sees no derivative at any probe step.
+- **Consistency, 0.20, enters as a linearisation** measured at one finite step. `calibrate_scalars`
+  in params.yaml records how badly: `li` overstated 1.65x, `tri_bot` 1.51x.
+- **`jacobian_delta` is fitted at the error the model makes** — but the model gets better during
+  training, so by the last epochs the probe stands where the model no longer is.
+- **The aggregations differ.** R²ψ and R²qb are pooled over the whole fold against a single scalar
+  mean; D_LCFS is averaged per shot; MSE is a mean over frames. None is a monotone function of
+  another, so two models with equal loss can score differently.
+
+**Why now.** This was unaffordable before: evaluating the real composite means decoding PCA to flux
+maps and running `derive_frame` per frame. At 0.0158 s per seed-epoch it is now the only expensive
+thing left in the loop, so it can be budgeted deliberately — every K epochs, on a fixed subsample.
+The machinery exists: `scorer_context` and `derive_frame`, as the Jacobian probe already uses them
+at `jacobian_frames: 300`.
+
+**Test.** Step 0 is a measurement, not a change: record for one production fit both curves — the
+validation MSE per epoch, and the composite on the validation shots every K epochs — and see how
+far apart their peaks are and how much S the MSE-chosen epoch leaves behind. Only if that gap
+clears the 0.0009 seed sigma is the switch worth building.
+
+**Refuted if** the two peaks land within a few dozen epochs of each other, which after the move to
+`jacobian` is entirely possible — the loss became a much better surrogate than it was when README
+first recorded that they disagree.
+
+**ΔS ≈ 0…+0.003, confidence 0.35.** The evidence it rests on is old: the observation that the
+validation curve keeps improving past the score's peak was made under `parseval`, when the loss
+was blind to Consistency entirely.
 
 ---
 

@@ -209,6 +209,7 @@ models:
     # too small to feed 20 threads and the synchronization dominates. Measured on 10k frames,
     # per epoch: 1 thread 0.064 s, 4 threads 0.040 s, 20 threads 0.351 s.
     threads: 4
+    device: cuda
 
   mlp1:
     type: torch_mlp
@@ -221,6 +222,7 @@ models:
     weight_decay: 0.0
     seed: 1
     threads: 4
+    device: cuda
 
   mlp2:
     type: torch_mlp
@@ -233,6 +235,7 @@ models:
     weight_decay: 0.0
     seed: 2
     threads: 4
+    device: cuda
 
   mlp3:
     type: torch_mlp
@@ -245,6 +248,7 @@ models:
     weight_decay: 0.0
     seed: 3
     threads: 4
+    device: cuda
 
 ensemble:
   # Predictions of the members, averaged with these weights (renormalized to sum to 1). Averaging
@@ -255,7 +259,6 @@ ensemble:
   # read against, but averaging a model that scores 0.12 into two that score ~0.70 only drags them
   # down (measured: ensemble 0.5936 with it, against 0.7001 for its best member).
   members:
-    # catboost: 1.0
     # Four nets differing only in their seed. The seed-to-seed sigma at production is 0.0009 of S
     # and averaging removes exactly that variance; averaging PCA coefficients IS averaging flux
     # maps, since the decoder is affine and the weights sum to 1.
@@ -263,7 +266,3 @@ ensemble:
     mlp1: 1.0
     mlp2: 1.0
     mlp3: 1.0
-    # catboost: 1.0   # measured, +0.0002 for 13x the fit time — see models above
-    # Trees against smooth ReLU surfaces: averaging is paid for by errors that are INDEPENDENT,
-    # and four seeds of one architecture were already worth +0.0042. Weighted as one member
-    # against four, so a weak CatBoost cannot drag the ensemble far.

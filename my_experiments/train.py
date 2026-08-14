@@ -57,10 +57,19 @@ def main() -> int:
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
                     help="root of the downloaded dataset (the folder containing 'data/')")
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
+    ap.add_argument("--salt", type=int, default=None,
+                    help="override split.salt for this run. The salt reshuffles which shots "
+                         "train, validate and score, and it is the replicate that matters — "
+                         "sweeping it from the command line beats editing params.yaml between "
+                         "runs, which is how two configurations get compared by accident")
+    ap.add_argument("--only", nargs="+", default=None, metavar="MODEL",
+                    help="fit only these models from params.yaml and build the ensemble from "
+                         "them; everything else is switched off, `ridge` included. One net "
+                         "instead of four is a quarter of the fit, which is what a screen is for")
     args = ap.parse_args()
 
     train(args.share, args.val_share, args.local_data_dir, args.config, args.params,
-          args.jobs)
+          args.jobs, args.salt, args.only)
     return 0
 
 

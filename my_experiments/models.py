@@ -302,14 +302,58 @@ class CatBoostModel(TargetModel):
 
 # --------------------------------------------------------------------------- torch MLP
 
+# What `device` may say in params.yaml. `auto` is deliberately NOT offered: a run whose arithmetic
+# depends on which hardware happened to be free is not reproducible, and pinning the split salt and
+# the PCA seed was only worth doing because everything else about a configuration is fixed too.
+TORCH_DEVICES = ("cpu", "cuda")
+
+
+def build_mlp(n_in: int, hidden_sizes: list[int], n_out: int) -> Any:
+    """The architecture, in one place, as an ordinary `nn.Sequential`.
+
+    Both the single net and the grouped one call this, so the net is DECLARED once and nothing
+    downstream restates its shape. Adding batch norm, dropout or a different nonlinearity is an
+    edit to this function and to nothing else: batch norm, dropout, a different nonlinearity or a
+    different depth all land here, and `TorchMLPModel` picks them up without knowing what they
+    are. `predict` rebuilds from the same function, so the artifact and the fit cannot drift.
+    """
+    import torch
+
+    sizes = [n_in, *hidden_sizes]
+    layers: list[Any] = []
+    for a, b in itertools.pairwise(sizes):
+        layers += [torch.nn.Linear(a, b), torch.nn.ReLU()]
+    layers.append(torch.nn.Linear(sizes[-1], n_out))
+    return torch.nn.Sequential(*layers)
+
+
+def resolve_device(name: str, where: str) -> str:
+    """The torch device to fit on, or an exception naming exactly what is missing."""
+    import torch
+
+    if name not in TORCH_DEVICES:
+        raise ValueError(f"{where}: unknown device {name!r}; known {sorted(TORCH_DEVICES)}")
+    if name == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError(
+            f"{where}: device 'cuda', but torch.cuda.is_available() is False. This torch is "
+            f"{torch.__version__}, built against CUDA {torch.version.cuda}. Set device: cpu in "
+            f"params.yaml to fit on the CPU instead."
+        )
+    return name
+
+
 @dataclass
 class TorchMLPModel(TargetModel):
-    """A fully-connected net on the same 21 features, trained on CPU.
+    """A fully-connected net on the same 21 features.
 
     The fitted weights are kept as numpy arrays rather than as an `nn.Module`, so the artifact
     unpickles on a machine without torch — the module is rebuilt from `hidden_sizes` on first use.
     Like CatBoostModel it expects targets that TargetScaler has already scaled, and like it,
     `patience: 0` turns early stopping off — trains all `epochs` and keeps the LAST one.
+
+    `device` selects where the FIT runs. Inference is always on the CPU: the artifact has to
+    unpickle and predict where a submission is scored, which is a machine this fork does not
+    control, and a forward pass over one shot's ~300 frames is microseconds either way.
     """
 
     hidden_sizes: list[int]
@@ -320,6 +364,7 @@ class TorchMLPModel(TargetModel):
     weight_decay: float
     seed: int
     threads: int
+    device: str
     _state: dict[str, np.ndarray] | None = field(default=None, init=False, repr=False)
     _n_in: int = field(default=0, init=False, repr=False)
     _n_out: int = field(default=0, init=False, repr=False)
@@ -331,31 +376,27 @@ class TorchMLPModel(TargetModel):
         return "torch_mlp"
 
     def _build(self, n_in: int, n_out: int) -> Any:
-        """The architecture, as a plain Sequential: Linear/ReLU stack, linear head."""
-        import torch
-
-        sizes = [n_in, *self.hidden_sizes]
-        layers: list[Any] = []
-        for a, b in itertools.pairwise(sizes):
-            layers += [torch.nn.Linear(a, b), torch.nn.ReLU()]
-        layers.append(torch.nn.Linear(sizes[-1], n_out))
-        return torch.nn.Sequential(*layers)
+        return build_mlp(n_in, self.hidden_sizes, n_out)
 
     def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         import torch
 
+        dev = resolve_device(self.device, f"torch_mlp(seed={self.seed})")
         # Not one thread per core: a batch of this net is too small to feed 20 threads and the
         # synchronization dominates. See params.yaml for the measurement.
         torch.set_num_threads(self.threads)
         torch.manual_seed(self.seed)
         self._n_in, self._n_out = X.shape[1], Y.shape[1]
-        net = self._build(self._n_in, self._n_out)
+        # Built on the CPU and then moved, so the initial weights are the ones a CPU fit would
+        # have drawn — the two runs start from the same point and only the arithmetic differs.
+        net = self._build(self._n_in, self._n_out).to(dev)
 
-        Xt = torch.from_numpy(np.ascontiguousarray(X, dtype=np.float32))
-        Yt = torch.from_numpy(np.ascontiguousarray(Y, dtype=np.float32))
+        Xt_cpu = torch.from_numpy(np.ascontiguousarray(X, dtype=np.float32))
+        Yt_cpu = torch.from_numpy(np.ascontiguousarray(Y, dtype=np.float32))
+        Xt, Yt = Xt_cpu.to(dev), Yt_cpu.to(dev)
         loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(Xt, Yt),
+            torch.utils.data.TensorDataset(Xt_cpu, Yt_cpu),
             batch_size=self.batch_size, shuffle=True,
             generator=torch.Generator().manual_seed(self.seed),
         )
@@ -383,10 +424,13 @@ class TorchMLPModel(TargetModel):
                     "epoch but correct — and re-measure the baseline, since the shuffle changes."
                 )
             return sampler_iter
-        Xvt = torch.from_numpy(np.ascontiguousarray(X_val, dtype=np.float32))
-        Yvt = torch.from_numpy(np.ascontiguousarray(Y_val, dtype=np.float32))
+        Xvt = torch.from_numpy(np.ascontiguousarray(X_val, dtype=np.float32)).to(dev)
+        Yvt = torch.from_numpy(np.ascontiguousarray(Y_val, dtype=np.float32)).to(dev)
+        # fused Adam is one kernel for the whole step rather than a handful per tensor, which
+        # matters only because this loop is bound by kernel launches. Measured equivalent to the
+        # default implementation to 3.5e-7 relative over 20 steps.
         opt = torch.optim.Adam(net.parameters(), lr=self.learning_rate,
-                               weight_decay=self.weight_decay)
+                               weight_decay=self.weight_decay, fused=(dev == "cuda"))
         loss_fn = torch.nn.MSELoss()
 
         # Early stopping keeps the BEST epoch, not the last one: without it the saved weights are
@@ -394,15 +438,21 @@ class TorchMLPModel(TargetModel):
         best_loss, best_state, since_best = float("inf"), None, 0
         bar = tqdm(range(self.epochs), desc="    mlp", unit="epoch")
         for epoch in bar:
-            total, n = 0.0, 0
+            # Accumulated ON the device and read once per epoch. `float(loss)` inside the batch
+            # loop is a full device sync every batch, which serialises exactly the overlap a GPU
+            # exists to provide; on the CPU it costs nothing either way.
+            total_t = torch.zeros((), device=dev)
+            n = 0
             for idx in batch_indices():
-                xb, yb = Xt[idx], Yt[idx]
+                ib = torch.as_tensor(idx, device=dev)
+                xb, yb = Xt[ib], Yt[ib]
                 opt.zero_grad()
                 loss = loss_fn(net(xb), yb)
                 loss.backward()
                 opt.step()
-                total += float(loss) * len(xb)
-                n += len(xb)
+                total_t += loss.detach() * len(idx)
+                n += len(idx)
+            total = float(total_t)
 
             net.eval()
             with torch.no_grad():
@@ -452,6 +502,8 @@ class TorchMLPModel(TargetModel):
             raise RuntimeError("torch_mlp: predict() before fit()")
         import torch
 
+        # On the CPU whatever `device` said — see the class docstring: a submission is scored on a
+        # machine this fork does not control, so inference must not require a GPU.
         torch.set_num_threads(self.threads)
         net = self._build(self._n_in, self._n_out)
         net.load_state_dict({k: torch.from_numpy(v) for k, v in self._state.items()})
@@ -493,6 +545,10 @@ class Params:
     models: dict[str, TargetModel]      # name -> unfitted model, enabled ones only
     ensemble: dict[str, float]          # name -> weight, already normalized to sum to 1
     path: Path
+    # params.yaml AFTER --salt / --only were applied. The artifact stores this rather than the
+    # file's text, so a screening run records the configuration it actually fitted instead of the
+    # one that happens to be on disk. Identical to the file when nothing was overridden.
+    effective_yaml: str
 
     @property
     def n_targets(self) -> int:
@@ -541,13 +597,54 @@ def _build_model(name: str, cfg: dict[str, Any], path: Path) -> TargetModel:
         raise ValueError(f"{path}: model '{name}' (type {kind}): {exc}") from exc
 
 
-def load_params(path: Path = DEFAULT_PARAMS_PATH) -> Params:
-    """Read params.yaml, or raise with the file and the offending key."""
+def apply_overrides(doc: dict[str, Any], path: Path, salt: int | None,
+                    only: list[str] | None) -> dict[str, Any]:
+    """The two things a screening run wants to vary without editing the file.
+
+    Hyper-parameters live in params.yaml and only there — see AGENTS.md — and this does not
+    contradict that. What the rule forbids is a DEFAULT hiding in argparse, a second value to keep
+    in sync. These are explicit, they have no defaults of their own, they are printed, and the
+    EFFECTIVE document is what the artifact stores, so a run still says exactly what produced it.
+
+    * `salt` reshuffles which shots train, validate and score. It is the replicate that matters,
+      and sweeping it meant editing the file between runs, which is how a sweep ends up comparing
+      two configurations by accident.
+    * `only` narrows the zoo to the named models and rebuilds the ensemble from whatever of them
+      survives — one net instead of four is a quarter of the fit, which is what makes a screen a
+      screen. Everything not named is switched off, `ridge` included: it costs 0.0 s and is the
+      deterministic control, so name it when you want it.
+    """
+    if salt is not None:
+        doc["split"]["salt"] = salt
+    if only is not None:
+        if not only:
+            raise ValueError(f"{path}: --only was given no model names")
+        unknown = set(only) - set(doc["models"])
+        if unknown:
+            raise ValueError(f"{path}: --only names {sorted(unknown)}, which are not in the file; "
+                             f"it holds {sorted(doc['models'])}")
+        for name, cfg in doc["models"].items():
+            cfg["enabled"] = name in only
+        members = {k: v for k, v in doc["ensemble"]["members"].items() if k in only}
+        # Every ensemble member was switched off, so the ensemble has to be redefined rather than
+        # left dangling. The named models, equally weighted, is the only reading that is not a
+        # guess — and with one name it is that model.
+        doc["ensemble"]["members"] = members or dict.fromkeys(only, 1.0)
+    return doc
+
+
+def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
+                only: list[str] | None = None) -> Params:
+    """Read params.yaml, or raise with the file and the offending key.
+
+    `salt` and `only` override the file for one run; see `apply_overrides`.
+    """
     if not path.exists():
         raise FileNotFoundError(f"{path} not found — it holds every hyper-parameter of the zoo")
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(doc, dict):
         raise ValueError(f"{path}: expected a mapping at the top level, got {type(doc).__name__}")
+    doc = apply_overrides(doc, path, salt, only)
     _require_keys(doc, {"features", "split", "loss", "models", "ensemble"},
                   "the top level", path)
     _require_keys(doc["split"], {"salt"}, "split", path)
@@ -617,4 +714,5 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH) -> Params:
                   inputs=inputs,
                   n_coil_pca=int(doc["features"]["n_coil_pca"]),
                   models=models,
-                  ensemble={k: float(v) / total for k, v in weights.items()}, path=path)
+                  ensemble={k: float(v) / total for k, v in weights.items()}, path=path,
+                  effective_yaml=yaml.safe_dump(doc, sort_keys=False))
