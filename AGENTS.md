@@ -266,6 +266,36 @@ Scoring always goes through `local_score.py`, called as a function. Do not write
 own sums of squares: the competition metric lives in `fusion_scoring/` and is not obvious — R² is
 pooled across the whole fold against a single scalar mean, while `D_LCFS` is averaged per shot.
 
+## Every run is watchable while it runs
+
+Every long recipe tees into `logs/<UTC timestamp>-<target>.log` and repoints `logs/latest.log` at
+the newest, so `tail -f logs/latest.log` follows whatever is training right now. `logs/` is
+gitignored; the grids under `grids/` are not, because a grid file IS the pre-registration and a
+description in experiments_history can be rewritten afterwards while a committed JSON cannot.
+
+Three details, each of which had to be got right for this to be worth having:
+
+- **`SHELL := /bin/bash` with `-o pipefail`.** `cmd | tee` returns TEE's exit code, so under
+  `/bin/sh` a failed training run reports success. That is not hypothetical — it is how the first
+  crash of the GPU work looked like a clean run.
+- **Write to the file descriptor, not to a buffer.** `subprocess.run(capture_output=True)` produces
+  the same file at the end and nothing to watch in the meantime, which defeats the point.
+- **Point `latest.log` at a run BEFORE starting it**, not after it finishes.
+
+## Progress bars are for terminals; logs get a slower one
+
+`my_experiments/progress.bar_kwargs` thins a tqdm bar when stderr is NOT a terminal — every 1000
+shots for the reading and scoring loops, every 50 epochs for the fit. On a terminal nothing
+changes, because a redrawing bar is what makes one useful to a human.
+
+Two traps, both measured on a smoke run that started at 788 KB of log:
+
+- **`mininterval` must go to 0 alongside `miniters`.** tqdm redraws when EITHER threshold is met,
+  so the default 0.1 s keeps the per-second spam whatever `miniters` says.
+- **`bar.set_postfix()` defaults to `refresh=True`** and forces a redraw every single call,
+  quietly defeating both. It is the larger of the two effects: fixing `miniters` alone took the
+  log to 104 KB, and `refresh=False` took it to **25 KB**, with the score unchanged.
+
 ## Progress through tqdm
 
 One redrawing line per loop, not a line per shot. Over thousands of shots, per-line printing makes

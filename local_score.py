@@ -72,7 +72,7 @@ from metrics import Accum, finalize_machine  # noqa: E402
 
 from my_experiments.baseline_model import slim_row  # noqa: E402
 from my_experiments.parallel import pimap, resolve_jobs  # noqa: E402
-from my_experiments.progress import install_timestamps  # noqa: E402
+from my_experiments.progress import SHOT_EVERY, bar_kwargs, install_timestamps  # noqa: E402
 
 REPO_ID = "Sophelio/fusion-equilibrium-challenge"
 TRAIN_CONFIG = "diii_d_train"
@@ -159,7 +159,7 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
 
     if files is not None:
         out = []
-        bar = tqdm(files, desc="  reading shots", unit="shot")
+        bar = tqdm(files, desc="  reading shots", unit="shot", **bar_kwargs(SHOT_EVERY))
         for path in bar:
             shot = _shot_from_row(pd.read_parquet(path).iloc[0])
             out.append(shot)
@@ -184,7 +184,8 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
         )
 
     out = []
-    bar = tqdm(files[skip:skip + n_shots], desc="  reading shots", unit="shot")
+    bar = tqdm(files[skip:skip + n_shots], desc="  reading shots", unit="shot",
+               **bar_kwargs(SHOT_EVERY))
     for path in bar:
         shot = _shot_from_row(pd.read_parquet(path).iloc[0])
         out.append(shot)
@@ -251,7 +252,8 @@ def predict(shots: list[dict], mode: str, pred_npz: Path | None,
                 for s in shots]
     from submission_skeleton import your_model_predict
     return [your_model_predict(s["row"], MACHINE, model)
-            for s in tqdm(shots, desc="  predicting", unit="shot")]
+            for s in tqdm(shots, desc="  predicting", unit="shot",
+                            **bar_kwargs(SHOT_EVERY))]
 
 
 # --------------------------------------------------------------------------- parallelism
@@ -276,7 +278,7 @@ def _map(fn: Callable[[tuple], Any], tasks: list[tuple], jobs: int, desc: str) -
     my_experiments/parallel.py for why order and the start method are not negotiable."""
     label = desc if jobs == 1 else f"{desc} x{jobs}"
     out: list = []
-    with tqdm(total=len(tasks), desc=label, unit="shot") as bar:
+    with tqdm(total=len(tasks), desc=label, unit="shot", **bar_kwargs(SHOT_EVERY)) as bar:
         for lo in range(0, len(tasks), MAP_CHUNK):
             for result in pimap(fn, tasks[lo:lo + MAP_CHUNK], jobs):
                 out.append(result)

@@ -7,6 +7,21 @@
 # Local secrets, untracked. The leading `-` keeps every other target working without the file.
 # Exported rather than passed on the command line, so the token stays out of `make`'s echo and out
 # of the process list: submission_skeleton.py defaults --read-token to $HF_READ_TOKEN.
+# bash and pipefail, both load-bearing. Every long recipe below pipes through `tee` so a run is
+# watchable while it happens, and `cmd | tee` returns TEE's exit code — under /bin/sh a failed
+# training run would report success. This fork has already been bitten by exactly that.
+SHELL := /bin/bash
+.SHELLFLAGS := -o pipefail -c
+
+# Every run writes logs/<UTC timestamp>-<target>.log and the terminal at the same time, and points
+# logs/latest.log at the newest, so `tail -f logs/latest.log` always follows whatever is running.
+# The directory is gitignored: these hold tqdm's carriage returns and run to megabytes.
+LOG_DIR ?= logs
+LOG_START = mkdir -p $(LOG_DIR); LOG=$(LOG_DIR)/$$(date -u +%Y%m%d-%H%M%S)-$@.log; \
+            ln -sfn $$(basename $$LOG) $(LOG_DIR)/latest.log; \
+            echo "--> $$LOG  (tail -f $(LOG_DIR)/latest.log)"
+TEE = 2>&1 | tee -a $$LOG
+
 -include .env
 export HF_READ_TOKEN
 # Downloads only. huggingface_hub reads HF_TOKEN straight from the environment, so this raises the
@@ -17,7 +32,7 @@ export HF_TOKEN
 HF_REPO ?= pshishkin/fusion-eq-predictions
 
 .PHONY: ci lint format typecheck test quality prod train eval predict_and_submit_to_hf clean \
-        clean-cache warm-cache download_dataset
+        clean-cache warm-cache download_dataset sweep
 
 # Where the dataset lives. It sits BESIDE the repo, not inside it, so a `git clean` cannot delete
 # 97 GB — and every `--local-data-dir` flag already defaults to this path.
@@ -84,16 +99,29 @@ JOBS ?= 24
 TORCH_ENV = OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4
 
 test:
+	@$(LOG_START); \
 	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002 \
-		--only mlp --jobs $(JOBS)
+		--only mlp --jobs $(JOBS) $(TEE)
 
 quality:
+	@$(LOG_START); \
 	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01 \
-		--only ridge mlp --jobs $(JOBS)
+		--only ridge mlp --jobs $(JOBS) $(TEE)
 
 prod:
+	@$(LOG_START); \
 	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01 \
-		--jobs $(JOBS)
+		--jobs $(JOBS) $(TEE)
+
+# A pre-declared grid of configurations, one at a time, collected into a CSV. Each run tees into
+# its own logs/<timestamp>-<name>.log and repoints logs/latest.log, so the sweep is watchable the
+# whole way through. Resumes: a name already in OUT is skipped, so a killed sweep costs one run.
+#
+#   make sweep GRID=grids/lr.json OUT=results/lr.csv
+sweep:
+	@$(LOG_START); \
+	test -n "$(GRID)" || { echo "GRID= is required"; exit 2; }; \
+	$(TORCH_ENV) uv run python my_experiments/sweep.py $(GRID) $${OUT:-results/sweep.csv} $(TEE)
 
 train:
 	uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2

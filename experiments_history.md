@@ -72,6 +72,12 @@ not assumed — see "The noise, measured properly" below: at production a single
 | 08-14 | do the two devices stop at the same epoch? | GPU 626 epochs keeping 525, CPU 704 keeping 603, same data and seed | measured — they do NOT, and should not be expected to: Adam turns float round-off into a different realisation of the same fit within a few dozen steps |
 | 08-14 | is README's production table still the configuration it describes? | its `ridge` row says **0.7022**, which it-10 records as the PRE-Thomson value (Thomson took ridge to 0.7562); measured now, ridge is **0.7615** on the same command | the table was stale — ridge is deterministic, so it cannot disagree by chance, and the row had never been re-measured after a change it-10 records as kept |
 | 08-14 | does batch size move the epoch time? | 183 batches 0.307 s, 91 → 0.152, 45 → 0.080, 22 → 0.033, 11 → 0.020 — time tracks the NUMBER of batches, not their size | measured; a candidate in ideas.md, NOT a free speed-up — it changes the optimisation |
+| 08-14 | **grid A** batch norm x learning rate, jointly, on `make quality` (one net, salt 0) | BN peaks at lr 3e-3 with **0.9873 against the baseline's 0.9873**, and falls away either side (1e-3 0.9866, 1e-2 0.9861, 3e-2 0.9816); it costs 30-38% more per epoch | **refuted at its own best rate** — the strong form. Measuring it at the baseline's rate alone would have called it harmful, which is a different and wrong claim |
+| 08-14 | is the learning rate itself already right? | 3e-4 gives 0.9858, **1e-3 gives 0.9873**, 3e-3 gives 0.9830 — unimodal, peak on the value the fork has always used | measured; the rate was never tuned and is nonetheless optimal. Axis closed |
+| 08-14 | does BN buy learning-rate robustness? | lr 3e-3 costs −0.0043 without BN and 0.0000 with it | measured — BN delivers exactly what it promises, and here that is worth nothing, because 1e-3 was already the optimum |
+| 08-14 | **cosine** LR decay to 0.01x over the epoch ceiling | **0.9882 (+0.0009)** and the fit drops 191.2 s → **161.1 s**, 626 → 533 epochs | +0.0009 is BELOW the pre-registered 0.0013, so the score is not confirmed. Carried to the confirmation phase on the SPEED argument instead, which is a different criterion and is labelled as one |
+| 08-14 | cosine on top of batch norm | 0.9879 against 0.9882 for cosine alone, at 228.3 s against 161.1 | BN adds nothing over the schedule either, and costs 42% more time |
+| 08-14 | did anything else drift across the nine grid-A runs? | `ridge` is **0.7615 in all nine**, to four decimals | the deterministic control held — between configurations, only what was set changed |
 
 ## The two reversals, and what they cost us
 
@@ -488,6 +494,77 @@ per-shot settings — in which case it is irreducible from these inputs by anyon
 It also corrects an entry from 08-11. "The error is a per-shot flux offset" was recorded as refuted
 at 21%, but that measured one additive scalar on ψ; this measures a constant vector in the
 50-dimensional coefficient space, a strictly larger family, and at production it is 46%.
+
+## The `make quality` sweep, pre-registered 2026-08-14
+
+Written down BEFORE the first run, because the alternative is not a measurement. The screen is
+`make quality` — 4225 shots, one net, salt 0 — at 5.5 min a run.
+
+**Why pre-registration and not just a bigger sweep.** The single-net sigma is **0.0013** (08-14,
+pooled over three salts). The expected maximum of N draws from that noise is about 2.25 sigma at
+N = 50, i.e. **+0.0029** of pure selection — larger than any change this fork has ever accepted
+(+0.0022, +0.0039, +0.0042, +0.0018). It-18 measured exactly this failure on this project: the
+accepted stack showed +0.0115 on the three salts it was selected on and +0.0077 / +0.0057 on two
+salts it had never seen, so about 40% was selection bias.
+
+**Thresholds, fixed in advance:**
+
+- a configuration becomes a *finalist* if it beats the salt-0 baseline by more than **0.0013** (1
+  sigma) on the screen;
+- a finalist is *accepted* only if, re-measured on salts **3 and 4** which nothing selected
+  against, the mean gain exceeds **0.0013** AND both salts agree in sign;
+- whatever survives gets one four-net production run before it goes near a submission;
+- the screen number and the confirmation number are always reported together. The screen number
+  alone is not a result.
+
+**Grid A — batch norm and the learning rate, JOINTLY.** Batch norm changes the convergence enough
+that measuring it at the rate tuned without it would test the rate, not the normalisation. Nine
+runs: `batch_norm` off/on crossed with `learning_rate` 3e-4 / 1e-3 / 3e-3 / 1e-2 / 3e-2, plus the
+cosine schedule on the best of each arm.
+
+**Grid B — batch size and the rate**, for both goals at once: the loop is launch-bound, so epoch
+time tracks the number of batches (183 -> 0.307 s, 45 -> 0.080, 11 -> 0.020). `patience` is
+converted to a constant number of STEPS rather than left at 100 epochs, or the comparison measures
+the leash: at batch 4096 an epoch is 22 steps against 183 now.
+
+**Grid C — the cheap regularisers.** `weight_decay` is still 0.0 and the measured train/val gap on
+this screen is **3.4x** (train 0.0192, val 0.0650 at epoch 625), so there is something to
+regularise. `dropout`, and `gelu`/`silu` for the hidden layers.
+
+**Declared in advance as a likely disappointment**, so it is not explained away later: the screen
+fits ONE net and production averages FOUR. Dropout and batch norm work partly by reducing variance,
+which is what seed-averaging already does, so a gain here can shrink in the production ensemble.
+
+## Why batch norm gave nothing, and what it predicts — 2026-08-14
+
+Batch norm was measured at four learning rates spanning 30x (1e-3, 3e-3, 1e-2, 3e-2) because it
+changes convergence enough that testing it at the rate tuned without it would test the rate. The
+curve is unimodal with its peak at 3e-3, and that peak is **exactly the baseline**: 0.9873 against
+0.9873, for 30-38% more time per epoch.
+
+The train/val curves say why, and it is not "batch norm did not work":
+
+| at epoch 600 | train | val | gap |
+|---|---|---|---|
+| baseline | 0.0192 | 0.0650 | **3.4x** |
+| BN, lr 1e-3 | 0.0375 | 0.0693 | **1.9x** |
+| BN, lr 3e-3 | 0.0343 | 0.0662 | **1.9x** |
+
+**It regularised hard and that bought nothing.** The gap closed from the wrong side: validation did
+not move (0.0650 -> 0.0662) while the training loss got 1.8x worse. So the 3.4x gap was not the
+constraint — the model is limited by bias, not by variance, which agrees with it-11 (capacity
+exhausted, the constraint is the data) and with the nearest-neighbour ceiling of R² 0.97-0.997
+against the 0.90-0.93 the model reaches.
+
+Batch norm's other textbook effects DID show up and also failed to matter: the epoch-0 loss fell
+1.83 -> 0.79, so it conditions the start; and it did not converge in fewer epochs (626 baseline
+against 604 and 652). On two hidden layers the gradient path is short enough to need neither, and
+the pipeline already standardises the features and scales the targets to unit variance, so both
+ends of the net were well conditioned before batch norm saw them.
+
+**Pre-registered prediction, written before grid C ran:** dropout and `weight_decay` should do the
+same thing — close the train/val gap without moving validation. If either moves validation, this
+explanation is wrong and has to be replaced rather than patched.
 
 ## Measurement facts worth not re-deriving
 

@@ -23,6 +23,7 @@ import functools
 import hashlib
 import sys
 import time
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -61,6 +62,7 @@ from my_experiments.models import (
     load_params,
 )
 from my_experiments.parallel import pimap, release, resolve_jobs
+from my_experiments.progress import SHOT_EVERY, bar_kwargs
 from my_experiments.target_metric import (
     CONS_SCALARS,
     boundary_form,
@@ -463,7 +465,17 @@ def _profile_stats(values: FloatArray, dens: FloatArray, coord: FloatArray) -> F
     def masked(a: FloatArray) -> FloatArray:
         return np.where(live, a, np.nan)
 
-    with np.errstate(invalid="ignore", divide="ignore"):
+    # `errstate` covers numpy's floating-point flags; "Mean of empty slice" is a RuntimeWarning
+    # raised by the nan-functions themselves and needs its own filter. It fires on frames where
+    # EVERY channel is dead, which are a subset of `~enough` and are overwritten with nan below —
+    # so the warning describes a case this function already handles on purpose, and the model is
+    # told about it through the validity flag rather than being handed a quiet zero. Measured at
+    # production: 0.7% of training frames. Filtered by message so a DIFFERENT nan warning here
+    # would still be heard.
+    with np.errstate(invalid="ignore", divide="ignore"), warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "(Mean|All-NaN slice) of empty slice",
+                                RuntimeWarning)
+        warnings.filterwarnings("ignore", "All-NaN slice encountered", RuntimeWarning)
         te, ne_, pr = masked(values), masked(dens), masked(press)
         peak_te, peak_ne, peak_p = (np.nanmax(v, axis=1) for v in (te, ne_, pr))
         at_te = coord[np.nanargmax(np.where(np.isnan(te), -np.inf, te), axis=1)]
@@ -813,7 +825,7 @@ def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
     n = resolve_jobs(jobs, len(files))
     tasks = [(path, frame_share) for path in files]
     X_parts, Y_parts, S_parts = [], [], []
-    bar = tqdm(pimap(_read_task, tasks, n), total=len(files),
+    bar = tqdm(pimap(_read_task, tasks, n), total=len(files), **bar_kwargs(SHOT_EVERY),
                desc=desc if n == 1 else f"{desc} x{n}", unit="shot")
     for feats, psi, scal in bar:
         X_parts.append(feats)
@@ -827,14 +839,14 @@ def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
 
 def train(share: str, val_share: str, local_data_dir: Path, config: str,
           params_path: Path = DEFAULT_PARAMS_PATH, jobs: int = 0, salt: int | None = None,
-          only: list[str] | None = None) -> Artifact:
+          only: list[str] | None = None, sets: list[str] | None = None) -> Artifact:
     """Fit every enabled model of params.yaml on the head of the split, and save them together.
 
     Both shares are `"shots"` or `"shots/frames"` (see parse_share). `val_share` is the window
     right behind the training one; it never enters a fit as data, it is what CatBoost and the MLP
     stop on and pick their best iteration by.
     """
-    params: Params = load_params(params_path, salt, only)
+    params: Params = load_params(params_path, salt, only, sets)
     shot_share, frame_share = parse_share(share)
     val_shot_share, val_frame_share = parse_share(val_share)
     all_files = sorted_shots(local_data_dir, config, params.split_salt)

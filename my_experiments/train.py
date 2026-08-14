@@ -66,10 +66,15 @@ def main() -> int:
                     help="fit only these models from params.yaml and build the ensemble from "
                          "them; everything else is switched off, `ridge` included. One net "
                          "instead of four is a quarter of the fit, which is what a screen is for")
+    ap.add_argument("--set", nargs="+", default=None, metavar="KEY=VALUE", dest="sets",
+                    help="override one params.yaml key for this run, dotted: "
+                         "--set models.mlp.batch_norm=true models.mlp.learning_rate=0.003 . The "
+                         "key must already exist, and the value is parsed as YAML, so `true`, "
+                         "`1e-3` and `[512, 512]` mean what they mean in the file")
     args = ap.parse_args()
 
     train(args.share, args.val_share, args.local_data_dir, args.config, args.params,
-          args.jobs, args.salt, args.only)
+          args.jobs, args.salt, args.only, args.sets)
     return 0
 
 

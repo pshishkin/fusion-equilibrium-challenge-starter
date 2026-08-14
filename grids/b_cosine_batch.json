@@ -1,0 +1,14 @@
+[
+  {"name": "29_const_p300",  "sets": ["models.mlp.patience=300"]},
+
+  {"name": "30_cos400_p300", "sets": ["models.mlp.lr_schedule=cosine", "models.mlp.lr_t_max=400", "models.mlp.patience=300"]},
+  {"name": "31_cos600_p300", "sets": ["models.mlp.lr_schedule=cosine", "models.mlp.lr_t_max=600", "models.mlp.patience=300"]},
+  {"name": "32_cos900_p300", "sets": ["models.mlp.lr_schedule=cosine", "models.mlp.lr_t_max=900", "models.mlp.patience=300"]},
+  {"name": "33_cos600_lr3e-3_p300", "sets": ["models.mlp.lr_schedule=cosine", "models.mlp.lr_t_max=600", "models.mlp.learning_rate=3e-3", "models.mlp.patience=300"]},
+
+  {"name": "10_bs1024_sqrt", "sets": ["models.mlp.batch_size=1024", "models.mlp.learning_rate=1.4e-3", "models.mlp.patience=200", "models.mlp.epochs=4000"]},
+  {"name": "11_bs2048_sqrt", "sets": ["models.mlp.batch_size=2048", "models.mlp.learning_rate=2.0e-3", "models.mlp.patience=400", "models.mlp.epochs=8000"]},
+  {"name": "12_bs4096_sqrt", "sets": ["models.mlp.batch_size=4096", "models.mlp.learning_rate=2.8e-3", "models.mlp.patience=800", "models.mlp.epochs=16000"]},
+  {"name": "13_bs4096_lin",  "sets": ["models.mlp.batch_size=4096", "models.mlp.learning_rate=8.0e-3", "models.mlp.patience=800", "models.mlp.epochs=16000"]},
+  {"name": "15_bs256_sqrt",  "sets": ["models.mlp.batch_size=256", "models.mlp.learning_rate=7.1e-4", "models.mlp.patience=50", "models.mlp.epochs=1000"]}
+]

@@ -210,6 +210,30 @@ models:
     # per epoch: 1 thread 0.064 s, 4 threads 0.040 s, 20 threads 0.351 s.
     threads: 4
     device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: relu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Batch norm on the hidden pre-activations. It changes the convergence badly enough that it
+    # cannot be screened at the learning rate tuned without it — sweep the two JOINTLY or the
+    # result is a statement about the rate, not about the normalisation.
+    batch_norm: false
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the EPOCH CEILING, not over the epoch early stopping
+    # reaches — a schedule whose shape depends on its own outcome is a feedback loop, not a setting.
+    lr_schedule: none
+    lr_final_factor: 0.01
+    # Epochs the schedule spans; 0 = use `epochs`. `epochs` is a CEILING set far above any real
+    # fit, so leaving this at 0 makes a cosine traverse only its flat first quarter — measured, it
+    # cut the rate by 16% over a 533-epoch run and called itself an annealing schedule. Set it near
+    # where the fit actually ends.
+    lr_t_max: 0
 
   mlp1:
     type: torch_mlp
@@ -223,6 +247,30 @@ models:
     seed: 1
     threads: 4
     device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: relu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Batch norm on the hidden pre-activations. It changes the convergence badly enough that it
+    # cannot be screened at the learning rate tuned without it — sweep the two JOINTLY or the
+    # result is a statement about the rate, not about the normalisation.
+    batch_norm: false
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the EPOCH CEILING, not over the epoch early stopping
+    # reaches — a schedule whose shape depends on its own outcome is a feedback loop, not a setting.
+    lr_schedule: none
+    lr_final_factor: 0.01
+    # Epochs the schedule spans; 0 = use `epochs`. `epochs` is a CEILING set far above any real
+    # fit, so leaving this at 0 makes a cosine traverse only its flat first quarter — measured, it
+    # cut the rate by 16% over a 533-epoch run and called itself an annealing schedule. Set it near
+    # where the fit actually ends.
+    lr_t_max: 0
 
   mlp2:
     type: torch_mlp
@@ -236,6 +284,30 @@ models:
     seed: 2
     threads: 4
     device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: relu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Batch norm on the hidden pre-activations. It changes the convergence badly enough that it
+    # cannot be screened at the learning rate tuned without it — sweep the two JOINTLY or the
+    # result is a statement about the rate, not about the normalisation.
+    batch_norm: false
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the EPOCH CEILING, not over the epoch early stopping
+    # reaches — a schedule whose shape depends on its own outcome is a feedback loop, not a setting.
+    lr_schedule: none
+    lr_final_factor: 0.01
+    # Epochs the schedule spans; 0 = use `epochs`. `epochs` is a CEILING set far above any real
+    # fit, so leaving this at 0 makes a cosine traverse only its flat first quarter — measured, it
+    # cut the rate by 16% over a 533-epoch run and called itself an annealing schedule. Set it near
+    # where the fit actually ends.
+    lr_t_max: 0
 
   mlp3:
     type: torch_mlp
@@ -249,6 +321,30 @@ models:
     seed: 3
     threads: 4
     device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: relu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Batch norm on the hidden pre-activations. It changes the convergence badly enough that it
+    # cannot be screened at the learning rate tuned without it — sweep the two JOINTLY or the
+    # result is a statement about the rate, not about the normalisation.
+    batch_norm: false
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the EPOCH CEILING, not over the epoch early stopping
+    # reaches — a schedule whose shape depends on its own outcome is a feedback loop, not a setting.
+    lr_schedule: none
+    lr_final_factor: 0.01
+    # Epochs the schedule spans; 0 = use `epochs`. `epochs` is a CEILING set far above any real
+    # fit, so leaving this at 0 makes a cosine traverse only its flat first quarter — measured, it
+    # cut the rate by 16% over a 533-epoch run and called itself an annealing schedule. Set it near
+    # where the fit actually ends.
+    lr_t_max: 0
 
 ensemble:
   # Predictions of the members, averaged with these weights (renormalized to sum to 1). Averaging

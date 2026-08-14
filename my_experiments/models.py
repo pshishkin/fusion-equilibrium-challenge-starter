@@ -35,6 +35,8 @@ import yaml
 from sklearn.linear_model import Ridge
 from tqdm import tqdm
 
+from my_experiments.progress import bar_kwargs
+
 # The composite's own weights, read from the vendored scorer rather than copied here: the
 # metric_aligned scaling below is only as correct as these numbers, and a hard-coded 0.55 would go
 # stale the day the organizers reweight the leaderboard.
@@ -46,9 +48,11 @@ FloatArray = npt.NDArray[np.floating[Any]]
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PARAMS_PATH = REPO_ROOT / "params.yaml"
 
-# How often the MLP writes a train/val line above its progress bar. A logging cadence, not a
-# hyper-parameter, so it stays in code — CatBoost's own `verbose` is set the same way.
-MLP_LOG_EVERY = 100
+# How often the MLP writes a train/val line. A logging cadence, not a hyper-parameter, so it stays
+# in code — CatBoost's own `verbose` is set the same way. In a log file this line is the ONLY
+# training output: the bar is switched off there (progress.bar_kwargs), because the line already
+# carries everything the bar showed and a timestamp besides.
+MLP_LOG_EVERY = 50
 
 
 # --------------------------------------------------------------------------- target scaling
@@ -308,21 +312,58 @@ class CatBoostModel(TargetModel):
 TORCH_DEVICES = ("cpu", "cuda")
 
 
-def build_mlp(n_in: int, hidden_sizes: list[int], n_out: int) -> Any:
+# Nonlinearities offered for the hidden layers. ReLU is the baseline every number before
+# 2026-08-14 was measured on; the rest have a nonzero derivative on the negative side, which is the
+# property in question — a dead unit in a three-layer net never comes back.
+#
+# There is deliberately no choice for the OUTPUT: it stays linear. The targets are scaled PCA
+# coefficients and scalars with unbounded range, so a squashing head (tanh, sigmoid) would cap the
+# tails of the very distribution being regressed.
+ACTIVATIONS = ("relu", "gelu", "silu", "tanh")
+
+# What `lr_schedule` may say. `none` is the constant rate every number before 2026-08-14 was
+# measured on. `cosine` decays from `learning_rate` to `learning_rate * lr_final_factor` over
+# `lr_t_max` epochs, then HOLDS at that floor.
+#
+# The horizon is its own setting, and that was learned the hard way. It was first driven by
+# `epochs`, on the reasoning that using the epoch early stopping happens to reach would make the
+# schedule's shape depend on its own outcome — true, but `epochs` is a ceiling set far above any
+# real run, so with epochs=2000 and a fit that stops near 530 the cosine only ever traverses its
+# first flat quarter: the rate fell from 1e-3 to 8.4e-4 and never went below 84% of its start.
+# That measured a 16% rate cut, not an annealing schedule. Set `lr_t_max` near where the fit
+# actually ends.
+LR_SCHEDULES = ("none", "cosine")
+
+
+def build_mlp(n_in: int, hidden_sizes: list[int], n_out: int, activation: str = "relu",
+              dropout: float = 0.0, batch_norm: bool = False) -> Any:
     """The architecture, in one place, as an ordinary `nn.Sequential`.
 
-    Both the single net and the grouped one call this, so the net is DECLARED once and nothing
-    downstream restates its shape. Adding batch norm, dropout or a different nonlinearity is an
-    edit to this function and to nothing else: batch norm, dropout, a different nonlinearity or a
-    different depth all land here, and `TorchMLPModel` picks them up without knowing what they
-    are. `predict` rebuilds from the same function, so the artifact and the fit cannot drift.
+    The net is DECLARED once here and nothing downstream restates its shape; `predict` rebuilds
+    from this same function, so the artifact and the fit cannot drift apart.
+
+    Layer order is `Linear -> BatchNorm -> activation -> Dropout`: batch norm sees the linear
+    pre-activations it is meant to normalise, and dropout does not feed zeroed units into the
+    running statistics.
     """
     import torch
+
+    acts = {"relu": torch.nn.ReLU, "gelu": torch.nn.GELU, "silu": torch.nn.SiLU,
+            "tanh": torch.nn.Tanh}
+    if activation not in acts:
+        raise ValueError(f"unknown activation {activation!r}; known {sorted(acts)}")
+    if not 0.0 <= dropout < 1.0:
+        raise ValueError(f"dropout must be a share in [0, 1), got {dropout}")
 
     sizes = [n_in, *hidden_sizes]
     layers: list[Any] = []
     for a, b in itertools.pairwise(sizes):
-        layers += [torch.nn.Linear(a, b), torch.nn.ReLU()]
+        layers.append(torch.nn.Linear(a, b))
+        if batch_norm:
+            layers.append(torch.nn.BatchNorm1d(b))
+        layers.append(acts[activation]())
+        if dropout:
+            layers.append(torch.nn.Dropout(dropout))
     layers.append(torch.nn.Linear(sizes[-1], n_out))
     return torch.nn.Sequential(*layers)
 
@@ -365,6 +406,21 @@ class TorchMLPModel(TargetModel):
     seed: int
     threads: int
     device: str
+    # The architecture knobs, all of them handed straight to build_mlp. See ACTIVATIONS on why the
+    # output layer is not among them.
+    activation: str
+    dropout: float
+    batch_norm: bool
+    # Constant `none`, or `cosine` decaying to lr * lr_final_factor over `epochs`. The schedule is
+    # driven by the EPOCH ceiling rather than by the epoch early stopping happens to reach, so it
+    # does not depend on when the fit ends — a schedule whose shape moves with its own outcome is
+    # not a setting, it is a feedback loop.
+    lr_schedule: str
+    lr_final_factor: float
+    # Epochs the schedule is spread over; 0 means "use `epochs`". Past it the rate HOLDS at
+    # learning_rate * lr_final_factor rather than cycling back up, which is what
+    # CosineAnnealingLR does on its own if it is stepped past T_max.
+    lr_t_max: int
     _state: dict[str, np.ndarray] | None = field(default=None, init=False, repr=False)
     _n_in: int = field(default=0, init=False, repr=False)
     _n_out: int = field(default=0, init=False, repr=False)
@@ -376,13 +432,23 @@ class TorchMLPModel(TargetModel):
         return "torch_mlp"
 
     def _build(self, n_in: int, n_out: int) -> Any:
-        return build_mlp(n_in, self.hidden_sizes, n_out)
+        return build_mlp(n_in, self.hidden_sizes, n_out, self.activation, self.dropout,
+                         self.batch_norm)
 
     def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         import torch
 
         dev = resolve_device(self.device, f"torch_mlp(seed={self.seed})")
+        # BatchNorm1d cannot normalise a batch of one — it raises "Expected more than 1 value per
+        # channel" in training mode — and the last batch of an epoch is whatever is left over. Said
+        # here, with both numbers, rather than a thousand epochs into a run.
+        if self.batch_norm and len(X) % self.batch_size == 1:
+            raise ValueError(
+                f"torch_mlp(seed={self.seed}): {len(X)} training rows at batch_size "
+                f"{self.batch_size} leaves a final batch of ONE row, and batch norm cannot "
+                f"normalise it. Change batch_size."
+            )
         # Not one thread per core: a batch of this net is too small to feed 20 threads and the
         # synchronization dominates. See params.yaml for the measurement.
         torch.set_num_threads(self.threads)
@@ -431,12 +497,23 @@ class TorchMLPModel(TargetModel):
         # default implementation to 3.5e-7 relative over 20 steps.
         opt = torch.optim.Adam(net.parameters(), lr=self.learning_rate,
                                weight_decay=self.weight_decay, fused=(dev == "cuda"))
+        if self.lr_schedule not in LR_SCHEDULES:
+            raise ValueError(f"torch_mlp(seed={self.seed}): unknown lr_schedule "
+                             f"{self.lr_schedule!r}; known {sorted(LR_SCHEDULES)}")
+        sched = None
+        t_max = self.lr_t_max or self.epochs
+        if self.lr_schedule == "cosine":
+            if t_max < 1:
+                raise ValueError(f"torch_mlp(seed={self.seed}): lr_t_max resolves to {t_max}")
+            sched = torch.optim.lr_scheduler.CosineAnnealingLR(
+                opt, T_max=t_max, eta_min=self.learning_rate * self.lr_final_factor)
         loss_fn = torch.nn.MSELoss()
 
         # Early stopping keeps the BEST epoch, not the last one: without it the saved weights are
         # whichever epoch the counter happened to end on, which is a coin flip against overfitting.
         best_loss, best_state, since_best = float("inf"), None, 0
-        bar = tqdm(range(self.epochs), desc="    mlp", unit="epoch")
+        bar = tqdm(range(self.epochs), desc="    mlp", unit="epoch",
+                   **bar_kwargs(off_in_log=True))
         for epoch in bar:
             # Accumulated ON the device and read once per epoch. `float(loss)` inside the batch
             # loop is a full device sync every batch, which serialises exactly the overlap a GPU
@@ -459,6 +536,11 @@ class TorchMLPModel(TargetModel):
                 val_loss = float(loss_fn(net(Xvt), Yvt))
             net.train()
 
+            # Stepped only up to the horizon: past it CosineAnnealingLR would carry the rate back
+            # UP toward its start, which is a warm restart nobody asked for.
+            if sched is not None and epoch < t_max:
+                sched.step()
+
             self._ran_epochs = epoch + 1
             if val_loss < best_loss or not self.patience:
                 best_loss, since_best, self._best_epoch = val_loss, 0, epoch
@@ -466,8 +548,11 @@ class TorchMLPModel(TargetModel):
                               for k, v in net.state_dict().items()}
             else:
                 since_best += 1
+            # refresh=False, or the postfix forces a redraw EVERY epoch and quietly defeats the
+            # `miniters` that keeps a teed log readable. The values still ride along on the next
+            # redraw the bar makes on its own.
             bar.set_postfix(mse=f"{total / n:.4f}", val=f"{val_loss:.4f}",
-                            best=f"{best_loss:.4f}@{self._best_epoch}")
+                            best=f"{best_loss:.4f}@{self._best_epoch}", refresh=False)
             # The bar shows the last epoch; these lines are the history — a val loss that turned
             # around 400 epochs ago is invisible in a postfix that only ever shows "now".
             # MultiRMSE alongside MSE so the line can be read against CatBoost's own log, which
@@ -597,8 +682,48 @@ def _build_model(name: str, cfg: dict[str, Any], path: Path) -> TargetModel:
         raise ValueError(f"{path}: model '{name}' (type {kind}): {exc}") from exc
 
 
+def _set_by_path(doc: dict[str, Any], dotted: str, raw: str, path: Path) -> None:
+    """`models.mlp.learning_rate=0.003` -> doc["models"]["mlp"]["learning_rate"] = 0.003.
+
+    The key must ALREADY exist. A sweep that can invent keys is a sweep that can silently vary
+    nothing at all, which looks exactly like a change that did not help — the same reason
+    params.yaml rejects an unknown key rather than ignoring it.
+    """
+    parts = dotted.split(".")
+    node: Any = doc
+    for i, part in enumerate(parts[:-1]):
+        if not isinstance(node, dict) or part not in node:
+            raise ValueError(f"{path}: --set {dotted}= has no key {'.'.join(parts[:i + 1])!r}")
+        node = node[part]
+    leaf = parts[-1]
+    if not isinstance(node, dict) or leaf not in node:
+        raise ValueError(f"{path}: --set {dotted}= has no key {dotted!r}; "
+                         f"{'.'.join(parts[:-1]) or 'the top level'} holds "
+                         f"{sorted(node) if isinstance(node, dict) else type(node).__name__}")
+    # YAML rather than a hand-rolled cast, so `true`, `[512, 512]` and `null` mean here exactly
+    # what they mean in the file this is overriding.
+    value = yaml.safe_load(raw)
+    old = node[leaf]
+    # ...with one trap YAML 1.1 lays: `3e-3` is a STRING to it, because a float needs a dot or a
+    # signed exponent (`3.0e-3`, `3e+3`). Left alone it reaches torch as "3e-3" and dies deep in
+    # the optimizer with `'<=' not supported between float and str`, a thousand lines after the
+    # cause. Measured the hard way: it killed a sweep at run 3 of 9.
+    if isinstance(value, str) and isinstance(old, (int, float)) and not isinstance(old, bool):
+        try:
+            value = float(value)
+        except ValueError:
+            raise ValueError(
+                f"{path}: --set {dotted}={raw!r} — {dotted} holds {type(old).__name__} "
+                f"{old!r}, and {raw!r} is not a number"
+            ) from None
+    if isinstance(old, bool) != isinstance(value, bool):
+        raise ValueError(f"{path}: --set {dotted}={raw!r} would change {dotted} from "
+                         f"{type(old).__name__} {old!r} to {type(value).__name__} {value!r}")
+    node[leaf] = value
+
+
 def apply_overrides(doc: dict[str, Any], path: Path, salt: int | None,
-                    only: list[str] | None) -> dict[str, Any]:
+                    only: list[str] | None, sets: list[str] | None = None) -> dict[str, Any]:
     """The two things a screening run wants to vary without editing the file.
 
     Hyper-parameters live in params.yaml and only there — see AGENTS.md — and this does not
@@ -630,11 +755,16 @@ def apply_overrides(doc: dict[str, Any], path: Path, salt: int | None,
         # left dangling. The named models, equally weighted, is the only reading that is not a
         # guess — and with one name it is that model.
         doc["ensemble"]["members"] = members or dict.fromkeys(only, 1.0)
+    for item in sets or []:
+        if "=" not in item:
+            raise ValueError(f"--set expects key=value, got {item!r}")
+        dotted, raw = item.split("=", 1)
+        _set_by_path(doc, dotted.strip(), raw.strip(), path)
     return doc
 
 
 def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
-                only: list[str] | None = None) -> Params:
+                only: list[str] | None = None, sets: list[str] | None = None) -> Params:
     """Read params.yaml, or raise with the file and the offending key.
 
     `salt` and `only` override the file for one run; see `apply_overrides`.
@@ -644,7 +774,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(doc, dict):
         raise ValueError(f"{path}: expected a mapping at the top level, got {type(doc).__name__}")
-    doc = apply_overrides(doc, path, salt, only)
+    doc = apply_overrides(doc, path, salt, only, sets)
     _require_keys(doc, {"features", "split", "loss", "models", "ensemble"},
                   "the top level", path)
     _require_keys(doc["split"], {"salt"}, "split", path)

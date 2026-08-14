@@ -18,3 +18,7 @@ baseline.joblib
 submissions/
 submission_pointer.zip
 manifest.json
+
+# Every run tees its output here, named by UTC timestamp. Watchable while it happens, and not
+# worth versioning: tqdm's carriage returns push a production run past a megabyte.
+logs/

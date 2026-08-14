@@ -131,3 +131,33 @@ def install_timestamps() -> None:
     if _START is None:
         _START = time.perf_counter()
     sys.stdout = _Timestamped(sys.stdout, _START)
+
+
+# How often a progress bar redraws when its output is a FILE rather than a terminal. A bar on a
+# terminal overwrites one line with `\r` and costs nothing to watch; the same bar teed into
+# logs/ writes every redraw as another 200 characters, and a production run buries its own
+# messages under a megabyte of them.
+#
+# On a terminal nothing changes — the defaults are what make a bar useful to a human.
+SHOT_EVERY = 1000       # reading and scoring loops, which run to thousands of shots
+
+
+def bar_kwargs(every: int = 0, *, off_in_log: bool = False) -> dict[str, object]:
+    """tqdm settings for a bar that may be writing into a log file.
+
+    `mininterval` has to go to zero alongside `miniters`: tqdm redraws when EITHER threshold is
+    met, so leaving the default 0.1 s would keep the per-second spam whatever `miniters` says.
+
+    `off_in_log` turns the bar off entirely instead of thinning it, which is right wherever a loop
+    already prints its own periodic line. The MLP's does, through `bar.write`, and that line
+    carries the train loss, the validation loss and the best epoch with a timestamp in front —
+    strictly more than the bar was showing. `tqdm.write` keeps working on a disabled bar and goes
+    to stdout, so those lines still pick up `install_timestamps`' prefix.
+    """
+    import sys
+
+    if sys.stderr.isatty():
+        return {}
+    if off_in_log:
+        return {"disable": True}
+    return {"miniters": every, "mininterval": 0.0}
