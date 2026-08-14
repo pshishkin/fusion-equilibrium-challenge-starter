@@ -205,7 +205,34 @@ scaled feature vector, which is what makes them comparable and averageable. Two 
 | `ridge` | The linear baseline this fork started from. Trained and scored, but **not** an ensemble member — averaging a model that scores 0.12 into two that score ~0.7 only drags them down — 0.5936 with it against 0.7466 without, both measured on the same run. It stays as the figure everything else is read against. |
 | `catboost` | Gradient-boosted trees, one `MultiRMSE` model over all 52 outputs. |
 | `mlp` | 44 → 512 → 512 → 52 in torch, our own training loop, `device` deciding where the fit runs. The architecture itself is `models.build_mlp` and nothing else restates it, so batch norm, dropout or another layer is an edit in one function. |
+| `seq` | The one model whose unit is the **shot**, not the frame: a per-frame trunk, a bidirectional GRU over efit time, and a correction added through a zero-initialised layer, so at step 0 it *is* the MLP. Off by default. Requires `<shots>/1.0` shares and refuses less — see below. |
 | `ensemble` | The weighted average of `ensemble.members`. Averaging coefficients and averaging flux maps are the same thing here — the PCA decoder is affine and the weights sum to 1. |
+
+### What a sequence model costs the interface: one argument
+
+The pipeline turned out to be almost ready for a model that reads whole shots, and the two places
+one would expect to have to change are exactly the two that needed nothing:
+
+- **`predict` is unchanged.** `predict_row` is called with one shot's frames in efit time order —
+  that is the unit the scorer works in, and `local_score` reaches it through the same
+  `your_model_predict` a submission does. A sequence model gets its natural input for free. What it
+  adds is a length check, because several shots concatenated would return the right SHAPE from a
+  sequence that never existed.
+- **The ensemble is unchanged.** `_predict_targets` is a weighted sum over the members' predictions
+  in the scaled target space, so a member that works differently needs no accommodation: it earns a
+  weight in `params.yaml` beside the four MLPs and the two are averaged.
+- **`fit` needed one argument.** `_read_shots` concatenates every shot into one block, and the shot
+  boundaries are the one thing that destroys. It returns the per-shot frame counts now, and the
+  models that score frames independently accept and ignore them.
+
+**Why it needs every frame.** Measured over 202 shots and 44 729 steps of `efit_times`: 97.86% of
+steps are 20 ms, and every step is a multiple of 20 — but **77% of shots drop at least one frame**,
+the largest gap is 2580 ms, and shots run from 2 to 373 frames. So the clock is one 20 ms grid with
+holes in it, not a different rate per shot. Training at `frames: 0.2` would put the model's steps
+~100 ms apart while inference feeds it 20 ms, which is learning one dynamics and being asked for
+another; `train()` refuses that combination rather than letting it produce a disappointing number.
+The holes that remain at 1.0 are what `features.frame_gaps` is for — the gap as an input, in units
+of the base step, so a hole reads as "this step was three frames long".
 
 ### Target scaling, and why it is not a setting
 
