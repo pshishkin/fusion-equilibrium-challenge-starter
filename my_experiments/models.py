@@ -759,6 +759,7 @@ class Params:
     derivatives: str                    # none | raw | interp | both
     derivative_signals: str             # driving | poloidal
     thomson: str                        # "" for off, else comma-separated group names
+    frame_gaps: bool                    # the distance to the neighbouring frames, as input
     split_salt: int
     loss_metric: str
     calibrate_scalars: bool
@@ -929,7 +930,8 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                          f"{sorted(LOSS_METRICS)}")
     _require_keys(doc["features"],
                   {"n_pca", "pca_seed", "pca_frame_share", "subtract_coil_field", "inputs",
-                   "n_coil_pca", "derivatives", "derivative_signals", "thomson"},
+                   "n_coil_pca", "derivatives", "derivative_signals", "thomson",
+                   "frame_gaps"},
                   "features", path)
     pca_frame_share = float(doc["features"]["pca_frame_share"])
     if not 0.0 < pca_frame_share <= 1.0:
@@ -976,6 +978,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   derivatives=derivatives,
                   derivative_signals=deriv_signals,
                   thomson=str(doc["features"]["thomson"] or ""),
+                  frame_gaps=bool(doc["features"]["frame_gaps"]),
                   split_salt=int(doc["split"]["salt"]),
                   loss_metric=loss_metric,
                   calibrate_scalars=bool(doc["loss"]["calibrate_scalars"]),

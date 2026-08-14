@@ -136,11 +136,11 @@ artifact, rather than trusting index arithmetic, and refuses to score on overlap
 the builtin `hash()`, which is salted per process and would silently reorder between the two runs.
 
 ```bash
-# what decides anything: 4225 shots at a tenth of their frames, 70 scored, FOUR seeds
-make prod        # train_eval.py 0.60/0.1 0.15/0.1 0.01 --jobs 24
+# what decides anything: 5633 shots at EVERY frame, 70 scored, FOUR seeds
+make prod        # train_eval.py 0.80/1.0 0.19/1.0 0.01 --jobs 24
 
 # the screen: the SAME data, ONE net, so a quarter of the fit
-make quality     # train_eval.py 0.60/0.1 0.15/0.1 0.01 --only ridge mlp --jobs 24
+make quality     # train_eval.py 0.80/1.0 0.19/1.0 0.01 --only ridge mlp --jobs 24
 
 # does it work at all, and how fast: 70 shots, 14 scored, one net, ~1 min
 make test        # train_eval.py 0.01/0.2 0.01/0.2 0.002 --only mlp --jobs 24
@@ -154,7 +154,7 @@ uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2
 # --only narrows the zoo for one run, --salt reshuffles which shots land where. Neither is a
 # second home for hyper-parameters: they have no defaults, they are printed, and the artifact
 # records the EFFECTIVE configuration rather than whatever params.yaml says at the time.
-uv run python my_experiments/train_eval.py 0.60/0.1 0.15/0.1 0.01 --only mlp --salt 1
+uv run python my_experiments/train_eval.py 0.80/1.0 0.19/1.0 0.01 --only mlp --salt 1
 
 # 2. score on the tail, with the real competition metric — every model, then the comparison table
 uv run python my_experiments/evaluate.py --share 0.01
@@ -383,9 +383,10 @@ Note where the time went once the fit stopped dominating: **the Jacobian probe i
 stage of a smoke run**, twice the fit. It is `jacobian_frames: 300` of per-frame scorer calls on
 the CPU pool, and nothing about it got faster.
 
-**`train_eval.py 0.60/0.1 0.15/0.1 0.01`** — the production run, what a submission is built from:
-4225 shots to fit, 1056 to stop on, 70 scored, **about 5 minutes** with the shot cache warm and
-8.5 the first time it has to fill it. CatBoost disabled for this one, so the ensemble is the MLP
+**`train_eval.py 0.80/1.0 0.19/1.0 0.01`** — the production run, what a submission is built from:
+5633 shots to fit, 1338 to stop on, 70 scored. The table below was measured at the older
+`0.60/0.1 0.15/0.1 0.01`, where the run took about 5 minutes with the shot cache warm; at the
+current shares one net is 7.6 minutes of wall clock and 178 s of fit. CatBoost disabled for this one, so the ensemble is the MLP
 alone, coil field subtracted, Jacobian loss metric:
 
 ```

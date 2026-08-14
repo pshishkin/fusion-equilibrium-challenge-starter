@@ -26,7 +26,12 @@ features:
   # copy of the flux array is the memory peak of that stage. Everything is still TRANSFORMED with
   # every frame; this only thins what the components are estimated from.
   # Thinning is a stride, not a draw (see thin_frames): it covers ramp-up, flat-top and ramp-down.
-  pca_frame_share: 1.0
+  #
+  # A share of the frames LOADED, so it moves with the frame share in the run's arguments: 0.2 here
+  # at `0.80/1.0` estimates the components from the same one-in-five stride that `pca_frame_share:
+  # 1.0` did at `0.80/0.2`. Holding that fixed is what made the frames measurement clean — grid G
+  # compared 0.1 against 1.0 and so moved the PCA's sample along with the effect it was measuring.
+  pca_frame_share: 0.2
 
   # psi = psi_coil + psi_plasma, and the first term is a Green's function times a current rather
   # than a modelling problem — see README, "The flux decomposition". With this on, the models are
@@ -83,6 +88,13 @@ features:
   thomson: "te,ne,p,pos"
   # At most 19: the coil flux spans one dimension per current column and no more.
   n_coil_pca: 19
+
+  # Two columns: how far the previous frame is, and the next, in units of the 20 ms EFIT step.
+  # 97.86% of steps ARE 20 ms, so for a model that scores frames independently this is nearly a
+  # constant and should buy nothing. It exists for the sequence model, which reads the frames as a
+  # series and would otherwise treat the 2.14% of steps that are holes — 77% of shots have one —
+  # as ordinary neighbours.
+  frame_gaps: false
 
 split:
   # Which shots land in the training, validation and scoring windows. The shares stay the same;

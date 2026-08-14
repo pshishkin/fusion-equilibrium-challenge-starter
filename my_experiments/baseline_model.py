@@ -329,7 +329,35 @@ DERIV_SIGNAL_SETS = {
 }
 N_SIGNALS = len(D3D_MAGNETICS_SIGNALS)
 # Twelve Thomson summaries follow the derivative blocks; see N_THOMSON below.
-FEATURE_WIDTH = N_SIGNALS * (1 + len(DERIV_BLOCKS)) + 27 + 2 * 16   # = N_THOMSON_BLOCK
+# Two columns: the gap back to the previous frame and forward to the next. They sit between the
+# derivative blocks and the Thomson block, so both of the slices that address those keep working —
+# the derivatives are counted from the front and Thomson from the back.
+N_GAPS = 2
+FEATURE_WIDTH = N_SIGNALS * (1 + len(DERIV_BLOCKS)) + N_GAPS + 27 + 2 * 16   # = N_THOMSON_BLOCK
+
+
+# The EFIT clock, measured over 202 shots and 44729 steps: 97.86% of steps are 20 ms and every
+# step is a multiple of it, so this is one grid with frames missing rather than a rate that varies
+# by shot. 77% of shots drop at least one frame and the largest hole is 2580 ms.
+FRAME_STEP_MS = 20.0
+# Where a hole stops being a number and becomes a category. The gap is clipped here because 2.14%
+# of steps are longer than one and the longest is 129 — standardized without a clip, that tail
+# would carry ten times the variance of the 1-versus-2 distinction that actually occurs, and
+# squash the common case into a tenth of a standard deviation.
+MAX_GAP_STEPS = 5.0
+
+
+def _frame_gaps(efit_times: FloatArray) -> FloatArray:
+    """(T, 2) — the step back to the previous frame and forward to the next, in base steps.
+
+    In units of the 20 ms clock rather than in milliseconds, so a dropped frame reads as "this step
+    was three frames long" instead of as an unfamiliar 60. The first frame has no predecessor and
+    the last no successor; both are given 1.0, an ordinary step, because a sequence model already
+    knows where its sequence ends and an out-of-range marker there would only be noise.
+    """
+    t = np.asarray(efit_times, dtype=np.float64).ravel()
+    d = np.clip(np.diff(t) / FRAME_STEP_MS, 1.0, MAX_GAP_STEPS)
+    return np.column_stack([np.concatenate([[1.0], d]), np.concatenate([d, [1.0]])])
 
 
 def _raw_derivatives(shot: dict[str, Any]) -> FloatArray:
@@ -597,6 +625,7 @@ def features_for_row(row: Row) -> FloatArray:
                          f"({len(shot['efit_times'])}, {N_SIGNALS})")
     feats = np.hstack([levels, _raw_derivatives(shot),
                        _interp_derivatives(levels, shot["efit_times"]),
+                       _frame_gaps(shot["efit_times"]),
                        _thomson_features(row, shot["efit_times"])])
     if feats.shape != (len(shot["efit_times"]), FEATURE_WIDTH):
         raise ValueError(f"features {feats.shape}, expected "
@@ -632,7 +661,7 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         "subtract": params.subtract_coil_field, "inputs": params.inputs,
         "derivatives": params.derivatives,
         "derivative_signals": params.derivative_signals,
-        "thomson": params.thomson,
+        "thomson": params.thomson, "frame_gaps": params.frame_gaps,
         "columns": list(basis.columns), "index": index, "gains": gains, "maps": maps,
         "grid_R": basis.grid_R, "grid_Z": basis.grid_Z, "machine": basis.machine,
         # Signals with no poloidal-plane rectangle, so no map and no principal direction: they
@@ -695,8 +724,12 @@ def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
             raise ValueError(f"unknown input mode {mode!r}; known: {sorted(INPUT_MODES)}")
 
     want = plan["derivatives"]
-    tail = ([feats[:, -N_THOMSON_BLOCK:][:, thomson_columns(plan["thomson"])]]
-            if plan["thomson"] else [])
+    # The gap block sits immediately after the derivative blocks, which is where the slice below
+    # finds it; Thomson is addressed from the back and so is unaffected by it being there.
+    gaps = N_SIGNALS * (1 + len(DERIV_BLOCKS))
+    tail = ([feats[:, gaps:gaps + N_GAPS]] if plan["frame_gaps"] else [])
+    tail += ([feats[:, -N_THOMSON_BLOCK:][:, thomson_columns(plan["thomson"])]]
+             if plan["thomson"] else [])
     if want == "none":
         return np.hstack([base, *tail]) if tail else base
     if want not in DERIV_MODES:
@@ -754,7 +787,8 @@ def _shot_code_key() -> str:
     return shot_cache.fingerprint(
         _read_training_shot, features_for_row, inputs_only_shot, align_ip_times,
         interpolate_magnetics_to_efit, _as_psirz_stack,
-        _raw_derivatives, _interp_derivatives, _thomson_features, _profile_stats, _fill_in_time,
+        _raw_derivatives, _interp_derivatives, _frame_gaps,
+        _thomson_features, _profile_stats, _fill_in_time,
         extra=f"{D3D_MAGNETICS_SIGNALS}|{SUBMITTED_SCALARS}|{FEATURE_WIDTH}|{RAW_DERIV_HALF_MS}",
     )
 
@@ -912,7 +946,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     F, Fv = build_inputs(plan, X), build_inputs(plan, Xv)
     print(f"  inputs: {F.shape[1]} features per frame ({plan['inputs']}, "
           f"derivatives={plan['derivatives']}/{plan['derivative_signals']}, "
-          f"thomson={plan['thomson'] or 'off'})")
+          f"thomson={plan['thomson'] or 'off'}, "
+          f"frame_gaps={'on' if plan['frame_gaps'] else 'off'})")
     if plan["thomson"]:
         # The validity flag sits at the end of the SUMMARY part of the Thomson block, before the raw
         # profiles; a shot whose diagnostic never fired

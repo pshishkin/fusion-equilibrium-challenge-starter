@@ -382,7 +382,19 @@ the single-net sigma of 0.0013.
 even at ΔS = 0 exactly, a 4x cheaper production fit makes everything else on this list cheaper to
 test, and that is worth a grid.
 
-## A17. Settle the frames axis past 0.2, if an hour is ever spare — *2026-08-14*
+## A17. Settle the frames axis past 0.2 — *2026-08-14* — **DONE, and it reversed**
+
+**Done 2026-08-14, on eight salts.** +0.0018 on average, every sign positive, t = +5.02. `0.80/1.0`
+is the production share now.
+
+The interesting part is why it had read as flat: grid G ran the 1.0 arm with
+`pca_frame_share: 0.1` against the 0.2 arm's `1.0`, so the treatment arm's PCA was estimated from
+half the sample. That was a memory measure, taken without noticing it was also an experimental
+change — the confound was in the CONTROL and it cost the effect about two thirds of its size. The
+lesson is narrower than "hold everything fixed": it is that a setting adjusted to make a run FIT
+is still a setting, and belongs in the same audit as the one being tested.
+
+### The original entry
 
 **Not a hypothesis, a resolution problem.** `0.80/1.0` against `0.80/0.2` measured +0.0005 /
 −0.0002 / +0.0025 on salts 0 / 3 / 4. Mean +0.0009 with disagreeing signs, which is 1.2 sigma on

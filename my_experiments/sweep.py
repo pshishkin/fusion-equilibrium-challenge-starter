@@ -42,7 +42,9 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 LOG_DIR = REPO / "logs"
-SHARES = ["0.60/0.1", "0.15/0.1", "0.01"]
+# The default a grid entry inherits when it names no shares of its own — the production
+# shares, so a screen measures what a submission would be built from.
+SHARES = ["0.80/1.0", "0.19/1.0", "0.01"]
 ENV_CAPS = {"OMP_NUM_THREADS": "4", "OPENBLAS_NUM_THREADS": "4", "MKL_NUM_THREADS": "4"}
 
 # `[  5:32.9   +0.0s 10.38G]                mlp    0.9873    0.9995 ...`

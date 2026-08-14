@@ -107,12 +107,12 @@ test:
 
 quality:
 	@$(LOG_START); \
-	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.80/0.2 0.19/0.2 0.01 \
+	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.80/1.0 0.19/1.0 0.01 \
 		--only ridge mlp --jobs $(JOBS) $(TEE)
 
 prod:
 	@$(LOG_START); \
-	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.80/0.2 0.19/0.2 0.01 \
+	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.80/1.0 0.19/1.0 0.01 \
 		--jobs $(JOBS) $(TEE)
 
 # A pre-declared grid of configurations, one at a time, collected into a CSV. Each run tees into
