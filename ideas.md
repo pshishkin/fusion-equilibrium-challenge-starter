@@ -110,7 +110,25 @@ per-frame error is shared bias rather than seed noise.
 **ΔS ≈ +0.0015…+0.003, confidence 0.8.** The most certain item; ranked second only because its
 ceiling is the seed σ itself.
 
-## A2. Flip `calibrate_scalars` on — *2026-08-13*
+## A2. Flip `calibrate_scalars` on — *2026-08-13* — **DONE 2026-08-15, refuted**
+
+**S 0.9945 against 0.9945** at production on salt 0 — exactly flat, against a resolution of 0.0013.
+The seven scalars move by ±0.0012 with no pattern, and `kappa` — the one C1 said carried the most
+cost and the one this entry expected to gain — went DOWN by 0.0010. Those moves are a twentieth of
+the per-scalar seed noise and mean nothing individually.
+
+**The "open problem" paragraph below called it, and that is the lesson worth keeping.** The probe's
+ratios are 1.11–1.39, near enough uniform that dividing by them is close to a uniform rescale of
+the Consistency block against psi — and `TargetScaler` renormalises the whole vector to unit average
+variance afterwards, so most of even that is absorbed. A knob written down as promising, with a
+paragraph underneath explaining why it probably would not work, did not work. The paragraph should
+have been the rank.
+
+**What is NOT refuted:** measuring the ratio along the MODEL's own error direction rather than from
+isotropic probes, which is the two-pass version the paragraph proposes. That is a different
+quantity — the model's error is not isotropic — and it remains untested.
+
+### The original entry
 
 **Hypothesis.** Dividing each scalar's block in `M` by its measured linear/actual ratio gains
 ≥ 0.0015, mostly on `li` and `kappa`.
