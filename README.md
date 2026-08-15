@@ -23,9 +23,15 @@ before adding code under `my_experiments/`.
 
 ## Where this stands
 
-**Leaderboard 0.9896, 4th place** (submitted 2026-08-14), against 0.9764 for the previous one.
-Local production score on salt 0 is 0.9914; the gap of 0.0018 is the price of having chosen
-against the same folds many times, measured rather than assumed — see
+**Leaderboard 0.9932, FIRST place** (submitted 2026-08-15), against 0.9896 and 4th for the
+previous one. Local production score on salt 0 is 0.9945, so the gap is 0.0013 — the price of
+having chosen against the same folds many times, measured rather than assumed.
+
+**+0.0036 on the leaderboard against +0.0031 locally: 116% of the local gain transferred**, where
+the previous submission transferred 91%, and the local-to-leaderboard gap NARROWED from 0.0018 to
+0.0013. More than 100% is noise around 100%; what matters is that nothing was lost, over a day in
+which more selections were made than in the whole history of this fork before it. Confirming on
+salts nothing selected against is what bought that — see
 [experiments_history.md](experiments_history.md).
 
 ## Continuing on another machine
