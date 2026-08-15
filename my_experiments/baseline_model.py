@@ -146,6 +146,28 @@ def thin_frames(n_frames: int, frame_share: float) -> npt.NDArray[np.intp]:
     return np.unique(np.linspace(0, n_frames - 1, n_keep).round().astype(np.intp))
 
 
+def reserve_holdout(files: list[Path], share: float) -> tuple[list[Path], list[Path]]:
+    """Split off a set of shots no salt may train on, and the pool that remains.
+
+    An ensemble whose members were fitted under DIFFERENT salts cannot be scored the ordinary way:
+    each member trains on 99% of the shots, so almost every shot in one salt's scoring tail is in
+    another's training set, and `evaluate.py` refuses the run — correctly. Averaging such members
+    is still legitimate for a SUBMISSION, whose test set no salt has seen; what is missing is a
+    local number, and choosing between ensembles without one is guessing.
+
+    So the holdout is carved from the FIXED salt-0 order, before the per-salt shuffle, and every
+    salt splits only what is left. The same shots are then untouched by every member, whatever
+    salt fitted it, and the ensemble is measurable.
+    """
+    if not 0 <= share < 1:
+        raise SystemExit(f"holdout share must be in [0, 1), got {share}")
+    if not share:
+        return [], files
+    n = max(1, round(len(files) * share))
+    keep = {p.name for p in sorted(files, key=lambda p: shot_key(p, 0))[-n:]}
+    return ([p for p in files if p.name in keep], [p for p in files if p.name not in keep])
+
+
 def take_share(files: list[Path], share: float, side: str) -> list[Path]:
     """A share of the list from the head or the tail, at least one shot."""
     if not 0 < share <= 1:
@@ -891,7 +913,12 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     params: Params = load_params(params_path, salt, only, sets)
     shot_share, frame_share = parse_share(share)
     val_shot_share, val_frame_share = parse_share(val_share)
-    all_files = sorted_shots(local_data_dir, config, params.split_salt)
+    ordered = sorted_shots(local_data_dir, config, params.split_salt)
+    holdout, all_files = reserve_holdout(ordered, params.holdout_share)
+    if holdout:
+        print(f"Holdout: {len(holdout)} shots ({params.holdout_share:.1%}) reserved from the "
+              f"SALT-0 order and excluded from this fit, so models fitted under different salts "
+              f"can be scored on the same untouched shots")
     files, val_files = split_train_val(all_files, shot_share, val_shot_share)
     print(f"Training on {len(files)} shots ({shot_share:.1%} of {len(all_files)}, "
           f"{frame_share:.0%} of their frames), validating on {len(val_files)} "
@@ -1070,6 +1097,10 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         # evaluate.py must order the shots exactly as this run did, or its "tail" is a different
         # set of shots and the overlap check passes while measuring the wrong thing.
         "split_salt": params.split_salt,
+        # Named, not counted: evaluate.py has to score exactly these and no others, and a share
+        # recomputed there would drift the moment the data directory changes.
+        "holdout_files": [p.name for p in holdout],
+        "holdout_share": params.holdout_share,
     }
     joblib.dump(artifact, ARTIFACT)
     print(f"\nSaved {ARTIFACT}: {', '.join(model_names(artifact))}")

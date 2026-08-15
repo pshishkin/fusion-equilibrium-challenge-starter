@@ -59,6 +59,11 @@ def main() -> int:
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
                     help="root of the downloaded dataset (the folder containing 'data/')")
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
+    ap.add_argument("--on-holdout", action="store_true",
+                    help="score the shots the artifact reserved as its holdout instead of the "
+                         "tail of this salt's order. That is the only set on which models fitted "
+                         "under DIFFERENT salts can be compared, since it is untouched by all of "
+                         "them; --share is ignored")
     args = ap.parse_args()
 
     # The shot ORDER has to be the one training used, so the salt comes from the artifact rather
@@ -78,9 +83,24 @@ def main() -> int:
     salt = int(art["split_salt"]) if art is not None else 0
 
     all_files = sorted_shots(args.local_data_dir, args.config, salt)
-    files = take_share(all_files, args.share, "tail")
-    print(f"Scoring {len(files)} shots ({args.share:.1%} of {len(all_files)}), tail of the list"
-          f"{'' if salt == 0 else f', split salt {salt}'}")
+    if args.on_holdout:
+        if not art or not art.get("holdout_files"):
+            raise SystemExit(
+                f"--on-holdout, but {ARTIFACT} reserved none. Set split.holdout_share in "
+                f"params.yaml and retrain; a holdout cannot be carved after the fact, because the "
+                f"point of it is that the fit never saw those shots."
+            )
+        keep = set(art["holdout_files"])
+        files = [p for p in all_files if p.name in keep]
+        if len(files) != len(keep):
+            raise SystemExit(f"{ARTIFACT} names {len(keep)} holdout shots but {len(files)} are "
+                             f"present in {args.local_data_dir} — the data directory has changed")
+        print(f"Scoring the {len(files)}-shot HOLDOUT ({art['holdout_share']:.1%}), which no salt "
+              f"trains on — so members fitted under different salts are comparable here")
+    else:
+        files = take_share(all_files, args.share, "tail")
+        print(f"Scoring {len(files)} shots ({args.share:.1%} of {len(all_files)}), tail of the "
+              f"list{'' if salt == 0 else f', split salt {salt}'}")
 
     extra: list[str] = []
     if art is not None:

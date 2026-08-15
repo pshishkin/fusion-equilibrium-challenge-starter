@@ -805,6 +805,7 @@ class Params:
     thomson: str                        # "" for off, else comma-separated group names
     frame_gaps: bool                    # the distance to the neighbouring frames, as input
     split_salt: int
+    holdout_share: float
     loss_metric: str
     calibrate_scalars: bool
     jacobian_frames: int
@@ -964,7 +965,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     doc = apply_overrides(doc, path, salt, only, sets)
     _require_keys(doc, {"features", "split", "loss", "models", "ensemble"},
                   "the top level", path)
-    _require_keys(doc["split"], {"salt"}, "split", path)
+    _require_keys(doc["split"], {"salt", "holdout_share"}, "split", path)
     _require_keys(doc["loss"],
                   {"metric", "calibrate_scalars", "jacobian_frames", "jacobian_delta", "boundary"},
                   "loss", path)
@@ -1024,6 +1025,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   thomson=str(doc["features"]["thomson"] or ""),
                   frame_gaps=bool(doc["features"]["frame_gaps"]),
                   split_salt=int(doc["split"]["salt"]),
+                  holdout_share=float(doc["split"]["holdout_share"]),
                   loss_metric=loss_metric,
                   calibrate_scalars=bool(doc["loss"]["calibrate_scalars"]),
                   jacobian_frames=int(doc["loss"]["jacobian_frames"]),

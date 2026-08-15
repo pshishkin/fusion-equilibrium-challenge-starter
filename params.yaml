@@ -109,6 +109,17 @@ split:
   # Keep it for headline figures.
   salt: 0
 
+  # Shots reserved from the SALT-0 order and excluded from every fit, whatever salt it uses. 0 is
+  # off, and off is right for ordinary work: it costs data for nothing when one salt is compared
+  # against itself.
+  #
+  # It exists for the one comparison the salt cannot express. Members fitted under DIFFERENT salts
+  # can be averaged for a submission — the competition's test set is unseen by all of them — but
+  # they cannot be SCORED locally, because each trains on 99% of the shots and so has seen almost
+  # every shot in the others' scoring tails. evaluate.py refuses that run, correctly. With a
+  # holdout, the same shots are untouched by every member and the cross-salt ensemble has a number.
+  holdout_share: 0.0
+
 loss:
   # Which errors of the flux map the loss is allowed to care about — see
   # my_experiments/target_metric.py. The models regress PCA coefficients and the decoder is
