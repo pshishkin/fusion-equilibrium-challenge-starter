@@ -735,9 +735,28 @@ bank of them is a hand-built state observer — exactly the state a memoryless M
 as a feature instead of as an architecture. If it pays, it is B5's mechanism at a hundredth of the
 cost; if it does not, that is evidence against B5's mechanism too.
 
-**Test.** `_raw_derivatives` already takes a half-width; make it a tuple and widen `DERIV_BLOCKS`.
-The cache rebuilds (the derivative blocks are cached), which is the real cost. Paired runs against
-production on two salts.
+**BUILT 2026-08-15, and pre-registered here before it runs.** `features.vessel` is `none` /
+`driving` / `poloidal`, four leaky integrals per signal at 20 / 100 / 500 / 2500 ms — the bank set
+by C6's measurement of what the sequence model chose for itself, not by the L/R argument alone.
+FEATURE_WIDTH 124 → 208, so the first run rebuilds the shot cache; measured at 2.2–2.8 s of feature
+work per shot, about 20 minutes over the corpus on 24 processes.
+
+**Two arms, and both are run before anything is concluded, because they test different claims.**
+`poloidal` is the eddy-current claim over every flux-producing coil and is what won for the
+derivatives; `driving` is the two signals the physics names and is the sharp version. A10's history
+is the reason both go: the broad set won there, and a broad set losing does not refute the narrow
+one.
+
+**Read against 0.9940**, which is `mlp+mlp1+mlp2+mlp3` on the tail from the production artifact —
+four seeds, loss-stopped, no vessel block. Accepted at +0.0013 paired and confirmed on two unseen
+salts. **And read the last decile separately**, with `diagnose_frames.py`: this entry exists because
+of A22, so an arm that lifts the total by nothing while cutting the last decile's cost is a
+different and more interesting result than an arm that does neither.
+
+**The specific way it could fail, written down first.** 80 new columns against 84 existing ones
+doubles the input width, and this fork has already measured that nearly-constant columns are not
+free — `frame_gaps` cost 0.0012 for exactly that reason. If `poloidal` loses and `driving` does not,
+that is dilution rather than a refutation of the physics.
 
 **Refuted if** the bank is within 0.0005 of the single scale, which would say the 1 ms guess is
 already on the flat of a broad optimum.
