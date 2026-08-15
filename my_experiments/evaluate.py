@@ -154,13 +154,13 @@ def main() -> int:
         # The check has to see all of them or it certifies the wrong thing: a shot held out of THIS
         # fit may well be in another member's training set, which is exactly the mistake the
         # holdout exists to prevent — so the members are loaded before the overlap is tested.
+        # `--on-holdout` used to be REQUIRED here. It is not the real condition and it ruled out a
+        # legitimate case: two artifacts fitted on the SAME split — same salt, same shares —
+        # differing only in features or in architecture. Averaging those is exactly what an
+        # ensemble is, and the tail is untouched by both. The actual requirement is that no member
+        # has seen a scored shot, and the overlap check below is that requirement, applied to every
+        # member's own file lists rather than to an assumption about which set is safe.
         for spec in [m for m in models if m.startswith(SALTS_PREFIX)]:
-            if not args.on_holdout:
-                raise SystemExit(
-                    f"{spec} averages fits made under DIFFERENT salts, and the tail of one salt's "
-                    f"order is training data for the others. Score it with --on-holdout, which is "
-                    f"the only set none of them has seen."
-                )
             for name in spec[len(SALTS_PREFIX):].split("+"):
                 member = joblib.load(artifact_path(name))
                 seen |= set(member["train_files"]) | set(member["val_files"])
