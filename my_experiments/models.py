@@ -289,6 +289,10 @@ class CatBoostModel(TargetModel):
             shots: npt.NDArray[np.int64] | None = None,
             shots_val: npt.NDArray[np.int64] | None = None) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
+        if self.task_type not in CATBOOST_DEVICES:
+            raise ValueError(f"catboost: unknown task_type {self.task_type!r}; known "
+                             f"{sorted(CATBOOST_DEVICES)} — CatBoost says 'gpu' where torch says "
+                             f"'cuda', and this setting is CatBoost's")
         from catboost import CatBoostRegressor
 
         self._est = CatBoostRegressor(
@@ -299,7 +303,7 @@ class CatBoostModel(TargetModel):
             l2_leaf_reg=self.l2_leaf_reg,
             random_seed=self.random_seed,
             thread_count=self.thread_count,
-            task_type=resolve_device(self.task_type.lower(), "catboost").upper(),
+            task_type=self.task_type.upper(),
             allow_writing_files=False,      # no catboost_info/ droppings in the repo
             verbose=max(1, self.iterations // 10),
         )
@@ -330,6 +334,12 @@ class CatBoostModel(TargetModel):
 # depends on which hardware happened to be free is not reproducible, and pinning the split salt and
 # the PCA seed was only worth doing because everything else about a configuration is fixed too.
 TORCH_DEVICES = ("cpu", "cuda")
+
+# CatBoost's own vocabulary, which is NOT torch's: it says GPU where torch says cuda. Keeping the
+# two lists apart rather than translating between them is deliberate — a shared name would suggest
+# a shared meaning, and `resolve_device` checks `torch.cuda.is_available()`, which says nothing
+# about whether CatBoost was built with CUDA.
+CATBOOST_DEVICES = ("cpu", "gpu")
 
 
 # Nonlinearities offered for the hidden layers. ReLU is the baseline every number before
