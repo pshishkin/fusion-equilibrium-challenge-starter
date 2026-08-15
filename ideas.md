@@ -193,9 +193,27 @@ frozen-epoch refit converts them into training data at no methodological cost.
 components, and that is what drove the machine into swap at `0.45/0.2` — then one run at
 `0.60/0.1 0.05/0.1 0.01`, and one refit with `patience: 0` and `epochs` set from the stopped run.
 
+**The first half is done and the second half is now the whole entry — 2026-08-15.** Production
+trains on 0.80 of the shots and holds 0.19 back to stop on. Those 1338 shots are read every
+evaluation and never fitted, so **the refit converts a quarter more data into training data at no
+methodological cost at all**, and the comparison stays clean because the scored tail is the same
+1% either way. More data is also the most reliable winner this fork has: 1408 → 3168 shots bought
++0.0040 with every term up, and 0.60 → 0.80 bought +0.0018 with no sign of flattening.
+
+**Exactly how**, so nothing is decided twice: run production as usual, read `best step` out of the
+fit report, then refit at `0.99/1.0` with `patience_steps: 0` and `max_steps` set to that number
+scaled by the data — the same number of PASSES, not of steps, since a step is a fixed batch and
+there are now 24% more rows. Nothing to stop on and nothing that needs stopping.
+
 **Refuted if** the paired gain is ≤ +0.0005.
 
-**ΔS ≈ +0.0015…+0.003, confidence 0.7.**
+**The honest risk.** The step count is transferred from a fit on less data, and the optimum moves
+with the data — probably later, which the pass-count scaling is meant to absorb, but it is an
+assumption and not a measurement. If the refit loses, the first thing to check is a step sweep
+around the transferred count, not the idea.
+
+**ΔS ≈ +0.0015…+0.003, confidence 0.7.** The highest-confidence open entry in this file, and the
+one whose mechanism has already paid twice.
 
 ## A5. CatBoost at production scale, back in the ensemble — *2026-08-13*
 
