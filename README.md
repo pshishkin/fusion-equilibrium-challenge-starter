@@ -556,6 +556,19 @@ overlap it.
 
 ## Things that already cost time
 
+**Changing `FEATURE_WIDTH` while a comparison is in flight costs the comparison.** The cache key
+hashes the feature producers, so adding a block invalidates every entry — and the next run rebuilds
+7041 shots from parquet instead of reading 27 GB of cache. That path is the memory-hungry one:
+measured, the rebuild peaked at 89 GB where the cached read peaks at 54, and the run was killed.
+Worse than losing it: the parent died and left **24 orphaned pool workers** holding the pipe open,
+so `grep` never saw EOF, never flushed its block buffer, and the log looked like a run that had
+produced nothing at all. Rebuild the cache deliberately first — `warm_cache.py --jobs 16`, which is
+written to hold one frame per shot and so cannot do this — and only then start the runs that will
+be compared.
+
+**`free` on this box reports the host, not the container.** It says 251 GB where the instance has
+128. Anything sized from `free` is sized from a number twice too large.
+
 **Test rows have no `efit_*` targets.** `experiments.load_shot_from_hf_row` reads `efit_psirz`
 unconditionally and dies on every test row; `baseline_model.inputs_only_shot` reads only
 `efit_times` + `magnetics_*`. Anything on the inference path must go through the latter.
