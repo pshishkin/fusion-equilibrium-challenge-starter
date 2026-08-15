@@ -96,6 +96,22 @@ features:
   # as ordinary neighbours.
   frame_gaps: false
 
+  # A19/A22. Leaky integrals of each signal's dI/dt at 10, 50 and 200 ms — three columns per
+  # signal. The argument is one line of physics: a conducting loop around a changing coil current
+  # obeys L dIv/dt + R Iv = -M dIc/dt, so the induced vessel current IS an exponential moving
+  # average of dIc/dt with tau = L/R. A bank of them is a hand-built observer of the vessel state,
+  # which is the one quantity a model seeing 21 instantaneous levels provably cannot form.
+  #
+  # It exists because of a measurement, not a hunch: the last decile of a shot carries 24.1% of the
+  # geometry cost with ORDINARY Jacobian sensitivity and 2.2x the coefficient error, and that is
+  # exactly where the vessel current is largest and most transient. The sequence model — the only
+  # member that carries state — takes 34% of everything it buys from that same decile.
+  #
+  #   none      off, and the setting every number before 08-15 was measured on
+  #   driving   ECOILA and plasma_current only, the sharp arm
+  #   poloidal  every signal that produces poloidal flux, the broad one
+  vessel: none
+
 split:
   # Which shots land in the training, validation and scoring windows. The shares stay the same;
   # the salt only reshuffles who is where, by hashing "<salt>:<shot id>" instead of the bare id.

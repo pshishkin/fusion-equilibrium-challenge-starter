@@ -374,7 +374,22 @@ N_SIGNALS = len(D3D_MAGNETICS_SIGNALS)
 # derivative blocks and the Thomson block, so both of the slices that address those keep working —
 # the derivatives are counted from the front and Thomson from the back.
 N_GAPS = 2
-FEATURE_WIDTH = N_SIGNALS * (1 + len(DERIV_BLOCKS)) + N_GAPS + 27 + 2 * 16   # = N_THOMSON_BLOCK
+
+# A19 / A22. Time constants, in milliseconds, of the leaky integrals of dI/dt that follow the gap
+# columns. The physics is one line: a conducting loop around a changing coil current obeys
+# L dIv/dt + R Iv = -M dIc/dt, so the induced current IS an exponential moving average of dIc/dt
+# with time constant tau = L/R. A bank of them is therefore a hand-built observer of the vessel
+# state — the one quantity a memoryless model provably cannot form, and the leading candidate for
+# why the last decile of a shot costs 24% of the geometry loss with only ordinary sensitivity.
+#
+# The three constants bracket what the literature puts on a tokamak vessel (a few ms for the
+# fastest passive structures, tens to a couple of hundred for the vessel proper), and they are a
+# bracket rather than a fit: nothing here has measured the real L/R, and the model is free to
+# weight them.
+VESSEL_TAUS_MS = (10.0, 50.0, 200.0)
+N_VESSEL = N_SIGNALS * len(VESSEL_TAUS_MS)
+FEATURE_WIDTH = (N_SIGNALS * (1 + len(DERIV_BLOCKS)) + N_GAPS + N_VESSEL
+                 + 27 + 2 * 16)   # = N_THOMSON_BLOCK
 
 
 # The EFIT clock, measured over 202 shots and 44729 steps: 97.86% of steps are 20 ms and every
@@ -433,6 +448,55 @@ def _raw_derivatives(shot: dict[str, Any]) -> FloatArray:
         d = np.where(dt > 0, (v[hi] - v[lo]) / np.maximum(dt, 1e-30), 0.0)
         out.append(np.interp(efit_times, t, d).astype(np.float32))
     return np.column_stack(out)
+
+
+def _vessel_currents(shot: dict[str, Any]) -> FloatArray:
+    """(T, N_SIGNALS * len(VESSEL_TAUS_MS)) — leaky integrals of each signal's dI/dt.
+
+    One exponential moving average per (signal, tau), computed on the signal's OWN 0.05 ms base and
+    then interpolated to the EFIT frames, for the same reason `_raw_derivatives` is: tau = 10 ms is
+    half of one EFIT step, so an average taken on the frame grid would be aliasing rather than
+    filtering.
+
+    The recursion is `y_i = a*y_{i-1} + (1-a)*x_i` with `a = exp(-step/tau)`, the exact solution of
+    the first-order ODE over one sample interval. `step` is the shot's own MEDIAN sampling interval,
+    the same quantity `_raw_derivatives` builds its half-width from — a per-sample `a` would be more
+    faithful on the handful of irregular samples and cannot be run through a C-speed recursive
+    filter, and 30 million Python iterations per shot is not a trade worth making for that.
+
+    Initialised at the steady state for `x[0]` rather than at zero: a shot starts with the vessel
+    in equilibrium with whatever the coils were already doing, and starting at zero would inject a
+    transient of the model's own making into the first tau of every shot.
+    """
+    from scipy.signal import lfilter, lfilter_zi
+
+    efit_times = shot["efit_times"]
+    out = []
+    for sig in D3D_MAGNETICS_SIGNALS:
+        if sig not in shot["magnetics"]:
+            out.append(np.zeros((len(efit_times), len(VESSEL_TAUS_MS)), dtype=np.float32))
+            continue
+        mag = shot["magnetics"][sig]
+        t = np.asarray(mag["times"], dtype=np.float64)
+        v = np.asarray(mag["values"], dtype=np.float64)
+        if len(t) < 3:
+            raise ValueError(f"signal {sig} has {len(t)} samples, too few to integrate")
+        step = float(np.median(np.diff(t)))
+        if not step > 0:
+            raise ValueError(f"signal {sig} has a median sample step of {step}, expected positive")
+        k = max(1, round(RAW_DERIV_HALF_MS / step))
+        lo = np.clip(np.arange(len(t)) - k, 0, len(t) - 1)
+        hi = np.clip(np.arange(len(t)) + k, 0, len(t) - 1)
+        dt = t[hi] - t[lo]
+        x = np.where(dt > 0, (v[hi] - v[lo]) / np.maximum(dt, 1e-30), 0.0)
+        cols = []
+        for tau in VESSEL_TAUS_MS:
+            a = float(np.exp(-step / tau))
+            b, denom = np.array([1.0 - a]), np.array([1.0, -a])
+            y, _ = lfilter(b, denom, x, zi=lfilter_zi(b, denom) * x[0])
+            cols.append(np.interp(efit_times, t, y).astype(np.float32))
+        out.append(np.column_stack(cols))
+    return np.hstack(out)
 
 
 def _interp_derivatives(feats: FloatArray, efit_times: FloatArray) -> FloatArray:
@@ -667,6 +731,7 @@ def features_for_row(row: Row) -> FloatArray:
     feats = np.hstack([levels, _raw_derivatives(shot),
                        _interp_derivatives(levels, shot["efit_times"]),
                        _frame_gaps(shot["efit_times"]),
+                       _vessel_currents(shot),
                        _thomson_features(row, shot["efit_times"])])
     if feats.shape != (len(shot["efit_times"]), FEATURE_WIDTH):
         raise ValueError(f"features {feats.shape}, expected "
@@ -702,6 +767,7 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         "subtract": params.subtract_coil_field, "inputs": params.inputs,
         "derivatives": params.derivatives,
         "derivative_signals": params.derivative_signals,
+        "vessel": params.vessel,
         "thomson": params.thomson, "frame_gaps": params.frame_gaps,
         "columns": list(basis.columns), "index": index, "gains": gains, "maps": maps,
         "grid_R": basis.grid_R, "grid_Z": basis.grid_Z, "machine": basis.machine,
@@ -769,6 +835,16 @@ def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
     # finds it; Thomson is addressed from the back and so is unaffected by it being there.
     gaps = N_SIGNALS * (1 + len(DERIV_BLOCKS))
     tail = ([feats[:, gaps:gaps + N_GAPS]] if plan["frame_gaps"] else [])
+    # The vessel block sits immediately after the gap columns, so it is addressed from the front
+    # like the derivatives and leaves Thomson's back-addressed slice alone.
+    # `.get`, and this is the one place a default is right: an artifact fitted before the block
+    # existed saw none of these columns, which is exactly what "none" means. Reading it as absent
+    # is not a guess about that fit, it is a statement of fact about it.
+    if plan.get("vessel", "none") != "none":
+        vessel = feats[:, gaps + N_GAPS:gaps + N_GAPS + N_VESSEL].reshape(
+            len(feats), N_SIGNALS, len(VESSEL_TAUS_MS))
+        keep = [D3D_MAGNETICS_SIGNALS.index(s) for s in DERIV_SIGNAL_SETS[plan["vessel"]]]
+        tail += [vessel[:, keep, :].reshape(len(feats), -1)]
     tail += ([feats[:, -N_THOMSON_BLOCK:][:, thomson_columns(plan["thomson"])]]
              if plan["thomson"] else [])
     if want == "none":
@@ -828,9 +904,9 @@ def _shot_code_key() -> str:
     return shot_cache.fingerprint(
         _read_training_shot, features_for_row, inputs_only_shot, align_ip_times,
         interpolate_magnetics_to_efit, _as_psirz_stack,
-        _raw_derivatives, _interp_derivatives, _frame_gaps,
+        _raw_derivatives, _interp_derivatives, _frame_gaps, _vessel_currents,
         _thomson_features, _profile_stats, _fill_in_time,
-        extra=f"{D3D_MAGNETICS_SIGNALS}|{SUBMITTED_SCALARS}|{FEATURE_WIDTH}|{RAW_DERIV_HALF_MS}",
+        extra=f"{D3D_MAGNETICS_SIGNALS}|{SUBMITTED_SCALARS}|{FEATURE_WIDTH}|{RAW_DERIV_HALF_MS}|{VESSEL_TAUS_MS}",
     )
 
 

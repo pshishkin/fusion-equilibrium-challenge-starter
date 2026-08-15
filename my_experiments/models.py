@@ -859,6 +859,8 @@ class Params:
     pca_frame_share: float
     derivatives: str                    # none | raw | interp | both
     derivative_signals: str             # driving | poloidal
+    # A19/A22: which signals get the leaky-integral block of dI/dt. 'none' is off.
+    vessel: str                         # none | driving | poloidal
     thomson: str                        # "" for off, else comma-separated group names
     frame_gaps: bool                    # the distance to the neighbouring frames, as input
     split_salt: int
@@ -1036,7 +1038,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     _require_keys(doc["features"],
                   {"n_pca", "pca_seed", "pca_frame_share", "subtract_coil_field", "inputs",
                    "n_coil_pca", "derivatives", "derivative_signals", "thomson",
-                   "frame_gaps"},
+                   "frame_gaps", "vessel"},
                   "features", path)
     pca_frame_share = float(doc["features"]["pca_frame_share"])
     if not 0.0 < pca_frame_share <= 1.0:
@@ -1050,6 +1052,10 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     if deriv_signals not in DERIV_SIGNAL_SET_NAMES:
         raise ValueError(f"{path}: features.derivative_signals is {deriv_signals!r}, expected one "
                          f"of {sorted(DERIV_SIGNAL_SET_NAMES)}")
+    vessel = str(doc["features"]["vessel"])
+    if vessel not in ("none", *DERIV_SIGNAL_SET_NAMES):
+        raise ValueError(f"{path}: features.vessel is {vessel!r}, expected 'none' or one of "
+                         f"{sorted(DERIV_SIGNAL_SET_NAMES)}")
     inputs = str(doc["features"]["inputs"])
     if inputs not in INPUT_MODES:
         raise ValueError(f"{path}: features.inputs is {inputs!r}, expected one of "
@@ -1082,6 +1088,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   pca_frame_share=pca_frame_share,
                   derivatives=derivatives,
                   derivative_signals=deriv_signals,
+                  vessel=vessel,
                   thomson=str(doc["features"]["thomson"] or ""),
                   frame_gaps=bool(doc["features"]["frame_gaps"]),
                   split_salt=int(doc["split"]["salt"]),
