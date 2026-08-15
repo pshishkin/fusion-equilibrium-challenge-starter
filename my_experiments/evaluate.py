@@ -151,8 +151,14 @@ def main() -> int:
         # so the check is per PART. Which members to combine is a question about a fitted
         # artifact, and answering it should cost one training run rather than one per combination.
         # `salts:` names are artifacts, not members of this one, so they are checked by loading.
-        unknown = {p for m in models if not m.startswith(SALTS_PREFIX)
-                   for p in m.split("+")} - set(available)
+        # A name may be `a`, `a+b`, or `psi=a+b,qb=c`; every leaf still has to be a fitted model.
+        leaves = set()
+        for m in models:
+            if m.startswith(SALTS_PREFIX):
+                continue
+            for block in m.split(","):
+                leaves |= set(block.split("=")[-1].split("+"))
+        unknown = leaves - set(available)
         if unknown:
             raise SystemExit(f"{ARTIFACT} holds {available}, but --models asks for "
                              f"{sorted(unknown)}. Enable them in params.yaml and retrain.")

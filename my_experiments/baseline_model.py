@@ -85,6 +85,9 @@ ARTIFACT = Path(os.environ.get("FUSION_ARTIFACT", HERE / "baseline.joblib"))
 # PCA basis, its own target scaler and its own coil gains, so their coefficients are not
 # commensurable and averaging them would be adding up numbers that mean different things.
 SALTS_PREFIX = "salts:"
+
+# `psi=mlp+seq,qb=mlp` — one combination for the flux coefficients, another for q95 and betaN.
+BLOCK_SEP, PSI_KEY, QB_KEY = ",", "psi=", "qb="
 SUBMITTED_SCALARS = ["efit_q95", "efit_beta_n"]   # -> q95, betaN
 ENSEMBLE = "ensemble"                             # the reserved name of the weighted average
 
@@ -1165,15 +1168,28 @@ def _predict_targets(art: Artifact, model: str, Xs: FloatArray) -> FloatArray:
     once either way.
     """
     inverse = art["target_scaler"].inverse_transform
+    # `psi=a+b,qb=c` takes the flux coefficients from one combination and the two scalars from
+    # another. The composite reads them separately — R2_psi, D_LCFS and Consistency are all
+    # functions of the MAP, while R2_qb is only the two directly regressed scalars — so nothing
+    # says one model has to supply both. Costs nothing to try: the members are already fitted.
+    if BLOCK_SEP in model or model.startswith(PSI_KEY):
+        blocks = dict(p.split("=", 1) for p in model.split(BLOCK_SEP))
+        if set(blocks) != {PSI_KEY[:-1], QB_KEY[:-1]}:
+            raise KeyError(f"{model!r}: a split is written 'psi=<spec>,qb=<spec>' and needs "
+                           f"both blocks; got {sorted(blocks)}")
+        n_pca = int(art["n_pca"])
+        psi_block = _predict_targets(art, blocks[PSI_KEY[:-1]], Xs)
+        qb_block = _predict_targets(art, blocks[QB_KEY[:-1]], Xs)
+        return np.hstack([psi_block[:, :n_pca], qb_block[:, n_pca:]])
     if model == ENSEMBLE:
         out = np.zeros((len(Xs), art["n_pca"] + len(SUBMITTED_SCALARS)), dtype=np.float64)
         for name, weight in art["ensemble"].items():
             out += weight * inverse(art["models"][name].predict(Xs))
         return out
     members = model.split("+")
-    unknown = [m for m in members if m not in art["models"]]
-    if unknown:
-        raise KeyError(f"no model {unknown[0]!r} in {ARTIFACT}; it holds {model_names(art)}. "
+    missing = [m for m in members if m not in art["models"]]
+    if missing:
+        raise KeyError(f"no model {missing[0]!r} in {ARTIFACT}; it holds {model_names(art)}. "
                        f"A combination is written 'a+b' and every part must be a fitted model.")
     if len(members) == 1:
         return inverse(art["models"][members[0]].predict(Xs))
