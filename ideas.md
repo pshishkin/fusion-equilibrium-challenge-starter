@@ -782,6 +782,65 @@ representation-floor branch has already been tested and refuted, above.
 **ΔS ≈ +0.0005…+0.0015, confidence 0.45.** Bounded above by 0.00106, and that bound is measured —
 which is more than any other open entry in this file can say.
 
+## A23. Spend the confidence: ensemble weights that vary, and shrinkage — *2026-08-15*
+
+**Both halves need NO retraining at all**, which is what puts this above everything else outstanding
+except A22. C8 measured a per-frame confidence that predicts the cost at Spearman +0.565 and costs
+nothing, and two ways to spend it fall straight out of measurements already taken.
+
+*Weights that vary with position or with confidence.* A21 below fits ONE weight per member. But the
+optimal weight demonstrably is not constant: the recurrence removes **+2.4%** of the cost in the
+first decile of a shot and **+14.5%** in the eighth — a six-fold spread on a member that carries
+0.20 everywhere. Fitting `w(phase)` or `w(disagreement)` on the reserved holdout is the same tiny
+least-squares problem as A21 with a few more parameters, and `_predict_targets` already averages in
+the scaled target space, so the code touched is one function.
+
+*Shrinkage where the model is unsure.* R² is squared error, and under squared error the optimal
+estimate of an uncertain quantity is shrunk toward the prior mean. `ĉ' = ĉ − λ·f(disagreement)·(ĉ −
+c̄)`, one scalar λ swept on the artifact that already exists — the same zero-retrain harness A7
+builds. The 50 coefficients have a natural `c̄`: the PCA basis is centred, so it is zero.
+
+**The adversarial note, stated before either runs.** Both are fitted on a holdout and both add
+parameters to a decision that is currently free of them; the fork's own history says selection at
+this scale costs about 0.0013 unless confirmed on salts nothing selected against. Neither is
+exempt from that rule because neither costs a training run.
+
+**The trap worth writing down, because it is the textbook answer and it is wrong here.** Predicting
+a per-frame σ and minimising a Gaussian NLL — the standard way to model aleatoric uncertainty —
+optimises in the WRONG DIRECTION for this metric. NLL down-weights frames with large predicted σ,
+so the model learns to ignore what it cannot predict, while a pooled R² charges for those frames
+regardless. A heteroscedastic head trained that way should be expected to LOSE score, and the
+version that could help is the opposite sign: up-weight, i.e. hard-example mining, which is the
+third use and carries B6's own caveat that hard is not the same as under-weighted.
+
+**Refuted if** the fitted varying weights land within 0.0005 of the flat ones on unseen salts, or
+the shrinkage sweep's optimum is λ = 0.
+
+**ΔS ≈ +0.0005…+0.0015, confidence 0.45.**
+
+## B11. A loss metric that changes with the regime — *2026-08-15* — needs the loss reworked
+
+**The axis nobody has looked at.** The `jacobian` metric is ONE 50×50 matrix, `JᵀJ` averaged over
+300 probe frames. C7 measured how its TRACE varies frame to frame — 10× — and found that the
+variation does not explain the cost. What it did not measure is whether `J` points in different
+DIRECTIONS: a plasma on ramp-down has a different shape, so a different combination of coefficients
+moves its `kappa`, not merely a larger one. Averaging `JᵀJ` blurs direction as well as scale, and
+only scale has been tested.
+
+**The free diagnostic, and it decides the entry.** Partition the 300 probe frames by phase into
+three regimes, build `M` on each, and measure the principal angles between the resulting subspaces
+(or simply how much `L_regime` differs from the pooled `L`). If the directions agree, this is only
+the scale again and the entry dies for the cost of three eigendecompositions.
+
+**Honest cost if it survives.** `TargetScaler` folds `L` into the target transform ONCE, globally,
+which is what makes the loss a plain MSE afterwards and what makes ensemble averaging in the scaled
+space valid. A per-regime `L` cannot live there — it would make the target space depend on the row.
+It has to move into the MLP loss as a per-row quadratic form instead, which is a real rework of the
+training step and of the early-stopping metric with it.
+
+**Refuted if** the principal angles between the three regime subspaces are small, which after C7's
+result is the way to bet. **ΔS ≈ 0…+0.002, confidence 0.2.**
+
 ## A21. Fit the ensemble weights instead of setting them — *2026-08-15*
 
 **Hypothesis.** Solving for the ensemble weights on a holdout, rather than writing 0.6/0.4 in
@@ -1323,6 +1382,26 @@ present DIII-D artifact scores when pointed at MAST shots with whatever features
 number can only be embarrassing or encouraging, and either one is worth more than a refinement on a
 challenge already won.
 
+## C8. Does the model know where it is wrong? — *2026-08-15* — **DONE, and the answer is yes, cheaply**
+
+The four seeds are already fitted, so their per-frame disagreement is an uncertainty estimate that
+costs nothing to compute. Taken as the spread of the seven derived scalars across the four seeds,
+normalised per scalar and summed, against the ensemble's own per-frame cost on 14830 frames:
+
+**Spearman = +0.565**, against **+0.209** for the Jacobian sensitivity C7 measured. And unlike
+sensitivity the relation is monotone — mean cost by quintile of disagreement is 0.20× / 0.32× /
+0.52× / 0.99× / **2.97×**, with the top fifth of frames carrying **59.3%** of the cost.
+
+So the model's own disagreement locates the loss two and a half times better than the metric's
+linearisation does, and it is free.
+
+**The blind spot, and it sits exactly on the money.** By decile the disagreement is 1.55× at the
+start of a shot against a cost of 1.54× — calibrated — but **1.19× at the end against a cost of
+2.61×**. It under-reports the tail by more than a factor of two, and the reason is already measured:
+seed residuals correlate +0.550 there, so a majority of the tail's error is SHARED, and shared error
+is invisible to disagreement by construction. Four seeds that are all wrong the same way look
+confident. **Ensemble disagreement measures variance and is blind to bias.**
+
 ## C7. Is an expensive frame under-weighted, or simply harder? — *2026-08-15* — **DONE, and it redirects B6**
 
 2998 probed frames over the same 70 shots, joined to C1's costs.
@@ -1410,18 +1489,22 @@ spent hours on, after the polarity split (A12 step 0) and the scalar bias and sl
 
 The order the two measurements imply:
 
-1. **A22, the last tenth of a shot.** 27.2% of everything reachable, in 10% of the frames, with the
-   representation-floor explanation already measured and refuted. The most specific target this
-   file has ever had. Its own first step is A19's features re-read on that decile alone.
-2. **A2**, one boolean and no new code: the loss over-weights the two triangularities, which are
-   9.9% of the geometry cost, relative to `kappa` and `li`, which are 42%.
+1. **A23, spending the confidence** — weights that vary with position or with disagreement, and
+   shrinkage where the model is unsure. **Neither needs a training run at all**, and both are
+   pointed at by numbers already measured: the recurrence is worth 2.4% of the cost at the start of
+   a shot and 14.5% at the eighth decile while carrying one flat weight, and seed disagreement
+   predicts the per-frame cost at Spearman +0.565.
+2. **A22, the last tenth of a shot.** 27.2% of everything reachable, in 10% of the frames, and the
+   explanation that would have killed it is already refuted. Its own next step is A19's features
+   read on that decile alone rather than on the composite.
 3. **A13, stop on the composite.** The model's ψ is at its ceiling and its geometry is not, which
    is the same disagreement between loss and score in a different place.
 4. **C3, permutation importance** — still free, and it prices A19 and B10 before either is built.
 5. Then the zero-retrain sweep A7; then A1, A19, A3, A4, A5, A6, A8.
 
-**Demoted by the same measurements:** B6, whose weighting is aimed at the frames the model already
-predicts best; B9, whose premise C2 refuted; and anything aimed at R²ψ or the triangularities.
+**Demoted or closed by the same measurements:** A2, measured flat; B6, whose weighting is aimed at
+the frames the model already predicts best; B9, whose premise C2 refuted; and anything aimed at
+R²ψ or the triangularities.
 
 **Not first any more:** B9, whose premise C2 refuted, and anything aimed at R²ψ, which is measured
 at 0.9998 of a 1.0000 ceiling and is finished.
