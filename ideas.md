@@ -642,6 +642,71 @@ first recorded that they disagree.
 validation curve keeps improving past the score's peak was made under `parseval`, when the loss
 was blind to Consistency entirely.
 
+## A19. A multi-scale derivative bank, not one half-width — *2026-08-15*
+
+**Hypothesis.** Replacing the single 1 ms centred derivative with a bank at ~0.2, 1, 5 and 20 ms,
+plus a few leaky integrals of the loop voltage at 10, 50 and 200 ms, gains ≥ 0.001 over A10's
+accepted `both/poloidal`.
+
+**Mechanism, and it is the sharp part.** `RAW_DERIV_HALF_MS = 1.0` was chosen as "short against the
+equilibrium, long against the noise" — a reasonable guess, never measured, and there is no reason
+one number serves every process. The vessel's eddy currents decay over milliseconds to tens of
+milliseconds; current diffusion in the plasma runs to hundreds. A derivative at one scale is a
+band-pass at one frequency, and the two physical timescales that matter sit on either side of it.
+The **leaky integrals** are the more interesting half: an exponential moving average of `dI_OH/dt`
+with time constant τ *is* a first-order estimate of the vessel current driven by that voltage, so a
+bank of them is a hand-built state observer — exactly the state a memoryless MLP cannot form, given
+as a feature instead of as an architecture. If it pays, it is B5's mechanism at a hundredth of the
+cost; if it does not, that is evidence against B5's mechanism too.
+
+**Test.** `_raw_derivatives` already takes a half-width; make it a tuple and widen `DERIV_BLOCKS`.
+The cache rebuilds (the derivative blocks are cached), which is the real cost. Paired runs against
+production on two salts.
+
+**Refuted if** the bank is within 0.0005 of the single scale, which would say the 1 ms guess is
+already on the flat of a broad optimum.
+
+**ΔS ≈ +0.0005…+0.002, confidence 0.4.** Ranked above the architecture ideas that share its
+mechanism because it is one cache rebuild and no new model.
+
+## A20. Average the weights, not only the seeds — *2026-08-15*
+
+**Hypothesis.** An exponential moving average of the weights over the last ~10% of steps, or a
+Polyak average from the plateau onward, buys a share of the four-seed gain at zero extra training.
+
+**Mechanism.** A1 measured σ ≈ 0.0013 of S across seeds and called it optimisation noise, and
+averaging four fits paid +0.0042. Some of that noise is *between* seeds and only more seeds fix it;
+some of it is the last few thousand steps rattling inside one basin, and a weight average removes
+that part for free. The two are additive — an EMA of each member, then the ensemble of the four.
+
+**Test.** One `torch.optim.swa_utils.AveragedModel` in the MLP fit, evaluated at the same stopping
+point as the raw weights, so it is a paired comparison inside a single run.
+
+**Refuted if** the averaged weights score within 0.0003 of the raw ones — which would say the
+plateau is already flat and early stopping is landing in the middle of it rather than on a rattle.
+
+**ΔS ≈ +0.0003…+0.0015, confidence 0.5.** The cheapest entry on the list: no extra run, no extra
+cache, no new hyper-parameter that has to be tuned.
+
+## A21. Fit the ensemble weights instead of setting them — *2026-08-15*
+
+**Hypothesis.** Solving for the ensemble weights on a holdout, rather than writing 0.6/0.4 in
+`params.yaml`, gains ≥ 0.0005 — and per-block weights (one set for ψ, one for q95/βN) gain more.
+
+**Mechanism.** The members are not equally good and are not equally good *at the same things*: the
+sequence model loses on geometry and the dedicated q95/βN question has already come up in
+conversation. Averaging in the scaled target space is linear, so the optimal weights are a tiny
+least-squares problem — and with 50 coefficients over thousands of holdout frames, the fitting risk
+is small enough to bound by leaving the weights on the simplex.
+
+**Test.** `_predict_targets` already parses per-block combinations; the missing piece is a solve on
+the holdout that `reserve_holdout` already carves. No retraining at all.
+
+**Refuted if** the fitted weights land within noise of the hand-set ones, which is likely for two
+similar MLPs and much less likely once CatBoost and the sequence model are in.
+
+**ΔS ≈ +0.0003…+0.0015, confidence 0.45.**
+
 ---
 
 # Group B — multiplies the compute
@@ -853,6 +918,26 @@ matches the control with a `delta` that stayed near zero, the recurrence found n
 matches with a large `delta`, it found something and paid for it elsewhere. Those are different
 results and the score alone cannot tell them apart.
 
+### The screen was never run — *2026-08-15*
+
+**Five of the six arms are outstanding**, and this is the largest unpaid debt on the sequence model.
+Arm `q1` stopped at `best step 40000 of 40000` — it measured the step budget, not the
+hyper-parameter — and the grid was abandoned there rather than spending 2.4 h sweeping five
+learning rates against a ceiling. So every number this architecture has produced, including the
+0.9914 that refuted it as a replacement and the +0.0007 that accepted it into the ensemble, comes
+from **one untuned configuration**, where the MLP beside it was tuned over thirty runs.
+
+**Order matters here.** Raise `max_steps` until the best step lands strictly inside the budget on
+`q1`, and only then run `q2…q6`. Arms read against a truncated control measure the truncation. The
+same applies to the two knobs the original six do not cover and that this model has more reason to
+want than the MLP does: `weight_decay`, since 5633 sequences against 1.25M rows is three orders of
+magnitude fewer examples per parameter, and the split of capacity between `enc`/`gru` and the
+feed-forward `head` — 789k of the 1.59M parameters are in the recurrence, a ratio nothing chose.
+
+**ΔS unknown, and that is the point.** A tuned recurrence could still lose to the MLP, but the
+current verdict does not distinguish "the architecture is wrong" from "the architecture was run at
+someone else's learning rate".
+
 ## B9. Learn the 50-dimensional subspace instead of taking PCA's — *2026-08-15*
 
 **The gap this points at.** PCA chooses its 50 directions to maximise explained PIXEL VARIANCE.
@@ -910,6 +995,44 @@ rebuild the ensemble and the loss metric around it, not against PCA alone.
 plausible, since 50 components reconstruct ~100% of the variance and the headroom on `R2_psi` is
 0.0004 of S. The hope rests entirely on the geometry terms, where the headroom is 0.0175.
 
+## B10. A second sequence model, on the 0.05 ms stream — *2026-08-15* — a cache rebuild plus a new encoder
+
+**The observation this rests on, and it is the only one of its kind left.** Every idea in this file
+rearranges the same 21 numbers per EFIT frame. The magnetics are not sampled at 20 ms — they are
+sampled at **0.05 ms**, four hundred samples per frame, and the pipeline throws all of them away
+except through one 1 ms centred difference. That is the only place in the project where genuinely
+unused *information* sits, as opposed to unused capacity or a better arrangement of what is already
+in.
+
+**Hypothesis.** A two-rate model — a small strided convolutional encoder over each frame's ~400 raw
+samples, whose 32-dimensional output joins the existing per-frame features feeding the shot-level
+GRU — beats the frame-rate sequence model by ≥ 0.002.
+
+**How the two clocks join, which is the question the idea arrives with.** Not by resampling
+anything to a common grid: the fast encoder is applied *per frame* over the window `[t − 20 ms, t]`
+and returns one vector per frame, so it is a feature extractor whose output already lives on the
+EFIT clock. The shot-level GRU is unchanged. This keeps the two rates in the two places they
+belong and needs no new alignment logic — and it composes with everything, because the frame-rate
+interface (`predict_row` over a shot's frames) never changes. The alternative, one recurrence
+running at 20 kHz over the whole shot, is 94k steps per shot and is not worth considering until the
+cheap version says there is something down there.
+
+**Gate, and it is a hard one: run A19 first.** A19's fixed multi-scale bank asks the same question —
+is there anything in the sub-frame stream? — with four numbers per signal instead of a learned
+encoder. If a bank spanning 0.2 to 20 ms buys nothing, the claim that a conv net over the same
+samples finds something is a claim that the useful structure is not in any band, which is possible
+but is a much thinner reed than "the vessel has fast dynamics".
+
+**Cost, honestly.** The decoded-shot cache is 25 GB and holds interpolated features; the raw stream
+is ~8 MB per shot, so caching it for 5633 shots is ~44 GB — the same order as the parquets it comes
+from, but it is the dominant cost of the entry and it lands before any model exists.
+
+**Refuted if** A19 is refuted, or if the encoder's output is driven to near-zero variance in
+training — the same delta-share reading B5 already uses, applied to the fast branch.
+
+**ΔS ≈ 0…+0.004, confidence 0.25.** The widest interval in this file, and deliberately: it is the
+only entry whose upside is new information rather than better use of old.
+
 ## B6. A per-frame heteroscedastic metric — *2026-08-13* — ~half a day
 
 **Hypothesis.** The fixed `M` (JᵀJ averaged over 300 probe frames) under-weights high-sensitivity
@@ -965,11 +1088,77 @@ one run per weight.
 
 ---
 
+# Group C — diagnostics, which cost no training at all
+
+Two entries in this file have already been closed by a free measurement rather than by a run, and
+the project's two reversals both happened because a number was taken from the wrong scale. These
+cost an afternoon each, none of them needs a fit, and every one of them changes what is worth
+running next. **They come before Group A.**
+
+## C1. Where the score is actually lost — *2026-08-15*
+
+Decompose all four terms per frame on the validation shots and rank them. Nothing in this project
+has ever looked at *which* frames cost, only at totals, and the two possibilities call for opposite
+work: if the loss is roughly uniform across 140k frames, only better regression helps and the whole
+of Group A is the right list; if a few percent of frames carry most of it, the question becomes what
+those frames have in common — ramp-up, ramp-down, a large frame gap, limited versus diverted, a
+particular shape — and a targeted fix beats every entry above. Cross the ranking against the
+features to answer that in the same pass. **The single most informative thing left that costs no
+GPU.**
+
+## C2. The representation floor, per term — *2026-08-15*
+
+Project ground-truth ψ onto the 50 PCA components, decode, and score the result. That is the score
+a **perfect model** would get through this pipeline, and it splits the remaining 0.0068 into the
+part the regression could still win and the part the 50-dimensional bottleneck has already spent.
+Per term, not in total: R²ψ is known to be saturated, but `D_LCFS` and Consistency read geometry
+that PCA never optimised for, and their combined headroom is 0.0175. Directly gates B9 — if the
+floor on the geometry terms is most of the remaining budget, B9 stops being speculative and becomes
+the only entry that matters.
+
+## C3. Permutation importance on the artifact we already have — *2026-08-15*
+
+Permute one input block across frames, re-score, restore, repeat: 21 signals, two derivative blocks,
+the gap columns, the Thomson block. No fitting, one scoring pass each. Answers questions the
+feature entries currently guess at — whether the accepted derivatives are used or merely harmless,
+whether Thomson is dead weight, whether the model is essentially reading Ip and the shaping coils —
+and it prices A19 and B10 before either is built. Caveat worth writing down: permutation measures
+what *this* fit uses, not what is usable, so a zero is weaker evidence than a large value.
+
+## C4. The residual's structure in time — *2026-08-15*
+
+Split the metric-weighted error into a per-shot constant, a slow within-shot component and the
+rest. A per-shot offset has been noticed before and "turned out not to be explained by current
+history at all", but its *share* was never measured. If it is large, a bidirectional pass over the
+shot should have removed it almost for free — and B5 measurably did not, which would mean the
+constant is not inferable from the inputs at all and bounds every architecture equally. If it is
+small, B5's failure is about geometry and A13's composite stopping is the fix.
+
+## C5. Does anything transfer to MAST? — *2026-08-15*
+
+`predict_row` raises `NotImplementedError`, so Challenge 2 currently scores **zero** — and the
+top-of-file ranking already calls this the largest structural gap left. Before any modelling: which
+of the 21 signals exist on MAST at all, what the flux grid and the frame clock are, and what the
+present DIII-D artifact scores when pointed at MAST shots with whatever features do exist. That
+number can only be embarrassing or encouraging, and either one is worth more than a refinement on a
+challenge already won.
+
+## C6. The memory the sequence model learned — *2026-08-15*
+
+Already specified under B5 ("How far back does it actually reach?"): the histogram of `tau` over the
+256 update-gate channels, cross-checked by perturbing frame `t − k`. Listed here so the diagnostics
+are in one place.
+
+---
+
 ## Suggested order
 
 Free diagnostics first, since two of them have already closed an entry without a run: the polarity
-split (A12 step 0) and the scalar bias and slope (A7 step 0). Then the zero-retrain sweep A7 on the
-artifact we already have; then A1 and A2, one run each; then A3, A4, A5, A6, A8.
+split (A12 step 0) and the scalar bias and slope (A7 step 0). **Group C is now the whole of that
+step** — C1 and C2 first, because between them they decide whether the remaining budget is in the
+regression, in a small set of hard frames, or in the subspace, and those three answers point at
+different halves of this file. Then the zero-retrain sweep A7 on the artifact we already have; then
+A1 and A2, one run each; then A3, A4, A5, A6, A8.
 
 Group B only after A1, A3 and A10 report — B1, B2 and B5 are their scaled versions, and B4 needs
 the harness A7 builds.

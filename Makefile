@@ -132,8 +132,10 @@ sweep:
 	test -n "$(GRID)" || { echo "GRID= is required"; exit 2; }; \
 	$(TORCH_ENV) uv run python my_experiments/sweep.py $(GRID) $${OUT:-results/sweep.csv} $(TEE)
 
+# Full frames, not a fifth of them: `seq` is enabled in params.yaml and train.py refuses to fit a
+# sequence model on a thinned clock. Fewer shots instead, so the target stays a quick one.
 train:
-	uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2
+	uv run python my_experiments/train.py --share 0.01/1.0 --val-share 0.01/1.0
 
 eval:
 	uv run python my_experiments/evaluate.py --share 0.01

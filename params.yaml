@@ -472,12 +472,18 @@ models:
 
   seq:
     type: torch_seq
-    # Off by default: it is the only model here whose unit is the SHOT rather than the frame, and
-    # it is not yet measured against the zoo. `--only ridge seq` screens it; a weight in the
-    # ensemble block below is what would put it into a submission.
-    enabled: false
-    # REQUIRES `frame_share: 1.0` in the shares and `frame_gaps: true` above. Trained on thinned
-    # frames it would learn the dynamics at a 100 ms spacing and be asked for them at 20 ms.
+    # ON, and it is a member below: the leaderboard-0.9932 submission was four MLP seeds plus this
+    # model at equal weights. Alone it LOSES to the MLP — 0.9914 against 0.9931, worse on every
+    # term of the composite — and it earns its place only in the average, +0.0007 confirmed on two
+    # salts nothing selected against. `--only ridge mlp` is how a run leaves it out.
+    enabled: true
+    # REQUIRES `frame_share: 1.0` in both shares — trained on thinned frames it would learn the
+    # dynamics at a 100 ms spacing and be asked for them at 20 ms. `train()` refuses the
+    # combination rather than trusting this comment, so `make train` carries 1.0 too.
+    #
+    # `frame_gaps` above was built FOR this model and is nonetheless off: measured, the two columns
+    # cost the per-frame MLP 0.0012, and the pair was selected with them on — so the +0.0007 is a
+    # lower bound taken at the worse setting, which is the safe direction for it to be wrong in.
     #
     # The per-frame trunk, identical to the MLP's. The recurrence is a CORRECTION to this, added
     # through a zero-initialised layer, so at step 0 this model is exactly the MLP and everything
@@ -493,10 +499,11 @@ models:
     batch_shots: 32
     # Measured on this GPU at the production shape: 65 ms/step at 32 shots (125k frames/s), against
     # 67 at 16 and 110 at 64 — so 32 is both the cheapest step and near the best throughput.
-    # The budget is set to match the MLP's in PASSES over the data, not in steps, since a step here
-    # is 8000 frames and one there is 4096: at 5633 shots a pass is 176 steps, so 40000 is 227
-    # passes of ceiling and 10000 is 57 passes of patience, against the MLP's ~98 and 60.
-    max_steps: 40000
+    # The budget was first set to match the MLP's in PASSES over the data — at 5633 shots a pass is
+    # 176 steps, so 40000 was 227 passes — and that reasoning was wrong: the screen's first arm
+    # stopped at `best step 40000 of 40000`, i.e. it measured the ceiling and not the model. 200000
+    # is where the fit actually ends inside its budget, and it is what the submission used.
+    max_steps: 200000
     patience_steps: 10000
     # 500 rather than 200 because validating over 1338 shots costs ~1.3 s: at 200 it would be a
     # tenth of the whole fit, spent measuring rather than fitting.
@@ -528,3 +535,7 @@ ensemble:
     mlp1: 1.0
     mlp2: 1.0
     mlp3: 1.0
+    # The fifth member reads the whole shot rather than one frame, so what it adds is not another
+    # draw of the same noise: it is the only member whose errors have a different shape. Equal
+    # weight because nothing has measured a better one — see A21 in ideas.md.
+    seq: 1.0
