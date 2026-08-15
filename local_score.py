@@ -250,6 +250,15 @@ def predict(shots: list[dict], mode: str, pred_npz: Path | None,
         return [{"psirz": np.zeros_like(s["psi"], dtype=np.float64),
                  "q95": np.zeros_like(s["q95"]), "betaN": np.zeros_like(s["betaN"])}
                 for s in shots]
+    if mode == "basis":
+        # Not a self-check: the CEILING. Ground truth through the artifact's 50 components and
+        # back, with q95 and betaN handed over exactly, since those are regressed directly and
+        # never pass through the basis. Whatever this scores below 1.0 is unreachable by fitting.
+        from my_experiments.baseline_model import project_through_basis
+        return [{"psirz": project_through_basis(s["row"], s["psi"]),
+                 "q95": s["q95"], "betaN": s["betaN"]}
+                for s in tqdm(shots, desc="  projecting", unit="shot",
+                              **bar_kwargs(SHOT_EVERY))]
     from submission_skeleton import your_model_predict
     return [your_model_predict(s["row"], MACHINE, model)
             for s in tqdm(shots, desc="  predicting", unit="shot",
@@ -442,8 +451,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--skip", type=int, default=0,
                     help="skip this many train shots first — use it to score shots you did NOT "
                          "train on")
-    ap.add_argument("--mode", choices=["model", "perfect", "zeros"], default="model",
-                    help="perfect/zeros verify the harness itself (S must be 1.0 / 0.0)")
+    ap.add_argument("--mode", choices=["model", "perfect", "zeros", "basis"], default="model",
+                    help="perfect/zeros verify the harness itself (S must be 1.0 / 0.0); basis "
+                         "scores ground truth pushed through the artifact's PCA, which is the "
+                         "ceiling of the pipeline rather than a check of it")
     ap.add_argument("--pred", type=Path, help="score this .npz instead of calling your model")
     ap.add_argument("--source", default="hf", choices=["hf", "local"],
                     help="'hf' streams the Hub, 'local' reads a downloaded copy of the dataset")

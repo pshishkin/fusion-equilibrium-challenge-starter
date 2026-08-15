@@ -15,12 +15,21 @@ each was first written down.
 
 ## The arithmetic every rank is read against
 
-Production headroom is **0.0205** of S: Consistency 0.0158, R²qb 0.0027, D_LCFS 0.0017, R²ψ 0.0004.
-Each Consistency scalar is worth 0.20/7 ≈ 0.0286 of S, so the per-scalar budgets are li 0.0031,
-kappa 0.0031, volume 0.0029, R_axis 0.0026, Z_axis 0.0023, and the two triangularities 0.0006 each.
+**Rewritten 2026-08-15 from C1 and C2, which measured it rather than assuming it.** The model
+scores 0.9945 and the ceiling of this pipeline is **0.9990** — so of the 0.0055 remaining, **0.0045
+is reachable by fitting and 0.0010 the 50-component basis has already spent.**
+
+Where the reachable 0.0045 sits: Consistency **0.0034**, R²qb 0.0005, D_LCFS 0.0005, R²ψ 0.0001.
+Inside the geometry terms, by share of their cost: kappa **23.3%**, li **18.7%**, the LCFS distance
+18.4%, R_axis 11.3%, volume 10.8%, Z_axis 6.8%, tri_top 4.5%, tri_bot 5.4%.
 
 **Anything aimed at R²ψ or at the triangularities is capped below the noise floor** and is not on
-this list.
+this list. R²ψ is now measured at 0.9998 against a ceiling of 1.0000 — it is finished.
+
+**And the shape of the loss, which is new.** The worst 1% of frames carry 22.4% of the geometry
+cost and the worst 10% carry 57.9%; the last decile of a shot costs 2.4× its share and the first
+1.5×. The loss weights every frame equally. That gap is the single most concrete thing this file
+knows about where the remaining 0.0045 is hiding.
 
 Seed noise at production is σ = **0.0009** of S (3 salts × 3 seeds, measured), against the 0.0060
 that was carried over from quality scale. A paired comparison resolves **0.0013** on one run and
@@ -938,7 +947,21 @@ feed-forward `head` — 789k of the 1.59M parameters are in the recurrence, a ra
 current verdict does not distinguish "the architecture is wrong" from "the architecture was run at
 someone else's learning rate".
 
-## B9. Learn the 50-dimensional subspace instead of taking PCA's — *2026-08-15*
+## B9. Learn the 50-dimensional subspace instead of taking PCA's — *2026-08-15* — **PREMISE REFUTED**
+
+**C2 ran the free diagnostic this entry asked for, the same day, and it came back against.** The
+argument below rests on the geometry terms having 0.0175 of headroom that a variance-optimal basis
+cannot reach. Measured: ground truth through the artifact's own 50 components scores **0.9990**, so
+the basis costs **0.0010** of S in total — 0.0005 on `D_LCFS` and 0.0005 on Consistency. The
+refutation clause at the bottom of this entry is met exactly as written.
+
+**What is left of it, honestly.** Representability is settled and dead. *Predictability* — the
+reduced-rank half, choosing directions that the 86 magnetics numbers can actually determine — is
+untouched by C2, which only asked what the basis can represent. But it has lost the argument it was
+ranked on, its ceiling is now the 0.0045 the regression is leaving rather than anything larger, and
+it competes against B6, which C1 measured *for*. Keep it below B6 and below A13.
+
+### The original entry
 
 **The gap this points at.** PCA chooses its 50 directions to maximise explained PIXEL VARIANCE.
 The composite does not score pixel variance: 30% of it is `D_LCFS` and Consistency, which read the
@@ -1033,7 +1056,7 @@ training — the same delta-share reading B5 already uses, applied to the fast b
 **ΔS ≈ 0…+0.004, confidence 0.25.** The widest interval in this file, and deliberately: it is the
 only entry whose upside is new information rather than better use of old.
 
-## B6. A per-frame heteroscedastic metric — *2026-08-13* — ~half a day
+## B6. A per-frame heteroscedastic metric — *2026-08-13* — **PROMOTED by C1, run it first**
 
 **Hypothesis.** The fixed `M` (JᵀJ averaged over 300 probe frames) under-weights high-sensitivity
 frames; weighting each training frame by a cheap surrogate for `tr JᵀJ` gains ≥ 0.001.
@@ -1042,11 +1065,27 @@ frames; weighting each training frame by a cheap surrogate for `tr JᵀJ` gains 
 error across frames, and the loss should charge the frames where `J` is large. Averaging `M` blurs
 exactly that.
 
-**Test.** Fit the surrogate from the probe output we already compute (free), apply as per-row sample
-weights in the MLP loss, one run per strength.
+**C1 measured the premise, 2026-08-15, and it is larger than this entry assumed.** The refutation
+clause below asked for a 2× spread in per-frame sensitivity. What the score actually shows is the
+worst **1% of frames carrying 22.4%** of the geometry cost — a 22× concentration — with the worst
+10% at 57.9%, and the ends of the shot at 2.4× and 1.5× their share. The loss is flat across all of
+it. This is now the best-evidenced entry in the file and it moves to the front of Group B.
 
-**Refuted if** per-frame `tr JᵀJ` varies by less than ~2× across probe frames. **ΔS ≈
-+0.001…+0.002, confidence 0.3.**
+**Two versions, and the cheap one comes first.** The Jacobian surrogate is the principled one and
+needs the probe. But C1 hands over a weighting that needs no Jacobian at all — position within the
+shot, or `|dIp/dt|` — and a sample weight is one line in the MLP loss. Run the cheap one to find
+out whether frame weighting helps *at all* before deciding how cleverly to weight.
+
+**The adversarial reading, which has to be stated before the run.** A frame that costs more may
+cost more because it is HARDER, not because it is under-weighted, and up-weighting hard frames
+trades the other 90% away for them. The 22× is a fact about the residual, not yet about the
+gradient. This is exactly the shape of argument that has been refuted twice in this fork.
+
+**Test.** Per-row sample weights in the MLP loss, one run per strength, paired on one salt, then
+confirmed on two salts nothing selected against.
+
+**Refuted if** no strength clears +0.0005 paired — the flat weighting is then correct and the tail
+is difficulty rather than mis-weighting. **ΔS ≈ +0.001…+0.003, confidence 0.45.**
 
 ## B7. Grad-Shafranov cleanup at inference — *2026-08-13* — ~1 day
 
@@ -1095,26 +1134,68 @@ the project's two reversals both happened because a number was taken from the wr
 cost an afternoon each, none of them needs a fit, and every one of them changes what is worth
 running next. **They come before Group A.**
 
-## C1. Where the score is actually lost — *2026-08-15*
+## C1. Where the score is actually lost — *2026-08-15* — **DONE**
 
-Decompose all four terms per frame on the validation shots and rank them. Nothing in this project
-has ever looked at *which* frames cost, only at totals, and the two possibilities call for opposite
-work: if the loss is roughly uniform across 140k frames, only better regression helps and the whole
-of Group A is the right list; if a few percent of frames carry most of it, the question becomes what
-those frames have in common — ramp-up, ramp-down, a large frame gap, limited versus diverted, a
-particular shape — and a targeted fix beats every entry above. Cross the ranking against the
-features to answer that in the same pass. **The single most informative thing left that costs no
-GPU.**
+`my_experiments/diagnose_frames.py`, 70 held-out shots, 14830 frames, the two geometry terms
+decomposed onto every frame on one additive scale that sums to the pooled terms exactly.
 
-## C2. The representation floor, per term — *2026-08-15*
+**The loss is heavy-tailed.** The worst **1% of frames carry 22.4%** of the geometry cost, the worst
+5% carry 45.8%, the worst 10% carry 57.9%. So it is neither uniform nor a handful of disasters: a
+long tail, 22× over its share at the top and still 2× at the tenth percentile.
 
-Project ground-truth ψ onto the 50 PCA components, decode, and score the result. That is the score
-a **perfect model** would get through this pipeline, and it splits the remaining 0.0068 into the
-part the regression could still win and the part the 50-dimensional bottleneck has already spent.
-Per term, not in total: R²ψ is known to be saturated, but `D_LCFS` and Consistency read geometry
-that PCA never optimised for, and their combined headroom is 0.0175. Directly gates B9 — if the
-floor on the geometry terms is most of the remaining budget, B9 stops being speculative and becomes
-the only entry that matters.
+**It is the ENDS of the shot.** By position: the last decile **24.1%** of the cost over 10.2% of the
+frames, the first decile 15.1%, and the middle eight flat between 6.4% and 8.7%. Ramp-down and
+ramp-up carry 39% of it over 20% of the frames. `|dIp/dt|` says the same more weakly — 31.5% in the
+top quartile against 17.8% in the bottom — which is what you would expect if the ends are the
+mechanism and the current rate is only a proxy for them.
+
+**The holes barely matter in total.** A frame after a gap of 2 costs 3.6× its share and one after a
+gap of 3+ costs 6×, but they are 1.3% of the frames and 5.5% of the cost together. That is a
+consistent third measurement against `frame_gaps` as a feature: the effect is real per frame and
+too small to pay for two nearly-constant input columns.
+
+**Which scalar.** kappa **23.3%**, li **18.7%**, the LCFS term 18.4%, R_axis 11.3%, volume 10.8%,
+Z_axis 6.8%, tri_top 4.5%, tri_bot 5.4%. So the elongation and the internal inductance alone are
+42% of everything the geometry terms cost, and the triangularities are 9.9% — which confirms the
+note at the top of this file that anything aimed at them is below the noise floor.
+
+**What it points at, and it is not what was expected.** The frames are not exotic: no failure
+class, no extraction breakdown (0.0% both ways), nothing that a targeted repair could catch. What
+there is instead is a distribution the loss ignores — a pooled R² charges every frame the same, and
+this is a 22× spread. That is **B6** stated as a measurement rather than a hypothesis, and B6's own
+refutation clause ("refuted if per-frame variation is under ~2×") is answered the other way.
+
+## C2. The representation floor, per term — *2026-08-15* — **DONE, and it kills B9's premise**
+
+`evaluate.py --mode basis`: ground truth pushed through the artifact's own 50 components and back,
+scored on the same 70 shots. q95 and betaN are handed over exactly, since they are regressed
+directly and never pass through the basis.
+
+| term | model | **ceiling** | reachable | basis floor |
+|---|---|---|---|---|
+| R²ψ | 0.9998 | **1.0000** | 0.0001 | 0.0000 |
+| R²{q95,βN} | 0.9967 | **1.0000** | 0.0005 | 0.0000 |
+| 1 − D_LCFS | 0.9902 | **0.9950** | 0.0005 | 0.0005 |
+| Consistency | 0.9802 | **0.9974** | 0.0034 | 0.0005 |
+| **S** | **0.9945** | **0.9990** | **0.0045** | **0.0010** |
+
+**Of the 0.0055 remaining, 0.0045 is reachable by fitting and 0.0010 is the basis.** And 76% of the
+reachable part is in Consistency alone.
+
+**This refutes B9's premise as stated.** That entry was written on "the headroom on the geometry
+terms is 0.0175", and the measurement says the 50 PCA directions reproduce the geometry the scorer
+reads to within 0.0010 of S. Its own refutation clause — "refuted if the diagnostic shows PCA's
+subspace already near-optimal in the metric" — is met. What survives is the narrower half:
+reduced-rank regression is about which directions are PREDICTABLE, not which are representable, and
+nothing here measures that. But it has lost the argument it was ranked on, and it cannot be worth
+more than the 0.0045 the regression is leaving on the table.
+
+**The finding that reorders the rest.** The model's ψ is essentially perfect as pixels — 0.9998
+against a ceiling of 1.0000 — and the scalars derived FROM that ψ are off by 2–4% of variance. The
+basis can produce those scalars to 0.99+; the fit does not. So this is not representation and it is
+not capacity: it is that the loss and the score disagree about where on the map the error matters.
+`kappa` is the sharpest case — the worst ceiling of the seven (0.9908) *and* the most expensive
+scalar (23.3% of the geometry cost).
 
 ## C3. Permutation importance on the artifact we already have — *2026-08-15*
 
@@ -1153,12 +1234,24 @@ are in one place.
 
 ## Suggested order
 
-Free diagnostics first, since two of them have already closed an entry without a run: the polarity
-split (A12 step 0) and the scalar bias and slope (A7 step 0). **Group C is now the whole of that
-step** — C1 and C2 first, because between them they decide whether the remaining budget is in the
-regression, in a small set of hard frames, or in the subspace, and those three answers point at
-different halves of this file. Then the zero-retrain sweep A7 on the artifact we already have; then
-A1 and A2, one run each; then A3, A4, A5, A6, A8.
+**Rewritten 2026-08-15, after C1 and C2 ran.** They cost an afternoon and between them they closed
+one entry, promoted another, and replaced the budget table at the top of this file with a measured
+one. That is the third and fourth time a free diagnostic has settled something a run would have
+spent hours on, after the polarity split (A12 step 0) and the scalar bias and slope (A7 step 0).
+
+The order the two measurements imply:
+
+1. **B6, the cheap version** — per-frame sample weights by position in the shot. C1 measured a 22×
+   spread in what frames cost and the loss is flat across all of it. One line, one run.
+2. **A13, stop on the composite.** The model's ψ is at its ceiling and its geometry is not, which
+   is the same disagreement between loss and score in a different place.
+3. **A2's free diagnostic**, which C1 made urgent: `kappa` and `li` are 42% of the geometry cost,
+   and `calibrate_scalars` is the knob that says how much the loss charges for each scalar.
+4. **C3, permutation importance** — still free, and it prices A19 and B10 before either is built.
+5. Then the zero-retrain sweep A7; then A1 and A2 proper, one run each; then A3, A4, A5, A6, A8.
+
+**Not first any more:** B9, whose premise C2 refuted, and anything aimed at R²ψ, which is measured
+at 0.9998 of a 1.0000 ceiling and is finished.
 
 Group B only after A1, A3 and A10 report — B1, B2 and B5 are their scaled versions, and B4 needs
 the harness A7 builds.

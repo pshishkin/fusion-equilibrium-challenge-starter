@@ -48,8 +48,10 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--share", type=float, default=0.02,
                     help="share of shots to score on, from the tail of the list (default 0.02)")
-    ap.add_argument("--mode", choices=["model", "perfect", "zeros"], default="model",
-                    help="perfect/zeros verify the harness itself (S must be 1.0 / 0.0)")
+    ap.add_argument("--mode", choices=["model", "perfect", "zeros", "basis"], default="model",
+                    help="perfect/zeros verify the harness itself (S must be 1.0 / 0.0); basis "
+                         "scores ground truth pushed through the artifact's PCA — the ceiling a "
+                         "perfect regression would hit, per term")
     ap.add_argument("--models", nargs="+",
                     help="score only these members of the zoo (default: every model in the "
                          "artifact, plus the ensemble). 'a+b' scores their equally weighted "
@@ -71,8 +73,11 @@ def main() -> int:
     # The shot ORDER has to be the one training used, so the salt comes from the artifact rather
     # than from params.yaml: the file on disk may have moved on since the model was fitted, and a
     # different order would silently score a different tail while the overlap check still passed.
+    # `basis` needs the artifact as much as `model` does — it is that artifact's PCA being
+    # measured, and it has to be measured on the same shots the models were scored on or the
+    # ceiling is not comparable to what it is a ceiling for.
     art = None
-    if args.mode == "model":
+    if args.mode in ("model", "basis"):
         if not ARTIFACT.exists():
             raise SystemExit(
                 f"{ARTIFACT} not found — without it the splits cannot be checked for overlap.\n"
@@ -116,7 +121,9 @@ def main() -> int:
         # validation shots every iteration, so scoring on them would be scoring on seen data.
         seen = set(art["train_files"]) | set(art["val_files"])
         available = model_names(art)
-        models = args.models if args.models else available
+        # `basis` calls no model, so there is nothing to name — but the overlap check below still
+        # runs, because a ceiling measured on shots the PCA was fitted on is not the ceiling.
+        models = [] if args.mode == "basis" else (args.models if args.models else available)
         # A `salts:` model reaches into other artifacts, and every one of them has its own split.
         # The check has to see all of them or it certifies the wrong thing: a shot held out of THIS
         # fit may well be in another member's training set, which is exactly the mistake the
@@ -162,8 +169,9 @@ def main() -> int:
         if unknown:
             raise SystemExit(f"{ARTIFACT} holds {available}, but --models asks for "
                              f"{sorted(unknown)}. Enable them in params.yaml and retrain.")
-        print(f"Models: {', '.join(models)}")
-        extra = ["--models", *models]
+        if models:
+            print(f"Models: {', '.join(models)}")
+            extra = ["--models", *models]
     elif args.models:
         raise SystemExit(f"--models is meaningless with --mode {args.mode}: perfect/zeros do not "
                          f"call the model at all")

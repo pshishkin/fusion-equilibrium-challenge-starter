@@ -1199,6 +1199,33 @@ def _predict_targets(art: Artifact, model: str, Xs: FloatArray) -> FloatArray:
     return out
 
 
+def project_through_basis(row: Row, psi_gt: FloatArray,
+                          artifact: Path | None = None) -> FloatArray:
+    """Ground-truth flux encoded into the artifact's basis and decoded straight back.
+
+    Diagnostic C1 in ideas.md, and it answers a question no amount of training can: the models
+    predict COEFFICIENTS, so whatever the 50 directions cannot represent is lost before any
+    regression begins. Scoring this reconstruction is therefore the ceiling of the whole pipeline —
+    what a perfect model would get — and the gap between it and 1.0 is the part of the remaining
+    budget that no better fit can ever reach.
+
+    The coil field is subtracted and added back exactly as `predict_row` does it, because the basis
+    was fitted on the residual and projecting the raw map onto it would measure a different basis.
+    """
+    art = _load(artifact)
+    plan: CoilPlan = art["coil"]
+    psi = np.asarray(psi_gt, dtype=np.float64)
+    coil = None
+    if plan["subtract"]:
+        check_grid(plan, row)
+        coil = coil_flux(plan, features_for_row(row)).astype(np.float64)
+        if coil.shape != psi.shape:
+            raise ValueError(f"coil field {coil.shape} against flux {psi.shape}")
+        psi = psi - coil
+    out = np.asarray(art["pca"].inverse_transform(art["pca"].transform(psi)), dtype=np.float64)
+    return out if coil is None else out + coil
+
+
 def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE,
                 artifact: Path | None = None) -> dict[str, FloatArray]:
     """Predict {psirz (T,65,65), q95 (T,), betaN (T,)} for one dataset row.
