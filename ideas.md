@@ -261,7 +261,19 @@ inference. One production run.
 
 **ΔS ≈ 0…+0.002, confidence 0.3.**
 
-## A10. Derivatives, wherever the physics is a rate — *2026-08-13*
+## A10. Derivatives, wherever the physics is a rate — *2026-08-13* — **DONE, accepted 2026-08-15**
+
+**Reverted on 2026-08-13 at 0.60/0.1** (+0.0007 at best, below its floor) and **accepted on
+2026-08-15 at 0.80/1.0** (+0.0010 on the selection salt, +0.0023 and +0.0013 on two unseen ones).
+Same feature, same code, twenty-five times the frames.
+
+The lesson is not "screen bigger", which is unaffordable. It is that a REFUTATION at a small scale
+is only a refutation at that scale, and a feature whose value is an extra dimension the model has
+to learn to use is exactly the kind that needs data before it pays. Entries refuted below the
+production scale should say so, and this one now does.
+
+### The original entry
+
 
 **Hypothesis.** The model is handed levels of quantities whose *rates* are what act physically, and
 supplying the rates explicitly gains ≥ 0.001.

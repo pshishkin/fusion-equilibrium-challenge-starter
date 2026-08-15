@@ -67,13 +67,13 @@ features:
   # the rate the coil supply actually produced, the other the rate the equilibrium had time to
   # respond to. Both blocks are ALWAYS computed and cached, so switching arms costs a training run
   # and not a rebuild of the 25 GB shot cache.
-  derivatives: none
+  derivatives: both
   # Which signals get one. `driving` is the two the physics names — ECOILA, whose dI/dt IS the loop
   # voltage, and plasma_current, whose dIp/dt separates the ramp phases. `poloidal` is every signal
   # that produces poloidal flux, i.e. all but `bcoil`, which is toroidal and cannot inform psi at
   # all. Taking all twenty-one tests a weaker claim than the one that was argued for, so `driving`
   # is the sharp arm and `poloidal` the broad one.
-  derivative_signals: driving
+  derivative_signals: poloidal
 
   # Thomson scattering, as twelve numbers per frame. Pressure is one of the two free functions of
   # Grad-Shafranov and the one quantity the magnetics cannot see. The geometry decides what is
