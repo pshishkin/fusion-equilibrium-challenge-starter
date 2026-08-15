@@ -755,9 +755,13 @@ the fit, and addressing it wins ≥ 0.001 — perfect prediction there would be 
   coming from the basis** against 21–33% in the middle. That refutes a different hypothesis: the
   tail is not harder to REPRESENT. A noisy label is represented perfectly well — the basis
   reconstructs whatever it is given — so a flat ceiling is exactly what label noise would also
-  produce. **The test that would separate them:** are the four MLP seeds wrong in the SAME way in
-  the last decile? Agreement means bias or an unlearnable target; disagreement means variance. One
-  rescore of an artifact that already exists.
+  produce. **The seed test has now been run and it narrows the question without closing it.** Mean
+  pairwise correlation of the four seeds' residuals over the seven scalars is **+0.550 in the last
+  decile against +0.615 in the middle** of the shot. So a majority of the tail's error is SHARED
+  across seeds — bias of this model-and-feature class, which more seeds cannot remove — and the
+  tail is if anything slightly MORE variance-driven than the middle, not less. Two consequences:
+  averaging is bounded here (it can only touch the ~45% that is independent), and the shared 55%
+  is either a missing input or an unlearnable label, which this test still cannot separate.
 
 | decile | model | ceiling | reachable | ceiling as a share of the cost |
 |---|---|---|---|---|
@@ -1351,14 +1355,27 @@ at the end of a shot.
 already the best-predicted region, and leaves the last decile untouched. See A22, which is what
 this measurement actually argues for.
 
-**One more reading, and it is CONFOUNDED as taken.** Running C1 for `mlp` alone against the
-ensemble gives 0.00113 of the 0.00603 the MLP loses — 18.3% overall, 24.9% of the first decile and
-15.2% of the last. That was written up as "the recurrence helps least where its argument is
-strongest", which the comparison does not support: the ensemble is four seeds AND the sequence
-model, and seed averaging alone is worth about +0.0009 of S. The clean control is
-`mlp+mlp1+mlp2+mlp3` against the five-member ensemble, on the same frames — one rescore, nothing
-refitted, and until it is run the per-region split belongs to the ensemble and not to the
-recurrence.
+**One more reading — first taken CONFOUNDED, then run properly, and the answer flipped.** Comparing
+`mlp` alone against the ensemble gave 0.00113 and was written up as "the recurrence helps least
+where its physical argument is strongest". That comparison mixed four seeds with the recurrence.
+With `mlp+mlp1+mlp2+mlp3` as the control instead:
+
+| | geometry cost | saves |
+|---|---|---|
+| the four seeds alone, mean | 0.00700 | |
+| averaging them | 0.00529 | **0.00171** |
+| adding `seq` on top | 0.00490 | **0.00039** |
+
+So seed averaging does four fifths of it and the recurrence one fifth — and where it does that fifth
+reverses the earlier reading. By decile the saving climbs monotonically toward the end of the shot:
++2.4% at 0.0–0.1, ~5–8% through the middle, **+14.5% at 0.8–0.9 and +10.1% at 0.9–1.0**. In absolute
+terms **34% of everything the recurrence buys comes from the last decile and 52% from the last two**,
+out of 20% of the frames.
+
+**That is evidence FOR the missing-state branch of A22.** The one member that carries state helps
+most exactly where the memoryless models are worst, which is what "the vessel current is largest
+and most transient during ramp-down" predicts. It also raises B5's outstanding screen from a debt
+to a live question.
 
 `my_experiments/diagnose_sensitivity.py`. **The diagnostic that decides B6**, and it exists because
 C1 by itself cannot: a frame's Consistency cost is `|| J_i (ĉ_i − c_i) ||²`, the product of the
