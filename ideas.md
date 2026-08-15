@@ -795,6 +795,13 @@ first decile of a shot and **+14.5%** in the eighth — a six-fold spread on a m
 least-squares problem as A21 with a few more parameters, and `_predict_targets` already averages in
 the scaled target space, so the code touched is one function.
 
+**The GLOBAL weight was swept first, and it is already right.** Ten weightings on a selection set
+give a smooth unimodal curve peaking at 0.33–0.43 against production's 0.20 — worth +0.0002 there
+and **exactly nothing on the tail**, where 0.20, 0.33 and 0.43 all score 0.9945. So there is no
+constant-weight gain to collect, and what is left of this half is only the VARYING version, which
+has to beat a flat weight that is already sitting on its optimum. That is a harder bar than the
+decile table made it look.
+
 *Shrinkage where the model is unsure.* R² is squared error, and under squared error the optimal
 estimate of an uncertain quantity is shrunk toward the prior mean. `ĉ' = ĉ − λ·f(disagreement)·(ĉ −
 c̄)`, one scalar λ swept on the artifact that already exists — the same zero-retrain harness A7
