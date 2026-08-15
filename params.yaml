@@ -96,11 +96,16 @@ features:
   # as ordinary neighbours.
   frame_gaps: false
 
-  # A19/A22. Leaky integrals of each signal's dI/dt at 10, 50 and 200 ms — three columns per
-  # signal. The argument is one line of physics: a conducting loop around a changing coil current
+  # A19/A22. Leaky integrals of each signal's dI/dt at 20, 100, 500 and 2500 ms — four columns
+  # per signal. The argument is one line of physics: a conducting loop around a changing coil current
   # obeys L dIv/dt + R Iv = -M dIc/dt, so the induced vessel current IS an exponential moving
   # average of dIc/dt with tau = L/R. A bank of them is a hand-built observer of the vessel state,
   # which is the one quantity a model seeing 21 instantaneous levels provably cannot form.
+  #
+  # The constants are not the vessel bracket alone. C6 measured what the sequence model chose
+  # for ITSELF — a median time constant of 1.8 s forward and 2.4 s backward, an order above
+  # L/R and where current-profile diffusion lives — so the bank spans one EFIT frame to a
+  # third of a long shot, geometrically.
   #
   # It exists because of a measurement, not a hunch: the last decile of a shot carries 24.1% of the
   # geometry cost with ORDINARY Jacobian sensitivity and 2.2x the coefficient error, and that is

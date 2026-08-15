@@ -382,11 +382,17 @@ N_GAPS = 2
 # state — the one quantity a memoryless model provably cannot form, and the leading candidate for
 # why the last decile of a shot costs 24% of the geometry loss with only ordinary sensitivity.
 #
-# The three constants bracket what the literature puts on a tokamak vessel (a few ms for the
-# fastest passive structures, tens to a couple of hundred for the vessel proper), and they are a
-# bracket rather than a fit: nothing here has measured the real L/R, and the model is free to
-# weight them.
-VESSEL_TAUS_MS = (10.0, 50.0, 200.0)
+# The constants were first set at 10 / 50 / 200 ms from the vessel L/R argument alone, and C6 then
+# measured that the sequence model — which learns its own time constants and is the one member
+# whose help concentrates at the end of a shot — chose a MEDIAN of 90.7 frames forward and 122.0
+# backward, i.e. 1.8 and 2.4 SECONDS, with the channels its output actually reads longer still.
+# That is an order of magnitude above the vessel bracket and sits where current-profile diffusion
+# does, which is `li`, one of the two most expensive scalars in the whole composite.
+#
+# So the bank spans both rather than choosing: 20 ms is one EFIT frame, 2500 ms is a third of the
+# longest shot, and the spacing is geometric because a time constant is a ratio. Four numbers, not
+# a fit — the model weights them.
+VESSEL_TAUS_MS = (20.0, 100.0, 500.0, 2500.0)
 N_VESSEL = N_SIGNALS * len(VESSEL_TAUS_MS)
 FEATURE_WIDTH = (N_SIGNALS * (1 + len(DERIV_BLOCKS)) + N_GAPS + N_VESSEL
                  + 27 + 2 * 16)   # = N_THOMSON_BLOCK
