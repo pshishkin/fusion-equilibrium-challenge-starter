@@ -862,11 +862,30 @@ map's GEOMETRY and not its values, and the `jacobian` loss metric exists precise
 direction that barely moves the pixels and moves the magnetic axis a long way can be absent from
 the basis entirely, and no reweighting of what is there can recover it.
 
-**The free diagnostic, before any training.** The reconstruction error of the PCA subspace,
-measured in the METRIC rather than in pixels, against the best 50-dimensional subspace under that
-same metric — a generalised eigenproblem on `M` and the flux covariance, both of which are already
-computed. If PCA's subspace is within noise of the optimum, this whole entry dies for the price of
-one eigendecomposition. **Do this first.**
+**Two different objectives, and the second is the stronger one.**
+
+*Representability.* Can 50 directions reconstruct the map as the METRIC measures it, rather than
+as pixel variance does? That is a generalised eigenproblem on `M` and the flux covariance, both
+already computed.
+
+*Predictability, which is the one that matters.* A direction can be important to the score and
+simply not be inferable from 86 magnetics numbers — and a slot spent on it is wasted, while a
+slightly less important direction the model predicts perfectly is worth more. PCA is blind to this
+by construction: it never looks at `X` at all. What does look at both is **reduced-rank
+regression** — choose the subspace that maximises the metric-weighted variance of the FITTED
+values rather than of the targets. Same shape of computation, different matrix: the covariance of
+`X B` instead of the covariance of `Y`.
+
+Stated as one criterion: **spend the 50 directions on what is both worth predicting and possible
+to predict.** The `jacobian` loss metric was reaching for the first half of that and could only
+reweight what was already in the basis; this decides the basis.
+
+**The free diagnostic, before any training.** Fit the full-rank map from features to flux — ridge
+already does exactly this and is in every artifact — and compare three subspaces by the
+metric-weighted error they leave: PCA's 50, the metric-optimal 50, and the reduced-rank 50. Three
+eigendecompositions, no fitting. If PCA is within noise of both, this entry dies for the price of
+an afternoon's arithmetic. If the reduced-rank subspace is clearly better, that number is an upper
+bound on what the change could pay, before anything is retrained. **Do this first.**
 
 **What it collides with, and this is the important half.** Two things that currently pay depend on
 the decoder being AFFINE:
