@@ -773,7 +773,26 @@ first recorded that they disagree.
 validation curve keeps improving past the score's peak was made under `parseval`, when the loss
 was blind to Consistency entirely.
 
-## A19. A multi-scale derivative bank, not one half-width — *2026-08-15*
+## A19. A multi-scale derivative bank, not one half-width — *2026-08-15* — **DONE, narrow arm positive**
+
+**`driving` +0.0004 with all four seeds up; `poloidal` flat.** The two signals the physics names,
+as eight columns, give 0.9944 against a control of 0.9940 and move every seed the same way; the
+same integrals on all twenty poloidal signals give 0.9940 and move nothing. The dilution was
+pre-registered as the way this could fail and it is what happened.
+
+**Where it acts, which is the part worth more than the number.** Decomposed onto the same frames:
+the **last decile falls 10.0%** and carries 52% of the whole gain, and by scalar the RMS residual
+moves **li −8.7%**, kappa −4.1%, volume −3.1%. That is A22's target and the two most expensive
+scalars in the composite, and `li` is the current-profile quantity whose evolution is diffusion on
+exactly the 500–2500 ms the bank covers.
+
+**And the detail that explains the flat arm.** `ridge` moved **0.7651 → 0.7867** under `poloidal`,
+which is the largest move any change has ever produced in the linear baseline. The columns are not
+empty — they carry real, linearly accessible history — and the MLP had already extracted most of
+it, because a coil's CURRENT is the integral of its own dI/dt and the net sees twenty-one of those.
+What the narrow arm adds is the timescales the levels do NOT already encode.
+
+### The original entry
 
 **Hypothesis.** Replacing the single 1 ms centred derivative with a bank at ~0.2, 1, 5 and 20 ms,
 plus a few leaky integrals of the loop voltage at 10, 50 and 200 ms, gains ≥ 0.001 over A10's
@@ -819,7 +838,25 @@ already on the flat of a broad optimum.
 **ΔS ≈ +0.0005…+0.002, confidence 0.4.** Ranked above the architecture ideas that share its
 mechanism because it is one cache rebuild and no new model.
 
-## A20. Average the weights, not only the seeds — *2026-08-15*
+## A20. Average the weights, not only the seeds — *2026-08-15* — **DONE, and it depends who is asking**
+
+**+0.0008 to a single net and +0.0003 to four.** Production, salt 0, decay 0.999: the individual
+models go 0.9930 / 0.9927 / 0.9927 / 0.9929 against 0.9920 / 0.9916 / 0.9920 / 0.9927, and the
+ensemble 0.9943 against 0.9940. The averaged weights beat the live ones at **1537 / 1838 / 1766 /
+1261 of roughly 1630 evaluations** — about 94% of every time either was measured.
+
+**The gap between the two numbers is the finding.** The running average removes the noise of one
+trajectory rattling inside its basin. Averaging four seeds removes much of the same noise a second
+time. They overlap, so most of what this buys has already been bought — and +0.0003 is what is left
+on top. Which also means it is worth four times as much to anyone running ONE net, and this fork
+runs four.
+
+**It cannot lose, by construction**, and that is worth keeping separate from whether it wins: the
+average is a second candidate judged by the same rule on the same data at the same moment, so
+`ema_decay` on can only match or beat `ema_decay` off. Winning 94% of the evaluations means a fit
+that keeps the live weights is keeping the worse of two things it is already holding.
+
+### The original entry
 
 **Hypothesis.** An exponential moving average of the weights over the last ~10% of steps, or a
 Polyak average from the plateau onward, buys a share of the four-seed gain at zero extra training.
