@@ -1,0 +1,20 @@
+[
+  {
+    "name": "k_derivs_s3",
+    "salt": 3,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "features.derivatives=both",
+      "features.derivative_signals=poloidal"
+    ]
+  },
+  {
+    "name": "k_derivs_s4",
+    "salt": 4,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "features.derivatives=both",
+      "features.derivative_signals=poloidal"
+    ]
+  }
+]
