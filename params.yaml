@@ -257,6 +257,9 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
+    # Clip the gradient norm; 0.0 is off. See models.py — over half of the fits at these shares
+    # blow up without it, and which ones do is decided by the fourth decimal of the input.
+    grad_clip: 0.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
@@ -307,6 +310,9 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
+    # Clip the gradient norm; 0.0 is off. See models.py — over half of the fits at these shares
+    # blow up without it, and which ones do is decided by the fourth decimal of the input.
+    grad_clip: 0.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
@@ -357,6 +363,9 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
+    # Clip the gradient norm; 0.0 is off. See models.py — over half of the fits at these shares
+    # blow up without it, and which ones do is decided by the fourth decimal of the input.
+    grad_clip: 0.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
@@ -407,6 +416,9 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
+    # Clip the gradient norm; 0.0 is off. See models.py — over half of the fits at these shares
+    # blow up without it, and which ones do is decided by the fourth decimal of the input.
+    grad_clip: 0.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,

@@ -1,0 +1,71 @@
+[
+  {
+    "name": "t0_default_s0",
+    "salt": 0,
+    "sets": [
+      "features.pca_frame_share=0.2"
+    ]
+  },
+  {
+    "name": "t1_lr7e-4_s0",
+    "salt": 0,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.learning_rate=7e-4"
+    ]
+  },
+  {
+    "name": "t2_clip1_s0",
+    "salt": 0,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.grad_clip=1.0"
+    ]
+  },
+  {
+    "name": "t0_default_s3",
+    "salt": 3,
+    "sets": [
+      "features.pca_frame_share=0.2"
+    ]
+  },
+  {
+    "name": "t1_lr7e-4_s3",
+    "salt": 3,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.learning_rate=7e-4"
+    ]
+  },
+  {
+    "name": "t2_clip1_s3",
+    "salt": 3,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.grad_clip=1.0"
+    ]
+  },
+  {
+    "name": "t0_default_s4",
+    "salt": 4,
+    "sets": [
+      "features.pca_frame_share=0.2"
+    ]
+  },
+  {
+    "name": "t1_lr7e-4_s4",
+    "salt": 4,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.learning_rate=7e-4"
+    ]
+  },
+  {
+    "name": "t2_clip1_s4",
+    "salt": 4,
+    "sets": [
+      "features.pca_frame_share=0.2",
+      "models.mlp.grad_clip=1.0"
+    ]
+  }
+]

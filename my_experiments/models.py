@@ -512,6 +512,13 @@ class TorchMLPModel(TargetModel):
     # ones; Huber keeps the quadratic centre and bounds the tail.
     loss: str
     huber_delta: float
+    # Rescale the gradient when its norm exceeds this; 0.0 is off. Measured 2026-08-15: at the
+    # production shares and the rate tuned for a twenty-fifth of them, 15 of 28 fits BLEW UP —
+    # training loss to 67.9 against unit-variance targets — and then recovered into a different
+    # place. The pipeline is deterministic, so this is not run-to-run noise: it is a fit sitting on
+    # the edge of stability, where a difference in the fourth decimal of the input decides whether
+    # it survives. Clipping bounds the step that does it without giving up the rate.
+    grad_clip: float
     # Constant `none`, or `cosine` decaying to lr * lr_final_factor over `lr_t_max_steps`. The
     # schedule is driven by a declared horizon rather than by the step early stopping happens to
     # reach, so it does not depend on when the fit ends — a schedule whose shape moves with its own
@@ -644,6 +651,8 @@ class TorchMLPModel(TargetModel):
                 opt.zero_grad()
                 loss = loss_fn(net(xb), yb)
                 loss.backward()
+                if self.grad_clip:
+                    torch.nn.utils.clip_grad_norm_(net.parameters(), self.grad_clip)
                 opt.step()
                 # Accumulated ON the device and read once per evaluation. `float(loss)` inside the
                 # batch loop is a full device sync every batch, which serialises exactly the

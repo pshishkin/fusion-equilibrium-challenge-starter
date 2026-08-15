@@ -1,0 +1,37 @@
+[
+  {
+    "name": "n1_repeat_s3",
+    "salt": 3,
+    "sets": [
+      "features.pca_frame_share=0.2"
+    ]
+  },
+  {
+    "name": "n2_repeat_s3",
+    "salt": 3,
+    "sets": [
+      "features.pca_frame_share=0.2"
+    ]
+  },
+  {
+    "name": "n3_repeat_s3",
+    "salt": 3,
+    "sets": [
+      "features.pca_frame_share=0.2"
+    ]
+  },
+  {
+    "name": "n4_repeat_s3",
+    "salt": 3,
+    "sets": [
+      "features.pca_frame_share=0.2"
+    ]
+  },
+  {
+    "name": "n5_repeat_s3",
+    "salt": 3,
+    "sets": [
+      "features.pca_frame_share=0.2"
+    ]
+  }
+]
