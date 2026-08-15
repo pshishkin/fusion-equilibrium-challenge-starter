@@ -1101,7 +1101,16 @@ def model_names(artifact: Artifact | None = None) -> list[str]:
 
 
 def _predict_targets(art: Artifact, model: str, Xs: FloatArray) -> FloatArray:
-    """(T, n_pca + 2) — one model's targets, or the weighted average of the ensemble members.
+    """(T, n_pca + 2) — one model's targets, or an average of several.
+
+    Three forms of `model`, and the third is why this is not just a lookup:
+
+    * a fitted model's name;
+    * `ensemble`, the weighted average params.yaml declared;
+    * **`a+b+c`, an equally weighted average of any subset**, assembled at SCORING time. Which
+      members to combine is a question about a fitted artifact, not about a fit, so answering it
+      should cost one training run and not one per combination — seven combinations of three
+      models is seven fits the slow way and one the fast way.
 
     Averaging targets and averaging the flux maps they decode to are the same thing: PCA's
     inverse transform is affine and the weights sum to 1, so the mean image is added back exactly
@@ -1113,9 +1122,17 @@ def _predict_targets(art: Artifact, model: str, Xs: FloatArray) -> FloatArray:
         for name, weight in art["ensemble"].items():
             out += weight * inverse(art["models"][name].predict(Xs))
         return out
-    if model not in art["models"]:
-        raise KeyError(f"no model {model!r} in {ARTIFACT}; it holds {model_names(art)}")
-    return inverse(art["models"][model].predict(Xs))
+    members = model.split("+")
+    unknown = [m for m in members if m not in art["models"]]
+    if unknown:
+        raise KeyError(f"no model {unknown[0]!r} in {ARTIFACT}; it holds {model_names(art)}. "
+                       f"A combination is written 'a+b' and every part must be a fitted model.")
+    if len(members) == 1:
+        return inverse(art["models"][members[0]].predict(Xs))
+    out = np.zeros((len(Xs), art["n_pca"] + len(SUBMITTED_SCALARS)), dtype=np.float64)
+    for name in members:
+        out += inverse(art["models"][name].predict(Xs)) / len(members)
+    return out
 
 
 def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE) -> dict[str, FloatArray]:

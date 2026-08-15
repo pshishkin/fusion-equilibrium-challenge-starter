@@ -275,6 +275,10 @@ class CatBoostModel(TargetModel):
     early_stopping_rounds: int
     random_seed: int
     thread_count: int
+    # `CPU` or `GPU`. MultiRMSE is supported on both by catboost 1.2.10 — checked, because it has
+    # not always been. `thread_count` still applies on GPU: it governs the data preparation, not
+    # the boosting.
+    task_type: str
     _est: Any = field(default=None, init=False, repr=False)
 
     @property
@@ -295,6 +299,7 @@ class CatBoostModel(TargetModel):
             l2_leaf_reg=self.l2_leaf_reg,
             random_seed=self.random_seed,
             thread_count=self.thread_count,
+            task_type=resolve_device(self.task_type.lower(), "catboost").upper(),
             allow_writing_files=False,      # no catboost_info/ droppings in the repo
             verbose=max(1, self.iterations // 10),
         )
@@ -534,6 +539,9 @@ class TorchMLPModel(TargetModel):
     _n_out: int = field(default=0, init=False, repr=False)
     _best_step: int = field(default=-1, init=False, repr=False)
     _ran_steps: int = field(default=0, init=False, repr=False)
+    _clipped: float = field(default=float("nan"), init=False, repr=False)
+    _norm_median: float = field(default=float("nan"), init=False, repr=False)
+    _norm_max: float = field(default=float("nan"), init=False, repr=False)
 
     @property
     def kind(self) -> str:
@@ -634,6 +642,10 @@ class TorchMLPModel(TargetModel):
 
         # Early stopping keeps the BEST evaluation, not the last one: without it the saved weights
         # are whichever step the counter happened to end on, a coin flip against overfitting.
+        # One slot per step, filled only where clipping ran. 368000 steps is 1.5 MB, and keeping
+        # every norm rather than a running mean is what makes the MEDIAN available at the end —
+        # the mean of a distribution with rare spikes says nothing about the typical step.
+        norms = torch.zeros(self.max_steps + 1, device=dev)
         best_loss, best_state, since_best = float("inf"), None, 0
         # Since the last evaluation, not since the start: the reported training loss is then a
         # window comparable to the validation number printed beside it, whatever the window is.
@@ -652,7 +664,11 @@ class TorchMLPModel(TargetModel):
                 loss = loss_fn(net(xb), yb)
                 loss.backward()
                 if self.grad_clip:
-                    torch.nn.utils.clip_grad_norm_(net.parameters(), self.grad_clip)
+                    # The return value is the norm BEFORE clipping, which is the only way to tell a
+                    # safety valve from a disguised learning-rate cut: if this fires on most steps
+                    # the rate has effectively been divided by the median ratio, and the threshold
+                    # was chosen by convention rather than from the data.
+                    norms[step] = torch.nn.utils.clip_grad_norm_(net.parameters(), self.grad_clip)
                 opt.step()
                 # Accumulated ON the device and read once per evaluation. `float(loss)` inside the
                 # batch loop is a full device sync every batch, which serialises exactly the
@@ -711,14 +727,23 @@ class TorchMLPModel(TargetModel):
         if best_state is None:
             raise RuntimeError("torch_mlp: no evaluation completed — the fit ran no steps")
         self._state = best_state
+        if self.grad_clip:
+            seen = norms[1:self._ran_steps + 1]
+            self._clipped = float((seen > self.grad_clip).float().mean())
+            self._norm_median = float(seen.median())
+            self._norm_max = float(seen.max())
 
     def fit_report(self) -> str:
         if self._best_step < 0:
             return ""
         if not self.patience_steps:
             return f", early stopping off, kept step {self._best_step}"
+        clip = ("" if not self.grad_clip else
+                f", clipped {self._clipped:.1%} of steps (median grad norm "
+                f"{self._norm_median:.3g}, max {self._norm_max:.3g}, threshold {self.grad_clip:g})")
         return (f", best step {self._best_step} of {self._ran_steps} run"
-                f"{f' (of {self.max_steps} allowed)' if self._ran_steps < self.max_steps else ''}")
+                f"{f' (of {self.max_steps} allowed)' if self._ran_steps < self.max_steps else ''}"
+                f"{clip}")
 
     def predict(self, X: FloatArray) -> FloatArray:
         if self._state is None:

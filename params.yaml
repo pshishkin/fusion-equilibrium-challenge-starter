@@ -196,6 +196,10 @@ models:
     early_stopping_rounds: 50
     random_seed: 0
     thread_count: 8
+    # `cpu` or `gpu`. At production on the CPU this model took 3829 s against 296 s for the four
+    # MLPs and still hit its iteration ceiling undertrained, which is why it was dropped from the
+    # ensemble on 08-14 — the cost, not the score, was the argument.
+    task_type: gpu
 
   mlp:
     type: torch_mlp

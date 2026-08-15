@@ -50,7 +50,9 @@ def main() -> int:
                     help="perfect/zeros verify the harness itself (S must be 1.0 / 0.0)")
     ap.add_argument("--models", nargs="+",
                     help="score only these members of the zoo (default: every model in the "
-                         "artifact, plus the ensemble)")
+                         "artifact, plus the ensemble). 'a+b' scores their equally weighted "
+                         "average, so every combination of what is already fitted can be "
+                         "compared without refitting anything")
     ap.add_argument("--jobs", type=int, default=0,
                     help="worker processes for the per-shot half of scoring (default 0 = "
                          "cores - 2, 1 = serial). Results do not depend on it")
@@ -106,7 +108,10 @@ def main() -> int:
 
         available = model_names(art)
         models = args.models if args.models else available
-        unknown = set(models) - set(available)
+        # `a+b` is an equally weighted average of two fitted members, assembled at scoring time —
+        # so the check is per PART. Which members to combine is a question about a fitted
+        # artifact, and answering it should cost one training run rather than one per combination.
+        unknown = {p for m in models for p in m.split("+")} - set(available)
         if unknown:
             raise SystemExit(f"{ARTIFACT} holds {available}, but --models asks for "
                              f"{sorted(unknown)}. Enable them in params.yaml and retrain.")
