@@ -657,7 +657,32 @@ ceiling measured earlier (R² 0.97-0.997 against the 0.90-0.93 the model reaches
 themselves may be the binding constraint, in which case no amount of capacity helps and the answer
 is features or A13's loss, not width.
 
-## A13. Stop on the composite, not on the validation MSE — *2026-08-14* — **BUILT, running 2026-08-15**
+## A13. Stop on the composite, not on the validation MSE — *2026-08-14* — **DONE 2026-08-15, refuted**
+
+**S 0.9940 against the control's 0.9940**, four seeds, production, salt 0, with the composite gated
+behind a 10000-step loss plateau and measured over 400 validation frames. Per term the treatment is
+0.9998 / 0.9965 / 0.9899 / 0.9780 against 0.9998 / 0.9962 / 0.9901 / 0.9785 — inside noise
+everywhere, and marginally BEHIND on both geometry terms, which are the ones it was built to serve.
+
+**And it closes its own confound without a third run.** The gated rule necessarily trains far past
+where loss stopping ends — best step 84000 / 94000 / 98000 / 108000 against 58900 / 39150 / 80250 /
+88550, over runs 35% to 100% longer — so a length-matched loss arm was pre-registered in case it
+won. It did not, so the extra training bought nothing either. Both halves flat.
+
+**What was actually wrong with the entry.** It rested on the loss and the score disagreeing, and the
+disagreement is real at small scale and absent at production: over 68000 steps the validation loss
+falls 0.0597 → 0.0324 and the composite rises 0.9852 → 0.9922 together, both flattening near step
+42000. The fits are sitting on a plateau where nothing distinguishes one step from another, and no
+stopping rule can find a peak that is not there. The evidence the entry was written on — a
+sequence model with a lower loss and a worse composite — was about comparing two DIFFERENT
+ARCHITECTURES, not two steps of one trajectory, and those are not the same claim.
+
+**What survives, and it is not nothing.** `monitor.py` computes the real composite inside training
+at 2.3 s per 150 frames, which is a tool this project did not have. B5's outstanding screen wants
+exactly that for the sequence model, where the loss/score disagreement WAS measured between
+architectures rather than assumed.
+
+### The pre-registration, kept because it is the part that made the result readable
 
 **Pre-registered before the score was seen**, because the first MLP's trace is already in hand and
 it is not what the smoke run suggested.
