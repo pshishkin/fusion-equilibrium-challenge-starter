@@ -1,0 +1,12 @@
+[
+  {
+    "name": "q7_base_long",
+    "salt": 0,
+    "model": "seq",
+    "sets": [
+      "features.frame_gaps=true",
+      "features.pca_frame_share=0.2",
+      "models.seq.max_steps=200000"
+    ]
+  }
+]
