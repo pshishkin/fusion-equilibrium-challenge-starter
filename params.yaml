@@ -329,6 +329,11 @@ models:
     # How often the composite is measured, in steps. It costs an extraction per monitored frame,
     # so it runs far less often than the validation loss; ignored unless stopping on it.
     composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
 
   mlp1:
     type: torch_mlp
@@ -399,6 +404,11 @@ models:
     # How often the composite is measured, in steps. It costs an extraction per monitored frame,
     # so it runs far less often than the validation loss; ignored unless stopping on it.
     composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
 
   mlp2:
     type: torch_mlp
@@ -469,6 +479,11 @@ models:
     # How often the composite is measured, in steps. It costs an extraction per monitored frame,
     # so it runs far less often than the validation loss; ignored unless stopping on it.
     composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
 
   mlp3:
     type: torch_mlp
@@ -539,6 +554,11 @@ models:
     # How often the composite is measured, in steps. It costs an extraction per monitored frame,
     # so it runs far less often than the validation loss; ignored unless stopping on it.
     composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
 
   seq:
     type: torch_seq

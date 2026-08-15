@@ -565,6 +565,10 @@ class TorchMLPModel(TargetModel):
     # remove it; some is the last stretch of one trajectory rattling inside a basin, and an average
     # over that stretch removes it for free.
     ema_decay: float = 0.0
+    # A13. Steps the validation loss may go without improving before the composite is allowed to
+    # decide anything. Until then the fit keeps the best-LOSS weights, because a small frame sample
+    # can flatter an untrained net and the loss cannot. Ignored when `stop_on: loss`.
+    composite_after_steps: int = 10000
     # A13. `loss` keeps the weights at the lowest validation MSE, which is what every fit in this
     # fork has done. `composite` keeps them at the highest COMPETITION SCORE over a fixed sample of
     # validation frames, decoded and pushed through the vendored scorer — see monitor.py for why
@@ -709,6 +713,8 @@ class TorchMLPModel(TargetModel):
                              f"{self.composite_every_steps}, must be >= 1")
         composite, judged, scored = float("nan"), float("inf"), False
         best_loss, best_state, since_best = float("inf"), None, 0
+        # The loss phase of the A13 rule: `armed` flips once, and only forward.
+        best_val, since_val_best, armed = float("inf"), 0, False
         if not 0.0 <= self.ema_decay < 1.0:
             raise ValueError(f"torch_mlp(seed={self.seed}): ema_decay is {self.ema_decay}, "
                              f"expected 0 (off) or a decay in [0, 1)")
@@ -808,22 +814,57 @@ class TorchMLPModel(TargetModel):
                 net.train()
                 train_loss = float(total_t) / n
                 total_t, n = torch.zeros((), device=dev), 0
-                # `scored` is False on the evaluations between two composite measurements: they
-                # still log, they just decide nothing.
-                if scored and (judged < best_loss or not self.patience_steps):
+                # A13, and the reason the composite does not simply replace the loss. The
+                # validation loss is reliably good at ONE thing — telling an undertrained fit from
+                # a trained one — and the composite is uniquely good at another, choosing among
+                # fits that are all trained. Letting the composite decide from step one throws the
+                # first away: measured, `mlp2` recorded its best composite at the very first
+                # evaluation, step 2000, and eighteen thousand steps later had only matched it,
+                # because a 150-frame sample can flatter a barely-started net. The loss cannot make
+                # that mistake, so it holds the gate.
+                #
+                # So: track the loss always; hand the decision to the composite only once the loss
+                # has gone `composite_after_steps` without improving; and until then keep the
+                # best-LOSS weights, so a fit that ends early still returns something trained.
+                if val_loss < best_val:
+                    best_val, since_val_best = val_loss, 0
+                else:
+                    since_val_best += self.eval_every_steps
+                if watch is not None and not armed and since_val_best >= self.composite_after_steps:
+                    armed = True
+                    # The composite's own contest starts here, with nothing carried over from the
+                    # loss phase — `best_loss` held a loss and would never be beaten by a negated
+                    # score, and the patience for the fit's END restarts with the new criterion.
+                    best_loss, since_best = float("inf"), 0
+                    bar.write(f"    mlp step {step:7d}: validation loss flat for "
+                              f"{since_val_best} steps -> the composite decides from here")
+                decides = scored and (watch is None or armed)
+                if decides and (judged < best_loss or not self.patience_steps):
                     best_loss, since_best, self._best_step = judged, 0, step
                     keep = ema if (from_ema and ema is not None) else net.state_dict()
                     best_state = {k: v.detach().cpu().numpy().copy() for k, v in keep.items()}
-                elif scored:
+                elif decides:
                     since_best += (self.composite_every_steps if watch is not None
                                    else self.eval_every_steps)
+                elif watch is not None and not armed and since_val_best == 0:
+                    # Still in the loss phase and the loss just improved: keep those weights, so an
+                    # early stop or a max_steps ceiling never returns an arbitrary step.
+                    self._best_step = step
+                    keep = net.state_dict()
+                    best_state = {k: v.detach().cpu().numpy().copy() for k, v in keep.items()}
                 # refresh=False, or the postfix forces a redraw at EVERY evaluation and quietly
                 # defeats the `miniters` that keeps a teed log readable. The values still ride
                 # along on the next redraw the bar makes on its own.
                 bar.update(step - bar.n)
-                # In composite mode `best_loss` holds the NEGATED score, so it is turned back the
-                # right way up for anything a human reads.
-                shown = -best_loss if watch is not None else best_loss
+                # `best_loss` holds a negated score once the composite is armed, a loss before
+                # that, and infinity in the gap — so what a human reads is assembled here rather
+                # than printed raw.
+                if watch is None:
+                    shown = best_loss
+                elif armed:
+                    shown = -best_loss
+                else:
+                    shown = best_val
                 bar.set_postfix(mse=f"{train_loss:.4f}", val=f"{val_loss:.4f}",
                                 best=f"{shown:.4f}@{self._best_step}", refresh=False)
                 # The bar shows the last step; these lines are the history — a val loss that turned
