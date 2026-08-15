@@ -730,11 +730,16 @@ the fit, and addressing it wins ≥ 0.001 — perfect prediction there would be 
   weight by position is the fix, and unlike B6's Jacobian weight it is aimed at the frames that
   actually cost.
 - *Label noise.* EFIT's own reconstruction is least constrained as the plasma terminates, so part
-  of that 2.2× might be irreducible. **Tested first, because it would have killed the entry, and it
-  is refuted.** The ceiling decomposed onto the same frames is FLAT across the shot — 0.000086 to
-  0.000120 per decile, with the last decile at 0.000120 against a fold mean of 0.000100. So the
-  last decile is not harder to represent, and only **10.1% of its cost is the basis** against 21–33%
-  in the middle of the shot. It is the most winnable region in the fold, not the least.
+  of that 2.2× might be irreducible. **STILL OPEN — the measurement below does not test it, and an
+  earlier version of this entry claimed that it did.** What was measured is that the ceiling
+  decomposed onto the same frames is FLAT across the shot — 0.000086 to 0.000120 per decile, the
+  last at 0.000120 against a fold mean of 0.000100, with only **10.1% of the last decile's cost
+  coming from the basis** against 21–33% in the middle. That refutes a different hypothesis: the
+  tail is not harder to REPRESENT. A noisy label is represented perfectly well — the basis
+  reconstructs whatever it is given — so a flat ceiling is exactly what label noise would also
+  produce. **The test that would separate them:** are the four MLP seeds wrong in the SAME way in
+  the last decile? Agreement means bias or an unlearnable target; disagreement means variance. One
+  rescore of an artifact that already exists.
 
 | decile | model | ceiling | reachable | ceiling as a share of the cost |
 |---|---|---|---|---|
@@ -1328,10 +1333,14 @@ at the end of a shot.
 already the best-predicted region, and leaves the last decile untouched. See A22, which is what
 this measurement actually argues for.
 
-**One more reading, and it costs nothing.** Running C1 for `mlp` alone against the ensemble prices
-the sequence model per region. It saves 0.00113 of the 0.00603 the MLP loses — 18.3% overall,
-**24.9% of the first decile and 15.2% of the last**. So the recurrence helps least exactly where its
-physical argument is strongest: whatever it learned, it is not the termination dynamics.
+**One more reading, and it is CONFOUNDED as taken.** Running C1 for `mlp` alone against the
+ensemble gives 0.00113 of the 0.00603 the MLP loses — 18.3% overall, 24.9% of the first decile and
+15.2% of the last. That was written up as "the recurrence helps least where its argument is
+strongest", which the comparison does not support: the ensemble is four seeds AND the sequence
+model, and seed averaging alone is worth about +0.0009 of S. The clean control is
+`mlp+mlp1+mlp2+mlp3` against the five-member ensemble, on the same frames — one rescore, nothing
+refitted, and until it is run the per-region split belongs to the ensemble and not to the
+recurrence.
 
 `my_experiments/diagnose_sensitivity.py`. **The diagnostic that decides B6**, and it exists because
 C1 by itself cannot: a frame's Consistency cost is `|| J_i (ĉ_i − c_i) ||²`, the product of the
