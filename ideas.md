@@ -639,7 +639,30 @@ ceiling measured earlier (R² 0.97-0.997 against the 0.90-0.93 the model reaches
 themselves may be the binding constraint, in which case no amount of capacity helps and the answer
 is features or A13's loss, not width.
 
-## A13. Stop on the composite, not on the validation MSE — *2026-08-14*
+## A13. Stop on the composite, not on the validation MSE — *2026-08-14* — **BUILT, running 2026-08-15**
+
+**Pre-registered before the score was seen**, because the first MLP's trace is already in hand and
+it is not what the smoke run suggested.
+
+At 0.005/1.0 the two measures diverged cleanly: the loss fell while the composite turned around. At
+**production they do not**. Over 68000 steps the validation loss falls 0.0597 → 0.0324 and the
+composite rises 0.9852 → 0.9922, together, and both flatten around step 42000–48000. So the
+headline claim this entry was written on — that the loss keeps improving past the score's peak —
+is a small-data effect, and at production the disagreement is much weaker than advertised.
+
+**What the trace does show is a noise problem in the monitor itself.** Adjacent evaluations swing
+±0.0015 (0.9905, 0.9848, 0.9895 at steps 26000/28000/30000), which is sampling noise from 150
+frames. The rule keeps the argmax over ~34 evaluations, so `E[max]` alone inflates the reported
+best by roughly `0.0015·√(2 ln 34) ≈ 0.004` — and, worse than the reported number being wrong, the
+step it picks inside a flat plateau is close to a coin flip.
+
+**Read it this way.** Accepted if paired ΔS ≥ +0.0013 on salt 0 and it survives two unseen salts.
+Refuted if ΔS ≤ 0. **Anything between is a monitor-noise result, not an A13 result**, and the
+follow-up is fixed in advance: raise `loss.monitor_frames` from 150 to 600, which quarters the
+variance for four times the monitor cost (2.3 s → ~9 s per evaluation, about 20 minutes on a
+four-MLP production run), and rerun before drawing any conclusion about the idea itself.
+
+### The original entry
 
 **Hypothesis.** Early stopping picks the epoch with the lowest validation MSE, which is not the
 epoch with the highest S, and the difference is worth something.
