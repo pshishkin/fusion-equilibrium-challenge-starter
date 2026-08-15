@@ -707,7 +707,26 @@ failure mode, hence few parameters and the second-salt confirmation.
 **Refuted if** the tail gain is under half the validation gain. **ΔS ≈ +0.001…+0.003,
 confidence 0.35.**
 
-## B5. A sequence model over the shot — *2026-08-13* — days of work, 2–5× training cost
+## B5. A sequence model over the shot — *2026-08-13* — **BUILT AND MEASURED 2026-08-15**
+
+**Built, and it loses.** 0.9914 against the MLP's 0.9931, worse on every term of the composite,
+with a LOWER validation loss and a recurrence that is demonstrably in use — the correction branch
+grows to 31.6% of the per-frame prediction, so it is not falling back to being the MLP.
+
+**The diagnosis, which is worth more than the number.** This entry was downgraded on 08-13 because
+smoothing had been refuted: the prediction is already half as rough as the truth, 0.021 against
+0.039. That refutation turns out to apply to the architecture too, and more sharply than to the
+post-hoc filter — a bidirectional pass over the shot is a smoother, however much state it carries,
+and the terms it costs most are exactly the ones that read the map's geometry (R2_qb −0.0040,
+Consistency −0.0049) rather than its values (R2_psi −0.0001).
+
+**What is NOT refuted by this**, and what a second attempt would have to change: the model was
+given the sequence and the same loss. A sequence model whose loss charged it for per-frame geometry
+— A13's composite-aware stopping, or B6's per-frame weighting — is a different experiment, and the
+one this result argues for. What is refuted is "read the shot, keep everything else".
+
+### The original entry
+
 
 **Hypothesis.** A temporal model (TCN or GRU, or the present MLP with a learned causal filter bank
 on its inputs) mapping the whole feature sequence to the coefficient sequence beats per-frame
