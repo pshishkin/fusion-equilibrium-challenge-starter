@@ -697,6 +697,18 @@ is fixed in advance and has two parts, because the trace above shows two distinc
 That third option is arguably what A13 should have been from the start, and it is now the version
 worth running.
 
+**The confound in the gated version, written down before its score is known.** It changes two things
+at once. Measured on the first three seeds: best step 84000 / 94000 / 98000 against the control's
+58900 / 39150 / 80250, and the fits run 104000 / 114000 / 118000 steps against 77300 / 57550 /
+98650. That is not an accident of the criterion, it is built into the rule — the composite phase
+cannot begin until the loss has been flat for 10000 steps and then spends its own 18400 of patience,
+so a gated fit trains at least 28400 steps past the loss peak where the control stops at 18400.
+
+So **if it wins, the win is not attributed until a third arm runs**: loss stopping with the patience
+raised to match the treatment's step counts. If that alone matches the gated composite, the finding
+is "the patience was too short" — a one-line change, and a much cheaper one than a scorer in the
+training loop. Only if the composite beats a length-matched loss control does A13 own the result.
+
 ### The original entry
 
 **Hypothesis.** Early stopping picks the epoch with the lowest validation MSE, which is not the
