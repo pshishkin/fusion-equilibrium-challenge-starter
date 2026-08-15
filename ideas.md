@@ -650,17 +650,34 @@ composite rises 0.9852 → 0.9922, together, and both flatten around step 42000�
 headline claim this entry was written on — that the loss keeps improving past the score's peak —
 is a small-data effect, and at production the disagreement is much weaker than advertised.
 
-**What the trace does show is a noise problem in the monitor itself.** Adjacent evaluations swing
-±0.0015 (0.9905, 0.9848, 0.9895 at steps 26000/28000/30000), which is sampling noise from 150
-frames. The rule keeps the argmax over ~34 evaluations, so `E[max]` alone inflates the reported
-best by roughly `0.0015·√(2 ln 34) ≈ 0.004` — and, worse than the reported number being wrong, the
-step it picks inside a flat plateau is close to a coin flip.
+**What the trace does show is a selection problem in the monitor, and naming it correctly matters.**
+Adjacent evaluations swing ±0.0015 (0.9905, 0.9848, 0.9895 at steps 26000/28000/30000). That is NOT
+resampling noise — the 150 frames are FIXED for the life of the fit, so consecutive evaluations
+differ only because the weights do. It is real variation of the model on those 150 frames, which
+makes the swing genuine and the problem worse: the rule keeps the argmax over ~34 evaluations of a
+150-frame sample, so it selects the step that best fits **those** frames, and how that transfers to
+the fold is exactly the selection-bias arithmetic this fork applies to everything else.
+
+**And the third model shows the sharp edge of it.** `mlp2` recorded its best composite at step
+**2000** — the very first measurement — and 18000 steps later had only matched it. With a patience
+of 18400 steps counted on a 2000-step grid, an early lucky sample can end a fit that had not
+started, and keep the weights that produced it. Loss-based stopping cannot do this, because the
+validation loss at step 2000 is genuinely and hugely worse than at 20000.
 
 **Read it this way.** Accepted if paired ΔS ≥ +0.0013 on salt 0 and it survives two unseen salts.
-Refuted if ΔS ≤ 0. **Anything between is a monitor-noise result, not an A13 result**, and the
-follow-up is fixed in advance: raise `loss.monitor_frames` from 150 to 600, which quarters the
-variance for four times the monitor cost (2.3 s → ~9 s per evaluation, about 20 minutes on a
-four-MLP production run), and rerun before drawing any conclusion about the idea itself.
+Refuted if ΔS ≤ 0. **Anything between is a monitor result, not an A13 result**, and the follow-up
+is fixed in advance and has two parts, because the trace above shows two distinct faults:
+
+- raise `loss.monitor_frames` from 150 to 600, so the thing being selected on is closer to the
+  fold — four times the monitor cost, about 20 minutes on a four-MLP production run;
+- **do not let the first measurement set the bar.** A warm-up before the composite is allowed to
+  decide anything, or a floor on the step it may select, or simply judging on the composite only
+  once the validation loss has stopped improving. The last is the most honest of the three: it uses
+  the loss for what it is reliably good at — telling an undertrained fit from a trained one — and
+  the composite for what it is uniquely good at, which is choosing among fits that are all trained.
+
+That third option is arguably what A13 should have been from the start, and it is now the version
+worth running.
 
 ### The original entry
 
