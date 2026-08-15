@@ -4,13 +4,17 @@ Diagnostic C1 in ideas.md — where the score is actually lost, frame by frame.
 
     uv run python my_experiments/diagnose_frames.py --share 0.01 --jobs 24
 
-`evaluate.py` reports four pooled numbers. This reports the same score decomposed onto every
-scored FRAME, on one common scale: how much of the composite S that frame costs. The metric pools
-R2 across the fold, so a frame's contribution is exactly additive and the decomposition is not an
-approximation of the score — it sums to the pooled terms.
+`evaluate.py` reports four numbers. This reports the same score decomposed onto every scored
+FRAME, on one common scale: how much of the composite S that frame costs. Both terms below are
+sums over frames, so the decomposition is exact rather than an approximation — but they are NOT
+weighted alike, and assuming they were is a mistake this file made once:
 
-    D_LCFS       0.10 * d_k / n_frames
-    Consistency  0.20/7 * res_kj^2 / SS_tot_j, summed over the seven derived scalars
+    D_LCFS       0.10 * d_k / (n_shots * frames scored in THIS shot)   <- macro, per shot
+    Consistency  0.20/7 * res_kj^2 / SS_tot_j over the seven scalars   <- pooled, per frame
+
+Consistency pools one R2 per scalar over every frame of every shot. D_LCFS does not: metrics.py
+averages each SHOT's own mean distance, so a frame of a short shot weighs many times a frame of a
+long one. Pooling it instead put the term 0.000034 of S out.
 
 Only the two GEOMETRY terms, which is not a shortcut: C2 measured R2_psi at 0.9998 against a
 ceiling of 1.0000, so the flux itself is finished and everything reachable is in these two.
@@ -171,9 +175,17 @@ def main() -> int:
          for p, ref in zip(preds, refs, strict=True)],
         jobs, "  per-frame costs")
 
-    # The denominators are the metric's own, pooled over the whole fold against the fold mean —
-    # so what is written below sums to the pooled terms rather than merely resembling them.
-    n_frames = sum(int(np.isfinite(o["d"]).sum()) for o in out)
+    # The denominators are the metric's own, so what is written below sums to the reported terms
+    # rather than merely resembling them. THE TWO TERMS ARE NOT WEIGHTED THE SAME WAY, and this
+    # was wrong here at first — read `fusion_scoring/metrics.py`, not the shape of the numbers:
+    #
+    #   Consistency  POOLED. One R2 per scalar over every frame of every shot, against the fold
+    #                mean. Every frame counts once, so a frame's share is res^2 / SS_tot exactly.
+    #   D_LCFS       MACRO. `metrics.py:114` is np.mean(acc.shot_dlcfs) — the mean over SHOTS of
+    #                each shot's own mean over frames. Every SHOT counts once, so a frame of a
+    #                9-frame shot carries 41x the weight of a frame of a 372-frame one at the
+    #                extremes of this fold. Pooling it instead put the term 0.000034 of S out.
+    n_shots_with_lcfs = sum(1 for o in out if np.isfinite(o["d"]).any())
     cons_ss_tot = np.zeros(N_CONS)
     for j in range(N_CONS):
         vals = np.concatenate([o["cons_gt"][o["cmask"][:, j], j] for o in out])
@@ -190,7 +202,11 @@ def main() -> int:
             m = o["cmask"][:, j] & np.isfinite(o["res"][:, j])
             if cons_ss_tot[j] > 0:
                 cost_cons[m] += (W_CONS / N_CONS) * o["res"][m, j] ** 2 / cons_ss_tot[j]
-        cost_lcfs = np.where(np.isfinite(o["d"]), W_LCFS * np.nan_to_num(o["d"]) / n_frames, 0.0)
+        # 1/(shots x this shot's own scored frames), which is what the macro mean above expands to.
+        scored = int(np.isfinite(o["d"]).sum())
+        cost_lcfs = np.where(np.isfinite(o["d"]),
+                             W_LCFS * np.nan_to_num(o["d"]) / max(1, scored * n_shots_with_lcfs),
+                             0.0)
         rows.append(pd.DataFrame({
             "shot": path.stem, "frame": np.arange(T), "n_frames": T,
             "phase": np.arange(T) / max(1, T - 1), "time_ms": t,
