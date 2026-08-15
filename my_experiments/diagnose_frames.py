@@ -63,6 +63,7 @@ from my_experiments.baseline_model import (  # noqa: E402
     FRAME_STEP_MS,
     features_for_row,
     predict_row,
+    project_through_basis,
     sorted_shots,
     take_share,
 )
@@ -70,6 +71,10 @@ from my_experiments.parallel import resolve_jobs  # noqa: E402
 from my_experiments.progress import install_timestamps  # noqa: E402
 
 OUT = HERE.parent / "results" / "frame_costs.csv"
+
+# Not a member of the zoo: the ceiling, ground truth pushed through the artifact's own
+# 50 components. Same name as evaluate.py's --mode, and the same function behind it.
+BASIS = "basis"
 
 # `features_for_row` returns the level block first, in D3D_MAGNETICS_SIGNALS order, so the plasma
 # current is addressed by its index there.
@@ -117,8 +122,13 @@ def main() -> int:
     ap.add_argument("--share", type=float, default=0.01,
                     help="share of shots to diagnose, from the tail of the list (default 0.01)")
     ap.add_argument("--model", default=ENSEMBLE,
-                    help=f"which member of the zoo to diagnose (default {ENSEMBLE})")
+                    help=f"which member of the zoo to diagnose (default {ENSEMBLE}), or 'basis' "
+                         f"for the CEILING — ground truth through the artifact's own components, "
+                         f"which decomposes the representation floor onto the same frames")
     ap.add_argument("--jobs", type=int, default=0)
+    ap.add_argument("--out", type=Path, default=OUT,
+                    help=f"where to write the per-frame table (default {OUT.name}). Give it a "
+                         f"name when comparing two models, or the second run overwrites the first")
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR)
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
     args = ap.parse_args()
@@ -143,7 +153,10 @@ def main() -> int:
     refs = local_score._map(local_score._ref_task,
                             [(s["psi"], R, Z, mask_coarse, mask_f) for s in shots], jobs,
                             "  references from ground truth")
-    preds = [predict_row(s["row"], "DIII-D", args.model) for s in shots]
+    if args.model == BASIS:
+        preds = [{"psirz": project_through_basis(s["row"], s["psi"])} for s in shots]
+    else:
+        preds = [predict_row(s["row"], "DIII-D", args.model) for s in shots]
 
     # The flux sign is ONE bit for the whole fold, decided as the scorer decides it.
     psi_all = np.concatenate([s["psi"].astype(np.float64).ravel() for s in shots])
@@ -188,8 +201,8 @@ def main() -> int:
             **{f"res_{CONS_SCALARS[j]}": o["res"][:, j] for j in range(N_CONS)},
         }))
     df = pd.concat(rows, ignore_index=True)
-    OUT.parent.mkdir(exist_ok=True)
-    df.to_csv(OUT, index=False)
+    args.out.parent.mkdir(exist_ok=True)
+    df.to_csv(args.out, index=False)
 
     total = float(df["cost"].sum())
     print(f"\n{len(df)} frames. The two geometry terms cost {total:.4f} of S in total "
@@ -229,7 +242,7 @@ def main() -> int:
         share = ((W_CONS / N_CONS) * np.sum(col[fin] ** 2) / cons_ss_tot[j]) / total
         print(f"      {CONS_SCALARS[j]:>8s}   {share:6.1%} of the cost")
 
-    print(f"\n  per frame written to {OUT}")
+    print(f"\n  per frame written to {args.out}")
     return 0
 
 

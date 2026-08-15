@@ -129,9 +129,18 @@ functionals, and the switch as built is close to a uniform rescale. Either measu
 from a trained model and feed it in (two-pass), or accept that this entry is really about the
 former.
 
+**Read against C1, 2026-08-15, and the mechanism sharpens even though the ratios did not.** At
+production the probe gives R_axis 1.11, li 1.15, kappa 1.16, volume 1.19, tri_top 1.22, Z_axis
+1.23, **tri_bot 1.39** — a 1.6× spread in `ratio²` between the extremes, not the 2.7× the paragraph
+above hoped for. But C1 now says which end of that spread matters: **the two most over-stated
+Jacobians belong to the two triangularities, which carry 9.9% of the geometry cost, while `kappa`
+and `li` — 42% of it between them — sit at the bottom of the range.** So the uncalibrated loss
+spends its Consistency budget on the cheapest scalars and calibration moves it toward the dearest.
+That is a smaller effect than the entry was written on and a much better argued one.
+
 **Refuted if** paired ΔS ≤ 0, or `li` improves while `kappa`/`volume`/axis lose as much.
 
-**ΔS ≈ +0.001…+0.0025, confidence 0.4.**
+**ΔS ≈ +0.0005…+0.0015, confidence 0.45.** One boolean, no new code — the cheapest run on the list.
 
 ## A3. The MLP's capacity and schedule — *2026-08-13*
 
@@ -697,6 +706,55 @@ plateau is already flat and early stopping is landing in the middle of it rather
 **ΔS ≈ +0.0003…+0.0015, confidence 0.5.** The cheapest entry on the list: no extra run, no extra
 cache, no new hyper-parameter that has to be tuned.
 
+## A22. The last tenth of a shot — *2026-08-15* — **the target C1 and C7 actually found**
+
+**The measurement, before the hypothesis, because this entry exists only because of it.** The final
+decile of every shot carries **24.1% of the geometry cost over 10.2% of the frames**, and C7 says
+this is not the metric's doing: sensitivity there is 0.98× the median while the implied coefficient
+error is **2.22×** the fold average. Every other decile sits between 0.51× and 1.03×. The model is
+worse at the end of a shot than anywhere else, by a factor of two, and nothing in this project had
+noticed.
+
+**Hypothesis.** Something about ramp-down is either absent from the inputs or under-represented in
+the fit, and addressing it wins ≥ 0.001 — perfect prediction there would be worth 0.0011 of the
+0.0039 reachable in the geometry terms.
+
+**Three candidate mechanisms, and they are separable.**
+
+- *Missing state.* The current is decaying fastest, so the vessel eddy currents are largest and
+  most transient exactly here — the one thing 21 instantaneous levels cannot express. This is
+  A19's leaky integrals of the loop voltage, and A22 gives them a place to show up. **The cheapest
+  test in the entry: rerun C1 with the A19 features and read the last decile alone.**
+- *Under-representation.* The tail may simply be a small, differently-distributed slice — low Ip,
+  a small or deforming plasma — that a flat loss lets the flat-top dominate. Then a per-frame
+  weight by position is the fix, and unlike B6's Jacobian weight it is aimed at the frames that
+  actually cost.
+- *Label noise.* EFIT's own reconstruction is least constrained as the plasma terminates, so part
+  of that 2.2× might be irreducible. **Tested first, because it would have killed the entry, and it
+  is refuted.** The ceiling decomposed onto the same frames is FLAT across the shot — 0.000086 to
+  0.000120 per decile, with the last decile at 0.000120 against a fold mean of 0.000100. So the
+  last decile is not harder to represent, and only **10.1% of its cost is the basis** against 21–33%
+  in the middle of the shot. It is the most winnable region in the fold, not the least.
+
+| decile | model | ceiling | reachable | ceiling as a share of the cost |
+|---|---|---|---|---|
+| 0.0–0.1 | 0.000742 | 0.000110 | 0.000632 | 14.9% |
+| middle eight | 0.000316–0.000429 | 0.000088–0.000110 | — | 20.5–33.1% |
+| **0.9–1.0** | **0.001182** | 0.000120 | **0.001062** | **10.1%** |
+
+**So the bound is 0.00106 of the 0.00390 reachable — 27.2% of everything left, in 10% of the
+frames.**
+
+**The sequence model already had its chance here and did not take it.** It saves 15.2% of the last
+decile's cost against 24.9% of the first decile's, so a bidirectional pass over the shot — which
+sees the termination coming — is not what closes this.
+
+**Refuted if** weighting and features both leave the last decile within 0.0003 of where it is. The
+representation-floor branch has already been tested and refuted, above.
+
+**ΔS ≈ +0.0005…+0.0015, confidence 0.45.** Bounded above by 0.00106, and that bound is measured —
+which is more than any other open entry in this file can say.
+
 ## A21. Fit the ensemble weights instead of setting them — *2026-08-15*
 
 **Hypothesis.** Solving for the ensemble weights on a holdout, rather than writing 0.6/0.4 in
@@ -1056,7 +1114,21 @@ training — the same delta-share reading B5 already uses, applied to the fast b
 **ΔS ≈ 0…+0.004, confidence 0.25.** The widest interval in this file, and deliberately: it is the
 only entry whose upside is new information rather than better use of old.
 
-## B6. A per-frame heteroscedastic metric — *2026-08-13* — **PROMOTED by C1, run it first**
+## B6. A per-frame heteroscedastic metric — *2026-08-13* — **DEMOTED by C7; A22 replaces it**
+
+**C7 measured the premise and it points the other way.** Sensitivity does vary — 10× between the
+99th percentile and the median, so the refutation clause below is not met. But it explains almost
+none of the cost (Spearman +0.209, and only the top quintile is elevated at all), and the
+decile table is decisive: the frames a Jacobian weighting would up-weight are the FIRST decile,
+where the model's coefficient error is already half the fold average. The frames that actually cost
+— the last decile, 24% of the geometry loss — have ordinary sensitivity and 2.2× the error, and a
+`J`-based weight leaves them exactly where they are.
+
+**Keep it, below A22, for the one thing it would still buy.** Ramp-up costs 1.57× its share on
+sensitivity alone, which is ~0.0004 of S, and that part is genuinely a mis-weighting. It is a
+smaller prize than this entry was written for and it is not first any more.
+
+### The original entry, and the reasoning that C1 alone seemed to support
 
 **Hypothesis.** The fixed `M` (JᵀJ averaged over 300 probe frames) under-weights high-sensitivity
 frames; weighting each training frame by a cheap surrogate for `tr JᵀJ` gains ≥ 0.001.
@@ -1224,6 +1296,59 @@ present DIII-D artifact scores when pointed at MAST shots with whatever features
 number can only be embarrassing or encouraging, and either one is worth more than a refinement on a
 challenge already won.
 
+## C7. Is an expensive frame under-weighted, or simply harder? — *2026-08-15* — **DONE, and it redirects B6**
+
+2998 probed frames over the same 70 shots, joined to C1's costs.
+
+**Sensitivity does vary — 10×.** p99/median = 10.1, p90/p10 = 6.8. B6's refutation clause asked for
+less than 2× and it is not met, so the premise stands.
+
+**But it explains almost none of the cost.** Spearman(sensitivity, cost) = **+0.209**, and the
+relation is not a gradient — it is a step at the very top. Mean Consistency cost by quintile of
+sensitivity: 0.74, 0.79, 0.65, **0.56**, 2.25. The fourth quintile has 1.38× the median sensitivity
+and the LOWEST cost of the five.
+
+**And the two ends of the shot are expensive for opposite reasons.** Dividing the decile's mean cost
+by its median sensitivity gives the coefficient error the model is actually making there (a
+decile-level ratio, not a per-frame quantity):
+
+| decile | sensitivity | cost | implied error² |
+|---|---|---|---|
+| 0.0–0.1 | **3.05×** | 1.57× | **0.51×** |
+| 0.1–0.9 | 0.84–1.24× | 0.62–0.91× | 0.54–1.03× |
+| 0.9–1.0 | **0.98×** | **2.17×** | **2.22×** |
+
+**Ramp-up is B6's case exactly** — the model predicts it unusually WELL (error² half the average)
+and it costs 1.57× only because the functionals are three times as sensitive there. **Ramp-down is
+the opposite and it is the bigger lump**: ordinary sensitivity, 2.2× the coefficient error, 24% of
+the whole geometry cost. Nothing about the metric's weighting touches it. The model is simply wrong
+at the end of a shot.
+
+**So B6 aimed the wrong way.** A Jacobian-weighted loss up-weights the first decile, which is
+already the best-predicted region, and leaves the last decile untouched. See A22, which is what
+this measurement actually argues for.
+
+**One more reading, and it costs nothing.** Running C1 for `mlp` alone against the ensemble prices
+the sequence model per region. It saves 0.00113 of the 0.00603 the MLP loses — 18.3% overall,
+**24.9% of the first decile and 15.2% of the last**. So the recurrence helps least exactly where its
+physical argument is strongest: whatever it learned, it is not the termination dynamics.
+
+`my_experiments/diagnose_sensitivity.py`. **The diagnostic that decides B6**, and it exists because
+C1 by itself cannot: a frame's Consistency cost is `|| J_i (ĉ_i − c_i) ||²`, the product of the
+frame's SENSITIVITY and the model's coefficient ERROR there, and C1 measured only the product.
+
+- Large `J_i` — the frame is sensitive, equal coefficient error buys more scalar error there, and a
+  loss built on one `M` averaged over 300 probe frames charges it the same as everywhere else.
+  That is a mis-weighting, and re-weighting fixes it.
+- Large `(ĉ_i − c_i)` — the frame is simply harder. Up-weighting it then trades the other 90% away
+  for nothing.
+
+The two are indistinguishable in C1's output and call for opposite work. This measures `J_i`
+per frame with the same central differences and the same probe step the training loss is built
+from, joins it to the costs C1 already wrote out, and reports the mean cost by quintile of
+sensitivity. **A strong positive relation confirms B6's mechanism; a flat one kills it before a
+single training run.**
+
 ## C6. The memory the sequence model learned — *2026-08-15*
 
 Already specified under B5 ("How far back does it actually reach?"): the histogram of `tau` over the
@@ -1241,14 +1366,18 @@ spent hours on, after the polarity split (A12 step 0) and the scalar bias and sl
 
 The order the two measurements imply:
 
-1. **B6, the cheap version** — per-frame sample weights by position in the shot. C1 measured a 22×
-   spread in what frames cost and the loss is flat across all of it. One line, one run.
-2. **A13, stop on the composite.** The model's ψ is at its ceiling and its geometry is not, which
+1. **A22, the last tenth of a shot.** 27.2% of everything reachable, in 10% of the frames, with the
+   representation-floor explanation already measured and refuted. The most specific target this
+   file has ever had. Its own first step is A19's features re-read on that decile alone.
+2. **A2**, one boolean and no new code: the loss over-weights the two triangularities, which are
+   9.9% of the geometry cost, relative to `kappa` and `li`, which are 42%.
+3. **A13, stop on the composite.** The model's ψ is at its ceiling and its geometry is not, which
    is the same disagreement between loss and score in a different place.
-3. **A2's free diagnostic**, which C1 made urgent: `kappa` and `li` are 42% of the geometry cost,
-   and `calibrate_scalars` is the knob that says how much the loss charges for each scalar.
 4. **C3, permutation importance** — still free, and it prices A19 and B10 before either is built.
-5. Then the zero-retrain sweep A7; then A1 and A2 proper, one run each; then A3, A4, A5, A6, A8.
+5. Then the zero-retrain sweep A7; then A1, A19, A3, A4, A5, A6, A8.
+
+**Demoted by the same measurements:** B6, whose weighting is aimed at the frames the model already
+predicts best; B9, whose premise C2 refuted; and anything aimed at R²ψ or the triangularities.
 
 **Not first any more:** B9, whose premise C2 refuted, and anything aimed at R²ψ, which is measured
 at 0.9998 of a 1.0000 ceiling and is finished.
