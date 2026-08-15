@@ -26,11 +26,15 @@ TEE = 2>&1 | tee -a $$LOG
 
 -include .env
 export HF_READ_TOKEN
-# Downloads only. huggingface_hub reads HF_TOKEN straight from the environment, so this raises the
-# anonymous rate limit for download_dataset without touching a command line. A different token from
-# HF_READ_TOKEN on purpose: that one is read-only because it travels inside the pointer zip, while
-# this one never leaves the machine.
-export HF_TOKEN
+# HF_TOKEN is NOT exported here, and that is the whole point. It exists to raise the anonymous rate
+# limit on `download_dataset`, so it is exported by that target ALONE, below.
+#
+# Exported globally it silently breaks uploading. huggingface_hub resolves a token in this order:
+# the HF_TOKEN environment variable first, the token stored by `hf auth login` second. So a
+# read-only HF_TOKEN in the environment SHADOWS a perfectly good write login, and the push fails
+# with "403 Forbidden: you must use a write token" — which reads as a problem with the account
+# rather than with this line. Measured on 2026-08-15: it cost a failed push of a finished
+# submission.
 HF_REPO ?= pshishkin/fusion-eq-predictions
 
 .PHONY: ci lint format typecheck test quality prod train eval predict_and_submit_to_hf clean \
@@ -68,6 +72,9 @@ typecheck:
 #
 # A submission needs diii_d_public_test; training needs diii_d_train; mast_public_test is only for
 # Challenge 2, which this fork does not implement yet.
+# The one target that wants HF_TOKEN, and the only one that gets it — see the note beside
+# `-include .env` on why a global export breaks the submission push.
+download_dataset: export HF_TOKEN := $(HF_TOKEN)
 download_dataset:
 	@for cfg in $(DATASET_CONFIGS); do \
 		echo "==> $$cfg"; \
@@ -137,6 +144,11 @@ eval:
 #
 # The token comes from .env, which is NOT in git — this file is, and the fork is public.
 predict_and_submit_to_hf:
+	@test -z "$$HF_TOKEN" || { \
+		echo "HF_TOKEN is in the environment. huggingface_hub prefers it over the token from"; \
+		echo "'hf auth login', so a read-only one shadows your write login and the upload fails"; \
+		echo "with 403. Unset it for this command:  env -u HF_TOKEN make predict_and_submit_to_hf"; \
+		exit 1; }
 	@test -n "$$HF_READ_TOKEN" || { \
 		echo "HF_READ_TOKEN is empty. Copy .env.example to .env and fill it in."; exit 1; }
 	uv run python submission_skeleton.py --max-shots 0 --source local \
@@ -157,3 +169,4 @@ clean-cache:
 # shots the training window pulls in, so a new salt otherwise re-reads whatever salt 0 never saw.
 warm-cache:
 	uv run python my_experiments/warm_cache.py
+
