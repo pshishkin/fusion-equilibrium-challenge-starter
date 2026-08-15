@@ -522,7 +522,20 @@ clock runs out — which will be recorded as dropped, not quietly omitted.
 | 9 | **Huber loss** on the scaled targets | the loss is MSE over 52 scaled outputs, so one badly reconstructed frame moves the gradient as much as thirty ordinary ones. Huber at 2-3 sigma keeps the quadratic centre and bounds the tail | a loss selector |
 | 10 | **Per-frame weighting by the Jacobian** (B6) | `jacobian_form` already measures how the seven scored functionals respond to each coefficient, and the loss charges every frame equally although equal coefficient error costs unequal scalar error across frames | the largest of the ten |
 
-## A15. Capacity and light dropout TOGETHER — *2026-08-14*
+## A15. Capacity and light dropout TOGETHER — *2026-08-14* — **DONE, refuted**
+
+**Done 2026-08-15**, twelve cells at `0.80/1.0`. Every axis flat or negative on the marginal means:
+width −0.0006 / −0.0011, depth −0.0001 / −0.0011, dropout 0→0.02 nothing and 0.02→0.1 −0.0025.
+The numbers are in experiments_history.
+
+**What it changes about everything below it.** The bias-limited diagnosis was right and its usual
+corollary was wrong: this model is not short of parameters. It can already express more than 46
+numbers from one frame determine, so the ceiling is in the INPUTS, not in the hypothesis class.
+Every remaining "make it bigger" idea drops in rank and everything that adds information —
+the sequence model, the feature arms of A18 — rises.
+
+### The original entry
+
 
 **Queued after the nonlinearity and depth arms of grid C.**
 
