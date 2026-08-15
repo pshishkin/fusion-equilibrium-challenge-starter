@@ -145,7 +145,8 @@ def iter_dataset_rows(config: str, split: str, source: str,
 
 def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
                      source: str = "hf",
-                     local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR) -> Path:
+                     local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR,
+                     model: str | None = None) -> Path:
     preds: dict[str, np.ndarray] = {}
     n = 0
     for i, row in enumerate(iter_dataset_rows(config, split, source, local_data_dir)):
@@ -154,7 +155,7 @@ def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
         source = row.get("source", "DIII-D")
         T = len(np.asarray(row["efit_times"]))
         H, W = GRID[source]
-        out = your_model_predict(row, source)
+        out = your_model_predict(row, source, model)
 
         assert out["psirz"].shape == (T, H, W), \
             f"{config} shot {i}: psirz {out['psirz'].shape} != {(T, H, W)}"
@@ -187,6 +188,12 @@ def main() -> int:
         description="Build a submission, validate it, push it to Hugging Face, and write the "
                     "pointer zip you upload to Codabench.")
     ap.add_argument("--max-shots", type=int, default=5, help="cap shots per config (0 = all)")
+    ap.add_argument("--model",
+                    help="which member of the zoo to submit, default the artifact's own ensemble. "
+                         "Takes every form evaluate.py --models does, including 'a+b', "
+                         "'psi=a+b,qb=c' and 'salts:a+b' — the last averages the DECODED maps of "
+                         "several artifacts, which is how an ensemble across feature sets or "
+                         "splits is submitted. Without this a measured combination cannot be sent")
     ap.add_argument("--out", type=Path, default=Path("submission"))
     ap.add_argument("--repo",
                     help="Hugging Face dataset repo to push to, e.g. you/fusion-eq-preds. "
@@ -216,7 +223,7 @@ def main() -> int:
     written = []
     for config, split in configs:
         written.append(build_submission(config, split, args.out, args.max_shots,
-                                        args.source, args.local_data_dir).name)
+                                        args.source, args.local_data_dir, args.model).name)
 
     # No manifest is written here: the scorer locates predictions by FILENAME, and on the
     # pointer route push_and_write_pointer() writes the real {repo_id, revision, token} one.

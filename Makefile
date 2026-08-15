@@ -145,6 +145,9 @@ eval:
 # not — run `make eval` (or a full `make prod`) yourself if you want to know what you are sending.
 #
 # The token comes from .env, which is NOT in git — this file is, and the fork is public.
+# MODEL= picks which member of the zoo is submitted; without it the artifact's own ensemble goes.
+# `MODEL="salts:a+b"` averages the decoded maps of several artifacts, which is how an ensemble
+# across feature sets is sent — the members are baseline_<name>.joblib beside FUSION_ARTIFACT.
 predict_and_submit_to_hf:
 	@test -z "$$HF_TOKEN" || { \
 		echo "HF_TOKEN is in the environment. huggingface_hub prefers it over the token from"; \
@@ -154,7 +157,7 @@ predict_and_submit_to_hf:
 	@test -n "$$HF_READ_TOKEN" || { \
 		echo "HF_READ_TOKEN is empty. Copy .env.example to .env and fill it in."; exit 1; }
 	uv run python submission_skeleton.py --max-shots 0 --source local \
-		--configs diii_d_public_test --repo $(HF_REPO)
+		--configs diii_d_public_test --repo $(HF_REPO) $(if $(MODEL),--model "$(MODEL)")
 
 clean:
 	rm -rf .ruff_cache .mypy_cache my_experiments/__pycache__ __pycache__
