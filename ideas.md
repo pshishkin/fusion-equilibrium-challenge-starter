@@ -528,6 +528,14 @@ clock runs out — which will be recorded as dropped, not quietly omitted.
 width −0.0006 / −0.0011, depth −0.0001 / −0.0011, dropout 0→0.02 nothing and 0.02→0.1 −0.0025.
 The numbers are in experiments_history.
 
+**Provisional, and the reason is worth reading.** Every cell of this grid was fitted at a learning
+rate that was later measured to blow up in 15 of 28 runs at these shares — training loss to 67.9
+against unit-variance targets, then a recovery into a different place. So each cell carries a coin
+flip that is worth about 0.002, and the marginal means average three or four of them. The four
+readings agreeing in sign is what keeps the conclusion standing; it is not what a clean grid would
+look like. **Re-run it at `grad_clip: 1.0` before spending anything on the strength of it** — and
+note the deep-wide cell that "diverged" was the same instability, not a property of depth.
+
 **What it changes about everything below it.** The bias-limited diagnosis was right and its usual
 corollary was wrong: this model is not short of parameters. It can already express more than 46
 numbers from one frame determine, so the ceiling is in the INPUTS, not in the hypothesis class.

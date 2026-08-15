@@ -257,9 +257,15 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
-    # Clip the gradient norm; 0.0 is off. See models.py — over half of the fits at these shares
-    # blow up without it, and which ones do is decided by the fourth decimal of the input.
-    grad_clip: 0.0
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
@@ -310,9 +316,15 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
-    # Clip the gradient norm; 0.0 is off. See models.py — over half of the fits at these shares
-    # blow up without it, and which ones do is decided by the fourth decimal of the input.
-    grad_clip: 0.0
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
@@ -363,9 +375,15 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
-    # Clip the gradient norm; 0.0 is off. See models.py — over half of the fits at these shares
-    # blow up without it, and which ones do is decided by the fourth decimal of the input.
-    grad_clip: 0.0
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
@@ -416,9 +434,15 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
-    # Clip the gradient norm; 0.0 is off. See models.py — over half of the fits at these shares
-    # blow up without it, and which ones do is decided by the fourth decimal of the input.
-    grad_clip: 0.0
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
     # `none` is the constant rate everything so far was measured at. `cosine` decays to
     # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
