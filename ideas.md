@@ -853,6 +853,44 @@ matches the control with a `delta` that stayed near zero, the recurrence found n
 matches with a large `delta`, it found something and paid for it elsewhere. Those are different
 results and the score alone cannot tell them apart.
 
+## B9. Learn the 50-dimensional subspace instead of taking PCA's — *2026-08-15*
+
+**The gap this points at.** PCA chooses its 50 directions to maximise explained PIXEL VARIANCE.
+The composite does not score pixel variance: 30% of it is `D_LCFS` and Consistency, which read the
+map's GEOMETRY and not its values, and the `jacobian` loss metric exists precisely because of that
+— it reweights the loss ON the coefficients. But the SUBSPACE is still variance-optimal. A
+direction that barely moves the pixels and moves the magnetic axis a long way can be absent from
+the basis entirely, and no reweighting of what is there can recover it.
+
+**The free diagnostic, before any training.** The reconstruction error of the PCA subspace,
+measured in the METRIC rather than in pixels, against the best 50-dimensional subspace under that
+same metric — a generalised eigenproblem on `M` and the flux covariance, both of which are already
+computed. If PCA's subspace is within noise of the optimum, this whole entry dies for the price of
+one eigendecomposition. **Do this first.**
+
+**What it collides with, and this is the important half.** Two things that currently pay depend on
+the decoder being AFFINE:
+
+- **The ensemble.** "Averaging coefficients and averaging flux maps are the same thing — the PCA
+  decoder is affine and the weights sum to 1." With a nonlinear decoder that identity breaks:
+  averaging latents is no longer averaging maps, and the ensemble would have to average decoded
+  65x65 maps instead. Workable, but it is worth +0.0015 to +0.0042 here, so it is not a detail.
+- **The Jacobian loss metric.** "Any quadratic functional of the map error is a fixed matrix on
+  those coefficients" — true because the decoder is affine. A nonlinear decoder turns that fixed
+  matrix into something that depends on where you are, and the +0.0097 that metric is worth would
+  have to be re-derived or given up.
+
+**So the sharp version is a LINEAR encoder-decoder**, trained to minimise the metric rather than
+the pixel error. It keeps both properties above — still affine, still one matrix — and differs from
+PCA only in which 50 directions it picks. All of the potential gain, none of the collateral.
+
+**The nonlinear version is a separate, later entry**, and it should be judged against having to
+rebuild the ensemble and the loss metric around it, not against PCA alone.
+
+**Refuted if** the diagnostic shows PCA's subspace already near-optimal in the metric — which is
+plausible, since 50 components reconstruct ~100% of the variance and the headroom on `R2_psi` is
+0.0004 of S. The hope rests entirely on the geometry terms, where the headroom is 0.0175.
+
 ## B6. A per-frame heteroscedastic metric — *2026-08-13* — ~half a day
 
 **Hypothesis.** The fixed `M` (JᵀJ averaged over 300 probe frames) under-weights high-sensitivity
