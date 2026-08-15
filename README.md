@@ -566,6 +566,12 @@ produced nothing at all. Rebuild the cache deliberately first — `warm_cache.py
 written to hold one frame per shot and so cannot do this — and only then start the runs that will
 be compared.
 
+**The PCA stage is the memory peak, and `pca_frame_share` is a share.** At `0.98/1.0` it asks for
+306k frames where production asks for 250k, and the randomized SVD's centred copy of that array is
+the largest thing the run ever holds — measured, the run died at 58 GB there. The setting estimates
+50 directions out of 4225 pixels and does not have to grow with the data: scale it DOWN when the
+training share goes up, to hold the absolute sample fixed.
+
 **`free` on this box reports the host, not the container.** It says 251 GB where the instance has
 128. Anything sized from `free` is sized from a number twice too large.
 
