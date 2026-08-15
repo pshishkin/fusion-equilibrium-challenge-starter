@@ -62,6 +62,7 @@ from my_experiments.models import (
     TargetScaler,
     load_params,
 )
+from my_experiments.monitor import build_monitor
 from my_experiments.parallel import pimap, release, resolve_jobs
 from my_experiments.progress import SHOT_EVERY, bar_kwargs
 from my_experiments.target_metric import (
@@ -88,6 +89,10 @@ SALTS_PREFIX = "salts:"
 
 # `psi=mlp+seq,qb=mlp` — one combination for the flux coefficients, another for q95 and betaN.
 BLOCK_SEP, PSI_KEY, QB_KEY = ",", "psi=", "qb="
+# `mlp*0.3+seq*0.7` — how a member carries an unequal weight in a combination assembled at scoring
+# time. `*` and not `:` because a model name may not contain it and a shell will not eat it inside
+# the quotes evaluate.py's --models needs anyway.
+WEIGHT_SEP = "*"
 SUBMITTED_SCALARS = ["efit_q95", "efit_beta_n"]   # -> q95, betaN
 ENSEMBLE = "ensemble"                             # the reserved name of the weighted average
 
@@ -1075,6 +1080,24 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
           f"loss share psi {var[:params.n_pca].sum() / var.sum():.0%} / "
           f"scalars {var[params.n_pca:].sum() / var.sum():.0%}")
 
+    # A13. Built only if some model asks to stop on the composite, because it costs a few hundred
+    # LCFS extractions to compile and it has to happen HERE — the validation flux maps are released
+    # ten lines below and the monitor needs them to build its reference.
+    monitor = monitor_idx = None
+    if any(getattr(m, "stop_on", "loss") == "composite" for m in params.models.values()):
+        monitor_idx = thin_frames(len(Yv), min(1.0, params.monitor_frames / len(Yv)))
+        total_v = Yv[monitor_idx].astype(np.float64)
+        if plan["subtract"]:
+            total_v = total_v + coil_flux(plan, Xv[monitor_idx])
+        mctx = scorer_context(plan["grid_R"], plan["grid_Z"], plan["machine"])
+        mctx["coil"] = (coil_flux(plan, Xv[monitor_idx]).astype(np.float64)
+                        if plan["subtract"] else np.zeros_like(total_v))
+        t0 = time.perf_counter()
+        monitor = build_monitor(pca, target_scaler, mctx, plan["machine"], total_v,
+                                Sv[monitor_idx].astype(np.float64), params.n_pca)
+        print(f"  stopping on the COMPOSITE: reference built from {len(monitor_idx)} validation "
+              f"frames in {time.perf_counter() - t0:.1f} s")
+
     # The flux maps are dead from here on: the models see standardized inputs and scaled targets,
     # and the PCA keeps its own components. At production Y and Yv are over 3 GiB together, which
     # is the difference between fitting in RAM and fitting against swap — and the fit is the
@@ -1091,7 +1114,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         print(f"\n  fitting {name} ({model.kind}) on {Xs.shape[0]} frames "
               f"-> {params.n_targets} targets, stopping on {Xvs.shape[0]} validation frames")
         t0 = time.perf_counter()
-        model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val)
+        model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val, monitor, monitor_idx)
         print(f"  {name}: fitted in {time.perf_counter() - t0:.1f} s{model.fit_report()}")
 
     artifact: Artifact = {
@@ -1186,16 +1209,36 @@ def _predict_targets(art: Artifact, model: str, Xs: FloatArray) -> FloatArray:
         for name, weight in art["ensemble"].items():
             out += weight * inverse(art["models"][name].predict(Xs))
         return out
-    members = model.split("+")
+    # `a*0.3+b*0.7` — an UNEQUALLY weighted average. Without a weight a member gets 1.0, so `a+b`
+    # keeps meaning the equal average it always did. Weights are renormalised to sum to 1, which is
+    # what makes averaging coefficients the same as averaging the decoded maps; a negative weight
+    # is refused rather than renormalised, since it is almost always a typo and the one time it is
+    # not, extrapolating outside the members' hull is a different idea that should be argued for.
+    members, weights = [], []
+    for part in model.split("+"):
+        name, _, w = part.partition(WEIGHT_SEP)
+        members.append(name)
+        try:
+            weights.append(1.0 if not w else float(w))
+        except ValueError:
+            raise KeyError(f"{part!r}: a weight is written 'name{WEIGHT_SEP}0.4' and must be a "
+                           f"number, got {w!r}") from None
     missing = [m for m in members if m not in art["models"]]
     if missing:
         raise KeyError(f"no model {missing[0]!r} in {ARTIFACT}; it holds {model_names(art)}. "
-                       f"A combination is written 'a+b' and every part must be a fitted model.")
+                       f"A combination is written 'a+b' or 'a{WEIGHT_SEP}0.3+b{WEIGHT_SEP}0.7' "
+                       f"and every part must be a fitted model.")
+    if any(w < 0 for w in weights):
+        raise KeyError(f"{model!r} carries a negative weight; the average is over the members, "
+                       f"not outside them")
+    total = sum(weights)
+    if not total > 0:
+        raise KeyError(f"{model!r}: the weights sum to {total}, so there is nothing to average")
     if len(members) == 1:
         return inverse(art["models"][members[0]].predict(Xs))
     out = np.zeros((len(Xs), art["n_pca"] + len(SUBMITTED_SCALARS)), dtype=np.float64)
-    for name in members:
-        out += inverse(art["models"][name].predict(Xs)) / len(members)
+    for name, weight in zip(members, weights, strict=True):
+        out += inverse(art["models"][name].predict(Xs)) * (weight / total)
     return out
 
 

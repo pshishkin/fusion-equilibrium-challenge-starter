@@ -24,7 +24,7 @@ from __future__ import annotations
 import abc
 import itertools
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -167,7 +167,9 @@ class TargetModel(abc.ABC):
     @abc.abstractmethod
     def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
             shots: npt.NDArray[np.int64] | None = None,
-            shots_val: npt.NDArray[np.int64] | None = None) -> None:
+            shots_val: npt.NDArray[np.int64] | None = None,
+            monitor: Callable[[FloatArray], float] | None = None,
+            monitor_idx: npt.NDArray[np.intp] | None = None) -> None:
         """Fit on the training frames, stopping on the validation ones.
 
         The validation set is mandatory, not optional: a model that quietly trains to its full
@@ -243,7 +245,9 @@ class RidgeModel(TargetModel):
 
     def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
             shots: npt.NDArray[np.int64] | None = None,
-            shots_val: npt.NDArray[np.int64] | None = None) -> None:
+            shots_val: npt.NDArray[np.int64] | None = None,
+            monitor: Callable[[FloatArray], float] | None = None,
+            monitor_idx: npt.NDArray[np.intp] | None = None) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         self._est = Ridge(alpha=self.alpha).fit(X, Y)
 
@@ -287,7 +291,9 @@ class CatBoostModel(TargetModel):
 
     def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
             shots: npt.NDArray[np.int64] | None = None,
-            shots_val: npt.NDArray[np.int64] | None = None) -> None:
+            shots_val: npt.NDArray[np.int64] | None = None,
+            monitor: Callable[[FloatArray], float] | None = None,
+            monitor_idx: npt.NDArray[np.intp] | None = None) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         if self.task_type not in CATBOOST_DEVICES:
             raise ValueError(f"catboost: unknown task_type {self.task_type!r}; known "
@@ -367,6 +373,11 @@ LR_SCHEDULES = ("none", "cosine")
 # same curve near zero and linear past `huber_delta`, so a frame the model reconstructs badly stops
 # dominating the gradient of the batch it lands in.
 LOSSES = ("mse", "huber")
+
+# What the early-stopping rule reads. `loss` is the validation MSE every fit in this fork has used;
+# `composite` is the competition score itself, over a fixed sample of validation frames decoded and
+# run through the vendored scorer. See monitor.py for why they disagree.
+STOP_ON = ("loss", "composite")
 
 
 def build_mlp(n_in: int, hidden_sizes: list[int], n_out: int, activation: str = "relu",
@@ -544,6 +555,16 @@ class TorchMLPModel(TargetModel):
     # learning_rate * lr_final_factor rather than cycling back up, which is what
     # CosineAnnealingLR does on its own if it is stepped past T_max.
     lr_t_max_steps: int
+    # A13. `loss` keeps the weights at the lowest validation MSE, which is what every fit in this
+    # fork has done. `composite` keeps them at the highest COMPETITION SCORE over a fixed sample of
+    # validation frames, decoded and pushed through the vendored scorer — see monitor.py for why
+    # the two disagree and for what the sample costs. The loss the gradient descends is unchanged
+    # either way; only where the fit stops and which weights it keeps move.
+    stop_on: str = "loss"
+    # The composite is decoded and contour-extracted, so it costs milliseconds per frame where the
+    # validation loss costs one matrix multiply. It gets its own, much coarser cadence, and the
+    # patience is still counted in steps.
+    composite_every_steps: int = 2000
     _state: dict[str, np.ndarray] | None = field(default=None, init=False, repr=False)
     _n_in: int = field(default=0, init=False, repr=False)
     _n_out: int = field(default=0, init=False, repr=False)
@@ -563,7 +584,9 @@ class TorchMLPModel(TargetModel):
 
     def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
             shots: npt.NDArray[np.int64] | None = None,
-            shots_val: npt.NDArray[np.int64] | None = None) -> None:
+            shots_val: npt.NDArray[np.int64] | None = None,
+            monitor: Callable[[FloatArray], float] | None = None,
+            monitor_idx: npt.NDArray[np.intp] | None = None) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         import torch
 
@@ -656,6 +679,22 @@ class TorchMLPModel(TargetModel):
         # every norm rather than a running mean is what makes the MEDIAN available at the end —
         # the mean of a distribution with rare spikes says nothing about the typical step.
         norms = torch.zeros(self.max_steps + 1, device=dev)
+        # A13: what the stopping rule reads. `watch` is None unless the caller passed a monitor AND
+        # this model was configured to use it, so the default path is bit-for-bit what it was.
+        if self.stop_on not in STOP_ON:
+            raise ValueError(f"torch_mlp(seed={self.seed}): unknown stop_on {self.stop_on!r}; "
+                             f"known {sorted(STOP_ON)}")
+        if self.stop_on == "composite" and (monitor is None or monitor_idx is None):
+            raise ValueError(f"torch_mlp(seed={self.seed}): stop_on='composite' needs a monitor, "
+                             f"and train.py builds one only when some model asks for it — this is "
+                             f"a wiring bug, not a configuration one")
+        watch = monitor if self.stop_on == "composite" else None
+        watch_rows = (torch.as_tensor(np.asarray(monitor_idx), device=dev)
+                      if watch is not None else None)
+        if watch is not None and self.composite_every_steps < 1:
+            raise ValueError(f"torch_mlp(seed={self.seed}): composite_every_steps is "
+                             f"{self.composite_every_steps}, must be >= 1")
+        composite, judged, scored = float("nan"), float("inf"), False
         best_loss, best_state, since_best = float("inf"), None, 0
         # Since the last evaluation, not since the start: the reported training loss is then a
         # window comparable to the validation number printed beside it, whatever the window is.
@@ -700,22 +739,38 @@ class TorchMLPModel(TargetModel):
                 net.eval()
                 with torch.no_grad():
                     val_loss = float(loss_fn(net(Xvt), Yvt))
+                    # The composite runs on its own coarse grid, and always on the last step so the
+                    # fit cannot end on a measurement it never took. `judged` is what the best
+                    # weights and the patience are decided by — lower is better either way, so the
+                    # composite enters NEGATED and the comparison below stays one line.
+                    scored = (watch is not None
+                              and (last or step % self.composite_every_steps == 0))
+                    if watch is not None and scored:
+                        composite = watch(net(Xvt[watch_rows]).detach().cpu().numpy())
+                        judged = -composite
                 net.train()
                 train_loss = float(total_t) / n
                 total_t, n = torch.zeros((), device=dev), 0
-
-                if val_loss < best_loss or not self.patience_steps:
-                    best_loss, since_best, self._best_step = val_loss, 0, step
+                if watch is None:
+                    judged, scored = val_loss, True
+                # `scored` is False on the evaluations between two composite measurements: they
+                # still log, they just decide nothing.
+                if scored and (judged < best_loss or not self.patience_steps):
+                    best_loss, since_best, self._best_step = judged, 0, step
                     best_state = {k: v.detach().cpu().numpy().copy()
                                   for k, v in net.state_dict().items()}
-                else:
-                    since_best += self.eval_every_steps
+                elif scored:
+                    since_best += (self.composite_every_steps if watch is not None
+                                   else self.eval_every_steps)
                 # refresh=False, or the postfix forces a redraw at EVERY evaluation and quietly
                 # defeats the `miniters` that keeps a teed log readable. The values still ride
                 # along on the next redraw the bar makes on its own.
                 bar.update(step - bar.n)
+                # In composite mode `best_loss` holds the NEGATED score, so it is turned back the
+                # right way up for anything a human reads.
+                shown = -best_loss if watch is not None else best_loss
                 bar.set_postfix(mse=f"{train_loss:.4f}", val=f"{val_loss:.4f}",
-                                best=f"{best_loss:.4f}@{self._best_step}", refresh=False)
+                                best=f"{shown:.4f}@{self._best_step}", refresh=False)
                 # The bar shows the last step; these lines are the history — a val loss that turned
                 # around 20000 steps ago is invisible in a postfix that only ever shows "now".
                 # MultiRMSE alongside MSE so the line can be read against CatBoost's own log, which
@@ -725,12 +780,14 @@ class TorchMLPModel(TargetModel):
                 multi_rmse = float(np.sqrt(self._n_out * val_loss))
                 head = (f"    mlp step {step:7d}: train {train_loss:.6f}  val {val_loss:.6f}"
                         f"  (MultiRMSE {multi_rmse:.4f})")
+                if watch is not None and scored:
+                    head += f"  S {composite:.6f}"
                 if step % MLP_LOG_EVERY_STEPS < self.eval_every_steps:
-                    bar.write(f"{head}  best {best_loss:.6f} @ {self._best_step}")
+                    bar.write(f"{head}  best {shown:.6f} @ {self._best_step}")
                 if last or (self.patience_steps and since_best >= self.patience_steps):
                     if not last:
                         bar.write(f"{head}  -> stopping, {since_best} steps since best "
-                                  f"{best_loss:.6f} @ {self._best_step}")
+                                  f"{shown:.6f} @ {self._best_step}")
                     stop = True
                     break
 
@@ -809,6 +866,8 @@ class Params:
     loss_metric: str
     calibrate_scalars: bool
     jacobian_frames: int
+    # A13: validation frames the composite monitor scores. See monitor.py.
+    monitor_frames: int
     jacobian_delta: float
     boundary: bool
     subtract_coil_field: bool
@@ -967,7 +1026,8 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   "the top level", path)
     _require_keys(doc["split"], {"salt", "holdout_share"}, "split", path)
     _require_keys(doc["loss"],
-                  {"metric", "calibrate_scalars", "jacobian_frames", "jacobian_delta", "boundary"},
+                  {"metric", "calibrate_scalars", "jacobian_frames", "jacobian_delta", "boundary",
+                   "monitor_frames"},
                   "loss", path)
     loss_metric = str(doc["loss"]["metric"])
     if loss_metric not in LOSS_METRICS:
@@ -1029,6 +1089,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   loss_metric=loss_metric,
                   calibrate_scalars=bool(doc["loss"]["calibrate_scalars"]),
                   jacobian_frames=int(doc["loss"]["jacobian_frames"]),
+                  monitor_frames=int(doc["loss"]["monitor_frames"]),
                   jacobian_delta=float(doc["loss"]["jacobian_delta"]),
                   boundary=bool(doc["loss"]["boundary"]),
                   subtract_coil_field=bool(doc["features"]["subtract_coil_field"]),

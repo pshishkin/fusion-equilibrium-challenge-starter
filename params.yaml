@@ -161,6 +161,11 @@ loss:
   calibrate_scalars: false
 
   jacobian_frames: 300
+  # A13. Validation frames the composite monitor scores when a model sets
+  # `stop_on: composite`. Each one costs an LCFS extraction and seven derivations per
+  # evaluation, so this and `composite_every_steps` together set what stopping costs: 150
+  # frames every 2000 steps is a few minutes on a production fit. Ignored otherwise.
+  monitor_frames: 150
   jacobian_delta: 0.0332
 
   # `jacobian` only. Add the BOUNDARY term: how far the plasma boundary moves when the
@@ -292,6 +297,13 @@ models:
     # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
     # itself an annealing schedule. Set it near where the fit actually ends.
     lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
 
   mlp1:
     type: torch_mlp
@@ -351,6 +363,13 @@ models:
     # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
     # itself an annealing schedule. Set it near where the fit actually ends.
     lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
 
   mlp2:
     type: torch_mlp
@@ -410,6 +429,13 @@ models:
     # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
     # itself an annealing schedule. Set it near where the fit actually ends.
     lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
 
   mlp3:
     type: torch_mlp
@@ -469,6 +495,13 @@ models:
     # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
     # itself an annealing schedule. Set it near where the fit actually ends.
     lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
 
   seq:
     type: torch_seq

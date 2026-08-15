@@ -34,6 +34,7 @@ from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG
 from my_experiments.baseline_model import (
     ARTIFACT,
     SALTS_PREFIX,
+    WEIGHT_SEP,
     artifact_path,
     model_names,
     sorted_shots,
@@ -63,6 +64,15 @@ def main() -> int:
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
                     help="root of the downloaded dataset (the folder containing 'data/')")
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
+    ap.add_argument("--select-on-val", type=int, metavar="N",
+                    help="score on N of the artifact's VALIDATION shots instead of the unseen "
+                         "tail. Those shots are not clean — early stopping read them — so this is "
+                         "for CHOOSING among things that are already fitted (which members to "
+                         "average, with what weights), never for reporting a score. What early "
+                         "stopping took from them is one scalar per model, the same for every "
+                         "candidate, so it cannot prefer one combination over another; the tail "
+                         "then confirms the choice on data nothing has touched. Any number "
+                         "printed under this flag is a SELECTION number, not a result")
     ap.add_argument("--on-holdout", action="store_true",
                     help="score the shots the artifact reserved as its holdout instead of the "
                          "tail of this salt's order. That is the only set on which models fitted "
@@ -104,6 +114,18 @@ def main() -> int:
                              f"present in {args.local_data_dir} — the data directory has changed")
         print(f"Scoring the {len(files)}-shot HOLDOUT ({art['holdout_share']:.1%}), which no salt "
               f"trains on — so members fitted under different salts are comparable here")
+    elif args.select_on_val:
+        if not art or not art.get("val_files"):
+            raise SystemExit("--select-on-val needs an artifact that records its validation shots")
+        keep = set(art["val_files"])
+        pool = [p for p in all_files if p.name in keep]
+        # Evenly spaced through the window rather than its head, so the sample is not one corner
+        # of the sha1 order.
+        step = max(1, len(pool) // args.select_on_val)
+        files = pool[::step][:args.select_on_val]
+        print(f"SELECTION SET: {len(files)} of {len(pool)} VALIDATION shots. Early stopping read "
+              f"these, so what comes out is a ranking and not a score — confirm the winner on the "
+              f"tail before believing any of it.")
     else:
         files = take_share(all_files, args.share, "tail")
         print(f"Scoring {len(files)} shots ({args.share:.1%} of {len(all_files)}), tail of the "
@@ -119,7 +141,11 @@ def main() -> int:
                              f"older version, retrain")
         # Both windows the fit touched, not just the training one: early stopping read the
         # validation shots every iteration, so scoring on them would be scoring on seen data.
-        seen = set(art["train_files"]) | set(art["val_files"])
+        # `--select-on-val` asks for the validation window ON PURPOSE, so the overlap check would
+        # be refusing what was requested. Everything else is still checked, and the flag prints its
+        # own warning above.
+        seen = (set() if args.select_on_val
+                else set(art["train_files"]) | set(art["val_files"]))
         available = model_names(art)
         # `basis` calls no model, so there is nothing to name — but the overlap check below still
         # runs, because a ceiling measured on shots the PCA was fitted on is not the ceiling.
@@ -164,7 +190,9 @@ def main() -> int:
             if m.startswith(SALTS_PREFIX):
                 continue
             for block in m.split(","):
-                leaves |= set(block.split("=")[-1].split("+"))
+                # `name*weight` — the weight is not part of the name, so strip it before checking
+                # the leaf against the zoo.
+                leaves |= {p.partition(WEIGHT_SEP)[0] for p in block.split("=")[-1].split("+")}
         unknown = leaves - set(available)
         if unknown:
             raise SystemExit(f"{ARTIFACT} holds {available}, but --models asks for "

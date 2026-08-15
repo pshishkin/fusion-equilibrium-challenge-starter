@@ -25,6 +25,7 @@ so `predict` takes its argument as one sequence — see the guard in `predict`.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -167,7 +168,9 @@ class TorchSeqModel(TargetModel):
         return Net(self)
 
     def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
-            shots: np.ndarray | None = None, shots_val: np.ndarray | None = None) -> None:
+            shots: np.ndarray | None = None, shots_val: np.ndarray | None = None,
+            monitor: Callable[[FloatArray], float] | None = None,
+            monitor_idx: np.ndarray | None = None) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         import torch
 
