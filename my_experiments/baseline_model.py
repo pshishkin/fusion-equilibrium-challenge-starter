@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import os
 import sys
 import time
 import warnings
@@ -73,7 +74,17 @@ from my_experiments.target_metric import (
 )
 
 HERE = Path(__file__).resolve().parent
-ARTIFACT = HERE / "baseline.joblib"
+# Where a fit is written and read. Selectable by environment variable, the same way shot_cache
+# already does it, so several fits can coexist under their own names — which is what averaging
+# across salts needs, since each salt's fit is a whole pipeline of its own and not a member of
+# anyone else's artifact.
+ARTIFACT = Path(os.environ.get("FUSION_ARTIFACT", HERE / "baseline.joblib"))
+
+# `salts:a+b` as a model name averages the DECODED predictions of `baseline_a.joblib` and
+# `baseline_b.joblib`. It has to be decoded rather than coefficient space: every fit has its own
+# PCA basis, its own target scaler and its own coil gains, so their coefficients are not
+# commensurable and averaging them would be adding up numbers that mean different things.
+SALTS_PREFIX = "salts:"
 SUBMITTED_SCALARS = ["efit_q95", "efit_beta_n"]   # -> q95, betaN
 ENSEMBLE = "ensemble"                             # the reserved name of the weighted average
 
@@ -1110,19 +1121,25 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
 
 # --------------------------------------------------------------------------- inference
 
-_CACHE: Artifact | None = None
+_CACHE: dict[Path, Artifact] = {}
 
 
-def _load() -> Artifact:
-    global _CACHE
-    if _CACHE is None:
-        if not ARTIFACT.exists():
+def artifact_path(name: str) -> Path:
+    """`baseline_<name>.joblib` beside the default artifact — where a per-salt fit is written."""
+    return ARTIFACT.parent / f"baseline_{name}.joblib"
+
+
+def _load(path: Path | None = None) -> Artifact:
+    """One artifact, cached by path — several are held at once when averaging across salts."""
+    path = path or ARTIFACT
+    if path not in _CACHE:
+        if not path.exists():
             raise FileNotFoundError(
-                f"{ARTIFACT} not found — train first:\n"
+                f"{path} not found — train first:\n"
                 f"  uv run python my_experiments/train.py --share 0.01"
             )
-        _CACHE = joblib.load(ARTIFACT)
-    return _CACHE
+        _CACHE[path] = joblib.load(path)
+    return _CACHE[path]
 
 
 def model_names(artifact: Artifact | None = None) -> list[str]:
@@ -1166,14 +1183,33 @@ def _predict_targets(art: Artifact, model: str, Xs: FloatArray) -> FloatArray:
     return out
 
 
-def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE) -> dict[str, FloatArray]:
+def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE,
+                artifact: Path | None = None) -> dict[str, FloatArray]:
     """Predict {psirz (T,65,65), q95 (T,), betaN (T,)} for one dataset row.
 
-    `model` selects one member of the zoo by name, or the default `ensemble` — their weighted
-    average. Uses only `magnetics_*` and `efit_times`, never the `efit_*` targets, which are
-    present in training rows and would make any local score meaningless.
+    `model` selects one member of the zoo by name, `a+b` their equally weighted average, or the
+    default `ensemble` — the weighted average params.yaml declared. Uses only `magnetics_*` and
+    `efit_times`, never the `efit_*` targets, which are present in training rows and would make
+    any local score meaningless.
+
+    **`salts:a+b` is a different kind of average** and is handled here rather than in
+    `_predict_targets`: those members live in separate artifacts, fitted on separate splits, and
+    each has its own PCA basis, target scaler and coil gains. Their coefficients are therefore not
+    commensurable — averaging them would be summing numbers that mean different things — so the
+    average is taken here, on the decoded flux maps and scalars, which are in physical units and
+    mean the same thing in every fit.
     """
-    art = _load()
+    if model.startswith(SALTS_PREFIX):
+        names = model[len(SALTS_PREFIX):].split("+")
+        if len(names) < 2:
+            raise ValueError(f"{model!r} names one fit; use its own model name instead")
+        parts = [predict_row(row, source, ENSEMBLE, artifact_path(n)) for n in names]
+        averaged: dict[str, FloatArray] = {}
+        for key in parts[0]:
+            stacked = np.stack([p[key] for p in parts])
+            averaged[key] = stacked.mean(axis=0).astype(parts[0][key].dtype)
+        return averaged
+    art = _load(artifact)
     if source != "DIII-D":
         raise NotImplementedError(
             f"the model is trained on DIII-D only, but the row is marked source={source!r}. "
@@ -1184,7 +1220,8 @@ def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE) -> dict
     T = len(np.asarray(row["efit_times"]))
     if "coil" not in art:
         raise KeyError(
-            f"{ARTIFACT} predates the coil-field decomposition and does not say which features it "
+            f"{artifact or ARTIFACT} predates the coil-field decomposition and does not say which "
+            f"features it "
             f"was fitted on. Retrain rather than guess: uv run python my_experiments/train.py "
             f"--share 0.05/0.2 --val-share 0.05/0.2"
         )

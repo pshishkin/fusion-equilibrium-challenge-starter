@@ -33,6 +33,8 @@ import local_score
 from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG
 from my_experiments.baseline_model import (
     ARTIFACT,
+    SALTS_PREFIX,
+    artifact_path,
     model_names,
     sorted_shots,
     take_share,
@@ -113,6 +115,25 @@ def main() -> int:
         # Both windows the fit touched, not just the training one: early stopping read the
         # validation shots every iteration, so scoring on them would be scoring on seen data.
         seen = set(art["train_files"]) | set(art["val_files"])
+        available = model_names(art)
+        models = args.models if args.models else available
+        # A `salts:` model reaches into other artifacts, and every one of them has its own split.
+        # The check has to see all of them or it certifies the wrong thing: a shot held out of THIS
+        # fit may well be in another member's training set, which is exactly the mistake the
+        # holdout exists to prevent — so the members are loaded before the overlap is tested.
+        for spec in [m for m in models if m.startswith(SALTS_PREFIX)]:
+            if not args.on_holdout:
+                raise SystemExit(
+                    f"{spec} averages fits made under DIFFERENT salts, and the tail of one salt's "
+                    f"order is training data for the others. Score it with --on-holdout, which is "
+                    f"the only set none of them has seen."
+                )
+            for name in spec[len(SALTS_PREFIX):].split("+"):
+                member = joblib.load(artifact_path(name))
+                seen |= set(member["train_files"]) | set(member["val_files"])
+                print(f"  {artifact_path(name).name}: salt {member['split_salt']}, "
+                      f"{member['n_train_shots']} train + {member['n_val_shots']} val shots "
+                      f"folded into the overlap check")
         overlap = {p.name for p in files} & seen
         if overlap:
             raise SystemExit(
@@ -126,12 +147,12 @@ def main() -> int:
         print(f"Held-out check: {art['n_train_shots']} shots trained on, {art['n_val_shots']} "
               f"validated on, {len(files)} scored — no overlap.")
 
-        available = model_names(art)
-        models = args.models if args.models else available
         # `a+b` is an equally weighted average of two fitted members, assembled at scoring time —
         # so the check is per PART. Which members to combine is a question about a fitted
         # artifact, and answering it should cost one training run rather than one per combination.
-        unknown = {p for m in models for p in m.split("+")} - set(available)
+        # `salts:` names are artifacts, not members of this one, so they are checked by loading.
+        unknown = {p for m in models if not m.startswith(SALTS_PREFIX)
+                   for p in m.split("+")} - set(available)
         if unknown:
             raise SystemExit(f"{ARTIFACT} holds {available}, but --models asks for "
                              f"{sorted(unknown)}. Enable them in params.yaml and retrain.")
