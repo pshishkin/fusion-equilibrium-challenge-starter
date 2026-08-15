@@ -1069,7 +1069,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     print(f"  inputs: {F.shape[1]} features per frame ({plan['inputs']}, "
           f"derivatives={plan['derivatives']}/{plan['derivative_signals']}, "
           f"thomson={plan['thomson'] or 'off'}, "
-          f"frame_gaps={'on' if plan['frame_gaps'] else 'off'})")
+          f"frame_gaps={'on' if plan['frame_gaps'] else 'off'}, "
+          f"vessel={plan.get('vessel', 'none')})")
     if plan["thomson"]:
         # The validity flag sits at the end of the SUMMARY part of the Thomson block, before the raw
         # profiles; a shot whose diagnostic never fired

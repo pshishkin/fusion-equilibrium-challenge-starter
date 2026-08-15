@@ -555,6 +555,16 @@ class TorchMLPModel(TargetModel):
     # learning_rate * lr_final_factor rather than cycling back up, which is what
     # CosineAnnealingLR does on its own if it is stepped past T_max.
     lr_t_max_steps: int
+    # A20. Decay of an exponential moving average of the WEIGHTS, kept alongside the live ones and
+    # evaluated beside them at every evaluation; the fit keeps whichever scored better, so this can
+    # only help or tie by the same rule that picks the best step. 0.0 turns it off.
+    #
+    # Why it should do anything at all: seed-to-seed sigma at production is 0.0009 of S and
+    # averaging four seeds is worth 0.0042, so a large part of what a fit produces is optimisation
+    # noise rather than a better function. Some of that noise is BETWEEN seeds and only more seeds
+    # remove it; some is the last stretch of one trajectory rattling inside a basin, and an average
+    # over that stretch removes it for free.
+    ema_decay: float = 0.0
     # A13. `loss` keeps the weights at the lowest validation MSE, which is what every fit in this
     # fork has done. `composite` keeps them at the highest COMPETITION SCORE over a fixed sample of
     # validation frames, decoded and pushed through the vendored scorer — see monitor.py for why
@@ -569,6 +579,9 @@ class TorchMLPModel(TargetModel):
     _n_in: int = field(default=0, init=False, repr=False)
     _n_out: int = field(default=0, init=False, repr=False)
     _best_step: int = field(default=-1, init=False, repr=False)
+    # A20: how many evaluations the averaged weights beat the live ones at. 0 with
+    # `ema_decay` on is a result, not a bug — it says the trajectory is not rattling.
+    _ema_wins: int = field(default=0, init=False, repr=False)
     _ran_steps: int = field(default=0, init=False, repr=False)
     _clipped: float = field(default=float("nan"), init=False, repr=False)
     _norm_median: float = field(default=float("nan"), init=False, repr=False)
@@ -696,6 +709,13 @@ class TorchMLPModel(TargetModel):
                              f"{self.composite_every_steps}, must be >= 1")
         composite, judged, scored = float("nan"), float("inf"), False
         best_loss, best_state, since_best = float("inf"), None, 0
+        if not 0.0 <= self.ema_decay < 1.0:
+            raise ValueError(f"torch_mlp(seed={self.seed}): ema_decay is {self.ema_decay}, "
+                             f"expected 0 (off) or a decay in [0, 1)")
+        # The shadow copy, and a place to park the live weights while the average is evaluated in
+        # the same net. Cloned rather than referenced: `ema` must not follow `opt.step()`.
+        ema = ({k: v.detach().clone() for k, v in net.state_dict().items()}
+               if self.ema_decay else None)
         # Since the last evaluation, not since the start: the reported training loss is then a
         # window comparable to the validation number printed beside it, whatever the window is.
         total_t, n, stop = torch.zeros((), device=dev), 0, False
@@ -725,6 +745,16 @@ class TorchMLPModel(TargetModel):
                 total_t += loss.detach() * len(idx)
                 n += len(idx)
                 step += 1
+                if ema is not None:
+                    with torch.no_grad():
+                        for k, v in net.state_dict().items():
+                            # Integer buffers (none today, but batch norm's num_batches_tracked is
+                            # one the moment `norm: batch` is used) cannot hold a running mean and
+                            # are carried across rather than averaged.
+                            if v.dtype.is_floating_point:
+                                ema[k].mul_(self.ema_decay).add_(v, alpha=1 - self.ema_decay)
+                            else:
+                                ema[k].copy_(v)
 
                 # Stepped only up to the horizon: past it CosineAnnealingLR would carry the rate
                 # back UP toward its start, which is a warm restart nobody asked for.
@@ -736,29 +766,54 @@ class TorchMLPModel(TargetModel):
                 if step % self.eval_every_steps and not last:
                     continue
 
+                # The composite runs on its own coarse grid, and always on the last step so the
+                # fit cannot end on a measurement it never took. `judged` is what the best weights
+                # and the patience are decided by — lower is better either way, so the composite
+                # enters NEGATED and the comparison below stays one line.
+                scored = (watch is None
+                          or last or step % self.composite_every_steps == 0)
+
+                def measure(scored: bool = scored) -> tuple[float, float, float]:
+                    """(validation loss, composite, judged) for whatever weights `net` holds.
+
+                    `scored` is bound as a default rather than closed over: the closure is rebuilt
+                    every evaluation and reading a loop variable from it is the classic late-
+                    binding bug even where, as here, it happens to be called immediately.
+                    """
+                    vl = float(loss_fn(net(Xvt), Yvt))
+                    if watch is None:
+                        return vl, float("nan"), vl
+                    if not scored:
+                        return vl, float("nan"), float("inf")
+                    s = watch(net(Xvt[watch_rows]).detach().cpu().numpy())
+                    return vl, s, -s
+
                 net.eval()
                 with torch.no_grad():
-                    val_loss = float(loss_fn(net(Xvt), Yvt))
-                    # The composite runs on its own coarse grid, and always on the last step so the
-                    # fit cannot end on a measurement it never took. `judged` is what the best
-                    # weights and the patience are decided by — lower is better either way, so the
-                    # composite enters NEGATED and the comparison below stays one line.
-                    scored = (watch is not None
-                              and (last or step % self.composite_every_steps == 0))
-                    if watch is not None and scored:
-                        composite = watch(net(Xvt[watch_rows]).detach().cpu().numpy())
-                        judged = -composite
+                    val_loss, composite, judged = measure()
+                    # A20: the running average of the weights is a second candidate, judged by the
+                    # same rule at the same moment. Whichever is better is what gets kept, so this
+                    # cannot lose to not having it — the comparison is on validation data either
+                    # way, and the average is never forced.
+                    from_ema = False
+                    if ema is not None and scored:
+                        live = {k: v.detach().clone() for k, v in net.state_dict().items()}
+                        net.load_state_dict(ema)
+                        ema_loss, ema_comp, ema_judged = measure()
+                        if ema_judged < judged:
+                            val_loss, composite, judged, from_ema = (ema_loss, ema_comp,
+                                                                     ema_judged, True)
+                            self._ema_wins += 1
+                        net.load_state_dict(live)
                 net.train()
                 train_loss = float(total_t) / n
                 total_t, n = torch.zeros((), device=dev), 0
-                if watch is None:
-                    judged, scored = val_loss, True
                 # `scored` is False on the evaluations between two composite measurements: they
                 # still log, they just decide nothing.
                 if scored and (judged < best_loss or not self.patience_steps):
                     best_loss, since_best, self._best_step = judged, 0, step
-                    best_state = {k: v.detach().cpu().numpy().copy()
-                                  for k, v in net.state_dict().items()}
+                    keep = ema if (from_ema and ema is not None) else net.state_dict()
+                    best_state = {k: v.detach().cpu().numpy().copy() for k, v in keep.items()}
                 elif scored:
                     since_best += (self.composite_every_steps if watch is not None
                                    else self.eval_every_steps)
@@ -808,9 +863,11 @@ class TorchMLPModel(TargetModel):
         clip = ("" if not self.grad_clip else
                 f", clipped {self._clipped:.1%} of steps (median grad norm "
                 f"{self._norm_median:.3g}, max {self._norm_max:.3g}, threshold {self.grad_clip:g})")
+        ema = (f", averaged weights won {self._ema_wins} evaluation(s)"
+               if self.ema_decay else "")
         return (f", best step {self._best_step} of {self._ran_steps} run"
                 f"{f' (of {self.max_steps} allowed)' if self._ran_steps < self.max_steps else ''}"
-                f"{clip}")
+                f"{clip}{ema}")
 
     def predict(self, X: FloatArray) -> FloatArray:
         if self._state is None:

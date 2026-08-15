@@ -316,6 +316,10 @@ models:
     # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
     # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
     # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
     stop_on: loss
     # How often the composite is measured, in steps. It costs an extraction per monitored frame,
     # so it runs far less often than the validation loss; ignored unless stopping on it.
@@ -382,6 +386,10 @@ models:
     # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
     # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
     # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
     stop_on: loss
     # How often the composite is measured, in steps. It costs an extraction per monitored frame,
     # so it runs far less often than the validation loss; ignored unless stopping on it.
@@ -448,6 +456,10 @@ models:
     # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
     # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
     # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
     stop_on: loss
     # How often the composite is measured, in steps. It costs an extraction per monitored frame,
     # so it runs far less often than the validation loss; ignored unless stopping on it.
@@ -514,6 +526,10 @@ models:
     # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
     # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
     # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
     stop_on: loss
     # How often the composite is measured, in steps. It costs an extraction per monitored frame,
     # so it runs far less often than the validation loss; ignored unless stopping on it.
