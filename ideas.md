@@ -794,6 +794,34 @@ Windowing — thinning by whole windows instead of by frames inside them — was
 is worse than it looks: a stride on a clock that already has holes makes the spacing vary from two
 mixed causes at once, where `1.0` plus a Δt column leaves exactly one.
 
+### How far back does it actually reach? — *2026-08-15*
+
+**Unmeasured, and the architecture cannot answer it.** Nothing about a GRU fixes a horizon: the
+update gate decides per channel and per frame how much of the state survives, so the reach is a
+property of the trained weights. The page describing this model says "in principle unbounded",
+which is true and useless.
+
+**The cheap measurement, which needs no training.** Run the fitted model over the validation shots
+and collect `z` for all 256 channels at every frame. A channel holding `z` steady has a time
+constant `tau = -1/ln(z)` frames, and a frame is 20 ms:
+
+| z | tau | in shot time |
+|---|---|---|
+| 0.5 | 1.4 frames | 0.03 s |
+| 0.9 | 9.5 frames | 0.19 s |
+| 0.99 | 99.5 frames | 2.0 s |
+| 0.999 | 999 frames | 20 s |
+
+So the histogram of `tau` over the 256 channels is a direct read of what memory the model chose to
+build. Two outcomes and they mean opposite things: a spread reaching seconds says the recurrence
+is carrying slow plasma state, which is the mechanism this model was built for; everything piled
+near `z ~ 0.5` says it learned a two-frame smoother and the +0.0015 in the ensemble comes from
+something else entirely.
+
+**Cross-check, because a gate value is an inference and not an effect.** Perturb frame `t-k`, watch
+the prediction at `t`, sweep `k`. That measures the reach end to end, including whatever the
+encoder and `delta` do to it, where the gate statistics only measure the recurrence.
+
 ### The screen, pre-registered — *2026-08-14*
 
 Six arms on one salt, declared before any of them runs. None of the hyper-parameters here has ever
