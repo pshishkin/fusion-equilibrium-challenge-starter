@@ -566,6 +566,15 @@ produced nothing at all. Rebuild the cache deliberately first — `warm_cache.py
 written to hold one frame per shot and so cannot do this — and only then start the runs that will
 be compared.
 
+**The thread caps in the Makefile are load-bearing, and a script that skips them dies.** Every
+target exports `OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4`; a run launched
+directly does not. OpenBLAS then reads the HOST's 64 cores and opens that many threads PER worker,
+so 20 readers ask for 1280 threads against a container ceiling of 7680 shared with everything else,
+and the fits die inside `spawn_main` with `pthread_create failed ... Resource temporarily
+unavailable`. Worse, a killed run's workers survive as orphans and keep holding them: measured,
+5658 of 7680 threads were held by processes whose parent was gone, which made every LATER run fail
+the same way for a reason that had nothing to do with it. Kill orphans by PPID 1, not by name.
+
 **The PCA stage is the memory peak, and `pca_frame_share` is a share.** At `0.98/1.0` it asks for
 306k frames where production asks for 250k, and the randomized SVD's centred copy of that array is
 the largest thing the run ever holds — measured, the run died at 58 GB there. The setting estimates
