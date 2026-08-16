@@ -46,7 +46,7 @@ from experiments import (
     _as_psirz_stack,
     interpolate_magnetics_to_efit,
 )
-from my_experiments import aux_targets, shot_cache
+from my_experiments import shot_cache
 from my_experiments.coil_field import (
     CoilBasis,
     build_basis,
@@ -1121,6 +1121,10 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # them and did not help.
     aux_names = params.aux_names
     if aux_names:
+        # Imported here, not at module scope: aux_targets is a CLI that reaches for
+        # local_score, which imports this module. A pipeline module must not depend on
+        # the tools built on top of it.
+        from my_experiments import aux_targets
         cols = [CONS_SCALARS.index(n) for n in aux_names]
         blocks = []
         for block_files, n_rows, label in ((files, len(Tgt), "training"),

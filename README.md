@@ -575,6 +575,19 @@ produced nothing at all. Rebuild the cache deliberately first — `warm_cache.py
 written to hold one frame per shot and so cannot do this — and only then start the runs that will
 be compared.
 
+**Editing an imported module breaks a run whose parent already imported it — through its POOL
+WORKERS.** A worker started by `multiprocessing` re-imports the main module from disk, so a run
+that is happily fitting will die the moment it reaches a stage that spawns a pool. Measured: a
+75-minute sequence fit finished, saved its artifact, and then lost its scoring pass to an import
+error introduced while it ran. The same edit killed four queued runs outright. Land module changes
+between runs, or accept that anything still to spawn is running against the new code.
+
+**And the change that did it was a cycle, which is worth its own line.** `baseline_model` is the
+pipeline; `local_score` and the diagnostic CLIs are built ON it and import from it. So a pipeline
+module must never import one of those at module scope — `baseline_model` -> `aux_targets` ->
+`local_score` -> `baseline_model` is a cycle that only shows up at import time, and only for
+whoever imports first. Both directions are now lazy, inside the functions that need them.
+
 **The thread caps in the Makefile are load-bearing, and a script that skips them dies.** Every
 target exports `OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4`; a run launched
 directly does not. OpenBLAS then reads the HOST's 64 cores and opens that many threads PER worker,

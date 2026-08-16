@@ -37,9 +37,7 @@ from common import CONS_SCALARS, N_CONS  # noqa: E402
 from derive import derive_frame  # noqa: E402
 from lcfs import extract_lcfs  # noqa: E402
 
-import local_score  # noqa: E402
 from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG  # noqa: E402
-from my_experiments.baseline_model import parse_share, sorted_shots, split_train_val  # noqa: E402
 from my_experiments.parallel import pimap, resolve_jobs  # noqa: E402
 from my_experiments.progress import SHOT_EVERY, bar_kwargs, install_timestamps  # noqa: E402
 from my_experiments.target_metric import scorer_context  # noqa: E402
@@ -54,6 +52,7 @@ def _task(args: tuple) -> FloatArray:
     path, ctx = args
     import pandas as pd
 
+    import local_score
     from experiments import _as_psirz_stack
     psi = _as_psirz_stack(pd.read_parquet(path).iloc[0]["efit_psirz"]).astype(np.float64)
     out = np.full((len(psi), N_CONS), np.nan)
@@ -93,6 +92,12 @@ def main() -> int:
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
     args = ap.parse_args()
 
+    # Imported HERE, not at module scope: `baseline_model` imports this module for `load`, and a
+    # top-level import back into it is a cycle. It broke four queued runs at import and, worse, the
+    # POOL WORKERS of a run whose parent had already imported cleanly — a worker re-imports the
+    # main module from disk, so editing a module mid-flight breaks a job that looked safe.
+    from my_experiments.baseline_model import parse_share, sorted_shots, split_train_val
+
     shot_share, frame_share = parse_share(args.share)
     val_shot_share, val_frame_share = parse_share(args.val_share)
     if frame_share < 1.0 or val_frame_share < 1.0:
@@ -109,6 +114,7 @@ def main() -> int:
             print(f"  {name}: {out.name} already there, skipping")
             continue
         if ctx is None:
+            import local_score
             mask = np.load(HERE.parent / "fusion_scoring" / "masks" / "d3d_envelope.npz")
             ctx = scorer_context(mask["grid_R"], mask["grid_Z"], local_score.MACHINE)
         jobs = resolve_jobs(args.jobs, len(block))
