@@ -375,6 +375,12 @@ N_SIGNALS = len(D3D_MAGNETICS_SIGNALS)
 # the derivatives are counted from the front and Thomson from the back.
 N_GAPS = 2
 
+# Where `inputs: flux_probe` samples the coil flux, as fractions of the grid's own extent in each
+# direction. A 6x6 lattice inset from the edges: the corners of an EFIT grid are outside the vessel
+# on both machines and carry little but the far field. Fractions rather than metres is the entire
+# point — it is what makes probe 14 the same question on DIII-D and on MAST.
+PROBE_FRACTIONS = np.array([0.15, 0.30, 0.45, 0.60, 0.75, 0.90])
+
 # A19 / A22. Time constants, in milliseconds, of the leaky integrals of dI/dt that follow the gap
 # columns. The physics is one line: a conducting loop around a changing coil current obeys
 # L dIv/dt + R Iv = -M dIc/dt, so the induced current IS an exponential moving average of dIc/dt
@@ -769,6 +775,23 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
     mean = w = None
     if params.inputs in ("coil_pca", "both"):
         mean, w = coil_pca_transform(maps, currents, params.n_coil_pca)
+    # `flux_probe` — the first feature form in this pipeline that means the same thing on two
+    # different machines. Every other one is the machine's own current columns, rotated or not, and
+    # C5 measured that MAST shares exactly ONE of DIII-D's twenty-one. What both machines DO share
+    # is a poloidal plane and a flux grid, so a probe at "35% of the way across the grid, 60% of
+    # the way up" is the same physical question on either — and coil_field builds the maps that
+    # answer it from each machine's own shipped rectangles.
+    probe = None
+    if params.inputs == "flux_probe":
+        iz = np.clip(np.round(PROBE_FRACTIONS * (len(basis.grid_Z) - 1)).astype(int),
+                     0, len(basis.grid_Z) - 1)
+        ir = np.clip(np.round(PROBE_FRACTIONS * (len(basis.grid_R) - 1)).astype(int),
+                     0, len(basis.grid_R) - 1)
+        zz, rr = np.meshgrid(iz, ir, indexing="ij")
+        # (n_columns, n_probe): the flux each current column puts at each probe. The features are
+        # then one matrix product on the currents, exactly as `coil_pca`'s are — no map is ever
+        # materialised at training time.
+        probe = maps[:, zz.ravel(), rr.ravel()]
     return {
         "subtract": params.subtract_coil_field, "inputs": params.inputs,
         "derivatives": params.derivatives,
@@ -781,7 +804,7 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         # survive `coil_pca` verbatim or the plasma current would be thrown away with the wiring.
         "passthrough": [i for i, sig in enumerate(D3D_MAGNETICS_SIGNALS)
                         if f"magnetics_{sig}" not in basis.columns],
-        "cur_mean": mean, "coil_pca_W": w,
+        "cur_mean": mean, "coil_pca_W": w, "probe_W": probe,
     }
 
 
@@ -827,6 +850,11 @@ def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
     mode = plan["inputs"]
     if mode == "currents":
         base = levels
+    elif mode == "flux_probe":
+        # The coil flux at a fixed lattice of grid FRACTIONS, plus the signals that produce no
+        # poloidal flux at all — the plasma current above all, which no probe can see.
+        base = np.hstack([levels[:, plan["index"]].astype(np.float64) @ plan["probe_W"],
+                          levels[:, plan["passthrough"]]])
     else:
         coil = (levels[:, plan["index"]].astype(np.float64) - plan["cur_mean"]) @ plan["coil_pca_W"]
         if mode == "coil_pca":
