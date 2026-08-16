@@ -27,6 +27,15 @@ before adding code under `my_experiments/`.
 previous one. Local production score on salt 0 is 0.9945, so the gap is 0.0013 — the price of
 having chosen against the same folds many times, measured rather than assumed.
 
+**A second submission is built and pushed, not yet scored** —
+`submissions/submission_pointer_20260816T014239Z.zip`, built 2026-08-16. It is not a better model
+but an ensemble of THREE FEATURE SETS: the production five, plus four seeds trained with leaky
+integrals of dI/dt on the two driving signals, plus four seeds with the same on all twenty poloidal
+ones, averaged as decoded flux maps. Individually they score 0.9945, 0.9944 and 0.9940 and none is
+worth sending alone; together they are **0.9950 on salt 0, +0.0009 on salt 3 and +0.0018 on salt
+4** — mean **+0.0014 on the two folds nothing was selected against**, and larger there than on the
+fold it was found on. See `artefacts/candidate/README.md` for the recipe.
+
 **+0.0036 on the leaderboard against +0.0031 locally: 116% of the local gain transferred**, where
 the previous submission transferred 91%, and the local-to-leaderboard gap NARROWED from 0.0018 to
 0.0013. More than 100% is noise around 100%; what matters is that nothing was lost, over a day in
