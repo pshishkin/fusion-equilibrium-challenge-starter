@@ -782,7 +782,7 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
     # the way up" is the same physical question on either — and coil_field builds the maps that
     # answer it from each machine's own shipped rectangles.
     probe = None
-    if params.inputs == "flux_probe":
+    if params.inputs in ("flux_probe", "flux_shape"):
         iz = np.clip(np.round(PROBE_FRACTIONS * (len(basis.grid_Z) - 1)).astype(int),
                      0, len(basis.grid_Z) - 1)
         ir = np.clip(np.round(PROBE_FRACTIONS * (len(basis.grid_R) - 1)).astype(int),
@@ -850,11 +850,22 @@ def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
     mode = plan["inputs"]
     if mode == "currents":
         base = levels
-    elif mode == "flux_probe":
+    elif mode in ("flux_probe", "flux_shape"):
         # The coil flux at a fixed lattice of grid FRACTIONS, plus the signals that produce no
         # poloidal flux at all — the plasma current above all, which no probe can see.
-        base = np.hstack([levels[:, plan["index"]].astype(np.float64) @ plan["probe_W"],
-                          levels[:, plan["passthrough"]]])
+        p = levels[:, plan["index"]].astype(np.float64) @ plan["probe_W"]
+        if mode == "flux_shape":
+            # The SHAPE of the coil field carries between machines; its SCALE does not. The gains
+            # in `plan` are fitted against THIS machine's flux and run -2.36 to 110.14 on DIII-D,
+            # absorbing unit conventions — kA against A, turns folded in or not — that MAST does
+            # not share and cannot be fitted for, since MAST ships no targets at all (C5). So the
+            # probe vector is divided by its own RMS and the scale returned as one more feature, in
+            # logs because it spans orders of magnitude through a shot. A per-frame normaliser and
+            # not a per-machine constant, deliberately: nothing then has to be estimated on the
+            # far machine.
+            scale = np.sqrt((p ** 2).mean(axis=1, keepdims=True))
+            p = np.hstack([p / np.maximum(scale, 1e-30), np.log(np.maximum(scale, 1e-30))])
+        base = np.hstack([p, levels[:, plan["passthrough"]]])
     else:
         coil = (levels[:, plan["index"]].astype(np.float64) - plan["cur_mean"]) @ plan["coil_pca_W"]
         if mode == "coil_pca":

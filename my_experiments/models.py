@@ -1017,7 +1017,7 @@ class Params:
 
 # What `features.inputs` may say. The pipeline builds the feature matrix from this and nothing
 # else, so a typo here is a ValueError naming the file rather than a silently different experiment.
-INPUT_MODES = ("currents", "coil_pca", "both", "flux_probe")
+INPUT_MODES = ("currents", "coil_pca", "both", "flux_probe", "flux_shape")
 
 # What `features.derivatives` may say. `raw` differentiates each signal on its own
 # 0.05 ms time base before interpolating onto the EFIT frames; `interp` differentiates
