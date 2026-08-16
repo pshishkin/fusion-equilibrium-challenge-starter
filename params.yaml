@@ -187,6 +187,21 @@ loss:
   # evaluation, so this and `composite_every_steps` together set what stopping costs: 150
   # frames every 2000 steps is a few minutes on a production fit. Ignored otherwise.
   monitor_frames: 150
+
+  # A9. Which of the seven scored functionals the net predicts as EXTRA outputs during training,
+  # thrown away at inference — the scorer derives them from the submitted map, so they can never be
+  # submitted, but nothing stops the net being taught them. Comma-separated names from
+  # R_axis, Z_axis, kappa, tri_top, tri_bot, volume, li — or `none`.
+  #
+  # It exists because of a measurement: C1 decomposed the geometry cost onto every frame and found
+  # kappa and li carrying 42% of it between them, while the net predicts neither and only sees them
+  # through the LINEARISED jacobian metric. `aux_weight` is their share of the loss, set the way
+  # W_QB sets the two submitted scalars' share.
+  #
+  # Requires the targets precomputed once: my_experiments/aux_targets.py, about an hour for the
+  # 0.80/1.0 split, cached by the exact file list.
+  aux_scalars: none
+  aux_weight: 0.1
   jacobian_delta: 0.0332
 
   # `jacobian` only. Add the BOUNDARY term: how far the plasma boundary moves when the

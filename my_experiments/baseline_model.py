@@ -46,7 +46,7 @@ from experiments import (
     _as_psirz_stack,
     interpolate_magnetics_to_efit,
 )
-from my_experiments import shot_cache
+from my_experiments import aux_targets, shot_cache
 from my_experiments.coil_field import (
     CoilBasis,
     build_basis,
@@ -1114,6 +1114,40 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # and the two scalars jointly is what makes the models interchangeable and averageable.
     Tgt = np.hstack([np.asarray(pca.transform(Y), dtype=np.float64), S])
     Tgt_val = np.hstack([np.asarray(pca.transform(Yv), dtype=np.float64), Sv])
+    # A9: the seven scored functionals as EXTRA columns. `predict_row` reads only the first
+    # n_pca + 2, so these never reach a submission — they exist to put a gradient on the quantities
+    # C1 found the cost in. Precomputed by aux_targets.py; a missing cache is an error rather than
+    # a silent fallback, because a run that quietly drops them looks exactly like one that kept
+    # them and did not help.
+    aux_names = params.aux_names
+    if aux_names:
+        cols = [CONS_SCALARS.index(n) for n in aux_names]
+        blocks = []
+        for block_files, n_rows, label in ((files, len(Tgt), "training"),
+                                           (val_files, len(Tgt_val), "validation")):
+            cons = aux_targets.load(block_files)
+            if cons is None:
+                raise SystemExit(
+                    f"loss.aux_scalars is {params.aux_scalars!r} but the {label} functionals are "
+                    f"not cached for this split. Build them once:\n"
+                    f"  uv run python my_experiments/aux_targets.py --share {share} "
+                    f"--val-share {val_share} --salt {salt}"
+                )
+            if len(cons) != n_rows:
+                raise ValueError(f"{label} functionals hold {len(cons)} frames against "
+                                 f"{n_rows} targets — the cache is for a different frame share")
+            a = cons[:, cols].astype(np.float64)
+            # A functional the scorer could not define is imputed at the column mean, so the frame
+            # contributes no signal there rather than a nan that would poison the whole fit.
+            for j in range(a.shape[1]):
+                bad = ~np.isfinite(a[:, j])
+                if bad.any():
+                    a[bad, j] = np.nanmean(a[:, j])
+            blocks.append(a)
+        print(f"  A9: {len(aux_names)} auxiliary outputs ({', '.join(aux_names)}) at weight "
+              f"{params.aux_weight}, discarded at inference")
+        Tgt = np.hstack([Tgt, blocks[0]])
+        Tgt_val = np.hstack([Tgt_val, blocks[1]])
     if Tgt.shape != (len(Xs), params.n_targets):
         raise ValueError(f"targets {Tgt.shape}, expected {(len(Xs), params.n_targets)}")
     if Tgt_val.shape != (len(Xvs), params.n_targets):
@@ -1153,7 +1187,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
             print(f"    {name:8s} linear/actual {r:6.2f}   spread {np.sqrt(v):10.4g}"
                   f"{'' if ok > 0.999 else f'   ({1 - ok:.1%} of probes undefined)'}"
                   f"{'   (down-weighted)' if params.calibrate_scalars and r > 1.1 else ''}")
-    target_scaler = (TargetScaler(params.n_pca)
+    target_scaler = (TargetScaler(params.n_pca, len(params.aux_names), params.aux_weight)
                      .with_psi_metric(psi_L)
                      .fit(Tgt, psi_ss_tot))
     Tgt = target_scaler.transform(Tgt)

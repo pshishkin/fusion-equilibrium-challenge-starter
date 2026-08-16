@@ -41,7 +41,7 @@ from my_experiments.progress import bar_kwargs
 # metric_aligned scaling below is only as correct as these numbers, and a hard-coded 0.55 would go
 # stale the day the organizers reweight the leaderboard.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "fusion_scoring"))
-from common import N_SCALARS, W_PSI, W_QB
+from common import CONS_SCALARS, N_SCALARS, W_PSI, W_QB
 
 FloatArray = npt.NDArray[np.floating[Any]]
 
@@ -89,6 +89,12 @@ class TargetScaler:
     """
 
     n_pca: int
+    # A9. Auxiliary outputs appended after q95 and betaN: the seven scored functionals, taught to
+    # the net directly and thrown away at inference. `aux_weight` is their share of the loss, set
+    # the same way the two submitted scalars get theirs — divided among them and turned into a
+    # divisor — so the three blocks' ratio is stated once, here, and not tuned by hand.
+    n_aux: int = 0
+    aux_weight: float = 0.0
     _center: FloatArray | None = field(default=None, init=False, repr=False)
     _scale: FloatArray | None = field(default=None, init=False, repr=False)
     # (n_pca, n_pca) `L` with `M = L L^T`, applied to the psi block after the scalar divisor above.
@@ -129,10 +135,21 @@ class TargetScaler:
             raise ValueError(f"target column(s) {flat} are constant over the training frames — "
                              f"nothing to fit and nothing to scale by")
 
-        scale = np.concatenate([
-            np.full(self.n_pca, float(np.sqrt(psi_ss_tot_per_frame / W_PSI))),
-            std[self.n_pca:] / np.sqrt(W_QB / N_SCALARS),
-        ])
+        n_scalars = len(std) - self.n_pca - self.n_aux
+        if n_scalars != N_SCALARS:
+            raise ValueError(f"targets {Y.shape} hold {n_scalars} submitted scalars between the "
+                             f"{self.n_pca} components and the {self.n_aux} auxiliary outputs, "
+                             f"expected {N_SCALARS}")
+        blocks = [np.full(self.n_pca, float(np.sqrt(psi_ss_tot_per_frame / W_PSI))),
+                  std[self.n_pca:self.n_pca + N_SCALARS] / np.sqrt(W_QB / N_SCALARS)]
+        if self.n_aux:
+            if not self.aux_weight > 0:
+                raise ValueError(f"{self.n_aux} auxiliary outputs with aux_weight "
+                                 f"{self.aux_weight} — a block that carries no weight is a block "
+                                 f"that should not be there")
+            blocks.append(std[self.n_pca + N_SCALARS:]
+                          / np.sqrt(self.aux_weight / self.n_aux))
+        scale = np.concatenate(blocks)
         # One constant over the whole vector: it moves every dimension by the same factor, so the
         # block ratio above survives, and the targets land at average unit variance.
         scale = scale * float(np.sqrt(((std / scale) ** 2).mean()))
@@ -968,6 +985,10 @@ class Params:
     jacobian_frames: int
     # A13: validation frames the composite monitor scores. See monitor.py.
     monitor_frames: int
+    # A9: which of the seven scored functionals become auxiliary outputs, and what share of the
+    # loss they carry. `none` is off and is what every number before 2026-08-16 was measured on.
+    aux_scalars: str
+    aux_weight: float
     jacobian_delta: float
     boundary: bool
     subtract_coil_field: bool
@@ -982,8 +1003,16 @@ class Params:
     effective_yaml: str
 
     @property
+    def aux_names(self) -> list[str]:
+        """The functionals taught as auxiliary outputs, in the scorer's own order."""
+        if self.aux_scalars == "none":
+            return []
+        want = [s.strip() for s in self.aux_scalars.split(",")]
+        return [s for s in CONS_SCALARS if s in want]
+
+    @property
     def n_targets(self) -> int:
-        return self.n_pca + 2           # + q95, betaN
+        return self.n_pca + 2 + len(self.aux_names)      # + q95, betaN, + A9's auxiliaries
 
 
 # What `features.inputs` may say. The pipeline builds the feature matrix from this and nothing
@@ -1127,7 +1156,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     _require_keys(doc["split"], {"salt", "holdout_share"}, "split", path)
     _require_keys(doc["loss"],
                   {"metric", "calibrate_scalars", "jacobian_frames", "jacobian_delta", "boundary",
-                   "monitor_frames"},
+                   "monitor_frames", "aux_scalars", "aux_weight"},
                   "loss", path)
     loss_metric = str(doc["loss"]["metric"])
     if loss_metric not in LOSS_METRICS:
@@ -1150,6 +1179,12 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     if deriv_signals not in DERIV_SIGNAL_SET_NAMES:
         raise ValueError(f"{path}: features.derivative_signals is {deriv_signals!r}, expected one "
                          f"of {sorted(DERIV_SIGNAL_SET_NAMES)}")
+    aux_scalars = str(doc["loss"]["aux_scalars"])
+    if aux_scalars != "none":
+        bad_aux = [s for s in aux_scalars.split(",") if s.strip() not in CONS_SCALARS]
+        if bad_aux:
+            raise ValueError(f"{path}: loss.aux_scalars names {bad_aux}, which are not scored "
+                             f"functionals; known {CONS_SCALARS}")
     vessel = str(doc["features"]["vessel"])
     if vessel not in ("none", *DERIV_SIGNAL_SET_NAMES):
         raise ValueError(f"{path}: features.vessel is {vessel!r}, expected 'none' or one of "
@@ -1195,6 +1230,8 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   calibrate_scalars=bool(doc["loss"]["calibrate_scalars"]),
                   jacobian_frames=int(doc["loss"]["jacobian_frames"]),
                   monitor_frames=int(doc["loss"]["monitor_frames"]),
+                  aux_scalars=aux_scalars,
+                  aux_weight=float(doc["loss"]["aux_weight"]),
                   jacobian_delta=float(doc["loss"]["jacobian_delta"]),
                   boundary=bool(doc["loss"]["boundary"]),
                   subtract_coil_field=bool(doc["features"]["subtract_coil_field"]),
