@@ -1311,7 +1311,19 @@ def _predict_targets(art: Artifact, model: str, Xs: FloatArray) -> FloatArray:
     inverse transform is affine and the weights sum to 1, so the mean image is added back exactly
     once either way.
     """
-    inverse = art["target_scaler"].inverse_transform
+    n_submitted = int(art["n_pca"]) + len(SUBMITTED_SCALARS)
+
+    def inverse(scaled: FloatArray) -> FloatArray:
+        """Unscale, and DROP A9's auxiliary columns here rather than anywhere downstream.
+
+        The auxiliary outputs exist to put a gradient on the scored functionals during training and
+        are meaningless afterwards — the scorer derives those quantities from the submitted map. So
+        the one place that turns a model's raw output into targets is the one place that should
+        forget them, and everything past this point keeps working on the 52 columns it always had.
+        Without this the ensemble's accumulator, sized from n_pca + 2, fails to broadcast against a
+        54-column member — measured, and it cost three runs their scoring pass.
+        """
+        return np.asarray(art["target_scaler"].inverse_transform(scaled))[:, :n_submitted]
     # `psi=a+b,qb=c` takes the flux coefficients from one combination and the two scalars from
     # another. The composite reads them separately — R2_psi, D_LCFS and Consistency are all
     # functions of the MAP, while R2_qb is only the two directly regressed scalars — so nothing
