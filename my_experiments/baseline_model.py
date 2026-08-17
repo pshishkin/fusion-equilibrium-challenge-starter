@@ -791,14 +791,16 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         # (n_columns, n_probe): the flux each current column puts at each probe. The features are
         # then one matrix product on the currents, exactly as `coil_pca`'s are — no map is ever
         # materialised at training time.
-        # `basis.maps`, NOT the gain-scaled `maps` — and this is the correction that makes the
-        # form transferable at all. The gains are fitted against THIS machine's flux and span
-        # -2.36..110.14 on DIII-D; they exist to make the SUBTRACTION leave the model the least to
-        # learn, which is a modelling choice with no true value to recover (see fit_flux_gains).
-        # A probe carrying them asks a question whose answer depends on a number MAST cannot even
-        # be fitted for, since it ships no targets. The raw Green's function is physics and means
-        # the same thing on any machine.
-        probe = basis.maps[:, zz.ravel(), rr.ravel()]
+        # The GAIN-SCALED maps, and the attempt to use the raw Green's function instead is
+        # measured and reverted: it cost 0.0149. The reasoning that failed was "the gains are
+        # fitted against this machine's flux, so they cannot cross" — true, but they do TWO jobs
+        # at once. Besides absorbing whatever makes the subtraction optimal, they carry the
+        # per-column UNIT conversion: ECOILA ships in kA with its turn count not folded in, and
+        # its gain reads near +100 for that reason alone. A probe is a linear combination ACROSS
+        # columns, so getting their relative weights wrong by two orders of magnitude produces a
+        # mixture that no per-feature standardisation afterwards can undo — R2_psi fell 0.9995 to
+        # 0.9804. The gains are not a nuisance to be stripped; the unit half of them is physics.
+        probe = maps[:, zz.ravel(), rr.ravel()]
     return {
         "subtract": params.subtract_coil_field, "inputs": params.inputs,
         "derivatives": params.derivatives,
