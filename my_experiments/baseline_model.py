@@ -791,7 +791,14 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         # (n_columns, n_probe): the flux each current column puts at each probe. The features are
         # then one matrix product on the currents, exactly as `coil_pca`'s are — no map is ever
         # materialised at training time.
-        probe = maps[:, zz.ravel(), rr.ravel()]
+        # `basis.maps`, NOT the gain-scaled `maps` — and this is the correction that makes the
+        # form transferable at all. The gains are fitted against THIS machine's flux and span
+        # -2.36..110.14 on DIII-D; they exist to make the SUBTRACTION leave the model the least to
+        # learn, which is a modelling choice with no true value to recover (see fit_flux_gains).
+        # A probe carrying them asks a question whose answer depends on a number MAST cannot even
+        # be fitted for, since it ships no targets. The raw Green's function is physics and means
+        # the same thing on any machine.
+        probe = basis.maps[:, zz.ravel(), rr.ravel()]
     return {
         "subtract": params.subtract_coil_field, "inputs": params.inputs,
         "derivatives": params.derivatives,
