@@ -181,6 +181,32 @@ loss:
   # over-weighted scalar. No new input: the ratio comes from the probe, not from a model.
   calibrate_scalars: false
 
+  # C10, 2026-08-18. Which form li's block of `M_cons` is built from.
+  #
+  # `jacobian` is the linearisation, and every number in this fork before 2026-08-18 was measured
+  # on it. `field` substitutes `target_metric.poloidal_field_form` -- the exact quadratic form for
+  # the poloidal-field error, with the 1/R that makes it a field rather than a flux gradient --
+  # rescaled to the SAME TRACE the linearised block had, so the block's weight is untouched and
+  # only its directions move.
+  #
+  # It exists because of a measurement, not a hunch. Per held-out frame, `dc^T G dc` ranks frames by
+  # their actual li error at Spearman 0.5442 against 0.4923 for the shipped metric and 0.3859 for
+  # Parseval -- and it is WORSE than the metric for every other scalar (volume -0.1206, Z_axis
+  # -0.0439, R_axis -0.0403). That split is the physics: li is a normalised <B_p^2> and the shape
+  # scalars are contour geometry. C9 independently put li furthest above its own label-noise floor
+  # and C1 put it at 18.7% of the geometry cost.
+  #
+  # The 08-13 `field` loss added this form to the objective with a hand-set lambda and was removed
+  # because the plateau (+0.0048 / +0.0059 / -0.0054) could not be located. This is a substitution
+  # at fixed trace, so there is no lambda to locate.
+  #
+  # MEASURED 2026-08-18 AND REFUTED. Paired on salt 0, four seeds: S 0.9941 -> 0.9939, and li's own
+  # R2 0.9642 -> 0.9588. The form that ranks li's error best makes li WORSE in the loss, because
+  # the gate measured which FRAMES are bad and a loss needs which DIRECTION to move -- G is the
+  # energy of the field error, missing the first-order term that carries direction. Left here at
+  # `jacobian` with the number attached, so nobody re-derives the idea from the comment above it.
+  li_form: jacobian
+
   jacobian_frames: 300
   # A13. Validation frames the composite monitor scores when a model sets
   # `stop_on: composite`. Each one costs an LCFS extraction and seven derivations per

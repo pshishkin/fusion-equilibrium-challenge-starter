@@ -181,9 +181,13 @@ def _jacobian_task(args: tuple[Any, ...]) -> tuple[FloatArray, FloatArray, Float
     return base, jac, check
 
 
+LI_FORMS = ("jacobian", "field")
+
+
 def jacobian_form(components: FloatArray, psi: FloatArray, delta: float, ctx: dict[str, Any],
                   jobs: int = 0,
                   calibrate: bool = False,
+                  li_form: str = "jacobian",
                   ) -> tuple[FloatArray, FloatArray, FloatArray, int, FloatArray]:
     """Measure how the seven scored functionals respond to each PCA coefficient.
 
@@ -209,6 +213,17 @@ def jacobian_form(components: FloatArray, psi: FloatArray, delta: float, ctx: di
     derivative is a one-sided thing that a central difference cannot see; it also carries only
     W_LCFS = 0.10 and, as the scorer's own docstring says, deliberately overlaps the shape scalars
     that ARE here.
+
+    `li_form="field"` replaces li's block with `poloidal_field_form`'s exact `G`, rescaled to the
+    SAME TRACE the linearised block had. That is a substitution and not an addition: the block's
+    total weight is untouched and only the directions inside it move, which is exactly the claim
+    C10 measured — that `G` ranks frames by their li error better than the linearisation does
+    (+0.0519 of Spearman over the shipped metric) while being WORSE for every other scalar, because
+    li is a normalised <B_p^2> and the shape scalars are contour geometry. It therefore carries no
+    free parameter, which is what killed the 08-13 `field` loss: its lambda plateau read
+    +0.0048 / +0.0059 / -0.0054 and could not be located. The known gap in the argument is on the
+    page too — `G` is the energy of the field error, not the error in the field energy, so the
+    first-order term `2 * integral B_p . dB_p` is missing from it.
 
     `calibrate` divides each scalar's block by how far its linearisation misses. Measured on a
     trained model, the Jacobian over-states `li` by 1.65x and `tri_bot` by 1.51x while `R_axis`,
@@ -258,10 +273,19 @@ def jacobian_form(components: FloatArray, psi: FloatArray, delta: float, ctx: di
     probe_ok = finite / attempted
     cal = np.ones(N_CONS) if not calibrate else 1.0 / np.maximum(ratio, 1e-6)
 
+    if li_form not in LI_FORMS:
+        raise ValueError(f"li_form {li_form!r}, known are {LI_FORMS}")
     m = np.zeros((len(components), len(components)))
     for j in range(N_CONS):
         jj = jac[:, j, :]
-        m += (W_CONS / N_CONS) * cal[j] ** 2 / var[j] * (jj.T @ jj) / len(jj)
+        block = (jj.T @ jj) / len(jj)
+        if li_form == "field" and CONS_SCALARS[j] == "li":
+            g = poloidal_field_form(components, ctx["grid_R"], ctx["grid_Z"])
+            tr_g = float(np.trace(g))
+            if not tr_g > 0:
+                raise ValueError("the poloidal-field form has a non-positive trace")
+            block = g * (float(np.trace(block)) / tr_g)
+        m += (W_CONS / N_CONS) * cal[j] ** 2 / var[j] * block
     return m, var, ratio, int(good.sum()), probe_ok
 
 

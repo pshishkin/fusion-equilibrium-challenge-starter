@@ -1682,3 +1682,495 @@ shots was measured at ≈ 0 — but it costs no training time, so it is A11 now,
 A CNN or pixel decoder
 (the coefficient bottleneck is saturated: Consistency stops improving at 50 components, so capacity
 belongs in the regression — A3, B1, B5 — not in the decoder).
+
+---
+
+# Group D — the 2026-08-17 sweep, and what survived it
+
+Forty-four hypotheses were generated against this file and the scorer from six independent angles —
+the scorer's own arithmetic, time and confidence, the target parameterisation, the fit, physics and
+features, and one deliberately structural — and each set was then handed to a skeptic whose job was
+to kill it. The skeptics did not argue; they measured, off `results/frame_costs*.csv`, the artifact
+on disk and the cached aux targets. **Sixteen survived. Twenty-eight are dead, most of them dead
+with a number attached**, which is the more useful half of the exercise.
+
+**The headline is negative and worth stating plainly.** Six lenses converged on the same object —
+that Consistency is a function of seven scalars and not of the map — and the union of all four
+routes to it measures **+0.00076**, i.e. 0.6 of what one paired run resolves. Four independent
+derivations of the same +0.0008 is still +0.0008. Nothing on the functional-space axis clears the
+noise floor, and the linearisation would realise about half of it.
+
+**And the one item that claimed a centre above the floor was wrong.** The synthesis nominated "more
+shots past 0.80" as the largest live lever, on the fork's own record (+0.0040, +0.0018, +0.0018).
+Measured here: the config holds **7041 shots and the split already uses 5633 + 1338 + 70 = all of
+them**. The 3168 + 1056 it reasoned from is the 0.45/0.15 era. **The data axis is exhausted in
+shots** — the only remainder is the 1338-shot validation window, and absorbing it is A4, measured at
++0.0004. Recorded because it was the most confidently stated claim in the sweep and it is false.
+
+## D1. The offline stacked scalar head — **DONE 2026-08-17, refuted at its own bar, and it closes six**
+
+`diagnose_scalar_head.py` fitted the production MLP on the same 208 features to the seven
+ground-truth functionals, 1.25M rows, and blended it against `f_j(psi_ens)` on half the tail shots,
+reading on the other half. **+0.00357** of the pooled mean R², i.e. **+0.00071 of S** against the
+predicted +0.00076 and a resolution of 0.0013 — and the transport would realise about half of that.
+The pre-registered bar was +0.0065; this is 1.8x short, so **no transport is written.**
+
+The controls are what make the number worth having. The affine-only arm goes **negative** (−0.00047),
+so the head found information rather than the bias A7/it-3 already priced. The gain concentrates on
+**kappa (+0.0119)**, exactly where C1 put the money, and li goes the other way (−0.0047). And the
+**Jensen gap does not reproduce**: −0.00029 on its own and it makes the blend worse (+0.00283 with it
+against +0.00357 without), so the "four independent routes to the same correction" that six lenses
+found were three routes and one artefact.
+
+### The original entry
+
+The scorer reads the map twice: 4225 pixels give 0.55 of S through ψ residuals and the same pixels
+give 0.20 through seven nonlinear functionals of a contour. The map has a 50-dimensional null space
+in which the geometry moves nearly freely, so the minimum-norm coefficient nudge that moves a
+scalar costs **1/1391** of what the scalar is worth. Consistency is therefore not a flux problem: it
+is the question of whether seven numbers can be estimated better than `f_j(ψ_ens)` estimates them.
+
+Four framings arrived at this — predict-and-transport, the ensemble's Jensen gap, averaging the
+functionals, and combining in functional space — and all four are **the same correction**: undoing
+the inward bias of an averaged contour's extreme points. Measured separately and jointly: head
+alone +0.00045, Jensen alone +0.00055, **both +0.00076**. They overlap; never budget them apart.
+
+**Test, free.** Keep the affine-only control `[map, 1]` (measured **−0.00012** — this is A7/it-3
+wearing a hat, and without it the number is not attributable). Fit the production MLP architecture
+on the 208 features to the seven columns of `.aux_targets/cons_5633_*.npz` — 1.25M × 7 rows already
+on disk, no derive pass. Add `mean_m f_j(ψ_m)` as seven more inputs. Blend on half the 70 tail
+shots, evaluate on the other half. **Kill below Δ(pooled mean R²_cons) = 0.0065** on the unseen
+half; today's best is 0.0038. **Blunt read: it will land near +0.0008 and fail its own bar. Run it
+anyway** — it closes six hypotheses at once and the bar is set so failure is informative.
+
+**Free correction to land regardless:** `_predict_targets`'s docstring says averaging targets and
+averaging the flux maps is the same thing. That is true of the **map** and false of every functional
+the scorer reads off it. Also: the three feature sets are averaged in `predict_row` on **decoded
+maps**, not in coefficient space.
+
+## D3 / S1. The Jacobian probe step — **DONE 2026-08-17, refuted at its own free gate**
+
+**The gate ran the same afternoon the entry was written, and it says no.** `diagnose_probe_step.py`
+took the production ensemble's per-component held-out residual over 14830 frames. The control
+passes — R²ψ implied by the coefficients is 0.999836 and sqrt(1−R²ψ) = 0.0128, equal to the
+equal-spread step to four decimals, so the identity below is real. But the assumption underneath it
+is false: **the residual is not spread evenly over the components.** Eight of the fifty carry 90% of
+its energy, and measured over those the honest step is **0.0304** against the configured **0.0332** —
+a factor of 1.09, not 2.6. Component 0 alone sits at 0.0657 and components 40–49 at 0.0006–0.0010,
+a spread of **112.6x**.
+
+So the knob is right, four accepted changes later, and no run is spent. The real finding is the
+spread: one isotropic step is correct for the three components that carry the error and a hundred
+times too large for the tail, which means the probe works because the error is concentrated rather
+than because the step was chosen well. **Do not refit `jacobian_delta`. Do not build the per-column
+step vector either** — the components it would correct carry 0.028% of the flux variance.
+
+### The original entry, kept because the reasoning is the useful part
+
+`baseline_model.py:1226` sets `delta = jacobian_delta · sqrt(psi_ss_tot / n_pca)`, and `psi_ss_tot`
+is built against a flat mean exactly as `ss_tot` is in `metrics.py:29-82` — so **`jacobian_delta`
+*is* sqrt(1 − R²ψ)**, not approximately. R²ψ is now 0.9998, which gives **0.0141 against the
+configured 0.0332**, fitted when R²ψ was 0.9989. README:425 and :558 both say this must be revisited
+when the scale changes, and **four accepted changes have landed since.** Corroboration already in
+the logs: all seven linear/actual ratios sit at 1.11–1.39, the signature of probing past the linear
+regime.
+
+Note the correction to the proposer's own arithmetic: "2.4× too large" assumes the model's error
+spreads evenly over 50 components, and it does not — components 20–50 hold 0.0125 of coefficient
+variance against a per-frame residual energy of 0.0337, so the honest per-component step is
+0.026–0.058 and the current 0.06092 sits at the top of that range.
+
+**Test, free.** From `artefacts/candidate/baseline_prod.joblib`, take the per-component held-out
+residual RMS `r_k`; set one global delta to `sqrt(mean r_k²)` over the components carrying 95% of
+the residual energy; call `jacobian_form` on the same 300 probe frames at the current step, the
+refitted step and their geometric mean, and read the seven printed linear/actual ratios. **They must
+move toward 1.0** — that is the direct evidence, and if they do not there is no run.
+**Then one arm, not three** (a 3-arm selection is worth +0.0019 by chance): salt 0, refuted at
+≤ +0.0013, confirmed on salts 3 and 4 with agreeing signs. Centre **+0.0005**, interval −0.0005 to
++0.0015. The only prior for the same operation (0.05 → 0.0332) is **+0.0029 on one run**.
+Guard: below ~0.01 Wb/rad the 22-iteration bisection in `lcfs.py` quantises the secant.
+**Drop the per-column step vector** — the 31 components whose spread sits below the probe step carry
+0.028% of the flux variance and at most 0.65% of the M-weighted loss, and up-weighting that tail has
+been measured harmful twice.
+
+## D4 / S2. Per-shot offsets during the fit — a mixed model, not a prediction
+
+it-5c measured 45.9% of the fold's coefficient error as a per-shot constant and it-6 showed it is
+not predictable. A free 50-dim offset `b_s` per training shot, shrunk and zeroed at inference,
+removes it from the gradient **without requiring it to be predictable**. `shots` is already passed
+into `TorchMLPModel.fit` and ignored at models.py:620.
+
+**The free half is likely to kill it:** the constant share on the current ensemble is 32.8% overall
+but **17.5% once two outlier shots are removed** — 61% of the constant mass sits in 2 of 70 shots,
+and 17.5% is below the entry's own 20% line. Measure it in-sample on the training shots too: the
+train/val gap is 3.4×, so the net may already be absorbing shot level with its own capacity, in
+which case explicit offsets duplicate it. Two extra kills if it does survive: `‖b_s‖` exceeding the
+per-shot residual scale, and a collapse in the fitted model's reliance on `ECOILA` under a re-run of
+C3. Mechanism is GLS *efficiency* — estimator variance — and this fork has measured itself
+bias-limited three separate ways.
+
+## D5. The oracle per-shot shrinkage ceiling — **DONE 2026-08-17, and it closes A23 for good**
+
+`diagnose_shrinkage.py`, on the tail frames: an oracle given one factor per shot buys **+0.00033 of
+S**, and one told additionally which of the seven functionals is wrong buys **+0.00104**. Both are
+under the 0.0013 a paired run resolves, and a real estimator recovers a fraction of an oracle. The
+factor itself sits at median 1.0095 with a 5–95% range of 0.9711–1.0914, and **65% of shots want to
+be pushed away from the fold mean rather than toward it** — so even the sign of "shrink where
+unsure" is wrong for most shots. The closed form that priced this at +0.0001 was right.
+
+### The original entry
+
+Shrink each shot's coefficients toward the fold mean by the factor minimising **that shot's own true
+cost**, from `results/frame_costs.csv`. That is the ceiling on every per-shot confidence idea in this
+file, and it needs no new signal and no fit. **Dead below +0.0013 at the ORACLE.** The algebra
+already answers it: optimal shrinkage at R² = r buys (1−r)²/(2−r), which over the seven measured R²
+is **+0.000103 of S**, and C8's disagreement quintiles cap a per-frame lambda at +0.0002. Run it
+only because it closes a branch in writing.
+
+## D6. Thomson in flux coordinates — **DONE 2026-08-18, refuted, and the oracle is what makes it final**
+
+`diagnose_thomson_flux.py` recomputed the thirteen summaries per system on psi_N taken from the
+TRUE flux map — o-point from the scorer's own routine, boundary from the shipped LCFS polygon,
+defined on 98.0% of frames. Out-of-sample, beyond the 84 machine-coordinate columns:
+**res_li −0.0075**, R_axis +0.0002, kappa +0.0072, volume +0.0119, against a gate of +0.10.
+Because psi_N came from the truth, no two-stage version can beat this — the family closes.
+
+The bigger reading is the control's: at the selected alpha the production columns explain
+**nothing** of the held-out residual either (R² −0.006 to −0.059). That is it-6 and D7 saying the
+same thing a third way — the residual on unseen shots has no linear structure left in these inputs.
+
+### The original entry
+
+The core system's 44 channels sit at a constant R = 1.940 varying only in Z, so as the axis moves —
+and R_axis/Z_axis are scored *because* they move — a fixed channel samples a different flux surface
+each frame, mixing profile shape with plasma position. **Bounded above by the 0.0023 the whole
+Thomson block is worth**, so even success is barely readable; the oracle's value is that it can close
+the family for free. Compute ψ_N at the 54 chord positions from the **true** `efit_psirz`, recompute
+the 13 summaries with `coord = ψ_N` (`_profile_stats` already takes `coord`), join onto
+`results/frame_costs_ensemble.csv`, and ask how much of the existing `res_li` and `res_R_axis` they
+explain beyond the machine-coordinate control. **Build nothing below 10%.** If it lands, price the
+build honestly: out-of-fold stage-1 predictions over 1.19M rows plus a per-frame
+decode → find_o_point → LCFS → renormalise → 27 stats → second forward pass. That is not two runs.
+
+## D7 / S4 and D9 / S3 — **DONE 2026-08-17, both refuted, and by the same measurement**
+
+`diagnose_tail_expert.py` ran the contrast and then asked the same question of the ensemble.
+**Ridge says the tail is a different function, emphatically**: held-out tail R² 0.146 → 0.706 for a
+tail-only fit against 0.607 → 0.660 for the mid-shot control, a contrast of +0.506, and in absolute
+terms 60.2 → 20.7 (Wb/rad)²/frame. Four clock columns recover 46.6% of that.
+**The production ensemble says no.** Its own tail error is 0.0165 against 0.0112 on the middle — a
+ratio of 1.47x where ridge shows 5.4x — and a linear correction fitted on held-out shots removes
+**0.0%**, with the clock and without it, against D9's pre-registered +0.02.
+
+This is the A19 false positive reproducing exactly, and D9's own text predicted it: a ridge gate is
+invalid for this feature family because A19 arm 1 moved ridge +0.0216 and the MLP not at all. What
+the pair actually establishes is that **the trained model has already absorbed the position
+dependence** — which is what the accepted vessel integrals are, and why they cut the last decile
+10.0%. A22's under-representation branch closes and D9's clock closes with it.
+
+It also refines C7: the tail's *coefficient* error is 1.47x the middle's while C1 put its *geometry*
+cost at 2.4x its share, so most of the tail's expense is in how the functionals read the map rather
+than in the flux error underneath it.
+
+### The original entry, kept because the contrast is the reusable part
+
+The last decile carries 24.1% of the geometry cost over 10.2% of the frames; C7 says its sensitivity
+is ordinary (0.98×) while its coefficient error is 2.22×, and the seed residual correlation is
++0.550 — so most of it is **shared bias that averaging cannot remove**. A separately-parameterised
+expert does not share those parameters; a loss weight does. **The test is a contrast, not a level**:
+fit `ridge` on the last quarter of each training shot's frames and on a same-sized **mid-shot control
+slice**, and the tail-only fit must beat the global fit on held-out tail frames *by more than* the
+mid-shot fit beats it on held-out mid-shot frames. That is the only comparison separating "a
+different function" from "fewer rows". If it fails, **A22's under-representation branch closes.**
+If it passes, build the expert as a **replacement** feature set, never a fourth member (measured
++0.0001), and gate on the last decile's cost falling >5% before any confirmation salt is spent.
+
+## D8 / S6. Whole-shot aggregates, with Thomson this time
+
+it-6 could not predict the per-shot constant from 252 current-history summaries (held-out R² 0.008)
+— **but it-6 had no Thomson**, which has since been isolated at 0.0023. Regress the production
+ensemble's per-shot mean coefficient error on ~40 aggregates including Thomson, 1000 shots fitted,
+338 held out. **Refuted below 25% out-of-sample explained variance**, not 5%: explaining a fraction
+φ is worth ≈ φ × 0.459 × 0.0045 = φ × 0.0021 of S, so 5% licenses a run worth +0.0001. Bounded above
+by B5's measured +0.0004 for a bidirectional GRU that can already form any of these aggregates. The
+feature arm costs a cache rebuild that invalidates every run in flight.
+
+## D9 / S3. Anti-causal state — **DONE 2026-08-18, both halves refuted**
+
+The clock half died with D7: the ensemble carries no linear position-dependent residual at all.
+The backward integrals were tested separately on 2026-08-18 by `diagnose_backward.py` — the accepted
+vessel bank run on the time-reversed signal, eight columns — and **both arms are negative**:
+predicting the truth, li **−0.0409** and volume −0.0525; predicting the ensemble's residual,
+res_li −0.0017 and res_kappa +0.0002 against a gate of +0.02.
+
+That is a cleaner kill than D7's. There the two arms disagreed and the ensemble had to break the
+tie; here the anti-causal columns fail to help even a linear model predict the truth, so there is
+no mechanism left to argue for. **This was the last untested construction in Group D.**
+
+### The original entry
+
+Every column in `features_for_row` is instantaneous, centred, or strictly causal: `_vessel_currents`
+runs exactly one **forward** `lfilter`, and there is no time-to-end column anywhere. The scored shot
+is complete and offline — the GRU is bidirectional on exactly that argument, and C6 measured its
+**backward** channels as the long ones (median τ 122.0 frames backward against 90.7 forward).
+**Do not gate this on ridge**: A19 arm 1 moved ridge +0.0216, the largest move any change has
+produced in the linear baseline, and was flat for the MLP — a ridge gate has already produced this
+exact false positive on this exact feature family. Gate instead on the ensemble's per-frame residual
+on li and kappa, over the 70 tail shots, above and beyond the 84 existing columns: **+0.02 held-out
+R² increment on both** before the cache is rebuilt. Then the **narrow arm only** — eight backward
+integrals plus one frames-to-end column — because A19's broad arm was flat and its narrow arm moved
+all four seeds. Worth +0.0002…+0.0008 as a **replacement** for the vessel-driving set and ~+0.0001
+as a fourth, because diversity saturates at three.
+
+## D10. The 704-shot rescore — read as the local-to-board gap, not as a new standard fold
+
+Bootstrapping shots on paired seed differences: fold sampling is **47% of the noise variance**, not
+all of it; the rest is a coherent per-seed model shift no fold size averages away. Going to n = 704
+improves the paired resolution by **24%** (0.0013 → ~0.0010), not by sqrt(10). Rescore the candidate
+artifact on a 704-shot tail once and report the 704-shot S against the 70-shot 0.9945 and the board's
+0.9932, plus the shot-bootstrap sd, so the two components separate on the real thing. **Adopt the
+big fold for the two confirmation salts of a submission decision only, never for screening** — 24%
+does not repay 2–3× on every arm, and more salts, which also resample the *training* fold, dominate
+it. (The 0.0018 salt-to-salt figure sometimes quoted is the spread of **absolute** scores, which
+params.yaml:126-127 forbids using for decisions.)
+
+## D2. The `cons_gt` patch — three lines, lands unconditionally
+
+`diagnose_frames.py` already computes `o['cons_gt']` at l.119 and throws it away in the writer at
+l.210-218. Writing the ground-truth scalars beside the residual turns every future readout question
+into an offline sweep instead of a scoring pass. Three separate lenses need it. **10 minutes.**
+
+## S5. Reweight the M pool by the model's own coefficient-error scale
+
+`jacobian_form` builds `M_cons` as a plain mean over 300 probe frames on an even stride, but
+`E[JᵀJ]` is the right fixed form only if the coefficient error is independent of the frame — and C7
+measured it is not (first decile 3.05× sensitivity and 0.51× implied error; last decile 0.98× and
+2.22×). **The correct weight is `w_t = ‖dc_t‖²`, not the frame's C1 cost** — weighting by cost
+double-counts sensitivity, since cost = dcᵀJᵀJdc already contains JᵀJ, which is exactly what C7
+refuted for B6. Free gate over the 14830 frames already scored: does `dcᵀM_w dc` explain more of the
+measured per-frame cost than `dcᵀM_uniform dc`? **Kill below +0.05 of Spearman** (benchmarks: +0.209
+for sensitivity, +0.565 for seed disagreement). Centre +0.0003, so it needs 3 seeds on each of three
+salts, not one run.
+
+## L2. The functional-space transport — only if D1 clears 0.0065
+
+**Do not build this speculatively.** Two costs are badly under-priced in every version that proposed
+it. `jacobian_form` **does not return J** — it returns `M_cons`, a 50×50 sum of rank-7 pieces that
+does not factor back into a 7×50 J, so J must be rebuilt. And a **per-frame** J is 100 `derive_frame`
+calls per frame; at C7's measured 2.65 core-s/frame that is ~20–30 min on every 70-shot scoring pass
+and **~4.3 h on a 185k-frame submission**, not the 9 min quoted. Also `diagnose_sensitivity.py`
+probes around **ground truth**, which does not exist at inference.
+If it is built: the **fixed-J** version only, `dc = J⁺(f_target − f(ψ̄))`, **drop Z_axis** (its Jensen
+gap is negative), and gate on **R²ψ ≥ 0.99975 measured before the gain is looked at** — J⁺ moves ψ
+in directions chosen only for norm, charged at weight 0.55, which is the one-sided exposure that
+killed B7. Read the last decile separately: B11 measured the form's directions differing most on
+ramp-down and 73% of the Jensen gap is there, so gaining on the flat top and losing on the tail is
+the pre-registered failure mode. Confirmation costs **six production fits**, which no proposal
+budgeted. Transfer through the linearisation is roughly half — measured capture 0.59 (kappa) / 0.75
+(li) / 0.16 (tri_bot) / 0.04 (tri_top) — so +0.00076 realises **~+0.0004** at best.
+
+## L3. A learned differentiable surrogate of the seven functionals
+
+The decoder is affine, so `f_j(dec(c))` is deterministic in the 50 coefficients and can be amortised
+by a small net `g_φ(c) → (f_1..f_7)`, giving a nonlinear per-frame loss term and a per-frame Jacobian
+at autograd cost. **Gate on gradient fidelity, not value R².** Fit `g_φ` on coefficients **perturbed
+around the truth at the model's own error scale** — the gradient is consumed at *predicted*
+coefficients, which are off the manifold of true equilibria, and `jacobian_form`'s docstring already
+handles this deliberately. Then compare predicted-vs-actual change of each functional along the real
+error direction `dc = c_pred − c_true`, `g_φ`'s autograd Jacobian against the fixed M's. **Proceed
+only if kappa's correlation exceeds 0.90** (against the linearisation's 0.77) **and both
+triangularities exceed 0.75** (against 0.45/0.46). Centre +0.0002: `calibrate_scalars` already
+corrects the linearisation's known per-scalar errors and measured exactly flat, and this fork's own
+recorded conclusion is that what matters is the relative weighting of directions in aggregate, not
+per-frame fidelity. Unpriced cost: the loss is a linear map on targets shared by ridge, CatBoost, the
+MLP and the GRU; a nonlinear term is MLP/GRU-only, so the ensemble would mix two objectives.
+
+## D11. Free record-keeping — closes branches at zero compute
+
+- **Covariate shift is closed.** Adversarial validation between train and public-test rows gives
+  **AUC 0.482**. With the board's 0.9932 against 0.9945 local — a gap equal to the resolution — and
+  the previous submission transferring 116% of its local gain, the entire transductive family
+  (pseudo-labelling, importance weighting) has no channel to work through.
+- **A23 is closed entirely.** Its shrinkage half by algebra (+0.000103, or +0.0002 with a per-frame
+  lambda, and **−0.0005** if done in coefficient space); its varying-weight half by measurement —
+  per-decile member weights fitted in functional space, in sample on all 70 tail shots, buy
+  **+0.000004**, per-disagreement-quintile +0.000002, and the global optimum is 0.53 against an
+  equal 0.50, worth +0.000001.
+- **Cross-set disagreement is the same blind spot as seed disagreement.** Decile profiles agree to
+  two decimals, Spearman 0.522 against 0.580. Every free confidence signal on this artifact measures
+  **variance**, and the tail's error is the shared +0.550 component that variance cannot see.
+- **The loss share is 93% ψ / 7% scalars**, printed by every run at `baseline_model.py:1249` — not
+  the 71/29 that `TargetScaler`'s block scaling suggests. The budget is already more ψ-heavy than
+  C2's 89/11 marginal return justifies, which **reverses the sign** of every "retilt the blocks" idea.
+- **`lcfs.py` already guarantees D_LCFS = 0 for a perfect prediction** (both sides pass through
+  identical code), so a "sampling floor" is not an available excuse for the residual 0.0005.
+- **The nearest-neighbour scope correction.** experiments_history's "the instantaneous currents
+  nearly determine the targets" was measured **across shots on q95/βN/li** and does **not** hold per
+  frame on the seven geometry scalars: 8-NN over 1.25M frames reaches R² 0.87–0.96 against the
+  ensemble's 0.96–0.99, and direct regression gives kappa 0.476/0.826 (Ridge/HistGBT) against 0.966
+  *through the map*. Feature ideas have been ranked down against that bullet, and this is the second
+  time it has been caught reasoning wrongly.
+- **The input-column audit.** 46 columns on an inference row; five unread, three redundant
+  (`coil_name` = `coil_input_column` unprefixed, `thomson_core_R` = the constant 1.940,
+  `thomson_edge_spatial` = `thomson_chord_Z[44:54]`), and two — `coil_angle1`/`coil_angle2` — whose
+  shear convention the dataset does not document, so they are **not recoverable** rather than merely
+  unspent. 16 of 70 `thomson_chord` entries ship no Te/ne array. Separately: `efit_lcfs_r/z/n`,
+  `efit_li`, `efit_r_axis`, `efit_z_axis` ship as **labels** in the train config — A9 spent 13
+  core-hours deriving from the truth map what three of them ship directly.
+- **Metric by-products:** tr(M) = 18424 with the identity part 50, so "the loss over-weights the
+  saturated R²ψ term" is **false**; cond(M) = 4461; a 0.04% white share in metric coordinates, which
+  kills a Wiener-shrunk M.
+
+## Killed by the sweep — one line each
+
+- **D_LCFS has a sampling floor** — `lcfs.py` guarantees 0 for a perfect prediction; the h/2 offset
+  was assumed, never measured.
+- **Feed derived geometry into the q95/βN heads** — R²qb is 0.9967 of a 1.0000 ceiling and the whole
+  term is +0.0005; output-splitting already showed all the gain lives in the map.
+- **Rebuild M's per-scalar denominators from the 1.25M cache** — `thin_frames` is a deterministic
+  stride, so `var_j` is bit-identical in both arms of any paired run.
+- **Temporal filtering of the derived scalars** — in-sample optimum +0.000116. (The scope argument
+  was fair — the psi-roughness refutation is about the **map**, and the derived series' roughness
+  ratio is 0.69–1.03 — but the arithmetic kills it anyway. Also: li's staircase is under 1% of li's
+  RMS error, so li's 18.7% share is real physics, not a discretisation artefact.)
+- **Filter the 7-dim readout with a J⁺ nudge** — oracle ceiling ~0.0004; only kappa is both real and
+  deliverable, at ~0.00009 realised.
+- **Per-frame member weights in functional space** — +0.000004 in sample; the fitted alphas are
+  jitter around 0.5 with no monotone structure.
+- **Shrink the scalars toward the fold mean** — +0.000103 by algebra, −0.0005 in coefficient space.
+- **Retilt the ψ/qb loss split**, both directions — the printed share is 93/7 against a
+  marginal-return 89/11, so the proposal points backwards.
+- **Factorise the target into shape × amplitude** — it creates the product that `flux_shape`
+  measured at −0.0020, and `M_cons` is zero along the gauge directions by construction.
+- **Axis-centred coordinates** — addressable term 0.00075, on the two least reproducible scalars in
+  the metric (seed σ 0.0177 and 0.0234), against two resamplings charged to R²ψ.
+- **X-point decomposition of kappa and li** — `BOUNDARY_CLIP_QUANTILE` already weights the X-point
+  neighbourhood 8.7×, and that boundary term was refuted.
+- **Signed frame-weighting grid** — both arms pre-priced below resolution, and the down-weight arm's
+  weights encode **dropped frames**, not label noise.
+- **Per-|Ip|-band loss weight** — the bias share does not track cost across |Ip|, and seed averaging
+  already works *better* at low current (35% reduction against 24% fold-wide).
+- **Dimensionless current coordinates (I_k/Ip)** — the low-|Ip| lump is **three shots** (bootstrap CI
+  on its cost share [17.3%, 47.5%]), 93.7% of the band's residual is spread not offset, and the
+  proposer's own better probe makes 5 of 7 low-Ip scalars worse.
+- **Cumulative ∫Ip dt for li** — the gain is the **clock**, not the integral (0.622 → 0.740 with time
+  alone → 0.798 with the integral), and the clock damages kappa and q95.
+- **β_p from Thomson over Ip²** — aims at R_axis, the noisiest scalar in the metric, and the probe
+  arm goes backwards on the frames it is about.
+- **Gate the ensemble on plasma current** — the implementable arm is capped at +0.00014 by what the
+  seq member is worth; the other arm is not implementable, since the submission emits a map.
+- **The coil shear angles** — undecidable in both directions: EFIT's convention is undocumented, so
+  a null cannot distinguish "does not matter" from "wrong convention".
+- **Metric-weighted target projection** — the model's li residual has |mean|/sd = 0.011 against the
+  basis projection's 0.349, and opposite sign: the fit has already absorbed the bias.
+- **Retrieval over 1.25M equilibria** — 8-NN reaches R² 0.87–0.96 against the ensemble's 0.96–0.99
+  *while reading the neighbours' true scorer values*; error variance 3–4× on every scalar.
+- **Ampère's law as a test-time constraint** — per-frame Spearman **−0.175**, and the ground truth's
+  own scatter about Ampère is 5× the model's error on it.
+- **Transductive selection on the 874 test shots** — the proxy is **inverted**: disagreement rises
+  with member count while cost falls, Spearman −0.31 to −0.40. It would drop the member that helps
+  most.
+- **Poisson/Dirichlet bootstrap over shots** — ESS = n/2 per member costs ~0.002–0.004 by the
+  measured shot-share curve, against at most +0.0010 of decorrelation.
+- **Snapshot averaging with ensemble-aware stopping** — A20 already priced the same trajectory noise
+  at +0.0008 to one net and +0.0003 to four.
+- **B10, the 0.05 ms stream — CLOSED.** 99.0–99.9% of coil-current variance sits below 50 Hz, plasma
+  current ships at 0.5 ms, and ~30% of shots are not at 0.05 ms at all. Its 0…+0.004 interval is
+  replaced by **0…+0.0002**.
+- **The label-noise nugget as a budget revision** — gap-sensitive: trimming 3% moves the implied
+  Consistency ceiling 0.9970 → 0.9987, so the 0.0006 correction becomes ≤ 0.00026 and A22's cap moves
+  0.00106 → 0.00098, changing no go/no-go.
+- **More shots past 0.80** — see the header: there are no shots left. 7041 in the config, 7041 in the
+  split.
+
+## C10 / A24. The poloidal-field form in li's block — **DONE 2026-08-18, REFUTED by the run**
+
+The gate cleared and the run says no. Paired on salt 0, four seeds: **S 0.9941 -> 0.9939** and
+**li's own R2 0.9642 -> 0.9588**. The pre-registered failure mode was "S moves and li does not";
+li moved the wrong way, which is worse.
+
+**What the gate actually measured, and why it was the wrong question.** C10 correlated `dc^T G dc`
+with li's SQUARED ERROR, i.e. which FRAMES are bad. A loss needs to know which DIRECTION to move
+in. G is the ENERGY of the field error and is missing the first-order term
+`2 * integral B_p . dB_p` — the caveat was already written on the page — and that missing term is
+exactly the one carrying direction. Ranking and gradient are different questions and this is the
+measured counterexample. Any future "this form tracks the cost, so put it in the loss" argument has
+to answer it.
+
+`loss.li_form` stays in params.yaml at `jacobian`, with the result recorded beside it.
+
+### The original entry, kept because the gate was right to run
+
+`target_metric.poloidal_field_form` builds `G` with `dc^T G dc = integral |grad d_psi|^2 / R dR dZ`,
+the squared poloidal-field error. It is **defined and called from nowhere**, while params.yaml says
+it "stays: li is exactly <B_p^2> and deserves that exact form rather than a linearisation".
+
+`diagnose_field_form.py` asked whether it discriminates, per frame, against two nulls. Against
+Parseval it wins broadly. **Against the jacobian metric that actually ships it wins on li alone:
++0.0519 of Spearman**, where R_axis is −0.0403, Z_axis −0.0439, volume −0.1206 and kappa −0.0045.
+Absolute, on li: 0.3859 Parseval, 0.4923 the loss, **0.5442 the field form**.
+
+That split is the physics. G is the poloidal-field ENERGY and li is a normalised <B_p^2>; the shape
+scalars are contour geometry, where a linearisation of the actual functional is better. So the
+proposal is not "add a field loss" — it is **substitute G for li's block inside `M_cons`**, at the
+same `(W_CONS / N_CONS) / var(li)` normalisation the linearised block already carries. That is a
+substitution with **no free parameter**, which is precisely what killed the 08-13 `field` loss: its
+lambda plateau ran +0.0048 / +0.0059 / −0.0054 and could not be located. There is nothing to locate.
+
+**Why this one and not the other seven.** C9 put li furthest above its own label-noise floor (the
+model errs 3.1x more than EFIT jitters, against 1.15x for tri_top) and C1 put it at 18.7% of the
+geometry cost. Two independent measurements pointed here before this one did.
+
+**Read the size honestly.** +0.0519 clears its pre-registered +0.05 by 0.0019, on one fold, and it
+is one gate of eight — the other seven all came back negative. What makes it worth a run is not the
+margin but that the mechanism, the target scalar and the absence of a knob all agree.
+
+**Pre-registration.** One arm on salt 0 against the recorded control, refuted at ΔS ≤ +0.0013,
+confirmed only on salts 3 and 4 with agreeing signs. Read li's own residual in
+`diagnose_frames.py` beside the composite: **if S moves and li's RMS does not, the mechanism is
+wrong even if the number is right**, and that is the pre-registered failure mode. Note also that
+G's caveat is on the page — it is the energy of the field error, not the error in the field energy,
+so it is missing the first-order term `2 * integral B_p . dB_p`.
+
+## C9. The label's own noise floor — *2026-08-18, run because everything else came back empty*
+
+Six free gates returned nothing, and three of them said the same thing: the ensemble's residual on
+unseen shots has no linear structure left in these inputs. The obvious next question is whether the
+remainder is a fit problem at all, and `diagnose_label_noise.py` answers it from the truth's own
+frame-to-frame jitter — li and kappa move on current-diffusion timescales, so movement at a 20 ms
+step is EFIT's error and not physics, and error in the LABEL is irreducible.
+
+**The answer is that there is still room, and it has a per-scalar address.** Consistency is 0.98021
+against a noise ceiling of 0.98996–0.99880 across three readings, i.e. **+0.0020 to +0.0037 of S** —
+more than a paired run resolves under every reading. Per scalar, as the ratio of label jitter to
+model error: **tri_top 0.87 and tri_bot 0.78 are at the floor and finished**, which confirms from a
+new direction the standing rule that the triangularities are capped; volume 0.50, Z_axis 0.61,
+R_axis 0.59; and **kappa 0.47 and li 0.32**, where the model errs two to three times more than the
+label jitters. Those two are 42% of the geometry cost by C1.
+
+So the target is not "Consistency" but **li and kappa specifically**, and the ceiling above them is
+real rather than assumed. Note D1 already found a head that improves kappa by +0.0119 of its R² and
+li by −0.0047 — the same split, from the other side.
+
+**One thing this does not establish.** The white-noise assumption behind the middle reading is
+untested: sigma rises 1.14x–1.63x from lag 1 to lag 3, which correlated label error predicts and so
+does genuine curvature over a 120 ms span, and nothing here separates them. The conclusion is quoted
+against the pessimistic reading for that reason.
+
+## The order the sweep implies
+
+1. ~~**D2**, then **D3**'s free half.~~ **Both done 2026-08-17.** D2 landed; D3 refuted S1 for
+   one-tenth of a run, which was the entry the synthesis called the best on the list.
+2. **D11**'s write-ups, which cost nothing and close A23, the transductive family and B10.
+3. **D1**, **D5**, **D7** as background diagnostics. Expect two of the three to close their branches,
+   which is the point.
+4. Everything else waits for a gate.
+
+**The honest expectation, revised the day it was written.** The sweep nominated two entries with a
+centre above 0.0013. Checking the corpus killed one (there are no shots left) and running the free
+gate killed the other (the probe step is already right). **Nothing on this list now has a centre
+above the noise floor.** The fork's record is four of twenty iterations paying and every physics
+construction refuted; this sweep proposed eleven physics constructions and the skeptics killed all
+eleven with numbers, then the two survivors died to a `wc -l` and a forty-six-second script. That is
+the base rate reproducing itself in a single afternoon, and it is the whole argument for running the
+gates before the runs.

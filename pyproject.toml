@@ -83,7 +83,7 @@ follow_imports = "silent"
 module = [
     "catboost.*", "sklearn.*", "joblib.*", "datasets.*", "tqdm.*", "matplotlib.*",
     "huggingface_hub.*", "scipy.*", "skimage.*",
-    "common", "contour", "derive", "lcfs", "metrics",
+    "common", "contour", "derive", "lcfs", "metrics", "o_point",
     "experiments", "fusion_data_provider",
 ]
 ignore_missing_imports = true

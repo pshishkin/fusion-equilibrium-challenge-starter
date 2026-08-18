@@ -215,6 +215,11 @@ def main() -> int:
             "d_lcfs": o["d"], "cost_lcfs": cost_lcfs, "cost_cons": cost_cons,
             "cost": cost_lcfs + cost_cons,
             **{f"res_{CONS_SCALARS[j]}": o["res"][:, j] for j in range(N_CONS)},
+            # The ground-truth scalars, which `_task` already computes and used to throw away. They
+            # cost nothing here and they turn every later question about the READOUT -- would a
+            # better estimate of these seven numbers score better than reading them off the map --
+            # into an offline sweep over this CSV instead of a scoring pass.
+            **{f"gt_{CONS_SCALARS[j]}": o["cons_gt"][:, j] for j in range(N_CONS)},
         }))
     df = pd.concat(rows, ignore_index=True)
     args.out.parent.mkdir(exist_ok=True)

@@ -1226,7 +1226,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         delta = params.jacobian_delta * float(np.sqrt(psi_ss_tot / params.n_pca))
         ctx = scorer_context(plan["grid_R"], plan["grid_Z"], plan["machine"])
         m_cons, var, ratio, n_used, probe_ok = jacobian_form(images, total, delta, ctx, jobs,
-                                                             params.calibrate_scalars)
+                                                             params.calibrate_scalars,
+                                                             params.li_form)
         m_bnd = d_probe = None
         if params.boundary:
             m_bnd, d_probe, n_bnd, clipped = boundary_form(images, total, delta, ctx, jobs)

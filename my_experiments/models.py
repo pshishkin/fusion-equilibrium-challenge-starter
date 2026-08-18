@@ -982,6 +982,10 @@ class Params:
     holdout_share: float
     loss_metric: str
     calibrate_scalars: bool
+    # C10: which form li's block of M is built from. `jacobian` is the linearisation every number
+    # before 2026-08-18 was measured on; `field` substitutes the exact poloidal-field form at the
+    # same trace, so it is a change of direction and not of weight.
+    li_form: str
     jacobian_frames: int
     # A13: validation frames the composite monitor scores. See monitor.py.
     monitor_frames: int
@@ -1155,8 +1159,8 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   "the top level", path)
     _require_keys(doc["split"], {"salt", "holdout_share"}, "split", path)
     _require_keys(doc["loss"],
-                  {"metric", "calibrate_scalars", "jacobian_frames", "jacobian_delta", "boundary",
-                   "monitor_frames", "aux_scalars", "aux_weight"},
+                  {"metric", "calibrate_scalars", "li_form", "jacobian_frames", "jacobian_delta",
+                   "boundary", "monitor_frames", "aux_scalars", "aux_weight"},
                   "loss", path)
     loss_metric = str(doc["loss"]["metric"])
     if loss_metric not in LOSS_METRICS:
@@ -1228,6 +1232,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   holdout_share=float(doc["split"]["holdout_share"]),
                   loss_metric=loss_metric,
                   calibrate_scalars=bool(doc["loss"]["calibrate_scalars"]),
+                  li_form=str(doc["loss"]["li_form"]),
                   jacobian_frames=int(doc["loss"]["jacobian_frames"]),
                   monitor_frames=int(doc["loss"]["monitor_frames"]),
                   aux_scalars=aux_scalars,
