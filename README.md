@@ -14,34 +14,63 @@ before adding code under `my_experiments/`.
 | `my_experiments/eda*.py` | One shot printed transposed with a shape column, for the training split and both public test splits. `eda_coil_field.py` is the odd one out — it plots the flux decomposition below. |
 | `my_experiments/coil_field.py` | ψ = ψ_coil + ψ_plasma, with the first term computed from the shipped coil rectangles and currents instead of learned. |
 | `my_experiments/target_metric.py` | Which errors of the flux map the loss is allowed to care about, measured from the scored functionals rather than assumed. |
+| `mast/` | **Challenge 2.** MAST's calibration and predictor, over the solver below. Its own README, and no import of `my_experiments/` in either direction. |
+| `solver/` | The free-boundary Grad-Shafranov solve itself, machine-neutral: `machine.Machine` carries the envelope, the wall radius, the flux sign and the column names. It runs on DIII-D too — not to compete with Challenge 1, but because three MAST demo shots have refuted three decisions taken on them and 7041 labelled shots are where a choice can be tested. |
+| `machines.py` | The only file that knows both challenges exist: four dispatch functions on a row's `source`. |
+| `toolkit/` | The process pool and the progress bar: what both challenges need and neither owns. It used to live under `my_experiments/`, which made the two top-level files that serve BOTH machines reach into Challenge 1's package for it. |
+| `my_experiments/diagnose_budget.py` | What every term of S is worth if it were solved outright — the arithmetic that closed li and every other single-scalar idea. |
 | `experiments_history.md`, `ideas.md` | Every experiment with its number and verdict; and the ideas nobody has measured yet. |
 | `Makefile` | `make ci` = ruff + mypy + the standard metric run. |
 | `--source local` | Added to `local_score.py`, `submission_skeleton.py`, `validate_submission.py` — read a downloaded copy of the dataset instead of streaming the Hub. `experiments.py` already had it. |
 | `--models` | On `local_score.py` and `evaluate.py`, to score several members of the zoo on one pass over the ground truth. |
-| `--jobs` | Everything per-shot on one shared process pool: reading shots (22.6 s to 8.5 s for 352) and the per-shot half of scoring (85.7 s to 28.5 s for 14 x 4 models). Results are bit-identical — see `my_experiments/parallel.py`. |
+| `--jobs` | Everything per-shot on one shared process pool: reading shots (22.6 s to 8.5 s for 352) and the per-shot half of scoring (85.7 s to 28.5 s for 14 x 4 models). Results are bit-identical — see `toolkit/parallel.py`. |
 | `--configs` | On `submission_skeleton.py`, to build a DIII-D-only submission without downloading MAST. |
 
 ## Where this stands
 
-**Leaderboard 0.9932, FIRST place** (submitted 2026-08-15), against 0.9896 and 4th for the
-previous one. Local production score on salt 0 is 0.9945, so the gap is 0.0013 — the price of
-having chosen against the same folds many times, measured rather than assumed.
+**Challenge 1 — leaderboard 0.9938, first place** (submitted 2026-08-18), from 0.9932 and 0.9896
+before it. Local production score on salt 0 is 0.9950; the local-minus-board offset has read
+0.0018 / 0.0013 / 0.0012 over three submissions, so it is a stable constant rather than a widening
+gap, and salt 0 plus that offset predicts the board to about a thousandth.
 
-**A second submission is built and pushed, not yet scored** —
-`submissions/submission_pointer_20260816T014239Z.zip`, built 2026-08-16. It is not a better model
-but an ensemble of THREE FEATURE SETS: the production five, plus four seeds trained with leaky
-integrals of dI/dt on the two driving signals, plus four seeds with the same on all twenty poloidal
-ones, averaged as decoded flux maps. Individually they score 0.9945, 0.9944 and 0.9940 and none is
-worth sending alone; together they are **0.9950 on salt 0, +0.0009 on salt 3 and +0.0018 on salt
-4** — mean **+0.0014 on the two folds nothing was selected against**, and larger there than on the
-fold it was found on. See `artefacts/candidate/README.md` for the recipe.
+**Challenge 1 has 0.0056 of S left in it, and every single line item is below what a run can
+measure.** `uv run python my_experiments/diagnose_budget.py` converts the cost shares into what a
+term is actually worth, using the fact that `finalize_machine` averages the seven pooled R² with
+equal weight — so a scalar's whole budget is `(0.20/7)·(1 − R²_j)`:
 
-**+0.0036 on the leaderboard against +0.0031 locally: 116% of the local gain transferred**, where
-the previous submission transferred 91%, and the local-to-leaderboard gap NARROWED from 0.0018 to
-0.0013. More than 100% is noise around 100%; what matters is that nothing was lost, over a day in
-which more selections were made than in the whole history of this fork before it. Confirming on
-salts nothing selected against is what bought that — see
-[experiments_history.md](experiments_history.md).
+| where | a perfect one is worth |
+|---|---|
+| Consistency, all seven | +0.00396 |
+| — of which kappa | +0.00114 |
+| — of which li | +0.00092 |
+| D_LCFS | +0.00098 |
+| R²qb | +0.00057 |
+| R²ψ | +0.00011 |
+| **everything** | **+0.00562** |
+
+A paired production run resolves **0.0013**. So every entry above except "Consistency, all seven"
+is a target that cannot be confirmed even when it is hit perfectly. The escape — "one mechanism
+collects several budgets" — is measured and shut: the seven residuals have a leading principal
+component of 34.8% and `li` shares 19.6% of its variance with the other six. Seven problems, not
+one. What survives is the averaging axis, which this arithmetic does not cap; see A25 in
+[ideas.md](ideas.md).
+
+**Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
+Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
+from the shipped conductor rectangles. The best entry on that board is 0.7249 / 0.729, and the gap
+is 40% in R²{q95, βN}, 27% in R²ψ, 21% in Consistency and 12% in D_LCFS. Everything about it — the
+module, the calibration, what transferred and what did not — is in
+[`mast/README.md`](mast/README.md).
+
+**Four probes are built and waiting to be uploaded**, each an exact reading because the solver is
+deterministic and the fold is fixed: `β = 0.15` and `β = 0.45` against the shipped 0.30, and two at
+`edge = 0.02` (local 0.6105 and 0.6148 against the shipped 0.5941) that separate a new boundary knob
+from a gain refit. See `submissions/` — newest four.
+
+**The two challenges share no code.** `my_experiments/` is DIII-D's, `mast/` is MAST's, neither
+imports the other, and they meet only in `machines.py` at the repository root — four dispatch
+functions that read a row's own `source` column and hand it to the right module. `local_score.py`,
+`submission_skeleton.py` and the Makefile go through that file and nowhere else.
 
 ## Continuing on another machine
 
@@ -662,9 +691,29 @@ uv run python validate_submission.py submission/diii_d_public_test.npz \
     --config diii_d_public_test --max-shots 5
 ```
 
-**MAST is unimplemented.** `predict_row` raises `NotImplementedError` on a MAST row rather than
-returning zeros that would look like a working prediction, so submissions are DIII-D only:
-Challenge 1 scores, Challenge 2 shows `G_ratio = 0`.
+**One external dataset is used, and it must be disclosed in any methods report.** MAST's first wall
+— a closed 37-vertex polygon in `solver/machine.py` — comes from the public MAST archive at STFC
+Echo (`https://s3.echo.stfc.ac.uk/mast/level1/shots/{shot}.zarr`, CC BY 4.0). It is machine
+geometry, byte-identical across all five campaigns M5–M9, and it replaced an inboard radius this
+fork had guessed at 0.1963 against the machine's 0.19524. **Nothing else is taken from that
+archive**, because its `efm/` group is the competition's withheld MAST ground truth bit for bit —
+`efm/psirz` against `efit_psirz` on a demo shot differs by 0.000e+00 — and the hidden test fold is
+drawn from the same campaigns. See `solver/mast_archive.py` and `mast/README.md`.
+
+**MAST's magnetics clock has two defects, and both are per-signal rather than per-shot.** 9 of the
+first 120 `mast_public_test` shots repeat exactly five timestamps at the same five indices — all in
+the 15482-sample population, all `dt = 0` and never negative, so the samples are written twice
+rather than scrambled. And in that same population a signal is padded with `nan` outside the window
+it was acquired in: on `mast_shot_018ab61eba` the coil currents are live only over
+−150.0…1349.8 ms of a record spanning −2500…5499, while `magnetics_tf_current` is live across the
+whole record with nan scattered THROUGH it. `mast/shot.py` drops the repeats, interpolates each
+signal over its own live samples, and raises if the EFIT frames fall outside that span — which is
+the failure that would otherwise clamp to an endpoint and report a constant.
+
+**0.12% of MAST frames have no closed flux surface**, and they are not a bug: 4 of 3243 over 60
+shots, every one at |Ip| of 157–245 kA against a flat-top 600–800, and every one within the last
+three frames of its shot. That is the current ramp-down, where the discharge is dying. `mast/`
+emits the coil field alone for them and prints the count.
 
 ## Pointer zips
 

@@ -48,7 +48,6 @@ sys.path.insert(0, str(HERE.parent / "fusion_scoring"))
 from common import AXIS_SIGN  # noqa: E402
 from o_point import find_o_point  # noqa: E402
 
-import local_score  # noqa: E402
 from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG, _as_psirz_stack  # noqa: E402
 from my_experiments.baseline_model import (  # noqa: E402
     ARTIFACT,
@@ -58,9 +57,14 @@ from my_experiments.baseline_model import (  # noqa: E402
     sorted_shots,
     take_share,
 )
-from my_experiments.parallel import pimap, resolve_jobs  # noqa: E402
-from my_experiments.progress import install_timestamps  # noqa: E402
 from my_experiments.target_metric import scorer_context  # noqa: E402
+from toolkit.parallel import pimap, resolve_jobs  # noqa: E402
+from toolkit.progress import install_timestamps  # noqa: E402
+
+# This file is DIII-D's, like everything else in `my_experiments/`, so it names the machine
+# itself rather than borrowing a constant from the scorer — `local_score` now reads the
+# machine off the shots it is given, because hardcoding it there scored MAST on the wrong grid.
+D3D = "DIII-D"
 
 FloatArray = npt.NDArray[np.floating]
 COSTS = HERE.parent / "results" / "frame_costs_ensemble.csv"
@@ -141,7 +145,7 @@ def _task(args: tuple) -> FloatArray:
         # `find_o_point` wants the axis at a MAXIMUM, and DIII-D ships psi with AXIS_SIGN = -1, so
         # it is handed the signed map. psi_N itself is invariant to that flip — it divides one
         # difference of psi by another — so everything after this line uses the raw values.
-        o = find_o_point(AXIS_SIGN[local_score.MACHINE] * psi[k], R, Z, ctx["mask_coarse"])
+        o = find_o_point(AXIS_SIGN[D3D] * psi[k], R, Z, ctx["mask_coarse"])
         m = int(n_lcfs[k]) if np.isfinite(n_lcfs[k]) else 0
         if o is None or m < 3:
             continue
@@ -242,7 +246,7 @@ def main() -> int:
     print(f"{len(files)} held-out shots, {len(df)} frames, artifact {args.artifact.name}")
 
     mask = np.load(HERE.parent / "fusion_scoring" / "masks" / "d3d_envelope.npz")
-    ctx = scorer_context(mask["grid_R"], mask["grid_Z"], local_score.MACHINE)
+    ctx = scorer_context(mask["grid_R"], mask["grid_Z"], D3D)
     jobs = resolve_jobs(args.jobs, len(files))
     from tqdm import tqdm
     parts = list(tqdm(pimap(_task, [(p, ctx) for p in files], jobs), total=len(files),

@@ -56,7 +56,7 @@ sys.path.insert(0, str(HERE.parent / "fusion_scoring"))
 
 from common import CONS_SCALARS, W_CONS  # noqa: E402
 
-from my_experiments.progress import install_timestamps  # noqa: E402
+from toolkit.progress import install_timestamps  # noqa: E402
 
 FloatArray = npt.NDArray[np.floating]
 COSTS = HERE.parent / "results" / "frame_costs_ensemble.csv"

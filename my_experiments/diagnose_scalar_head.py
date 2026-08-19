@@ -65,7 +65,7 @@ from my_experiments.baseline_model import (  # noqa: E402
     take_share,
 )
 from my_experiments.models import _build_model  # noqa: E402
-from my_experiments.progress import install_timestamps  # noqa: E402
+from toolkit.progress import install_timestamps  # noqa: E402
 
 FloatArray = npt.NDArray[np.floating]
 COSTS = HERE.parent / "results" / "frame_costs_ensemble.csv"

@@ -64,6 +64,10 @@ mypy_path = "."
 explicit_package_bases = true
 files = [
     "my_experiments",
+    "mast",
+    "solver",
+    "toolkit",
+    "machines.py",
     "local_score.py",
     "submission_skeleton.py",
     "validate_submission.py",
@@ -82,7 +86,7 @@ follow_imports = "silent"
 # (`from common import ...`), which are only importable after local_score.py extends sys.path.
 module = [
     "catboost.*", "sklearn.*", "joblib.*", "datasets.*", "tqdm.*", "matplotlib.*",
-    "huggingface_hub.*", "scipy.*", "skimage.*",
+    "huggingface_hub.*", "numcodecs", "scipy.*", "skimage.*", "threadpoolctl",
     "common", "contour", "derive", "lcfs", "metrics", "o_point",
     "experiments", "fusion_data_provider",
 ]

@@ -650,6 +650,114 @@ models:
     lr_final_factor: 0.01
     lr_t_max_steps: 0
 
+  seq1:
+    type: torch_seq
+    # A25, arm 1. A second and third seed of the sequence model, present so that ONE production
+    # run can be scored both ways: `mlp+mlp1+mlp2+mlp3+seq` is the shipped ensemble and
+    # `...+seq+seq1+seq2` is the treatment, so the comparison is paired by
+    # construction and costs no extra fit. Deliberately NOT in `ensemble.members` — the default
+    # ensemble stays what the leaderboard scored until the gate says otherwise.
+    #
+    # Why it is worth three hours: the production table prices one sequence model at more than
+    # three extra MLP seeds (+0.0012 against +0.0009), and it holds a fifth of the weight while
+    # being the only member whose optimisation noise is unaveraged.
+    enabled: false
+    # REQUIRES `frame_share: 1.0` in both shares — trained on thinned frames it would learn the
+    # dynamics at a 100 ms spacing and be asked for them at 20 ms. `train()` refuses the
+    # combination rather than trusting this comment, so `make train` carries 1.0 too.
+    #
+    # `frame_gaps` above was built FOR this model and is nonetheless off: measured, the two columns
+    # cost the per-frame MLP 0.0012, and the pair was selected with them on — so the +0.0007 is a
+    # lower bound taken at the worse setting, which is the safe direction for it to be wrong in.
+    #
+    # The per-frame trunk, identical to the MLP's. The recurrence is a CORRECTION to this, added
+    # through a zero-initialised layer, so at step 0 this model is exactly the MLP and everything
+    # the sequence branch does it has to earn.
+    hidden_sizes: [512, 512]
+    # The recurrent state per direction, and how many GRU layers. Both directions run — a shot is
+    # scored offline and complete, so a frame may be informed by what came after it, and a causal
+    # model would be throwing away half the context for a constraint this task does not have.
+    seq_hidden: 256
+    seq_layers: 1
+    # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
+    # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
+    batch_shots: 32
+    # Measured on this GPU at the production shape: 65 ms/step at 32 shots (125k frames/s), against
+    # 67 at 16 and 110 at 64 — so 32 is both the cheapest step and near the best throughput.
+    # The budget was first set to match the MLP's in PASSES over the data — at 5633 shots a pass is
+    # 176 steps, so 40000 was 227 passes — and that reasoning was wrong: the screen's first arm
+    # stopped at `best step 40000 of 40000`, i.e. it measured the ceiling and not the model. 200000
+    # is where the fit actually ends inside its budget, and it is what the submission used.
+    max_steps: 200000
+    patience_steps: 10000
+    # 500 rather than 200 because validating over 1338 shots costs ~1.3 s: at 200 it would be a
+    # tenth of the whole fit, spent measuring rather than fitting.
+    eval_every_steps: 500
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 1
+    threads: 4
+    device: cuda
+    activation: gelu
+    dropout: 0.0
+    lr_schedule: none
+    lr_final_factor: 0.01
+    lr_t_max_steps: 0
+
+  seq2:
+    type: torch_seq
+    # A25, arm 1. A second and third seed of the sequence model, present so that ONE production
+    # run can be scored both ways: `mlp+mlp1+mlp2+mlp3+seq` is the shipped ensemble and
+    # `...+seq+seq1+seq2` is the treatment, so the comparison is paired by
+    # construction and costs no extra fit. Deliberately NOT in `ensemble.members` — the default
+    # ensemble stays what the leaderboard scored until the gate says otherwise.
+    #
+    # Why it is worth three hours: the production table prices one sequence model at more than
+    # three extra MLP seeds (+0.0012 against +0.0009), and it holds a fifth of the weight while
+    # being the only member whose optimisation noise is unaveraged.
+    enabled: false
+    # REQUIRES `frame_share: 1.0` in both shares — trained on thinned frames it would learn the
+    # dynamics at a 100 ms spacing and be asked for them at 20 ms. `train()` refuses the
+    # combination rather than trusting this comment, so `make train` carries 1.0 too.
+    #
+    # `frame_gaps` above was built FOR this model and is nonetheless off: measured, the two columns
+    # cost the per-frame MLP 0.0012, and the pair was selected with them on — so the +0.0007 is a
+    # lower bound taken at the worse setting, which is the safe direction for it to be wrong in.
+    #
+    # The per-frame trunk, identical to the MLP's. The recurrence is a CORRECTION to this, added
+    # through a zero-initialised layer, so at step 0 this model is exactly the MLP and everything
+    # the sequence branch does it has to earn.
+    hidden_sizes: [512, 512]
+    # The recurrent state per direction, and how many GRU layers. Both directions run — a shot is
+    # scored offline and complete, so a frame may be informed by what came after it, and a causal
+    # model would be throwing away half the context for a constraint this task does not have.
+    seq_hidden: 256
+    seq_layers: 1
+    # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
+    # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
+    batch_shots: 32
+    # Measured on this GPU at the production shape: 65 ms/step at 32 shots (125k frames/s), against
+    # 67 at 16 and 110 at 64 — so 32 is both the cheapest step and near the best throughput.
+    # The budget was first set to match the MLP's in PASSES over the data — at 5633 shots a pass is
+    # 176 steps, so 40000 was 227 passes — and that reasoning was wrong: the screen's first arm
+    # stopped at `best step 40000 of 40000`, i.e. it measured the ceiling and not the model. 200000
+    # is where the fit actually ends inside its budget, and it is what the submission used.
+    max_steps: 200000
+    patience_steps: 10000
+    # 500 rather than 200 because validating over 1338 shots costs ~1.3 s: at 200 it would be a
+    # tenth of the whole fit, spent measuring rather than fitting.
+    eval_every_steps: 500
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 2
+    threads: 4
+    device: cuda
+    activation: gelu
+    dropout: 0.0
+    lr_schedule: none
+    lr_final_factor: 0.01
+    lr_t_max_steps: 0
+
 ensemble:
   # Predictions of the members, averaged with these weights (renormalized to sum to 1). Averaging
   # PCA coefficients and averaging the flux maps they decode to are the same thing — the decoder is

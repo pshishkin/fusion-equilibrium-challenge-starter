@@ -38,9 +38,14 @@ from derive import derive_frame  # noqa: E402
 from lcfs import extract_lcfs  # noqa: E402
 
 from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG  # noqa: E402
-from my_experiments.parallel import pimap, resolve_jobs  # noqa: E402
-from my_experiments.progress import SHOT_EVERY, bar_kwargs, install_timestamps  # noqa: E402
 from my_experiments.target_metric import scorer_context  # noqa: E402
+from toolkit.parallel import pimap, resolve_jobs  # noqa: E402
+from toolkit.progress import SHOT_EVERY, bar_kwargs, install_timestamps  # noqa: E402
+
+# This file is DIII-D's, like everything else in `my_experiments/`, so it names the machine
+# itself rather than borrowing a constant from the scorer — `local_score` now reads the
+# machine off the shots it is given, because hardcoding it there scored MAST on the wrong grid.
+D3D = "DIII-D"
 
 FloatArray = npt.NDArray[np.floating]
 CACHE = HERE.parent / ".aux_targets"
@@ -114,9 +119,8 @@ def main() -> int:
             print(f"  {name}: {out.name} already there, skipping")
             continue
         if ctx is None:
-            import local_score
             mask = np.load(HERE.parent / "fusion_scoring" / "masks" / "d3d_envelope.npz")
-            ctx = scorer_context(mask["grid_R"], mask["grid_Z"], local_score.MACHINE)
+            ctx = scorer_context(mask["grid_R"], mask["grid_Z"], D3D)
         jobs = resolve_jobs(args.jobs, len(block))
         print(f"  {name}: {len(block)} shots on {jobs} process(es) -> {out.name}")
         parts = []

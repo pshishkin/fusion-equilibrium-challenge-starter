@@ -34,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG
 from my_experiments.baseline_model import train
 from my_experiments.models import DEFAULT_PARAMS_PATH
-from my_experiments.progress import install_timestamps
+from toolkit.progress import install_timestamps
 
 
 def main() -> int:

@@ -36,6 +36,45 @@ This rule exists because it was broken: the plasma-current time base was correct
 README kept saying "Not yet corrected in this fork" — right underneath the section describing the
 defect.
 
+## One package per challenge, and they do not import each other
+
+`my_experiments/` is Challenge 1's, DIII-D. `mast/` is Challenge 2's, MAST. **Neither may import
+the other, in either direction** — the check is `grep -r "my_experiments" mast/` and the reverse,
+and both must be empty. They meet in exactly one place: `machines.py` at the repository root, which
+reads a row's own `source` column and dispatches. `local_score.py`, `submission_skeleton.py` and the
+Makefile go through that file and nowhere else.
+
+Two packages belong to neither and exist so that nothing has to reach across the line for them:
+
+- **`solver/`** — the free-boundary Grad-Shafranov solve. Every machine-dependent number it needs
+  arrives through `machine.Machine`: the envelope mask, the inboard wall radius, the flux sign, the
+  column names, the vertical pin. It carries a DIII-D entry, and that is not Challenge 1 work —
+  three MAST demo shots have refuted three decisions fitted on them, so a choice for MAST has to be
+  testable where there are 7041 labelled shots.
+- **`toolkit/`** — the process pool and the progress bar. No knowledge of a machine, a model or the
+  metric. It used to live under `my_experiments/`, which meant the two top-level files serving BOTH
+  machines reached into Challenge 1's package to get it.
+
+A machine constant lives in the package that owns that machine, as a literal with the measurement
+that produced it beside it — `mast/calibration.py` is the pattern, and `solver/machine.py` is the
+pattern for the handful the solver itself needs.
+
+This is not tidiness. The two machines share one of twenty-one magnetics signals, a flux grid that
+starts at R = 0.06 m against 0.84, and an aspect ratio of 1.3 against 2.7; MAST has no training
+data at all, by design. A shared feature pipeline would be a shared set of assumptions, and every
+one of them is false on one side or the other. A shared helper that "just needs a machine flag" is
+the first step to a function whose MAST branch nobody reads while tuning DIII-D.
+
+What they may share is the vendored scorer in `fusion_scoring/`, because both are graded by it.
+
+Two things follow for anything new:
+
+- **A physical constant that differs by machine belongs to that machine's package**, as a literal
+  with the measurement that produced it beside it — `mast/calibration.py` is the pattern.
+- **Documentation splits the same way.** `mast/README.md` carries what MAST is and what is left in
+  it; the root README says where both challenges stand and points there. `ideas.md` ranks by ΔS,
+  which is Challenge 1's currency, so MAST's open items are ranked in its own README instead.
+
 ## Fail fast, never quietly repair
 
 The competition data is full of traps: shifted time bases, gaps encoded as zeros, a channel count
@@ -226,7 +265,7 @@ one number against another, on one split.
 ## Per-shot work is parallel, and that must not show in the numbers
 
 Shots are independent, so both halves that iterate over them run on one shared process pool
-(`my_experiments/parallel.py`, `--jobs`, 0 = cores - 2, 1 = serial): reading them in
+(`toolkit/parallel.py`, `--jobs`, 0 = cores - 2, 1 = serial): reading them in
 `baseline_model` and, in `local_score`, extracting the LCFS and the seven functionals.
 
 Three rules keep it honest. Results come back in SUBMISSION order, so float sums accumulate
@@ -286,7 +325,7 @@ Three details, each of which had to be got right for this to be worth having:
 
 ## Progress bars are for terminals; logs get a slower one
 
-`my_experiments/progress.bar_kwargs` thins a tqdm bar when stderr is NOT a terminal — every 1000
+`toolkit/progress.bar_kwargs` thins a tqdm bar when stderr is NOT a terminal — every 1000
 shots for the reading and scoring loops, every 50 epochs for the fit. On a terminal nothing
 changes, because a redrawing bar is what makes one useful to a human.
 

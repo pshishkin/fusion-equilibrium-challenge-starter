@@ -70,9 +70,9 @@ from derive import derive_frame  # noqa: E402
 from lcfs import extract_lcfs, extract_lcfs_with_sign, major_radius  # noqa: E402
 from metrics import Accum, finalize_machine  # noqa: E402
 
-from my_experiments.baseline_model import slim_row  # noqa: E402
-from my_experiments.parallel import pimap, resolve_jobs  # noqa: E402
-from my_experiments.progress import SHOT_EVERY, bar_kwargs, install_timestamps  # noqa: E402
+from machines import slim_row  # noqa: E402
+from toolkit.parallel import pimap, resolve_jobs  # noqa: E402
+from toolkit.progress import SHOT_EVERY, bar_kwargs, install_timestamps  # noqa: E402
 
 REPO_ID = "Sophelio/fusion-equilibrium-challenge"
 TRAIN_CONFIG = "diii_d_train"
@@ -80,7 +80,16 @@ TRAIN_CONFIG = "diii_d_train"
 #   <DEFAULT_LOCAL_DATA_DIR>/data/<config>/*.parquet
 # Same default as experiments.py, so `--source local` needs no extra flag on either script.
 DEFAULT_LOCAL_DATA_DIR = HERE.parent / "downloaded_huggingface" / "hf_dataset"
-MACHINE = "DIII-D"          # the only machine with released ground truth
+# Which envelope mask belongs to which machine. The scorer needs three machine-dependent things —
+# the vessel envelope, the flux grid, and the sign convention that puts the magnetic axis at a
+# maximum — and until 2026-08-18 this file hardcoded all three to DIII-D's. That was harmless while
+# DIII-D was the only machine with released ground truth, and stopped being harmless the moment the
+# three MAST demo shots in `parquet_data/` were scored through it: their contours were extracted on
+# a grid running R = 0.84..2.54 instead of 0.06..2.00 and under `AXIS_SIGN = -1` instead of +1, so
+# every D_LCFS and every Consistency number this fork measured for MAST was invalid. R2_psi was
+# not — it is a pooled sum over pixels and touches none of it. The bug is what made local D_LCFS
+# read 0.0996 against 0.4121 on the leaderboard; measured on the correct grid it is 0.3317.
+ENVELOPES = {"DIII-D": "d3d_envelope.npz", "MAST": "mast_envelope.npz"}
 FloatArray = npt.NDArray[np.floating[Any]]
 # What build_reference() returns: per-frame LCFS contours, the seven derived scalars, the mask
 # of which of them are defined, and the mean major radius the Hausdorff distance is scaled by.
@@ -125,6 +134,12 @@ def _shot_from_row(row: Any) -> dict:
         "psi": psi,
         "q95": np.asarray(row["efit_q95"], dtype=np.float64),
         "betaN": np.asarray(row["efit_beta_n"], dtype=np.float64),
+        # Carried per shot rather than assumed once: the grid, the envelope and the flux-sign
+        # convention are all machine-dependent, and hardcoding them to DIII-D silently scored
+        # every MAST frame on the wrong grid.
+        "machine": str(row["source"]),
+        "grid_R": np.asarray(row["efit_grid_R"], dtype=np.float64),
+        "grid_Z": np.asarray(row["efit_grid_Z"], dtype=np.float64),
     }
 
 
@@ -210,7 +225,8 @@ def load_shots(n_shots: int, skip: int, source: str = "hf",
 
 
 def build_reference(psi_gt: FloatArray, R: FloatArray, Z: FloatArray,
-                    mask_coarse: npt.NDArray[np.bool_], mask_f: FloatArray) -> Reference:
+                    mask_coarse: npt.NDArray[np.bool_], mask_f: FloatArray,
+                    machine: str) -> Reference:
     """The targets the scorer compares against: per-frame LCFS, the seven derived scalars, rgeo.
 
     This is what the organizers precompute into the reference bundle. Running the same
@@ -221,11 +237,11 @@ def build_reference(psi_gt: FloatArray, R: FloatArray, Z: FloatArray,
     contours, rgeos = [], []
     cons = np.full((T, N_CONS), np.nan)
     for k in range(T):
-        c = extract_lcfs(psi_gt[k], R, Z, MACHINE, mask_coarse, mask_f, n_points=N_POINTS)
+        c = extract_lcfs(psi_gt[k], R, Z, machine, mask_coarse, mask_f, n_points=N_POINTS)
         contours.append(c)
         if c is not None:
             rgeos.append(major_radius(c))
-        vals = derive_frame(psi_gt[k], R, Z, MACHINE, mask_coarse, mask_f, contour=c)
+        vals = derive_frame(psi_gt[k], R, Z, machine, mask_coarse, mask_f, contour=c)
         for j, name in enumerate(CONS_SCALARS):
             cons[k, j] = vals[name]
     # derive_frame already NaNs out physically implausible values, so finiteness is the mask.
@@ -260,7 +276,7 @@ def predict(shots: list[dict], mode: str, pred_npz: Path | None,
                 for s in tqdm(shots, desc="  projecting", unit="shot",
                               **bar_kwargs(SHOT_EVERY))]
     from submission_skeleton import your_model_predict
-    return [your_model_predict(s["row"], MACHINE, model)
+    return [your_model_predict(s["row"], s["machine"], model)
             for s in tqdm(shots, desc="  predicting", unit="shot",
                             **bar_kwargs(SHOT_EVERY))]
 
@@ -284,7 +300,7 @@ MAP_CHUNK = 64
 
 def _map(fn: Callable[[tuple], Any], tasks: list[tuple], jobs: int, desc: str) -> list:
     """`fn` over `tasks` on `jobs` shared-pool processes, in the original order — see
-    my_experiments/parallel.py for why order and the start method are not negotiable."""
+    toolkit/parallel.py for why order and the start method are not negotiable."""
     label = desc if jobs == 1 else f"{desc} x{jobs}"
     out: list = []
     with tqdm(total=len(tasks), desc=label, unit="shot", **bar_kwargs(SHOT_EVERY)) as bar:
@@ -317,7 +333,7 @@ def psi_residuals(psi_gt: FloatArray, pred: Any,
 
 def score_shot(gt: dict, ref: Reference, pred: dict, R: FloatArray, Z: FloatArray,
                mask_coarse: npt.NDArray[np.bool_], mask_f: FloatArray, psi_sign: int,
-               means: tuple[float, FloatArray, FloatArray]) -> dict:
+               means: tuple[float, FloatArray, FloatArray], machine: str) -> dict:
     """One shot's contribution. Mirrors the platform's per-shot worker."""
     mean_psi, mean_scal, mean_cons = means
     contours, cons_gt, cmask, rgeo = ref
@@ -325,7 +341,7 @@ def score_shot(gt: dict, ref: Reference, pred: dict, R: FloatArray, Z: FloatArra
     T = psi_gt.shape[0]
     # Two different signs compose: submission -> stored convention (psi_sign), and stored
     # convention -> "axis is a maximum of phi" (AXIS_SIGN), which the extractors require.
-    axis_sign = AXIS_SIGN[MACHINE] * psi_sign
+    axis_sign = AXIS_SIGN[machine] * psi_sign
 
     ss_res_psi, nonfinite, missing = psi_residuals(psi_gt, pred["psirz"], mean_psi)
     ss_tot_shot = float(np.sum((psi_gt.astype(np.float64) - mean_psi) ** 2))
@@ -366,7 +382,7 @@ def score_shot(gt: dict, ref: Reference, pred: dict, R: FloatArray, Z: FloatArra
             ref_c, need = contours[k], cmask[k]
             if ref_c is None and not need.any():
                 continue
-            ex, _ = extract_lcfs_with_sign(psi_pred[k], R, Z, MACHINE, mask_coarse, mask_f,
+            ex, _ = extract_lcfs_with_sign(psi_pred[k], R, Z, machine, mask_coarse, mask_f,
                                            n_iter=N_ITER, axis_sign=axis_sign)
             if ref_c is not None:
                 n_frames += 1
@@ -377,7 +393,7 @@ def score_shot(gt: dict, ref: Reference, pred: dict, R: FloatArray, Z: FloatArra
                     d = symmetric_hausdorff(ex, np.asarray(ref_c, dtype=np.float64))
                     ds.append(min(1.0, d / rgeo if rgeo > 0 else 1.0))
             if need.any():
-                vals = derive_frame(psi_pred[k], R, Z, MACHINE, mask_coarse, mask_f, contour=ex,
+                vals = derive_frame(psi_pred[k], R, Z, machine, mask_coarse, mask_f, contour=ex,
                                     with_li=bool(need[LI_IDX]), axis_sign=axis_sign)
                 for j in np.nonzero(need)[0].tolist():
                     v = vals[CONS_SCALARS[j]]
@@ -410,9 +426,34 @@ def choose_psi_sign(shots: list[dict], preds: list[dict], mean_psi: float) -> in
     return min(PSI_SIGNS, key=lambda sg: totals[sg])
 
 
-def report(res: dict, n_shots: int, label: str | None) -> None:
+def _machine_of(shots: list[dict]) -> tuple:
+    """The machine, its grid and its envelope, read off the shots rather than assumed.
+
+    Every shot in one call must be the same machine: the metric pools R2 across the fold, so a
+    mixed fold has no single SS_tot and the question is malformed rather than merely awkward.
+    """
+    machines = {s["machine"] for s in shots}
+    if len(machines) != 1:
+        raise SystemExit(f"this fold mixes {sorted(machines)}; the metric pools across it and "
+                         f"cannot be computed for two grids at once")
+    machine = machines.pop()
+    if machine not in ENVELOPES:
+        raise SystemExit(f"no envelope mask for {machine!r}; known: {sorted(ENVELOPES)}")
+    R, Z = shots[0]["grid_R"], shots[0]["grid_Z"]
+    for s in shots[1:]:
+        if not (np.allclose(s["grid_R"], R) and np.allclose(s["grid_Z"], Z)):
+            raise SystemExit(f"{machine} shots disagree about the flux grid")
+    d = np.load(HERE / "fusion_scoring" / "masks" / ENVELOPES[machine])
+    if not (np.allclose(d["grid_R"], R) and np.allclose(d["grid_Z"], Z)):
+        raise SystemExit(f"{ENVELOPES[machine]} is on R {d['grid_R'][0]:.3f}..{d['grid_R'][-1]:.3f}"
+                         f" but these shots are on {R[0]:.3f}..{R[-1]:.3f}")
+    mask_coarse = d["mask_coarse"].astype(bool)
+    return machine, R, Z, mask_coarse, mask_coarse.astype(np.float64)
+
+
+def report(res: dict, n_shots: int, label: str | None, machine: str) -> None:
     """The per-model block: composite, the four weighted terms, and where extraction failed."""
-    title = f"  COMPOSITE S = {res['S']:.4f}      ({n_shots} held-out {MACHINE} shots)"
+    title = f"  COMPOSITE S = {res['S']:.4f}      ({n_shots} held-out {machine} shots)"
     print("\n" + "=" * 62)
     print(f"{title}{'' if label is None else f'   [{label}]'}")
     print("=" * 62)
@@ -428,10 +469,10 @@ def report(res: dict, n_shots: int, label: str | None) -> None:
     print(f"  psi_sign = {res['psi_sign']:+d}")
 
 
-def report_comparison(results: dict[str, dict], n_shots: int) -> None:
+def report_comparison(results: dict[str, dict], n_shots: int, machine: str) -> None:
     """Every model side by side, best composite first. The point of scoring a zoo at all."""
     print("\n" + "=" * 78)
-    print(f"  MODEL COMPARISON   ({n_shots} held-out {MACHINE} shots, same shots for every model)")
+    print(f"  MODEL COMPARISON   ({n_shots} held-out {machine} shots, same shots for every model)")
     print("=" * 78)
     print(f"  {'model':>16s}  {'S':>8s}  {'R2_psi':>8s}  {'R2_qb':>8s}  {'1-D_LCFS':>9s}  "
           f"{'Cons':>8s}")
@@ -482,12 +523,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--models and --pred contradict each other: one scores the zoo, the "
                          "other scores a prebuilt .npz")
 
-    mask = np.load(HERE / "fusion_scoring" / "masks" / "d3d_envelope.npz")
-    R, Z = mask["grid_R"], mask["grid_Z"]
-    mask_coarse = mask["mask_coarse"].astype(bool)
-    mask_f = mask_coarse.astype(np.float64)
-
-    print(f"Fusion Equilibrium Challenge — local scorer (metric v{SCORING_VERSION}, {MACHINE})")
+    print(f"Fusion Equilibrium Challenge — local scorer (metric v{SCORING_VERSION})")
     src_label = "local download" if args.source == "local" else "Hugging Face stream"
     if args.files:
         print(f"Loading {len(args.files)} training shots (explicit file list)...")
@@ -496,10 +532,14 @@ def main(argv: list[str] | None = None) -> int:
     shots = load_shots(args.n_shots, args.skip, args.source, args.local_data_dir, args.config,
                        args.files)
 
+    machine, R, Z, mask_coarse, mask_f = _machine_of(shots)
+    print(f"  {machine}: grid R {R[0]:.3f}..{R[-1]:.3f}, Z {Z[0]:.3f}..{Z[-1]:.3f}, "
+          f"envelope {ENVELOPES[machine]} ({int(mask_coarse.sum())} cells)")
+
     jobs = resolve_jobs(args.jobs, len(shots))
     print(f"Building reference targets from ground truth (LCFS + 7 derived scalars per frame), "
           f"{jobs} process(es)...")
-    refs = _map(_ref_task, [(s["psi"], R, Z, mask_coarse, mask_f) for s in shots], jobs,
+    refs = _map(_ref_task, [(s["psi"], R, Z, mask_coarse, mask_f, machine) for s in shots], jobs,
                 "  references from ground truth")
 
     psi_sum, psi_sumsq, psi_n = 0.0, 0.0, 0.0
@@ -543,13 +583,13 @@ def main(argv: list[str] | None = None) -> int:
 
         psi_sign = choose_psi_sign(shots, preds, mean_psi)
         if psi_sign < 0:
-            print("  note: your flux is sign-inverted vs the DIII-D convention — normalized for "
-                  "you, exactly as the leaderboard does")
+            print(f"  note: your flux is sign-inverted vs the {machine} convention — normalized "
+                  f"for you, exactly as the leaderboard does")
 
         # Only the three arrays score_shot reads are shipped to the workers — `shot` also holds
         # the raw dataset row, tens of megabytes of columns nothing here touches.
         tasks = [({"psi": shot["psi"], "q95": shot["q95"], "betaN": shot["betaN"]},
-                  ref, p, R, Z, mask_coarse, mask_f, psi_sign, means)
+                  ref, p, R, Z, mask_coarse, mask_f, psi_sign, means, machine)
                  for shot, ref, p in zip(shots, refs, preds, strict=True)]
         acc = Accum()
         acc.psi_sign = psi_sign
@@ -557,10 +597,10 @@ def main(argv: list[str] | None = None) -> int:
             acc.add(part)
 
         results[label] = finalize_machine(acc, ref_stats)
-        report(results[label], len(shots), model)
+        report(results[label], len(shots), model, machine)
 
     if len(results) > 1:
-        report_comparison(results, len(shots))
+        report_comparison(results, len(shots), machine)
 
     if args.mode in ("perfect", "zeros"):
         want = 1.0 if args.mode == "perfect" else 0.0

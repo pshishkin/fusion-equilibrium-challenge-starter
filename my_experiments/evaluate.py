@@ -40,7 +40,7 @@ from my_experiments.baseline_model import (
     sorted_shots,
     take_share,
 )
-from my_experiments.progress import install_timestamps
+from toolkit.progress import install_timestamps
 
 
 def main() -> int:

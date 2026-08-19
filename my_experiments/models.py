@@ -35,7 +35,7 @@ import yaml
 from sklearn.linear_model import Ridge
 from tqdm import tqdm
 
-from my_experiments.progress import bar_kwargs
+from toolkit.progress import bar_kwargs
 
 # The composite's own weights, read from the vendored scorer rather than copied here: the
 # metric_aligned scaling below is only as correct as these numbers, and a hard-coded 0.55 would go

@@ -23,6 +23,51 @@ Where the reachable 0.0045 sits: Consistency **0.0034**, R²qb 0.0005, D_LCFS 0.
 Inside the geometry terms, by share of their cost: kappa **23.3%**, li **18.7%**, the LCFS distance
 18.4%, R_axis 11.3%, volume 10.8%, Z_axis 6.8%, tri_top 4.5%, tri_bot 5.4%.
 
+### The per-scalar ceiling, in S rather than in share — *2026-08-18, and it closes the list*
+
+**`uv run python my_experiments/diagnose_budget.py`.** The shares above are shares of the *cost*,
+and this fork read them for three days as a ranking of where to work. They are not one, because
+`finalize_machine` averages the seven pooled R² with equal weight, so
+
+    dS / dR²_j  =  W_CONS / N_CONS  =  0.20 / 7
+
+and a scalar's whole remaining budget is `(0.20 / 7) · (1 − R²_j)` — the most any feature, loss or
+architecture aimed at it alone can ever be worth. Measured on the three-artifact ensemble's own
+residuals over the 70 held-out shots:
+
+| scalar | pooled R² | a PERFECT one is worth |
+|---|---|---|
+| kappa | 0.96006 | +0.00114 |
+| **li** | 0.96797 | **+0.00092** |
+| R_axis | 0.98065 | +0.00055 |
+| volume | 0.98144 | +0.00053 |
+| Z_axis | 0.98834 | +0.00033 |
+| tri_bot | 0.99079 | +0.00026 |
+| tri_top | 0.99221 | +0.00022 |
+| all seven at once | 0.98021 | +0.00396 |
+
+And term by term: R²ψ +0.00011, R²qb +0.00057, D_LCFS +0.00098, Consistency +0.00396 — **0.00562
+of S left in the whole of Challenge 1**, 70% of it in Consistency.
+
+**Every line in both tables except "all seven at once" is below the 0.0013 that one paired
+production run resolves.** That is stronger than "small": it is a target that cannot be confirmed
+even when it is hit perfectly, which is exactly the regime in which selection bias eats a fork
+alive.
+
+The obvious escape — "one mechanism collects several budgets" — is measured and closed. The seven
+residuals in metric units have a leading principal component of **34.8%**, `li` shares **19.6%** of
+its variance with the other six, and the largest off-diagonal correlation in the whole matrix is
+kappa↔tri_bot at 0.36. These are seven problems, so the per-scalar column is a ceiling and not a
+share.
+
+**Which retires li, and with it the last live entry in this file.** `li` was ranked here because
+C9 put it furthest above its own label-noise floor (0.32, against 0.87 for tri_top) — true, and
+irrelevant: a perfect `li` is +0.00092, C9's floor removes ~10% of even that, and the remainder is
+two thirds of what a run can see. The same arithmetic retires kappa (+0.00114), the LCFS distance
+(+0.00098) and every other single-scalar mechanism. What is left in Challenge 1 is not a mechanism
+but an axis — averaging, which is the only thing that has paid since 08-15 and the only thing whose
+gain is not capped per scalar.
+
 **Anything aimed at R²ψ or at the triangularities is capped below the noise floor** and is not on
 this list. R²ψ is now measured at 0.9998 against a ceiling of 1.0000 — it is finished.
 
@@ -48,7 +93,18 @@ Two facts about the scorer that several entries lean on:
   the map is scored frame by frame independently, while every functional it feeds is smooth on the
   current-diffusion timescale. That asymmetry is what the first entry exploits.
 
-MAST / Challenge 2 is deliberately absent: it moves `G_ratio`, not S, and this list ranks by ΔS.
+**MAST / Challenge 2 is no longer absent, and it inverted the ranking.** It moves `G_ratio` rather
+than S, so it does not belong in a list ordered by ΔS — but the list's own arithmetic is what makes
+that ordering the wrong one to read this file by. Challenge 1 has **0.0056 of S** left in total and
+every line of it is under what a run resolves; Challenge 2 went from **0.0000 to about 0.63** of a
+leaderboard column in one afternoon, and its own remaining terms are worth tenths rather than
+thousandths. Where MAST stands and what is left in it: [`mast/README.md`](mast/README.md). Its open
+items are ranked there, not here — the two challenges share no code and should not share a backlog
+either.
+
+**And the board has since priced it: 0.5566, G_ratio 0.560, against a best entry of 0.7249.** The
+gap is 40% in R²{q95, βN}, 27% in R²ψ, 21% in Consistency and 12% in D_LCFS — every one of them
+worth more than everything left in Challenge 1 put together.
 
 ---
 
@@ -90,6 +146,74 @@ a derivative taken after interpolation onto `efit_times` measures the interpolat
 the actual step**: the EFIT step is nominally 20 ms, and measured it is 20 ms for 98.0% of
 intervals — but 31% of shots carry a gap over 100 ms and the largest is 900 ms. A difference passed
 off as a derivative would be wrong by up to 45x on those frames.
+
+## A25. Three sequence seeds, not one — *2026-08-18* — **DONE 2026-08-19, refuted at its gate**
+
+**Hypothesis.** Replacing the single `seq` member with three seeds of it — first inside one feature
+set, then inside all three — is worth ≥ +0.0013 of S, and it is the last uncapped lever in
+Challenge 1.
+
+**Mechanism, and it is already half measured.** The production table
+(`logs/20260815-111643-production.log:536`) prices both averaging axes against the same base:
+
+| ensemble | S |
+|---|---|
+| `mlp` | 0.9931 |
+| `mlp+mlp1+mlp2+mlp3` — three extra SEEDS | 0.9940 |
+| `mlp+seq` — one extra ARCHITECTURE | **0.9943** |
+| `mlp+mlp1+mlp2+mlp3+seq` | 0.9945 |
+
+**One sequence model is worth more than three extra MLP seeds** — +0.0012 against +0.0009 — and it
+delivers that while scoring 0.9922 alone, nine thousandths *below* the MLP it is averaged with. That
+is the signature of diversity rather than accuracy: what averaging pays for is the independent part
+of the error, and a bidirectional GRU over shot time makes a different error than a per-frame net
+does. C6 measured how different: its long channels are the BACKWARD ones, median tau 122 frames,
+which is a quantity no member of the MLP family has at all.
+
+And yet the production ensemble carries **one** of them against four MLPs, so the most diverse
+member holds a fifth of the weight and is the only member whose own optimisation noise is not
+averaged away. Three seeds fixes both at once: it cuts the seq member's own variance by √3 and
+raises the architecture's weight from 1/5 to 3/7.
+
+**Arm 1 came back at +0.0002 against its own +0.0013 gate, so arm 2 was not run.** Three sequence
+seeds averaged score 0.9932 against 0.9909 / 0.9914 / 0.9916 alone — the seed noise the entry
+argued from is real and worth +0.0016 to +0.0023 inside the seq family — but poured into an
+ensemble four MLPs already dominate it delivers a fifth of that. The full table is in
+experiments_history. What follows for this file: **every mechanism in it is now closed**, and
+Challenge 1 stands at the 0.0056 ceiling the arithmetic at the top gives it.
+
+The build was cheaper than this entry assumed:
+`seq1` and `seq2` are two more blocks in `params.yaml`, so ONE production fit produces both the
+control and the treatment and `evaluate.py --models` scores `mlp+mlp1+mlp2+mlp3+seq` against
+`...+seq1+seq2` on the same pass. The comparison is paired by construction and the extra cost is
+two sequence fits, not a second run. They are deliberately NOT in `ensemble.members`: the default
+ensemble stays what the leaderboard scored until the gate says otherwise.
+
+**Two arms, in this order, because the first prices the second.**
+
+1. **One feature set, `seq` → `seq0+seq1+seq2`.** Paired on salt 0 against the shipped five-member
+   ensemble, then confirmed on salts 3 and 4. Reads the pure weight-and-variance effect.
+2. **All three feature sets.** Only if arm 1 clears. This is where it interacts with the third
+   averaging axis, which saturated at three artifacts — the open question is whether that saturation
+   was the axis or the fact that each artifact contributed the same 1:4 architecture mix.
+
+**Cost, and it is the real objection.** The seq member fitted in **3561.7 s** of an 80-minute
+production run — 74% of it — so arm 1 is ~2 h and arm 2 is ~6 h on top. That is an overnight job,
+not a loop iteration, and it is the reason this sat unwritten while cheaper things were tried.
+
+**Refuted if** arm 1 is under +0.0013 on salt 0, or if it clears there and the two confirmation
+salts disagree in sign. Watch `1 - D_LCFS` specifically: the seq member's own contribution to the
+shipped ensemble is concentrated there (0.9901 → 0.9902 while Consistency does not move at all),
+and a gain that shows up only in D_LCFS is worth 0.10 rather than 0.20 per point.
+
+**The one thing that could make this backfire**, stated so it is not a surprise: the seq is the
+weaker model, and raising a weak member's weight is A21's question — fitted weights rather than
+equal ones — which was never run. If arm 1 lands between 0 and +0.0013, run A21 on the seven-member
+mix before spending arm 2.
+
+**ΔS ≈ +0.0010…+0.0025, confidence 0.55.** Ranked first in this file, and it is now nearly alone:
+the per-scalar table above caps every single-scalar mechanism below what a run can resolve, and
+averaging is the only axis it does not cap.
 
 ## A1. Average several MLP seeds — *2026-08-13*
 

@@ -46,6 +46,15 @@ DATA_DIR ?= ../downloaded_huggingface/hf_dataset
 DATASET_REPO ?= Sophelio/fusion-equilibrium-challenge
 DATASET_CONFIGS ?= diii_d_train diii_d_public_test mast_public_test
 
+# Which machines the submission carries. BOTH by default: one entry feeds both leaderboards, and a
+# DIII-D-only file scores G_ratio = 0 on Challenge 2 however good it is on Challenge 1. Override
+# with SUBMIT_CONFIGS=diii_d_public_test to send Challenge 1 alone.
+SUBMIT_CONFIGS ?= diii_d_public_test mast_public_test
+# Worker processes for prediction. The MAST solve is ~63 ms a frame on ONE core and the split is
+# 1206 shots, so this is 12 minutes against 1.1 hours; `mast/predict.py` pins each worker to a
+# single BLAS thread, which is what makes a pool of 28 an actual 28x.
+SUBMIT_JOBS ?= 28
+
 ci: lint typecheck test
 
 lint:
@@ -157,10 +166,11 @@ predict_and_submit_to_hf:
 	@test -n "$$HF_READ_TOKEN" || { \
 		echo "HF_READ_TOKEN is empty. Copy .env.example to .env and fill it in."; exit 1; }
 	uv run python submission_skeleton.py --max-shots 0 --source local \
-		--configs diii_d_public_test --repo $(HF_REPO) $(if $(MODEL),--model "$(MODEL)")
+		--configs $(SUBMIT_CONFIGS) --jobs $(SUBMIT_JOBS) --repo $(HF_REPO) \
+		$(if $(MODEL),--model "$(MODEL)")
 
 clean:
-	rm -rf .ruff_cache .mypy_cache my_experiments/__pycache__ __pycache__
+	rm -rf .ruff_cache .mypy_cache my_experiments/__pycache__ mast/__pycache__ toolkit/__pycache__ __pycache__
 
 # The decoded-shot cache. It invalidates itself when the code that fills it changes — the key is a
 # hash of that code plus the source parquet's size and mtime — so this is for the case the hash

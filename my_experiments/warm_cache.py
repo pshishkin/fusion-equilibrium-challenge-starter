@@ -25,9 +25,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG
 from my_experiments.baseline_model import _read_task, sorted_shots
-from my_experiments.parallel import pimap, resolve_jobs
-from my_experiments.progress import SHOT_EVERY, bar_kwargs, install_timestamps
 from my_experiments.shot_cache import CACHE_DIR
+from toolkit.parallel import pimap, resolve_jobs
+from toolkit.progress import SHOT_EVERY, bar_kwargs, install_timestamps
 
 
 def main() -> int:

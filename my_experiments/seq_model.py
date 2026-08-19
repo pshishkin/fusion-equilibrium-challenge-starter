@@ -40,7 +40,7 @@ from my_experiments.models import (
     build_mlp,
     resolve_device,
 )
-from my_experiments.progress import bar_kwargs
+from toolkit.progress import bar_kwargs
 
 # A shot is at most 373 frames on this corpus. `predict` is documented to take its input as ONE
 # shot, and the one way to break that quietly is to hand it several concatenated — which would

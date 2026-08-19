@@ -48,9 +48,9 @@ from my_experiments.baseline_model import (  # noqa: E402
     take_share,
 )
 from my_experiments.models import load_params  # noqa: E402
-from my_experiments.parallel import pimap, resolve_jobs  # noqa: E402
-from my_experiments.progress import install_timestamps  # noqa: E402
 from my_experiments.target_metric import _jacobian_task, scorer_context  # noqa: E402
+from toolkit.parallel import pimap, resolve_jobs  # noqa: E402
+from toolkit.progress import install_timestamps  # noqa: E402
 
 COSTS = HERE.parent / "results" / "frame_costs.csv"
 OUT = HERE.parent / "results" / "frame_sens.csv"

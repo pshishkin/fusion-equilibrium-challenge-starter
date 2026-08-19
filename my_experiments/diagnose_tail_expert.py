@@ -61,7 +61,7 @@ from my_experiments.baseline_model import (  # noqa: E402
     coil_flux,
     sorted_shots,
 )
-from my_experiments.progress import install_timestamps  # noqa: E402
+from toolkit.progress import install_timestamps  # noqa: E402
 
 FloatArray = npt.NDArray[np.floating]
 

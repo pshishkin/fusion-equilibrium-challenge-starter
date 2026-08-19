@@ -50,7 +50,7 @@ from derive import _bilinear, _poloidal_field, derive_frame
 from lcfs import extract_lcfs
 
 from my_experiments.models import FloatArray
-from my_experiments.parallel import pimap, resolve_jobs
+from toolkit.parallel import pimap, resolve_jobs
 
 
 def _grad(components: FloatArray, grid_R: FloatArray, grid_Z: FloatArray) -> tuple[

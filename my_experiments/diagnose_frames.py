@@ -71,8 +71,13 @@ from my_experiments.baseline_model import (  # noqa: E402
     sorted_shots,
     take_share,
 )
-from my_experiments.parallel import resolve_jobs  # noqa: E402
-from my_experiments.progress import install_timestamps  # noqa: E402
+from toolkit.parallel import resolve_jobs  # noqa: E402
+from toolkit.progress import install_timestamps  # noqa: E402
+
+# This file is DIII-D's, like everything else in `my_experiments/`, so it names the machine
+# itself rather than borrowing a constant from the scorer — `local_score` now reads the
+# machine off the shots it is given, because hardcoding it there scored MAST on the wrong grid.
+D3D = "DIII-D"
 
 OUT = HERE.parent / "results" / "frame_costs.csv"
 
@@ -102,7 +107,7 @@ def _frame_task(args: tuple) -> dict[str, Any]:
         ref_c, need = contours[k], cmask[k]
         if ref_c is None and not need.any():
             continue
-        ex, _ = extract_lcfs_with_sign(psi_pred[k], R, Z, local_score.MACHINE, mask_coarse, mask_f,
+        ex, _ = extract_lcfs_with_sign(psi_pred[k], R, Z, D3D, mask_coarse, mask_f,
                                        n_iter=local_score.N_ITER, axis_sign=axis_sign)
         if ref_c is not None:
             if ex is None or not rgeo > 0:
@@ -111,7 +116,7 @@ def _frame_task(args: tuple) -> dict[str, Any]:
                 dist = symmetric_hausdorff(ex, np.asarray(ref_c, dtype=np.float64))
                 d[k] = min(1.0, dist / rgeo)
         if need.any():
-            vals = derive_frame(psi_pred[k], R, Z, local_score.MACHINE, mask_coarse, mask_f,
+            vals = derive_frame(psi_pred[k], R, Z, D3D, mask_coarse, mask_f,
                                 contour=ex, with_li=bool(need[LI]), axis_sign=axis_sign)
             for j in np.nonzero(need)[0].tolist():
                 v = vals[CONS_SCALARS[j]]
@@ -167,7 +172,7 @@ def main() -> int:
     mean_psi = float(psi_all[np.isfinite(psi_all)].mean())
     psi_sign = local_score.choose_psi_sign(shots, preds, mean_psi)
     print(f"  psi_sign = {psi_sign:+g}")
-    axis_sign = AXIS_SIGN[local_score.MACHINE] * psi_sign
+    axis_sign = AXIS_SIGN[D3D] * psi_sign
 
     out = local_score._map(
         _frame_task,

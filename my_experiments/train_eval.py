@@ -27,7 +27,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from my_experiments import evaluate, train
-from my_experiments.progress import install_timestamps
+from toolkit.progress import install_timestamps
 
 
 def main(argv: list[str]) -> int:

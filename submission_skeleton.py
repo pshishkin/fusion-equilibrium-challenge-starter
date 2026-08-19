@@ -93,12 +93,15 @@ def your_model_predict(row: dict, source: str, model: str | None = None) -> dict
 
     `model` picks one member of the trained zoo by name (params.yaml); None means the default,
     which is the ensemble. Submissions never pass it — only local_score.py --models does."""
-    # Delegate to the trained baseline if one has been saved. Only "there is no model yet" is
-    # swallowed — a bug inside the model must surface, not silently score as zeros.
+    # Delegate to `machines.py`, the one file that knows both challenges exist: DIII-D goes to the
+    # trained model in my_experiments/, MAST to the Grad-Shafranov solve in mast/. `source` is not
+    # passed on — the dispatcher reads the row's own `source` column, so a row can only ever be
+    # predicted by the module for the machine it actually came from. Only "there is no model yet"
+    # is swallowed here; a bug inside either predictor must surface, not silently score as zeros.
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from my_experiments.baseline_model import ENSEMBLE, predict_row
-        return predict_row(row, source, model if model is not None else ENSEMBLE)
+        from machines import predict_row
+        return predict_row(row, model)
     except (ImportError, FileNotFoundError) as exc:
         global _WARNED_NO_MODEL
         if not _WARNED_NO_MODEL:
@@ -143,30 +146,44 @@ def iter_dataset_rows(config: str, split: str, source: str,
         yield pd.read_parquet(path).iloc[0]
 
 
+def predict_one(args: tuple) -> dict:
+    """One shot, from its parquet path — the unit `--jobs` spreads over worker processes.
+
+    Takes a PATH rather than a row on purpose: a MAST row is a few megabytes and a DIII-D one is
+    over a hundred, so shipping rows through the pool would cost more in pickling than the solve
+    costs in arithmetic. Each worker reads its own file instead.
+    """
+    import pandas as pd
+
+    path, model = args
+    row: Any = pd.read_parquet(path).iloc[0]
+    out = your_model_predict(row, str(row.get("source", "DIII-D")), model)
+    return {"psirz": np.asarray(out["psirz"], dtype=np.float16),
+            **{name: np.asarray(out[name], dtype=np.float32) for name in SCALARS},
+            "T": len(np.asarray(row["efit_times"])),
+            "source": str(row.get("source", "DIII-D"))}
+
+
 def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
                      source: str = "hf",
                      local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR,
-                     model: str | None = None) -> Path:
+                     model: str | None = None, jobs: int = 0) -> Path:
     preds: dict[str, np.ndarray] = {}
     n = 0
-    for i, row in enumerate(iter_dataset_rows(config, split, source, local_data_dir)):
-        if max_shots and i >= max_shots:
-            break
-        source = row.get("source", "DIII-D")
-        T = len(np.asarray(row["efit_times"]))
-        H, W = GRID[source]
-        out = your_model_predict(row, source, model)
-
+    for i, out in enumerate(_predictions(config, split, source, local_data_dir, max_shots,
+                                         model, jobs)):
+        T, machine = out["T"], out["source"]
+        H, W = GRID[machine]
         assert out["psirz"].shape == (T, H, W), \
             f"{config} shot {i}: psirz {out['psirz'].shape} != {(T, H, W)}"
         # float16 keeps relative precision everywhere and costs ~0.1% of score; the scorer
         # upcasts on read. Do NOT instead round to a fixed number of decimals -- np.round(psi, 3)
         # leaves R2_psi at 0.99997 while destroying ~35% of the MAST Consistency term.
-        preds[f"shot_{i:04d}_psirz"] = out["psirz"].astype(np.float16)
+        preds[f"shot_{i:04d}_psirz"] = out["psirz"]
         for name in SCALARS:
-            arr = np.asarray(out[name])
+            arr = out[name]
             assert arr.shape == (T,), f"{config} shot {i}: {name} {arr.shape} != ({T},)"
-            preds[f"shot_{i:04d}_{name}"] = arr.astype(np.float32)
+            preds[f"shot_{i:04d}_{name}"] = arr
 
         n = i + 1
         if n % 25 == 0:
@@ -181,6 +198,39 @@ def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
     print(f"  {config}: {n} shots -> {out_path.name}  (e.g. shot_0000_psirz {psh}, "
           f"shot_0000_q95 {preds.get('shot_0000_q95', np.empty(0)).shape})")
     return out_path
+
+
+def _predictions(config: str, split: str, source: str, local_data_dir: Path, max_shots: int,
+                 model: str | None, jobs: int) -> Iterator[dict]:
+    """Predictions in shot order, serial or over a process pool.
+
+    Order is not cosmetic — the scorer matches `shot_XXXX_*` keys positionally against its own
+    reference — so the pool has to be order-preserving. `pimap` is (see toolkit/parallel.py).
+    """
+    if jobs and source != "local":
+        raise SystemExit("--jobs needs --source local: the pool reads each shot's parquet in its "
+                         "own worker, and the streaming path has no per-shot file to hand it")
+    if not jobs:
+        for i, row in enumerate(iter_dataset_rows(config, split, source, local_data_dir)):
+            if max_shots and i >= max_shots:
+                break
+            out = your_model_predict(row, str(row.get("source", "DIII-D")), model)
+            yield {"psirz": np.asarray(out["psirz"], dtype=np.float16),
+                   **{name: np.asarray(out[name], dtype=np.float32) for name in SCALARS},
+                   "T": len(np.asarray(row["efit_times"])),
+                   "source": str(row.get("source", "DIII-D"))}
+        return
+
+    from toolkit.parallel import pimap, resolve_jobs
+
+    files = sorted((Path(local_data_dir) / "data" / config).glob("*.parquet"))
+    if max_shots:
+        files = files[:max_shots]
+    if not files:
+        raise SystemExit(f"No parquet files in {Path(local_data_dir) / 'data' / config}")
+    n_jobs = resolve_jobs(jobs, len(files))
+    print(f"  {config}: {len(files)} local shots over {n_jobs} process(es)")
+    yield from pimap(predict_one, [(f, model) for f in files], n_jobs)
 
 
 def main() -> int:
@@ -211,6 +261,10 @@ def main() -> int:
                     help="'hf' streams the test inputs, 'local' reads a downloaded copy")
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
                     help="Root of the downloaded dataset (contains a 'data/' folder)")
+    ap.add_argument("--jobs", type=int, default=0,
+                    help="worker processes for prediction (needs --source local; 0 = serial). "
+                         "The MAST solve is ~0.7 s a frame and the split is 1206 shots, so this "
+                         "is the difference between 13 hours and half of one")
     ap.add_argument("--configs", nargs="+", choices=[c for c, _ in TEST_CONFIGS],
                     help="build only these configs (default: both). A DIII-D-only entry is valid "
                          "for Challenge 1 and scores G_ratio = 0 on Challenge 2.")
@@ -223,7 +277,8 @@ def main() -> int:
     written = []
     for config, split in configs:
         written.append(build_submission(config, split, args.out, args.max_shots,
-                                        args.source, args.local_data_dir, args.model).name)
+                                        args.source, args.local_data_dir, args.model,
+                                        args.jobs).name)
 
     # No manifest is written here: the scorer locates predictions by FILENAME, and on the
     # pointer route push_and_write_pointer() writes the real {repo_id, revision, token} one.

@@ -2,7 +2,7 @@
 """
 Timestamps and memory on every printed line, so a run profiles itself.
 
-    from my_experiments.progress import install_timestamps
+    from toolkit.progress import install_timestamps
     install_timestamps()
 
 Every line then carries where it is in the run, how long the step that produced it took, and how

@@ -63,8 +63,6 @@ from my_experiments.models import (
     load_params,
 )
 from my_experiments.monitor import build_monitor
-from my_experiments.parallel import pimap, release, resolve_jobs
-from my_experiments.progress import SHOT_EVERY, bar_kwargs
 from my_experiments.target_metric import (
     CONS_SCALARS,
     boundary_form,
@@ -73,6 +71,8 @@ from my_experiments.target_metric import (
     metric_form,
     scorer_context,
 )
+from toolkit.parallel import pimap, release, resolve_jobs
+from toolkit.progress import SHOT_EVERY, bar_kwargs
 
 HERE = Path(__file__).resolve().parent
 # Where a fit is written and read. Selectable by environment variable, the same way shot_cache
