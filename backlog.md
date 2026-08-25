@@ -32,6 +32,18 @@ moves it, and the reason is written in its row.
 
 ## Open, ranked
 
+**PRIORITY, set by the user 2026-08-25: the three `aux` variations come first.** They are the only
+entries aimed at where the TEST SET says the loss is — `li` at R2 0.960156 and `kappa` at 0.965434,
+together 6.6x the gap to first place. Everything else on this list is a general-purpose knob acting
+on all seven scalars alike, and nine of those measured zero this week.
+
+    1   aux                       extra output dimensions; gradient may bypass the coefficients
+    1b  aux-surrogate-frozen      g on top of the PCA outputs, pre-fitted and fixed
+    1c  aux-surrogate-trained     the same, g learning alongside the model
+
+Run the free gradient-fidelity gate before writing any training code for 1b/1c: it can close both.
+
+
 ### 0. `resolution` — the instrument is the bottleneck, so it is the first thing to fix
 **Everything left to test is small. That makes resolution not a detail of the method but the
 binding constraint on the whole search**, and it outranks every hypothesis below because it decides
@@ -164,6 +176,78 @@ stays within 0.0003 of where it is.*
 
 ### 2. ~~`one-vs-four`~~ — **REFUTED: −0.00106, SE 0.00012, 0/6 signs.** One net with ema+huber is decisively WORSE than four seeds. The ensemble gives something neither mechanism does: independent initialisation error, which weight averaging inside one trajectory cannot touch.
 
+### 1b. ~~`aux-surrogate`~~ — **BOTH ARMS CLOSED 2026-08-25 by the free gradient gate.** kappa correlation 0.610 against a required 0.90, and WORSE than the linearisation's 0.732 — while the surrogate's training loss was 0.00001, i.e. it fits the values almost exactly and still gets the direction wrong. That is precisely what L3's "gate on gradient fidelity, not value R2" was written to catch. Post-hoc only: on `li` the surrogate is better (0.780 vs 0.598), the second time kappa and li have split.
+
+<details><summary>the original entry</summary>
+
+### `aux-surrogate` — the aux loss read THROUGH the PCA coefficients. User's design, 2026-08-25
+**A separate arm from `aux`, deliberately, because it fixes a specific hole in it and the contrast
+between the two is the measurement.**
+
+**The hole.** In plain `aux` the auxiliary scalars are extra dimensions of the SAME output layer, each
+with its own row of weights. The gradient pressures the shared trunk, but nothing forces it through
+the PCA coefficients: the net can satisfy kappa and li using trunk features that never enter the
+coefficient rows. At inference only the coefficients are read, so that route improves nothing.
+**And this failure mode is measured, not hypothetical** — D1 fitted a head to the seven functionals
+and it knew kappa **+0.0119** better than the map did, then died at the transport step, "and the
+transport would realise about half of that".
+
+**The design.** Put a small net `g` (two layers) ON TOP of the 50 predicted coefficients, predicting
+kappa and li, and add its error as a small extra loss. Now the ONLY path from the aux gradient to a
+lower loss runs through the coefficients themselves. That is the mechanism I wrongly attributed to
+plain `aux` when the user asked how it works.
+
+**L3's gate applies and it is the sharp part — FREE, before any training.** The surrogate is consumed
+at PREDICTED coefficients, which sit off the manifold of true equilibria, so fitting it on true
+coefficients and checking value R2 measures the wrong thing:
+
+> "Fit `g` on coefficients PERTURBED around the truth at the model's own error scale… compare
+> predicted-vs-actual change of each functional along the real error direction `dc = c_pred - c_true`,
+> `g`'s autograd Jacobian against the fixed M's. **Proceed only if kappa's correlation exceeds 0.90**
+> (against the linearisation's 0.77) and both triangularities exceed 0.75 (against 0.45/0.46)."
+
+**Gate on GRADIENT fidelity, not on value accuracy.** A surrogate that predicts kappa well but whose
+derivative points the wrong way teaches the model to move the wrong direction, and value R2 cannot
+see that.
+
+**TWO ARMS, frozen and jointly trained — the user asked for both, and both have a real argument.**
+
+`aux-surrogate-frozen`: `g` is pre-fitted on coefficients perturbed around the truth, then held
+fixed. It is then a fixed differentiable approximation of the true functional restricted to the PCA
+subspace, and its Jacobian says which coefficient directions matter FOR KAPPA specifically — exactly
+what the Jacobian target metric cannot express, since that weights directions by flux geometry
+rather than by their effect on one scalar.
+
+`aux-surrogate-trained`: `g` learns alongside the model. **The argument for it is one I missed first
+time and it is not weak.** The frozen surrogate is calibrated at the model's error scale AT FITTING
+TIME, and that scale SHRINKS as training proceeds — so by the end the frozen `g` is tuned for a worse
+model than the one it is teaching, and its gradient is least apt exactly where the predictions have
+moved to. A trained `g` follows them.
+
+**The risk on the trained side, stated so it can be checked rather than argued:** `g` and the model
+can co-adapt. `g` learns to read kappa off whatever the coefficients happen to be, compensating for
+the model's errors, and the auxiliary loss falls while the map does not improve at all. **Mitigation
+if it is run: train `g` on BOTH true coefficients (with true kappa) and predicted ones, so it cannot
+drift away from the true functional while tracking where the model lives.**
+
+**PREDICTION, recorded before either runs: frozen wins, or they tie.** The co-adaptation failure is
+the same shape as D1's transport failure, which is measured; the shrinking-error-scale argument is
+an inference. **What would refute me:** `aux-surrogate-trained` beating frozen on the production
+gate. **The diagnostic that separates the two explanations** costs nothing extra — read `g`'s own
+auxiliary loss beside the map-derived `R2_cons`. If the trained arm's aux loss falls much further
+than frozen's while its `R2_cons` does not follow, that is co-adaptation, named in advance.
+
+**Honest counterweight, from L3's own entry.** Centre +0.0002, because `calibrate_scalars` already
+corrects the linearisation's known per-scalar errors and measured exactly flat, and this fork's
+recorded conclusion is that what matters is the relative weighting of directions in aggregate rather
+than per-frame fidelity. Unpriced cost: a nonlinear loss term is MLP/GRU-only, where the current
+loss is a linear map on targets shared by ridge too — so the ensemble would mix two objectives.
+
+**Same production gate as `aux`:** 12 pairs, t >= 2 and >= 9/12 signs, AND the map-derived
+`R2_cons` for kappa and li must move — not the surrogate's own error, which is not what is scored.
+
+</details>
+
 ### 2b. `one-vs-four`, the original entry — replace the four-seed ensemble with ONE net carrying ema + huber
 **The user's proposal, and the converse of tonight's two zeros.** `ema` and `huber` both measured
 exactly zero in production *because* the four-seed ensemble had already taken their gain. If that is
@@ -224,7 +308,7 @@ precondition is met and the re-run has never happened, so the whole "capacity is
 conclusion — which demoted every "make it bigger" idea in the file — rests on a grid its author
 asked to be redone.
 
-### 2f. `seq-weight` — the ensemble weights were set for a `seq` that has since improved. FREE.
+### 2f. `seq-weight` — **NOT ESTABLISHED 2026-08-25: two artifacts, opposite answers** (+0.000174 on `lanes/a`, −0.000039 on `lanes/c`). The optimum is a property of the fit, not of the design. Confounded — `a` has cosine and `c` does not, and they are different salts — so a third sweep is needed to separate them, not an argument.
 **Currently every member carries 1.0**, so `seq` gets exactly 20%. Those weights were fixed before
 `seq` gained its cosine schedule (+0.00010 confirmed, t = 5.1), and nothing has revisited them since.
 
@@ -297,7 +381,46 @@ Found 2026-08-21 in passing: in block 0 of the clean tail, `mlp2` scores **0.977
 other three seeds score 0.9825–0.9881 and every other block has all four at 0.990+. Free to chase —
 find the shot, then check whether it is the same one the tail-expert diagnostics keep landing on.
 
-### 8. `aux` — auxiliary supervision on kappa and li
+### 1. `aux` — teach `kappa` and `li` directly. PROMOTED FROM 8 ON TEST-SET EVIDENCE, 2026-08-25
+**The leaderboard breakdown moved this from the bottom of the list to the top, and the evidence is
+external rather than argued.** `li` sits at R2 0.960156 and `kappa` at 0.965434 on the TEST set —
+together **0.002126 of unclaimed S, 6.6x the 0.00032 gap to first place**, and 51% of everything
+Consistency is missing. Meanwhile R2_psi is 0.999832 of a measured 1.0000 ceiling: the map is
+finished and every remaining point is in scalars derived FROM it.
+
+**Why it is not redundant with the Jacobian metric, which is the argument that demoted it.** The
+entry was ranked down because "the loss already up-weights the geometry directions 1434x". That is
+true and it is the wrong object. The metric knows which DIRECTIONS in flux space matter — components
+20-49, collectively. It cannot express that two of the seven SCALARS the scorer reads carry two
+thirds of the loss, because it never sees those scalars. An auxiliary target does exactly that.
+
+**Why the fit is what is failing, not the representation — C2, 2026-08-15, unused until now.** "Of
+the 0.0055 remaining, 0.0045 is reachable by FITTING and 0.0010 is the basis… the basis can produce
+those scalars to 0.99+; the fit does not." `kappa`'s basis ceiling is 0.9908 against 0.9654 achieved:
+0.025 of its R2 is lost to fitting alone.
+
+**PRE-REGISTERED, before any of it runs:**
+
+    arm 1   loss.aux_scalars=kappa,li   loss.aux_weight=0.1     (the entry as written)
+    control the same base, aux off
+
+- **Gate:** production pairs, 12 salts. Accept at t >= 2 AND >= 9/12 signs, on `S`.
+- **The mechanism must move its named scalar.** C10's lesson: if `S` twitches but kappa's and li's
+  own R2_cons do not, the arm is not doing what it claims and does not ship. Read `--terms` and the
+  per-scalar block, not just the composite.
+- **Refuted if** kappa and li move less than +0.005 of R2 each — that is 0.00014 of S apiece, below
+  what 12 pairs resolve, so a smaller move cannot be acted on anyway.
+- **If it pays, sweep `aux_weight` SECOND, never first.** A weight sweep before the mechanism is
+  established is the λ mistake: eleven points, a pretty curve, and −0.00015 out of sample.
+
+**Honest counterweight:** `aux` measured FLAT once already. But that was at the old resolution,
+where the gate was 0.00065 and the effect being sought is 0.0003 — the same "indistinguishable
+recorded as zero" class this whole `recheck` section exists for.
+
+**Cost:** the per-frame targets are ~31 ms a frame, about 13 core-hours per training split, cached
+by the exact file list. Caches for salts 0-5 built 2026-08-25 on cores the GPU lane leaves idle.
+
+### 8. ~~`aux`~~ — the original entry, superseded by position 1 above
 **Re-priced DOWN 2026-08-20 and kept only for honesty.** The loss already up-weights the geometry
 directions **1434×** (components 20–49 hold 0.021% of the flux variance and take 30% of the loss),
 which is most of what `aux` would say. An auxiliary task also regularises, so it is not refuted —

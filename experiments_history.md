@@ -2645,3 +2645,54 @@ It was ranked down because "the loss already up-weights the geometry directions 
 the Jacobian metric knows which DIRECTIONS in flux space matter, components 20-49 collectively. It
 does not know that of the seven SCALARS the score reads, two carry two thirds of the loss. Teaching
 `li` and `kappa` as auxiliary outputs targets exactly the thing the metric weighting cannot express.
+
+## The surrogate gate CLOSED both arms — and it is why the gate was written that way — 2026-08-25
+
+`aux-surrogate` would put a small net `g(c) -> (kappa, li)` on top of the predicted PCA coefficients,
+so the auxiliary gradient could only reach a lower loss THROUGH them. L3 pre-registered the gate:
+fit `g` on coefficients perturbed at the model's own error scale, then judge it on held-out frames by
+how well it predicts the ACTUAL change of the functional along the real error direction
+`dc = c_pred - c_true`. **Proceed only if kappa's correlation exceeds 0.90.**
+
+Measured on 1183 frames from 6 clean-tail shots of `lanes/a`, half fitted and half held out:
+
+| method | kappa | li |
+|---|---|---|
+| linear (what the loss effectively does) | **0.732** | 0.598 |
+| surrogate | **0.610** | 0.780 |
+| constant (control) | nan | 0.000 |
+
+**0.610 against a required 0.90. Both arms close, and no training code was written.**
+
+**The reason this gate exists is in its own numbers.** The surrogate reached a training loss of
+**0.00001** on standardised targets — it predicts the VALUES almost exactly — and its GRADIENT on
+kappa is still worse than the linearisation's. A gate on value R2 would have passed it brilliantly
+and sent two arms to production to teach the model the wrong direction, invisibly. L3 wrote "gate on
+gradient fidelity, not value R2" before any of this ran, and that sentence saved the days.
+
+**One post-hoc observation, labelled as such rather than used to move the goalposts.** On `li` the
+surrogate is the BETTER of the two, 0.780 against 0.598, while on kappa it is worse. The
+pre-registered threshold was on kappa and it failed, so the arms are closed. But the asymmetry is
+real and it is the second time these two scalars have split: D1 measured kappa **+0.0119** and li
+**−0.0047** from the same head. Whatever helps one appears to hurt the other, and any future entry
+aimed at "kappa and li" should expect to be two entries.
+
+## `seq-weight` is NOT established — two artifacts, opposite answers — 2026-08-25
+
+The first sweep looked like a free find: both halves of one artifact's clean tail agreed that `seq`
+deserves MORE than its shipped 1/5, and the two-column cross-validation that killed the lambda sweep
+returned **+0.000174** out of sample. A second artifact says otherwise:
+
+| artifact | salt | seq config | mean out-of-sample gain |
+|---|---|---|---|
+| `lanes/a` | 5 | cosine | **+0.000174** |
+| `lanes/c` | 8 | stock | **−0.000039** |
+
+**The optimal weight is a property of the fit, not of the ensemble design**, at least across these
+two. Nothing ships on this.
+
+**A confound that must not be resolved by assertion:** the two differ in BOTH salt and configuration
+— `a` carries the confirmed cosine and `c` does not. "A better `seq` deserves more weight" is a
+coherent story and it is not evidence. Separating them needs a third sweep on an artifact with
+cosine at a different salt (`lanes/e`, salt 4) and one without at the same salt as `a`
+(`lanes/j`, salt 5, jac and no cosine).

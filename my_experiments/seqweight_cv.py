@@ -31,7 +31,11 @@ from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG
 from my_experiments.baseline_model import sorted_shots, take_share
 
 # seq weight w against four MLPs at 1.0 each; w=1.0 is what ships (seq = 1/5 of the blend).
-GRID = [0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0]
+# Extended 2026-08-25: the first sweep put half 0's optimum AT THE EDGE (4.0) while half 1 peaked
+# interior at 2.0. An optimum on the boundary is not an optimum — it is the grid running out — so
+# the range now goes to 12 to find where it actually turns over. 0.0 stays as the control that says
+# what `seq` is worth at all.
+GRID = [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0]
 
 
 def spec(w: float) -> str:
@@ -66,6 +70,12 @@ def main() -> int:
     art = joblib.load(a.artifact)
     salt = int(art.get("split_salt", 0))
     seen = set(art.get("train_files", ())) | set(art.get("val_files", ()))
+    if "seq" not in art["models"]:
+        raise SystemExit(
+            f"{a.artifact} holds {sorted(art['models'])} and no `seq` — a seq-weight sweep on an "
+            f"artifact without seq fails one rescore at a time, 40 minutes in. Pick a fit that has "
+            f"it: artefacts/lanes/*.joblib were fitted with --only ridge mlp mlp1 mlp2 mlp3 seq."
+        )
     tail = take_share(sorted_shots(a.local_data_dir, a.config, salt), a.share, "tail")
     if [p for p in tail if p.name in seen]:
         raise SystemExit("tail overlaps the fit — a score on those shots means nothing")
