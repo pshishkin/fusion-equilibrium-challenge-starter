@@ -19,7 +19,9 @@ before adding code under `my_experiments/`.
 | `machines.py` | The only file that knows both challenges exist: four dispatch functions on a row's `source`. |
 | `toolkit/` | The process pool and the progress bar: what both challenges need and neither owns. It used to live under `my_experiments/`, which made the two top-level files that serve BOTH machines reach into Challenge 1's package for it. |
 | `my_experiments/diagnose_budget.py` | What every term of S is worth if it were solved outright — the arithmetic that closed li and every other single-scalar idea. |
-| `experiments_history.md`, `ideas.md` | Every experiment with its number and verdict; and the ideas nobody has measured yet. |
+| `experiments_history.md`, `ideas.md` | DIII-D: every experiment with its number and verdict; and the ideas nobody has measured yet. |
+| `experiments_mast.md`, `ideas_mast.md` | MAST: the same pair, split by machine because results do not cross between them. |
+| `mast/span.py` | MAST: the per-frame flux-span target, and the fix that unfroze the profile. |
 | `Makefile` | `make ci` = ruff + mypy + the standard metric run. |
 | `--source local` | Added to `local_score.py`, `submission_skeleton.py`, `validate_submission.py` — read a downloaded copy of the dataset instead of streaming the Hub. `experiments.py` already had it. |
 | `--models` | On `local_score.py` and `evaluate.py`, to score several members of the zoo on one pass over the ground truth. |
@@ -32,6 +34,29 @@ before adding code under `my_experiments/`.
 before it. Local production score on salt 0 is 0.9950; the local-minus-board offset has read
 0.0018 / 0.0013 / 0.0012 over three submissions, so it is a stable constant rather than a widening
 gap, and salt 0 plus that offset predicts the board to about a thousandth.
+
+**What the 2026-08-20 programme settled.** Six 16-salt arms, a paired production confirmation and
+about twenty-five rescoring measurements, all in
+[experiments_history.md](experiments_history.md). The short version:
+
+* **Nothing shipped.** `ema` (weight averaging) was accepted on the quality screen at +0.00101 with
+  16 signs of 16 and t = 7.2, then measured at **zero** on the production ensemble (−0.00002 over
+  four pairs). `jac`, `bnd` and the whole `ema_decay` sweep were refuted.
+* **The screen mis-measures a whole class of change.** It fits ONE net, so anything that works by
+  removing seed noise looks large there and vanishes once four seeds are averaged. Not "seven times
+  too large" — all of it. Changes that alter what every model does (a loss, a stopping rule, a
+  feature) are not discounted this way; that distinction was written down before the data arrived.
+* **Ensembling is exhausted, from five directions.** Seed averaging floors at 56% of one member's
+  squared error and four seeds have taken three quarters of the removable part; feature sets
+  decorrelate LESS than seeds (0.75 against 0.56) and floor at 75%; fitted ensemble weights
+  cross-validate NEGATIVE; a fourth member of the same kind is worth +0.0002 and a perfectly
+  independent one +0.0013.
+* **What is left is an information limit.** The map is finished as pixels (R²ψ 0.9998 of a 1.0000
+  ceiling). The seven functionals live in basis components 20–50, which carry 0.02% of the flux
+  variance, already receive **30% of the loss weight** (the Jacobian metric up-weights them 1434x),
+  and are still predicted at R² 0.43–0.93 — with 66% of the residual shared by every seed. The 21
+  instantaneous signals plus their derivatives and integrals do not determine the fine structure of
+  the boundary.
 
 **Challenge 1 has 0.0056 of S left in it, and every single line item is below what a run can
 measure.** `uv run python my_experiments/diagnose_budget.py` converts the cost shares into what a

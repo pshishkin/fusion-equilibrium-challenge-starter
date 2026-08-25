@@ -12,9 +12,18 @@ issue quoting our code.
 
 ## Git: never commit or push unasked
 
-`git commit` and `git push` run only when the current message explicitly asks for them. Consent
-does not carry over from a previous one: "let's do X" or "fix Y" authorizes editing the files, not
-committing them. When the work is done, leave the tree dirty, say what is ready, and ask.
+**`git commit` runs autonomously — standing authorisation given 2026-08-25.** Commit in coherent
+units, with a message that says what was measured or fixed and why; the log reads as a record of
+findings, not of file edits.
+
+**`git push` is still a separate act and needs the current message to ask for it.** The fork is
+PUBLIC. Before every commit, run `git grep -lE "hf_[A-Za-z]{30,}"` over tracked files: `.env` holds
+the HF token and `submissions/` holds pointer zips whose `manifest.json` carries the read token, and
+both must stay gitignored.
+
+**Fitted artifacts and derived caches never go in.** `artefacts/*` and `.aux_targets/` are 14 MB and
+up per file and every one is reproducible from `params.yaml` plus a salt. Note that some were
+tracked before this rule existed, and `.gitignore` does not apply to a file already tracked.
 
 Pushing is outward-facing — it lands on a public fork that the organizers may read — so it is the
 author's call, not the assistant's.
@@ -120,8 +129,33 @@ of 200 shots" is.
 |---|---|
 | [README.md](README.md) | what the fork **is** — the workflow, the current numbers, the data traps, what is and is not implemented |
 | [AGENTS.md](AGENTS.md) | what the rules **are** — conventions, and only conventions |
-| [experiments_history.md](experiments_history.md) | what we **learned** — one line per experiment, dated, with its number and a verdict |
-| [ideas.md](ideas.md) | what nobody has measured yet — dated, and explicitly not claims |
+| [experiments_history.md](experiments_history.md) | DIII-D: what we **learned** — one line per experiment, dated, with its number and a verdict |
+| [ideas.md](ideas.md) | DIII-D: what nobody has measured yet — dated, and explicitly not claims |
+
+**Sweeps can run two at a time, and the docstring that says otherwise is only half right.**
+`sweep.py` refuses concurrency because "every run writes the same `my_experiments/baseline.joblib`"
+— true, and the way round it is one line: it passes `{**os.environ, **ENV_CAPS}` to the subprocess,
+so `FUSION_ARTIFACT=<some other path> make sweep ...` gives the second lane its own artifact. What
+actually bounds it is memory, and the number to read is the cgroup's, not `free`'s:
+
+    cat /sys/fs/cgroup/memory/memory.limit_in_bytes   # 183 GB (cgroup v1 — the v2 path is absent)
+    cat /sys/fs/cgroup/memory/memory.usage_in_bytes   # includes parquet page cache, not just RSS
+
+`free` reports the HOST's 251 GB, shared with another tenant, so it cannot tell you your own usage.
+
+Two lanes fit comfortably. What does NOT fit is the wreckage of killed ones: `kill <lane script>`
+leaves every worker pool its children spawned reparented to init, holding memory and pids for good.
+On 2026-08-20 eight queue restructures leaked **734 workers holding 145 GB and 7000 of the 7680
+pids**; nine runs died rc=137 and two live sweeps then wedged for 41 minutes on
+`SemLock._rebuild → FileNotFoundError`, which is what pid exhaustion looks like. Clearing them took
+the cgroup from 150 GB to 2 GB.
+
+**Kill process groups, not scripts** — `setsid` at launch, `kill -- -<pgid>` to stop — and check
+`ps -eL --no-headers | wc -l` against `/sys/fs/cgroup/pids/pids.max` before blaming memory. Anything that edits the training
+path — `models.py`, `baseline_model.py` — must NOT be touched while a lane is queued: every sweep
+entry re-imports it, so a bad edit lands in every remaining arm.
+| [experiments_mast.md](experiments_mast.md) | MAST: the same record, kept separate because the two machines share almost no result |
+| [ideas_mast.md](ideas_mast.md) | MAST: the same idea list, ranked against Challenge 2's own arithmetic |
 
 An idea starts in `ideas.md`. When it is measured it moves to the history file with a number
 attached, whichever way the number went. **Hypotheses that did not survive stay recorded**, so they

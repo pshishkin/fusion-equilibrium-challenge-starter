@@ -1,5 +1,6 @@
 # CLAUDE.md
 
+What to run next is in [backlog.md](backlog.md): one sorted list, entries keyed by slug.
 Project documentation is in [README.md](README.md): data layout, the train → score → submit
 workflow, and the traps already walked into. Coding conventions are in [AGENTS.md](AGENTS.md),
 starting with English-only artifacts and the fail-fast rule. The organizers' original guide is

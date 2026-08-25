@@ -157,7 +157,23 @@ eval:
 # MODEL= picks which member of the zoo is submitted; without it the artifact's own ensemble goes.
 # `MODEL="salts:a+b"` averages the decoded maps of several artifacts, which is how an ensemble
 # across feature sets is sent — the members are baseline_<name>.joblib beside FUSION_ARTIFACT.
+# FUSION_ARTIFACT defaults to my_experiments/baseline.joblib, which EVERY training run and every
+# sweep entry overwrites — so a submission built without setting it ships whatever experiment
+# finished last. That happened on 2026-08-19: a sweep left a single-MLP fit there and two
+# submissions carried it, and Challenge 1 went 0.9938 -> 0.8316 on the board. The guard below
+# refuses to build unless FUSION_ARTIFACT is set explicitly. To send the production entry:
+#
+#   FUSION_ARTIFACT=artefacts/candidate/baseline_prod.joblib \
+#     make predict_and_submit_to_hf MODEL="salts:prod+vesseld+vesselp"
 predict_and_submit_to_hf:
+	@test -n "$$FUSION_ARTIFACT" || { \
+		echo "FUSION_ARTIFACT is unset, so this would ship my_experiments/baseline.joblib —"; \
+		echo "whatever the last training run or sweep entry left there, NOT the production fit."; \
+		echo "This exact mistake cost Challenge 1 0.9938 -> 0.8316 on 2026-08-19."; \
+		echo "Set it explicitly, e.g.:"; \
+		echo "  FUSION_ARTIFACT=artefacts/candidate/baseline_prod.joblib \\"; \
+		echo "    make predict_and_submit_to_hf MODEL=\"salts:prod+vesseld+vesselp\""; \
+		exit 2; }
 	@test -z "$$HF_TOKEN" || { \
 		echo "HF_TOKEN is in the environment. huggingface_hub prefers it over the token from"; \
 		echo "'hf auth login', so a read-only one shadows your write login and the upload fails"; \

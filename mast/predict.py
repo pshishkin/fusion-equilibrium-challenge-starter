@@ -19,6 +19,7 @@ buys and what it risks.
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 from functools import lru_cache
 from typing import Any
 
@@ -26,7 +27,9 @@ import numpy as np
 import numpy.typing as npt
 from threadpoolctl import threadpool_limits
 
+from mast import scalar_model
 from mast import shot as shot_mod
+from mast import span as span_mod
 from mast.calibration import CALIBRATION, SHIPPED, Calibration
 from solver import scalars
 from solver.greens import CoilBasis, build_basis
@@ -102,8 +105,51 @@ def _gain_vector(columns: tuple, cal: Calibration) -> FloatArray:
     return np.array(out, dtype=np.float64)
 
 
-def solve_shot(row: Any, cal: Calibration = CALIBRATION) -> tuple[shot_mod.Shot, Operator,
-                                                                  list[Solved]]:
+def _solve_frame(psi_coil: FloatArray, s: shot_mod.Shot, op: Operator, cal: Calibration,
+                 k: int, want_span: float | None) -> Solved:
+    """One frame, with the profile peaking chosen so the flux span lands where `span.py` says.
+
+    A fixed `gamma` freezes `psi_axis - psi_bnd` while the real discharge grows it 2.4x, which is
+    the root cause of every anti-correlated geometric scalar -- see `mast/span.py`. The span rises
+    monotonically with gamma (0.039 at 0.30 to 0.215 at 3.0 on shot 28348), so a bisection in log
+    space finds it without needing the relation's form.
+
+    Raising `gamma` costs `GAMMA_STEPS` solves a frame instead of one. Measured, the frame goes
+    from 63 ms to ~440 ms, and the 1206-shot split from 12 minutes to about 80 on 28 processes.
+    """
+    def attempt(gamma: float) -> Solved:
+        return solve(psi_coil, float(s.ip[k]), op,
+                     profile=(cal.profile if want_span is None
+                              else replace(cal.profile, gamma=gamma)),
+                     n_iter=cal.n_iter, relax=cal.relax,
+                     thomson=(s.ts_R, s.ts_te[k], s.ts_ne[k], PSI_N_NODES))
+
+    if want_span is None:
+        return attempt(cal.profile.gamma)
+    lo, hi = span_mod.GAMMA_LO, span_mod.GAMMA_HI
+    best: Solved | None = None
+    for _ in range(span_mod.GAMMA_STEPS):
+        gamma = float(np.sqrt(lo * hi))
+        try:
+            got = attempt(gamma)
+        except ValueError:
+            # A gamma this peaked found no closed surface; the plasma is only ever smaller above
+            # here, so the bracket collapses downward rather than the frame failing.
+            hi = gamma
+            continue
+        best = got
+        if (got.psi_axis - got.psi_bnd) < want_span:
+            lo = gamma
+        else:
+            hi = gamma
+    if best is None:
+        raise ValueError("no gamma in the bracket produced a closed surface")
+    return best
+
+
+def solve_shot(row: Any, cal: Calibration = CALIBRATION,
+               per_frame_profile: bool = True) -> tuple[shot_mod.Shot, Operator,
+                                                        list[Solved]]:
     """The shot's inputs, its grid operator, and the converged equilibrium of every frame.
 
     **Pinned to one BLAS thread, and it is worth 11x.** Every array here is 65x65 — a sparse
@@ -117,14 +163,15 @@ def solve_shot(row: Any, cal: Calibration = CALIBRATION) -> tuple[shot_mod.Shot,
     s = shot_mod.read(row, basis.columns)
     op = operator(MAST, basis.grid_R, basis.grid_Z)
     psi_coil = basis.flux(s.currents * _gain_vector(tuple(basis.columns), cal)[None, :])
+    want = (span_mod.target(np.asarray(s.currents)[:, basis.columns.index(
+        span_mod.SOL_COLUMN)], s.ip) if per_frame_profile else None)
     with threadpool_limits(limits=1):
         solved = []
         failed = []
         for k in range(len(s.times)):
             try:
-                solved.append(solve(psi_coil[k], float(s.ip[k]), op, profile=cal.profile,
-                                    n_iter=cal.n_iter, relax=cal.relax,
-                                    thomson=(s.ts_R, s.ts_te[k], s.ts_ne[k], PSI_N_NODES)))
+                solved.append(_solve_frame(psi_coil[k], s, op, cal, k,
+                                           None if want is None else float(want[k])))
             except ValueError:
                 solved.append(_no_plasma(psi_coil[k], op))
                 failed.append(k)
@@ -162,20 +209,39 @@ def predict_row(row: Any, cals: tuple[Calibration, ...] = SHIPPED) -> dict:
     so their intermediate quantities mean different things. Challenge 1 learned the same lesson
     averaging across feature sets — see `artefacts/candidate/README.md`.
     """
-    maps, q95, beta = [], [], []
+    maps, members = [], []
+    shot = op = None
     for cal in cals:
         s, op, solved = solve_shot(row, cal)
         psi = np.stack([g.psi for g in solved])
         if not np.isfinite(psi).all():
             raise ValueError(f"the solve returned {int((~np.isfinite(psi)).sum())} non-finite "
                              f"cells")
-        q, b = value_scalars(s, op, solved, cal)
         maps.append(psi)
-        q95.append(q)
-        beta.append(b)
-    return {"psirz": np.mean(maps, axis=0),
-            "q95": np.mean(q95, axis=0),
-            "betaN": np.mean(beta, axis=0)}
+        members.append(solved)
+        shot = s
+    assert shot is not None and op is not None
+    mean_psi = np.mean(maps, axis=0)
+    # The scalars are read off the SAME map that ships, not averaged across members. Their model
+    # takes volume and minor radius from the flux contour, so a scalar computed per member and
+    # then averaged would describe three equilibria none of which is the one being submitted.
+    q95 = np.full(mean_psi.shape[0], scalar_model.Q95_FALLBACK, dtype=np.float64)
+    beta = np.full(mean_psi.shape[0], scalar_model.BETA_N_FALLBACK, dtype=np.float64)
+    for k in range(mean_psi.shape[0]):
+        ref = members[0][k]
+        avg = Solved(psi=mean_psi[k],
+                     psi_axis=float(np.mean([m[k].psi_axis for m in members])),
+                     psi_bnd=float(np.mean([m[k].psi_bnd for m in members])),
+                     r_axis=float(np.mean([m[k].r_axis for m in members])),
+                     z_axis=float(np.mean([m[k].z_axis for m in members])),
+                     inside=ref.inside, j_phi=ref.j_phi, iterations=0, moved=0.0)
+        q_k, b_k = scalar_model.scalars_from(mean_psi[k], op, avg, float(shot.ip[k]),
+                                            float(shot.tf[k]))
+        if np.isfinite(q_k):
+            q95[k] = q_k
+        if np.isfinite(b_k):
+            beta[k] = b_k
+    return {"psirz": mean_psi, "q95": q95, "betaN": beta}
 
 
 def value_scalars(s: shot_mod.Shot, op: Operator, solved: list[Solved],

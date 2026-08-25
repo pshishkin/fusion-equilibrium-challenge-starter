@@ -1,0 +1,114 @@
+[
+  {
+    "name": "y_d99995_s0",
+    "salt": 0,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s1",
+    "salt": 1,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s2",
+    "salt": 2,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s3",
+    "salt": 3,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s4",
+    "salt": 4,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s5",
+    "salt": 5,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s6",
+    "salt": 6,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s7",
+    "salt": 7,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s8",
+    "salt": 8,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s9",
+    "salt": 9,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s10",
+    "salt": 10,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s11",
+    "salt": 11,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s12",
+    "salt": 12,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s13",
+    "salt": 13,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s14",
+    "salt": 14,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  },
+  {
+    "name": "y_d99995_s15",
+    "salt": 15,
+    "sets": [
+      "models.mlp.ema_decay=0.99995"
+    ]
+  }
+]

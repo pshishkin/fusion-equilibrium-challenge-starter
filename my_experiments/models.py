@@ -555,6 +555,15 @@ class TorchMLPModel(TargetModel):
     # ones; Huber keeps the quadratic centre and bounds the tail.
     loss: str
     huber_delta: float
+    # Up-weight the first and last `frame_ends_edge` of every shot by `1 + frame_ends_strength`,
+    # mean-normalised; 0.0 is off. Measured motivation: the two ends carry 39.1% of the geometry
+    # cost over 20.4% of the frames (density 2.35x at the tail, 1.48x at the head), and C7 says that
+    # is coefficient error rather than metric sensitivity, so weighting them fits signal.
+    # NO DEFAULT, deliberately: a defaulted field here sits before `grad_clip`, which has none, and
+    # dataclasses reject that ordering. Adding one broke every fit in the fork for eleven minutes
+    # on 2026-08-21. Fields in this class are required and params.yaml supplies them.
+    frame_ends_strength: float
+    frame_ends_edge: float
     # Rescale the gradient when its norm exceeds this; 0.0 is off. Measured 2026-08-15: at the
     # production shares and the rate tuned for a twenty-fifth of them, 15 of 28 fits BLEW UP —
     # training loss to 67.9 against unit-variance targets — and then recovered into a different
@@ -695,8 +704,25 @@ class TorchMLPModel(TargetModel):
         if self.loss not in LOSSES:
             raise ValueError(f"torch_mlp(seed={self.seed}): unknown loss {self.loss!r}; "
                              f"known {sorted(LOSSES)}")
-        loss_fn = (torch.nn.MSELoss() if self.loss == "mse"
-                   else torch.nn.HuberLoss(delta=self.huber_delta))
+        # `reduction="none"` so a per-frame weight can multiply the per-frame loss. With the
+        # weight off this is arithmetically identical to the reduced form — mean of means over a
+        # fixed batch shape — so the default path is unchanged.
+        loss_fn = (torch.nn.MSELoss(reduction="none") if self.loss == "mse"
+                   else torch.nn.HuberLoss(delta=self.huber_delta, reduction="none"))
+        w_t = None
+        if self.frame_ends_strength:
+            if shots is None:
+                raise ValueError(
+                    f"torch_mlp(seed={self.seed}): frame_ends_strength is "
+                    f"{self.frame_ends_strength} but the caller passed no shot boundaries, so "
+                    f"there is no position within a shot to weight by. Pass `shots`."
+                )
+            from my_experiments.frame_weight import ends_weight
+            w = ends_weight(shots, self.frame_ends_strength, self.frame_ends_edge)
+            if w.size != len(X):
+                raise ValueError(f"torch_mlp(seed={self.seed}): frame weight has {w.size} entries "
+                                 f"against {len(X)} training rows")
+            w_t = torch.as_tensor(w, dtype=torch.float32, device=dev)
         for name, value in (("max_steps", self.max_steps),
                             ("eval_every_steps", self.eval_every_steps)):
             if value < 1:
@@ -753,7 +779,8 @@ class TorchMLPModel(TargetModel):
                 ib = torch.as_tensor(idx, device=dev)
                 xb, yb = Xt[ib], Yt[ib]
                 opt.zero_grad()
-                loss = loss_fn(net(xb), yb)
+                per = loss_fn(net(xb), yb).mean(dim=1)
+                loss = per.mean() if w_t is None else (per * w_t[ib]).mean()
                 loss.backward()
                 if self.grad_clip:
                     # The return value is the norm BEFORE clipping, which is the only way to tell a
@@ -803,7 +830,10 @@ class TorchMLPModel(TargetModel):
                     every evaluation and reading a loop variable from it is the classic late-
                     binding bug even where, as here, it happens to be called immediately.
                     """
-                    vl = float(loss_fn(net(Xvt), Yvt))
+                    # Deliberately UNWEIGHTED, so early stopping measures the same quantity in
+                    # every arm. Weighting it too would move the goalpost with the objective and
+                    # the comparison would no longer be about what the model learns.
+                    vl = float(loss_fn(net(Xvt), Yvt).mean())
                     if watch is None:
                         return vl, float("nan"), vl
                     if not scored:

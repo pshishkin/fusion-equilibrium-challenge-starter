@@ -159,8 +159,12 @@ def main() -> int:
 
     shots = local_score.load_shots(0, 0, "local", args.local_data_dir, args.config, files)
     jobs = resolve_jobs(args.jobs, len(shots))
+    # `machine` became a required argument of build_reference on 2026-08-18, when local_score.py
+    # stopped assuming DIII-D so that MAST could be scored on its own grid and envelope. This
+    # diagnostic was not updated and had been dead since — it is a leaf nothing imports, so the
+    # breakage was silent until something asked it a question.
     refs = local_score._map(local_score._ref_task,
-                            [(s["psi"], R, Z, mask_coarse, mask_f) for s in shots], jobs,
+                            [(s["psi"], R, Z, mask_coarse, mask_f, D3D) for s in shots], jobs,
                             "  references from ground truth")
     if args.model == BASIS:
         preds = [{"psirz": project_through_basis(s["row"], s["psi"])} for s in shots]

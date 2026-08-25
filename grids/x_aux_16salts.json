@@ -1,0 +1,130 @@
+[
+  {
+    "name": "x_aux_s0",
+    "salt": 0,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s1",
+    "salt": 1,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s2",
+    "salt": 2,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s3",
+    "salt": 3,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s4",
+    "salt": 4,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s5",
+    "salt": 5,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s6",
+    "salt": 6,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s7",
+    "salt": 7,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s8",
+    "salt": 8,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s9",
+    "salt": 9,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s10",
+    "salt": 10,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s11",
+    "salt": 11,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s12",
+    "salt": 12,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s13",
+    "salt": 13,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s14",
+    "salt": 14,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  },
+  {
+    "name": "x_aux_s15",
+    "salt": 15,
+    "sets": [
+      "loss.aux_scalars=kappa,li",
+      "loss.aux_weight=0.1"
+    ]
+  }
+]

@@ -1,0 +1,114 @@
+[
+  {
+    "name": "y_d9999_s0",
+    "salt": 0,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s1",
+    "salt": 1,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s2",
+    "salt": 2,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s3",
+    "salt": 3,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s4",
+    "salt": 4,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s5",
+    "salt": 5,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s6",
+    "salt": 6,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s7",
+    "salt": 7,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s8",
+    "salt": 8,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s9",
+    "salt": 9,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s10",
+    "salt": 10,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s11",
+    "salt": 11,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s12",
+    "salt": 12,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s13",
+    "salt": 13,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s14",
+    "salt": 14,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  },
+  {
+    "name": "y_d9999_s15",
+    "salt": 15,
+    "sets": [
+      "models.mlp.ema_decay=0.9999"
+    ]
+  }
+]

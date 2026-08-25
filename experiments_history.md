@@ -1,4 +1,7 @@
-# What we tested, and what came of it
+# DIII-D / Challenge 1 — what we tested, and what came of it
+
+**This file is Challenge 1 only.** MAST's record is [experiments_mast.md](experiments_mast.md)
+and its open ideas are [ideas_mast.md](ideas_mast.md).
 
 One line per experiment: what was tried, the number it produced, the verdict. Untested ideas live
 in [ideas.md](ideas.md) and move here once there is a number attached — whichever way it went.
@@ -127,6 +130,8 @@ not assumed — see "The noise, measured properly" below: at production a single
 | 08-16 | **B11's free diagnostic — does the loss metric point somewhere ELSE on ramp-down?** `M` built separately on three regimes by position in the shot, 60 probe frames each, 25 held-out shots | **the directions differ, not only the scale.** Principal angles between the top-10 eigenspaces: median **10.8°** ramp-up vs flat-top, **16.9°** for both pairs involving ramp-down, with maxima of 58–89°. Relative Frobenius distance between the NORMALISED forms: **0.584 / 0.803 / 0.492** — 0 would be identical up to a scale. Traces 146.8 / 47.2 / 51.8, the 3x that C7 already measured | **the premise survives, and the entry now has to compete on cost rather than on plausibility.** Averaging `JᵀJ` over the shot blurs direction as well as magnitude, and ramp-up is the outlier on both. But C7 also showed sensitivity does not explain where the cost is, and A19 has since taken the ramp-down gain through FEATURES for eight columns and no rework — where this needs a per-row quadratic form moved out of `TargetScaler` and into the MLP loss |
 | 08-19 | **the first MAST sweep that could see 30% of the composite** — with the scorer no longer grading MAST on DIII-D's grid, the source profile swept against the FULL S rather than R2_psi alone, predictions written to an npz and scored by `local_score.py --pred` so there stays exactly one implementation of the metric | **alpha = gamma = 1 and beta = 0.3 survive** — confirmed against the composite for the first time, with (0.5, 1.0), (2.0, 1.0), (0.5, 1.5) and beta 0.2/0.4 all worse. The one gain is a new knob, `edge`: letting the source run past the last closed surface, as a fraction of the axis-to-boundary span, is worth **S 0.5737 -> 0.5823** on a broad plateau — 0.5791 / 0.5823 / 0.5823 / 0.5795 at 0.01 / 0.02 / 0.03 / 0.04, against 0.5563 at -0.02. It raises R2_psi (0.9158 -> 0.9242) AND Consistency (0.0204 -> 0.0452), and costs a little D_LCFS | **it is aimed at a measured deficit, not fitted blind.** `diagnose_boundary.py` decomposed D_LCFS on the correct grid: raw 0.3317, with position removed 0.2401, with position and size removed 0.1126 — roughly a third each — and our contour is **0.929x** the true one, with the worst point at the outboard midplane on 81 of 115 frames, which is where a size error shows first. `edge` is the one number that moves size. It is also physical rather than a fudge: there is real current outside the separatrix. **Two harness bugs found by numbers, not by reading.** The knob was a no-op at first — psi_N already reaches 1 at the last closed surface, so the shape factor is zero however far `inside` extends, and S was identical to four decimals for edge 0.00 to 0.20 until psi_N was normalised to the moved surface. And two sweeps sharing one scratch filename raced: the second scored the first's last cell and reported R2_psi 0.8621 where two independent routes agree on 0.91579 |
 | 08-19 | **shrinking the two affine calibrations toward the constant they degenerate into** — the leave-one-out study put R2_qb at 0.2771 in sample and 0.1663 held out, the only term with a real in-sample bias, so the obvious move is to keep less of the fit | **refuted, and the composite disagrees with the term it was aimed at.** Held-out R2_qb peaks at keep = 0.75 (0.1756 against 0.1663), but held-out S falls monotonically: 0.6166 / 0.6140 / 0.6077 / 0.5983 / 0.5853 at keep 1.00 / 0.75 / 0.50 / 0.25 / 0.00 | **the scorer floors `max(0, R2_qb)` before weighting it, and that is the whole explanation.** One of the three folds scores R2_qb negative and contributes zero to S however negative it is; shrinking lifts that fold's number without buying anything, while taking real value off the two folds that are positive. So a term-level improvement and a composite-level loss are both true at once. Keep the affines at full strength — they overfit, and they are already at the right strength anyway |
+| 08-19 | **reverting `edge` after the board said the map tuning did not travel** — the obvious repair, since the arithmetic said the 0.5566 map plus the new scalars would give 0.5804 | **it does not separate.** At edge = 0, with the same wall and ensemble and everything refitted, local S 0.6359 -> 0.6123: the boundary term recovers as intended (D_LCFS 0.4125 -> 0.3848) and the scalars fall with it, R2_qb **0.3234 -> 0.2079**. Re-sweeping the q95 proxy surface at edge = 0 does not recover them — psi_N = 0.90 is still the best level and reaches only **0.3154** there against 0.3768 at edge = 0.03, because at edge = 0 the surface exists on **108 of 115** frames rather than all of them | **`edge` and the scalars are coupled, so the +0.0237 that transferred cannot be kept without the map change that cost 0.0126.** Every variant of this family prices out at 0.567-0.570 against the 0.56777 already on the board, so the repair is not worth a submission. What IS worth one is decomposition: two probes built on 08-18 and still unspent isolate the bundle exactly — `065915Z` against the submitted `091150Z` differs only by MAST's real wall, and `224648Z` against `065915Z` only by the three-member ensemble. Two uploads, no compute, and they say which of the three pieces to keep before anything else is built |
+| 08-19 | **the wall + leave-one-out ensemble + edge=0.03 bundle, scored** — submitted after local S went 0.5941 -> 0.6359 | **board S 0.5566 -> 0.56777, +0.0111**, G_ratio 0.560 -> 0.571. **27% of the local gain transferred, and the composition is the finding**: R2_qb **+0.0237** (q95 0.0574 -> **0.3427**, betaN -> 0.0886) against R2_psi **-0.0049** and D_LCFS **-0.0077**. Local had said R2_psi +0.0202 | **the scalar calibration travels and the map tuning does not, and the sign flipped on the term that carries 0.55 of the weight.** q95's affine transferred at **91%** — local 0.377, board 0.343 — while every change aimed at the flux map lost on the fold what it gained on three shots. Note which half of the local metric was honest: D_LCFS got worse locally AND on the board (0.3406 -> 0.4125 against 0.4121 -> 0.4886), so the scorer was right about the boundary and wrong only about R2_psi. **This is the leave-one-out prediction coming true.** LOO measured no in-sample bias at all (held-out R2_psi 0.9328 against 0.9316) and the record written beside it said the cause of earlier reversals must therefore be that three consecutive shots of one campaign are a narrow sample of discharge TYPES, which leave-one-out on siblings cannot see. That is now confirmed rather than argued. The arithmetic points at the next probe on its own: keeping the 0.5566 entry's map and only its scalars would give **S 0.5804** |
 | 08-19 | **MAST's first wall, taken from the public archive** — `efm/limiterr` / `efm/limiterz` at STFC Echo (CC BY 4.0), a closed 37-vertex polygon, replacing a single inboard radius guessed from where `efit_lcfs_r` bottomed out on the demo shots | the machine says the inboard wall is at **0.19524 m** against the guessed 0.1963 — 1.1 mm — and supplies the whole shape, so the limiter branch of the boundary search asks where the plasma touches the MACHINE rather than where it crosses one vertical line. Against the shipped `efit_psi_boundary` on the true maps the tails improve and the median does not: p90 **5.35% -> 4.69%**, max **8.52% -> 7.77%**, median 0.045% -> 0.077%. On the composite, calibrations unchanged, **S 0.6310 -> 0.6336**, every term up; refitting the three leave-one-out calibrations under the new geometry gives **0.6359** | **a free gain from a machine constant, and the reason it is takeable is worth stating precisely.** The archive's `efm/` group IS the competition's withheld MAST truth — verified bit for bit on demo shot 28348, `psirz` max |diff| **0.000e+00**, likewise li, betan, elongation, magnetic_axis_r and psi_axis — and the 1206-shot test fold is drawn from the same campaigns. The terms allow external public data WITH DISCLOSURE and separately forbid any attempt to de-anonymize or memorize the hidden truth. Training on the archive would be the second even unintentionally, and excluding the test fold first requires identifying it, which is also the second. What is taken instead is geometry: **byte-identical on shots sampled from all five campaigns M5-M9**, the same kind of object as the coil rectangles the competition ships on every row, and an answer to no shot. The organisers have been asked about the wider question. Precision footnote: the literal was first rounded to four decimals, worth 0.04 mm on a 30 mm grid and **0.0001 of S** — measured, then shipped exact anyway |
 | 08-19 | **leave one demo shot out: the first honest held-out measurement MAST has ever had** — `mast/loo.py` refits the whole calibration (gains by alternation, the TF constant, both affines) on two of the three demo shots and scores the third through the real scorer, rotating | **the flux map does not overfit its three shots at all.** Held-out R2_psi **0.9328 +- 0.0020** against **0.9316** in sample — an in-sample bias of **-0.0012**, i.e. nothing, and the gains barely move between folds (P4 1.020 / 1.028 / 1.022). The composite's bias is **-0.011** and almost all of it is one term: R2_qb **0.2771 in sample against 0.1663 held out** | **the number that licenses everything built on those three shots, and it is the opposite of DIII-D's.** `solver/how_many_shots.py` asked the same question where shots are plentiful and got **-0.601 +- 0.120** for a three-shot calibration. The difference is in what each dataset ships: MAST gives 812 conductor rows, so the solenoid has a SHAPE the fit can separate from a constant, while DIII-D's single ECOILA rectangle cannot be told from an offset — the same degeneracy that makes DIII-D's per-frame flux level unrecoverable. So the three demo shots are a usable calibration set for the MAP and a poor one for the two value scalars, which is exactly where the bias landed. **It also retires a worry rather than confirming it**: three MAST decisions were refuted by the board after looking good locally, and this says the cause was not in-sample bias in the calibration — it was that the demo shots are a narrow sample of discharge TYPES, which leave-one-out on siblings cannot see |
 | 08-19 | **the same level-versus-shape question asked of MAST** — the per-frame flux offset between our solve and the truth, on the 115 demo frames | **MAST's level is essentially right and DIII-D's is not.** MAST: offset **-0.00014 +- 0.00418 Wb/rad on a range of 0.261**, i.e. **1.6%** of the range, and removing it moves R2_psi only 0.93170 -> 0.94101; a per-frame scale as well gives 0.94664. DIII-D: **+-0.147 on a range of 1.4, 10.5%**, and removing it moves 0.207 -> 0.711 | **this is why one machine works and the other does not, and it is a difference in what the dataset ships rather than in the physics.** MAST ships 812 conductor rows, so the solenoid's field has a SHAPE the fit can separate from a constant; DIII-D ships one rectangle per coil and `coil_field.py` already recorded that ECOILA is not identifiable against an offset. Two consequences worth keeping. **MAST's remaining flux error is shape, not level** — a perfect per-frame gauge would be worth +0.009 of R2_psi, i.e. **+0.005 of S**, which agrees with the boundary decomposition charging the error to size and position rather than to a global shift. And the DIII-D repair is now specific: it needs a per-frame flux gauge, which no amount of coil-gain fitting supplies |
@@ -701,6 +706,1240 @@ nearest-neighbour ceiling is R² 0.97-0.997 against the 0.90-0.93 the model reac
 loss asks for (A13). The one loose thread inside the architecture is A15's empty cell — capacity
 and light regularisation together, which neither it-11 nor grid C tested.
 
+## Longer averaging is WORSE, and it reverses the reasoning the sweep was built on — 2026-08-20
+
+**Completed at 16 salts: `d9999` (0.9999, a 10000-step window) against the accepted `x_ema`
+(0.999, 1000 steps) is −0.00087, SE 0.00015, t = −5.6, 1 of 16 signs positive.** Refuted, and it
+gives back almost exactly what ema won.
+
+**Against the ORIGINAL no-ema baseline it is +0.00014 — and 11 of the 16 salts are EXACTLY zero.**
+Four decimals, eleven times, is not noise; it says the fit is landing on the same model the
+baseline lands on. The counter explains it: the averaged weights win **258 evaluations a run at
+0.9999 against 1589 at 0.999**, six times less often, so the globally best evaluation is nearly
+always a live-weight one — and a run with the same seed on the same data then finds exactly the
+point the baseline finds.
+
+That yields a quantitative handle worth keeping:
+
+| decay | window | averaged weights win | gain over no ema |
+|---|---|---|---|
+| 0.999 | 1000 steps | **1589 / run** | **+0.00101** |
+| 0.9999 | 10000 steps | 258 / run | +0.00014 |
+
+The ratios are 6.2x and 7.2x — **the gain is close to proportional to how often the average beats
+the live weights**, which makes `_ema_wins` a cheap leading indicator for the remaining arms. It
+also predicts where the optimum cannot be: as the window shrinks toward zero the average approaches
+the live weights, so it will win about half the time on noise alone while the margin it wins by
+goes to zero. Wins alone are therefore not the objective — `d998` (500 steps) and `d995` (200) test
+the near side, and a rise in wins there without a rise in score would be exactly that degeneracy.
+
+**The mechanism, and it is the obvious one in hindsight.** A run takes 56950 to 149600 steps. A
+1000-step window averages only the converged noise ball; a 10000-step window reaches back into the
+part of the trajectory where the model was still visibly worse and drags the average toward it.
+Weight averaging works because the last stretch is stationary, and 10000 steps is not.
+
+**This reverses the argument the program was designed on.** Entry Y in `ideas.md` reasoned that
+0.999 averages "only the last 1.4% of the trajectory" where classical weight averaging takes a long
+tail, so the interesting direction was LONGER. The data says the opposite: the optimum is at 0.999
+or **shorter**. The same reasoning had also thrown out short decays as "the live weights with extra
+arithmetic" — symmetrically wrong, and `d998` (500 steps) and `d995` (200 steps) were queued as
+soon as this read came in.
+
+It is consistent with the earlier null result rather than contradicting it: the gain does not scale
+with how much of the trajectory is averaged, and past a point more of it actively hurts.
+
+**`d9995` completed flat: +0.00000, SE 0.00003, 5 signs of 14.** Per salt it is almost all exact
+zeros and single units of 1e-4, and the standard error is a tenth of a typical screen arm's — the
+signature of two settings producing very nearly the SAME model. A 2000-step window and a 1000-step
+one land in the same place.
+
+So the decay curve is now characterised end to end:
+
+| averaging window | against the accepted 0.999 |
+|---|---|
+| 2000 steps (0.9995) | **+0.00000** |
+| 10000 steps (0.9999) | −0.00087 |
+
+A plateau from 1000 to 2000 steps, then a cliff. The accepted value sits on the plateau and the
+sweep confirms there is nothing to win by moving along it — which, together with the production
+confirmation measuring ema itself at zero, closes the whole family.
+
+(Two of the sixteen runs were lost to the OOM described below; at this effect size they cannot
+change a mean of exactly zero.)
+
+## What the night's accepted work should be worth on the board
+
+One measured number and three ratios, each from somewhere else, written out so the estimate can be
+attacked at whichever link is weakest:
+
+| step | value | where it comes from |
+|---|---|---|
+| `ema` on the one-net screen | **+0.00101** | measured here, 16 paired salts, t = 7.2 |
+| x level-shift share 0.68 | +0.00069 | the regression of gain on baseline, measured here |
+| x member dilution 0.933 | +0.00064 | 12 of the shipped 13 members are MLPs; `seq` has no `ema_decay` |
+| x local→board 0.91 | **+0.00058** | the fork's own median transfer over three submissions |
+| | **board 0.9938 → 0.9944** | |
+
+**Only the first line is a measurement of this change.** The second is the one the paired production
+confirmation exists to replace with a number: its pre-registered prediction is +0.0007 on a 4-MLP
+ensemble. If it lands there, this estimate holds; if it lands near +0.0002, the chain collapses to
++0.0002 and the level-shift decomposition was wrong.
+
+The third line is arithmetic on the shipped configuration and the least uncertain. The fourth has
+read 91% / 116% / 43% over three submissions, so it is a median over a wide spread and the honest
+band around the total is roughly +0.0003 to +0.0008.
+
+## The 16-salt program — the instrument first, then the arms
+
+**A second hypothesis about the instrument, and this one questions the choice of instrument
+itself.** Paired standard deviation, pooled over every arm run on the screen against the single
+production measurement:
+
+| arm | paired sd |
+|---|---|
+| `jac` | 0.00112 |
+| `bnd` | 0.00109 |
+| `d9999` | 0.00062 |
+| `ema` | 0.00056 |
+| **screen, pooled** | **0.00085** |
+| **production, 4 MLPs (3 pairs)** | **0.00017** |
+
+A production run costs 36 minutes against the screen's 10, so at equal wall-clock the screen's
+standard error is **2.63x worse**: 0.00035 an hour against 0.00013.
+
+**A side observation that checks out internally:** the two arms containing weight averaging (`ema`,
+`d9999`) have half the paired sd of the two that do not (`jac`, `bnd`). That is exactly what EMA
+does — it stabilises where the fit lands — so an arm built on it is measured more precisely than
+one that is not, for the same reason it scores better.
+
+If it survives six pairs, the conclusion is uncomfortable and worth acting on: **the whole 16-salt
+programme should have been run at production scale.** The screen was chosen as the cheap
+instrument, and per run it is; per unit of resolution it is not, and it measures a configuration
+that does not ship.
+
+**Caveat, stated because the number is doing a lot of work:** the production sd rests on THREE
+pairs, which is a very unstable estimate. Re-check at six before treating it as a rule.
+
+**And a correction to the conclusion, before it drives the wrong action.** "2.63x worse per hour"
+is the comparison for a SINGLE measurement made with one instrument. The design actually in use is
+two-stage — a cheap screen to reject, a production run to confirm — and there the screen's job is
+the cost of a rejection, not its resolution: 2.7 hours an arm against 7.2. On that footing the
+screen is the right first filter and the remaining arms stay on it.
+
+The screen's real defect is the other one, named this morning and unchanged: it over-states
+**variance-type** changes seven- to ten-fold, because it fits ONE net where production averages
+four. For changes that alter what every model does — a loss, a stopping rule, a feature — no
+discount applies. `huber` and `stopcomp` are of that kind, which is why they stay on the screen
+while the decay arms were dropped.
+
+**A hypothesis about the instrument itself, to be settled by the confirmation now running.** The
+quality screen fits ONE net. Any change that works by removing seed noise will therefore look far
+larger there than in a four-seed production ensemble, which has already removed three quarters of
+that noise. Two data points point the same way:
+
+| change | measured alone / on the screen | inside the production ensemble | ratio |
+|---|---|---|---|
+| three sequence seeds (A25) | +0.0016 to +0.0023 | **+0.0002** | ~0.1 |
+| `ema` | +0.00101 (16/16 salts) | +0.00015 at 2 of 6 pairs | ~0.15 so far |
+
+If the six pairs hold, the rule is: **the screen over-states a variance-reduction change by roughly
+seven times**, and a screen result of that kind must be discounted before it is believed.
+
+Crucially the discount should NOT apply to changes that alter what every model does — a feature, a
+loss, a stopping rule. Those are not absorbed by averaging, because averaging does not remove a
+shared error. That distinction decides how to read the three arms still queued: `huber`,
+`stopcomp` and `aux` all change every member, so their screen numbers should transfer far better
+than ema's did. It is worth stating before their results arrive rather than after.
+
+**The instrument checks out.** The gate was pre-registered in `ideas.md` before the first run, on
+a predicted standard error of 0.0013/sqrt(16) = **0.00033**. The first completed arm measured
+**0.00028**. So sixteen paired salts really do resolve what the arithmetic said they would, and
+`my_experiments/paired.py` is the tool that reads them — matched by salt, never by position.
+
+The baseline arm's spread across salts is **0.00165** of S (0.9877 to 0.9934), five times the
+paired standard error. That number is the case for pairing in one line: comparing absolute scores
+between salts would be reading a quantity five times larger than any effect being chased.
+
+| arm | change | mean paired ΔS | SE | t | signs | verdict |
+|---|---|---|---|---|---|---|
+| `jac` | `loss.jacobian_frames` 300 → 1200 | +0.00044 | 0.00028 | 1.6 | 8/16 | **refuted at its gate** |
+| `ema` | `models.mlp.ema_decay` 0 → 0.999 | **+0.00101** | 0.00014 | **7.2** | **16/16** | **ACCEPTED** |
+| `aux` | `loss.aux_scalars = kappa, li` | — | — | — | 1/16 ran | **NOT MEASURED — see below** |
+| `bnd` | `loss.boundary = true` | +0.00040 | 0.00029 | 1.4 | 8/14 | **refuted at its gate** |
+| `huber` | `models.mlp.loss = huber` | **+0.00088** | 0.00037 | 2.4 | **13/16** | **ACCEPTED** |
+| `hd1` | `huber_delta` 2.0 → 1.0 | +0.00030 | 0.00028 | 1.1 | 10/16 | **refuted at its gate** |
+| `hd4` | `huber_delta` 2.0 → 4.0 | +0.00052 | 0.00033 | 1.6 | 10/16 | **refuted at its gate** |
+| `emacos` | cosine on top of `ema` | −0.00015 | 0.00013 | −1.1 | 4/16 | **refuted at its gate** |
+| `stopcomp` | stop on the composite, monitor 150 → 600 | +0.00009 | 0.00023 | 0.4 | 3/15 | **refuted at its gate** |
+
+`jac` tested whether the metric-aware loss is limited by the NOISE in its own weights — they are
+estimated on 300 frames, and a noisy estimate is a noisy loss. Quadrupling the estimate is worth
++0.00044, below both the +0.00065 gate and the +0.00055 that selection over four arms produces on
+its own. Five salts went negative and three tied. Not nothing, and not enough: at this effect size
+settling it at 2 sigma would need about 40 salts, seven hours, for something worth under a
+thousandth — which is a worse trade than any open entry in `ideas.md`.
+
+### `stopcomp` — the composite monitor's noise was not the problem
+
+**+0.00009, SE 0.00023, 3 signs of 15.** Flat.
+
+The retest had a specific diagnosis behind it rather than "more salts": A13 was refuted at the old
+0.0013 resolution, and the composite monitor is ESTIMATED on 150 validation frames while 94% of the
+instrument's variance sits in Consistency — the very term that monitor reads. A noisy criterion
+stops in the wrong place, so quadrupling the monitor should have rescued it.
+
+It did not move at all. **So A13 stands on its merits, not for want of precision**: stopping on the
+composite is no better than stopping on the validation loss, and the monitor's sample size is not
+what was holding it back.
+
+### `emacos` — cosine adds nothing to a run that already averages its weights
+
+Against the accepted `ema`: **−0.00015, 4 signs of 16.** Against the plain baseline: +0.00086 with
+14 of 16 — which is simply ema's own effect, unchanged.
+
+That is the exact question the arm was designed to ask. The cosine schedule was the only knob ever
+to screen positive (+0.0009 / +0.0006 on 2026-08-14) and its refutation stood on two confirmation
+salts, so it deserved a retest; but the entry framed it as "the question is no longer whether
+cosine helps, it is whether cosine helps a run that ALREADY averages its weights". The answer is
+no. Both mechanisms shrink the same thing — where the trajectory ends up — and having one makes the
+other redundant.
+
+Since ema itself measures zero in production, so does this. **The weight-averaging and schedule
+family is now closed end to end**: `ema` (zero in production), `d9995` (flat), `d9999` (−0.00087),
+`emacos` (−0.00015), with `d998`/`d995`/`d99995` dropped on the strength of the shape.
+
+### `huber` — accepted, and it refutes a planned experiment on the way
+
+**+0.00088, SE 0.00037, t = 2.4, 13 of 16 salts positive** — clears a gate of +0.00065 and 12
+signs. (The first reading, on the 15 salts that had finished, gave +0.00095; the sixteenth changed
+nothing.) The gain is Consistency again: +0.00077 of the +0.00095, with R²qb +0.00012 and D_LCFS
+marginally worse.
+
+**It belongs to the class the screen does NOT over-state.** Huber changes what every model does
+rather than removing seed noise, so — unlike `ema`, which went from +0.00101 on the screen to zero
+in production — its number should survive an ensemble. That distinction was written down before
+either result arrived; this is its first supporting case, and the production confirmation is what
+would settle it.
+
+**And it answers the mirror question the wrong way round for my own design.** Huber is quadratic
+near zero and linear past `huber_delta`, so it DOWN-weights exactly the large-residual frames — the
+expensive 5% that carry 46% of the cost. The per-frame weight designed earlier the same day
+proposed to UP-weight them, on the reasoning that the cost concentrates there. Huber helping by a
+full thousandth says the opposite: those frames should have LESS influence on the gradient, not
+more.
+
+That is not the same as saying they are noise — the label-noise hypothesis was refuted separately
+(the truth's d2/d1 is lower in the tail, not higher). The likelier reading is that an outlier
+gradient costs the rest of the fit more than the frame it comes from is worth, which is precisely
+Huber's stated rationale in `models.py`.
+
+**And the threshold is a real optimum, confirmed on both sides.** `huber_delta` had sat at 2.0
+since the loss was written and had never been swept:
+
+| delta | vs the baseline | vs delta 2.0 |
+|---|---|---|
+| 1.0, harsher | +0.00030 | **−0.00058** |
+| **2.0, shipped** | **+0.00088** | — |
+| 4.0, gentler | +0.00052 | **−0.00036** |
+
+Unimodal, peaking exactly where the default already sat, with both neighbours worse by comparable
+amounts.
+
+**The control did its job.** At delta 4.0 Huber is nearly MSE — few frames reach the linear
+region — and the gain halves. So the gain IS the outlier clipping and not some other property of
+the curve. At 1.0 it halves too: clip too much and real signal goes with the outliers. Both sides
+agree with the mechanism, which is worth more than either number.
+
+**So the disagreement-weight arm should not be built as specified.** It was priced at +0.00025 to
++0.00080 on an oracle that assumed fixing the hard frames; the arm that does the opposite has just
+measured +0.00095. The honest next step is the reverse experiment — weight hard frames DOWN — for
+which Huber is already the implementation, and `huber_delta` (2.0) is its unswept knob.
+
+### `bnd` — the boundary term does not reach D_LCFS, and does not clear the gate
+
+**+0.00040 against a +0.00065 gate, 8 of 14 salts positive.** Refuted, and it fails on the mean
+whatever the sign count, so the two missing salts do not change the verdict.
+
+**Where it moves, and it is not where it was aimed.** The term exists because the Jacobian loss
+structurally cannot contain D_LCFS — a distance is zero at the ground truth, so a central
+difference sees no derivative. Decomposed:
+
+| term | of S | signs |
+|---|---|---|
+| 1 − D_LCFS | **+0.00000** | 5/14 |
+| Consistency | +0.00042 | 10/14 |
+| R²qb | −0.00004 | 3/14 |
+| R²ψ | +0.00002 | 2/14 |
+
+It moves Consistency and leaves D_LCFS exactly where it found it. The early n=6 reading said the
+same thing and it held to the end. So displacing a level set reaches the functionals that READ the
+boundary well before it reaches a symmetric Hausdorff maximum over that boundary — the term's own
+docstring calls itself "a surrogate for that term, not that term", and the measurement agrees more
+literally than the docstring intended.
+
+### Two runs were killed by my own analysis — rc=137 — 2026-08-20
+
+`x_bnd_s10` and `x_bnd_s12` died at 09:26 and 09:41 with **rc=137, SIGKILL**, logs ending cleanly
+after PCA at 56 GB with no exception. That is the OOM killer.
+
+**The cause was mine.** Two training lanes peak at 56 GB each, which is 112 GB of a 183 GB cgroup
+and was measured live at 103 GB — sound. But between 09:16 and 09:42 I was also running a
+five-model rescore over 300 validation shots as a third consumer, and both deaths fall inside that
+window. The two-lane decision was right; running heavy analysis on top of it was not.
+
+**The rule that follows:** rescoring and diagnostics are not free while two lanes are training. Run
+them against ONE lane, or wait. And `paired.py` learned something too — a killed run leaves
+`FAILED` in `S` but EMPTY strings in every other column, so a tool that only skips `FAILED` still
+crashes the moment it is asked for a per-term breakdown.
+
+### `aux` did not fail its gate — it never reached one
+
+Fifteen of sixteen runs died before fitting, on
+
+    loss.aux_scalars is 'kappa,li' but the training functionals are not cached for this split
+
+A9 teaches the seven scored functionals as auxiliary outputs, and they have to be precomputed per
+frame — one `extract_lcfs` and seven derivations, about 31 ms a frame, **13 core-hours for a
+training split**. That cache is keyed by the exact file list, so it exists for salt 0 and for no
+other salt. Building the other fifteen is 8 hours at 24 jobs before a single fit starts, then 2.8
+more to run them.
+
+**Not built, and the reasoning is a trade rather than a verdict.** A9 was already measured flat
+once; salt 0 alone came in at −0.0010 against its pair, which is one salt and means nothing on its
+own; and the eleven hours it would cost sit against a queue holding the `ema_decay` sweep, which
+has a confirmed mechanism behind it and costs 2.7 hours an arm. **Record this as UNRESOLVED, not
+as refuted** — nothing here is evidence about A9 either way, and reading the missing rows as a
+negative result would be exactly the mistake the gate exists to prevent.
+
+The tool learned something too: `paired.py` now DROPS a `FAILED` row rather than parsing it, so a
+dead run is missing data instead of a score of zero.
+
+### `ema` — A20, and the first accepted change since 2026-08-18
+
+**+0.00101 with sixteen signs of sixteen**, the smallest salt at +0.0004 and the largest at
++0.0025. Against 0.0045 of reachable headroom that is **22% of what is left in Challenge 1**, from
+one line of configuration that costs nothing at inference.
+
+**The mechanism is not blind averaging, and the code is what says so.** The EMA shadow weights do
+not replace the live ones; they are evaluated alongside them at every evaluation and the better of
+the two is kept, with `_ema_wins` counting how often the average won. It won **965 to 3019
+evaluations per run** — systematically, not occasionally. The averaged trajectory is simply a
+better point than the last one most of the time, which is the classic weight-averaging result and
+not a quirk of this fit. A second, free consequence: the best step arrives earlier, **65669 against
+76884** on the baseline arm, so the accepted setting is also about 15% shorter.
+
+The selection-on-validation worry does not apply: the best-of-two choice is made on validation
+frames, and the +0.00101 is measured on the 70 HELD-OUT shots, which that choice never saw.
+
+**How long a tail is 0.999 actually averaging? A thousand steps of seventy thousand.** The EMA
+update sits inside the per-STEP loop, immediately after `opt.step()` — not in the evaluation block
+— so the averaging window is `1 / (1 - decay)` **steps**: 1000 at the accepted 0.999, against a run
+that takes 66000 to 77000 of them. The accepted setting therefore averages the last **1.4%** of the
+trajectory, where the classic weight-averaging result takes a far longer tail. That reframes the
+sweep that follows: 0.99 would be a 100-step window, essentially the live weights, and the
+interesting direction is LONGER, not shorter.
+
+**Where the gain is, and it is the term C2 pointed at.** Decomposed across the four scored terms
+(`paired.py --terms`, in units of the contribution to S):
+
+| term | raw Δ | of S | signs |
+|---|---|---|---|
+| R²ψ | +0.00007 | +0.00004 | 5/16 |
+| R²qb | +0.00050 | +0.00008 | 12/16 |
+| 1 − D_LCFS | +0.00078 | **−0.00008** | 16/16 worse |
+| **Consistency** | **+0.00412** | **+0.00082** | **16/16** |
+
+**Four fifths of it is Consistency**, which is where C2 measured 76% of the reachable headroom to
+be. D_LCFS pays a small, perfectly consistent price — 16 of 16 salts move the wrong way — which is
+what a smoother map should do to a Hausdorff MAXIMUM while helping every mean-square functional.
+The story is coherent from mechanism to term, which is worth more than the number.
+
+**All seven scored functionals move, and the weakest move most.** Paired per salt, read out of the
+`[mlp]` block of each log (not ridge, not the ensemble — they print the same table):
+
+| scalar | baseline | ema | Δ | SE | signs | of S |
+|---|---|---|---|---|---|---|
+| li | 0.9350 | 0.9412 | **+0.0062** | 0.0031 | 12/16 | +0.00018 |
+| Z_axis | 0.9686 | 0.9750 | **+0.0064** | 0.0021 | 14/16 | +0.00018 |
+| kappa | 0.9400 | 0.9455 | **+0.0055** | 0.0012 | 15/16 | +0.00016 |
+| R_axis | 0.9675 | 0.9717 | +0.0042 | 0.0008 | 16/16 | +0.00012 |
+| volume | 0.9724 | 0.9758 | +0.0034 | 0.0008 | 15/16 | +0.00010 |
+| tri_bot | 0.9847 | 0.9864 | +0.0018 | 0.0004 | 15/16 | +0.00005 |
+| tri_top | 0.9881 | 0.9896 | +0.0014 | 0.0003 | 16/16 | +0.00004 |
+
+Not one of the seven goes the wrong way, and the ordering is the finding: the three WORST scalars
+(li, kappa, Z_axis, all under 0.97) gain three to four times what the two best ones do. That is the
+signature of variance reduction acting on the geometry — the noisiest functionals have the most
+noise to remove — and it is the same three scalars C2 named as the expensive ones, kappa first.
+The seven sum to **+0.00082 of S**, which reconciles exactly with the aggregate Consistency
+difference read independently by `paired.py`.
+
+**Level shift or variance reduction? Mostly the former, and that is the question production turns
+on.** The gain correlates **−0.579** with the baseline's own score: ema helps most where the run
+was worst. But the arm's spread only falls from 0.00165 to 0.00140 — 15%, not 100% — and the
+regression is
+
+    gain = +10.1e-4  −0.196 × (baseline − mean)
+
+Pure variance reduction to a common mean would need a slope of −1.000 and would leave the arm with
+no spread at all. At −0.196 the variance-reduction part is worth about **32% of the level shift**;
+the other 68% is a genuine improvement to where the fit lands.
+
+**What ema leaves on the table, and where.** Per scalar, after ema, on the screen:
+
+| scalar | ema | ceiling | room | worth in S |
+|---|---|---|---|---|
+| **li** | 0.9412 | — | 0.0588 | +0.00168 |
+| **kappa** | 0.9455 | **0.9908** | 0.0453 | +0.00129 |
+| R_axis | 0.9717 | — | 0.0283 | +0.00081 |
+| Z_axis | 0.9750 | — | 0.0250 | +0.00072 |
+| volume | 0.9758 | — | 0.0242 | +0.00069 |
+| tri_bot | 0.9864 | — | 0.0136 | +0.00039 |
+| tri_top | 0.9896 | — | 0.0104 | +0.00030 |
+
+Two caveats keep this from being a target list. Only **kappa's** ceiling is measured — C2's 0.9908,
+the worst of the seven; the rest use 1.0, so their room is an over-estimate. And this is the
+one-net SCREEN, where Consistency reads 0.9770 against production's 0.9803, so the totals here
+overstate what a submission would see: C2's production figure is 0.0034 reachable in Consistency,
+not the 0.0059 this table sums to.
+
+What survives both caveats is the ORDERING, and it is stable: **li and kappa are the two worst by a
+wide margin** and together hold more than half the remaining Consistency. li has been attacked once
+already — C10/A24, the poloidal-field form, refuted by the run — and kappa is the scalar C2 singled
+out as both the worst-represented and the most expensive at 23.3% of the geometry cost.
+
+**Not yet shippable, and the reason is A25.** This was measured on the quality screen — ONE net.
+Production averages four MLP seeds plus the sequence model, and seed averaging already removes
+optimisation variance of the same kind EMA removes. A25 is the precedent that makes this a real
+risk rather than a formality: three sequence seeds averaged were worth +0.0016 to +0.0023 alone
+and **+0.0002** once poured into an ensemble four MLPs already dominated. A paired production
+confirmation is required before this goes to the board.
+
+**A null result that tempers the decay sweep before it runs.** If the gain came from HOW MUCH of
+the trajectory gets averaged, it should be larger on short runs, where a fixed 1000-step window
+covers more of them. Measured over the same sixteen salts — the runs are far more variable than
+assumed, **56950 to 149600 steps**, so the window covers 0.67% to 1.76% of them:
+
+    corr(ema gain, steps the run took)        +0.180
+    corr(ema gain, window fraction 1000/ran)  -0.164
+
+At n = 16 the standard error on a correlation is about 0.28, so both are indistinguishable from
+zero. The gain does not detectably depend on how much of the trajectory the average covers. That
+does not refute a longer decay — it says the mechanism is not "average more of it", and the sweep
+should be read expecting a flat curve rather than a trend. If `d9999` and `d99995` come back flat,
+that is consistent with this, not a surprise.
+
+**RESULT at 4 pairs: +0.00030, +0.00000, +0.00000, −0.00040 — mean −0.00002, SE 0.00014, one
+positive sign of four.** Consistency likewise: +0.0011, +0.0005, −0.0004, −0.0020.
+
+**ema is worth nothing in production.** A change accepted on the screen at +0.00101 with 16 signs
+of 16 and t = 7.2 measures zero once four MLP seeds are averaged. The prediction of +0.0007,
+written before the run, is refuted — and refuted for the reason named in advance: the split into
+"level shift" and "variance reduction" does not hold, because with runs that carry similar seed
+noise, removing it LOOKS like a uniform level shift.
+
+**The screen-discount hypothesis is confirmed in its strongest form.** It is not "seven times too
+large" — for a variance-type change on a four-seed ensemble it is **all of it**. A25 read the same
+thing from the other side (+0.0016..0.0023 alone, +0.0002 ensembled).
+
+**And it cancels the 27-hour confirmation that was queued behind it.** `prod_full` existed to
+confirm ema on the shipped five-member ensemble at whichever decay the sweep chose. The sweep chose
+none — 0.999 was already the optimum, with the long windows measurably worse — and the four-MLP
+confirmation has now measured the effect itself at zero. Confirming a zero on the full ensemble
+would spend a day to learn nothing, so it was cancelled and the day goes to the disagreement-weight
+arm instead, which is priced at +0.0004 to +0.0008 against an oracle of +0.00159.
+
+**What this closes.** `ema` does not ship. Neither does anything else in the decay family, which
+was already dropped. The remaining arms — `huber`, `stopcomp`, `emacos` — change what every model
+does rather than removing seed noise, so the discount is not expected to apply to them; that
+distinction was stated before these results arrived and now has its first hard test behind it.
+
+(Three of the twelve runs were killed by an OOM of my own making — see below — so the pairs are
+salts 0, 1, 2 and 4. The missing three are being re-run; at this effect size they cannot change the
+conclusion, only complete the record at the pre-registered n = 6.) Consistency rises in both
+(+0.0011, +0.0005), so the mechanism is there, but the composite gain is far under the +0.0007
+predicted. Two pairs decide nothing and the prediction is not being revised on them.
+
+**The flaw it would expose, named now rather than after the fact.** The +0.0007 came from splitting
+ema's screen gain into a "level shift" (68%) and "variance reduction" (32%) by regressing the gain
+on the baseline's own score, and assuming an ensemble absorbs only the second. That inference does
+not hold: the regression separates *helps the worst runs more* from *helps every run equally*, and
+**both are consistent with variance reduction** — if every run carries about the same amount of
+seed noise, removing it looks exactly like a uniform level shift. Equating "level shift" with "not
+variance" was the error.
+
+If six pairs land near +0.00010, that is the explanation, and it agrees with everything else
+measured the same day: 66% of the residual is shared across seeds and four seeds have already taken
+three quarters of the removable third, so on a four-seed ensemble there is very little left for ema
+to remove.
+
+**And the prediction, written down before that run started, because a confirmation nobody has
+pre-committed to is just another look at the data.** Ensembling four seeds removes the
+variance-reduction component and keeps the level shift, so the expected production gain is
+**about +0.0007**, not the +0.0002 A25 collapsed to. If it lands near +0.0007 the decomposition
+above is right and ema ships; near +0.0002 the decomposition is wrong and the effect was
+optimisation noise the ensemble already handles; a NEGATIVE result would mean ema and seed
+averaging interfere, which nothing here predicts.
+
+## The sequence model earns its place in BOTH blocks — 2026-08-20, refuted at zero cost
+
+`baseline_model.py` supports `psi=<mix>,qb=<mix>` — a different member combination for the flux
+coefficients than for q95 and betaN. It has never been used. The hypothesis was obvious: seq alone
+scores **R²qb 0.9914 against the MLP's 0.9954**, so drop it from the scalar block and keep it where
+it earns its keep.
+
+Rescored on the shipped `baseline_prod.joblib`, same 70 tail shots, no training at all:
+
+| mix | S | R²qb | Consistency |
+|---|---|---|---|
+| `ensemble` — all five, both blocks | **0.9945** | 0.9967 | 0.9802 |
+| seq dropped from `qb` | 0.9944 | **0.9962** | 0.9802 |
+| seq dropped from `psi` | 0.9941 | 0.9967 | **0.9785** |
+
+**Refuted, and backwards from the hypothesis.** Removing seq from the scalar block makes R²qb
+*worse*, 0.9967 → 0.9962 — the member that is individually weakest at a term still improves the
+average of that term, because its errors are decorrelated from the four MLPs'. Removing it from the
+map block costs Consistency instead. The equal five-member mix is already right for both.
+
+**Re-run on 300 shots, and it corrects the claim above rather than confirming it.** 70 shots is
+the entire clean tail at this salt — `--share` takes from the end of the list and 2% would reach
+into validation — so the larger sample has to be `--select-on-val`, which `evaluate.py` provides
+for exactly this purpose: choosing among things already fitted, never for reporting. What early
+stopping took from those shots is one scalar per model, identical for every candidate, so it cannot
+prefer one combination of them over another.
+
+| mix | S | R²qb | Consistency |
+|---|---|---|---|
+| `ensemble` — all five | 0.9933 | 0.9963 | 0.9752 |
+| seq dropped from `qb` | 0.9933 | 0.9962 | 0.9752 |
+| seq dropped from `psi` | 0.9930 | 0.9963 | 0.9736 |
+| four MLPs, no seq at all | 0.9929 | 0.9962 | 0.9736 |
+
+**The overstatement, corrected.** On 70 shots dropping seq from the scalar block cost R²qb 0.0005
+and this file said it "makes R²qb worse". On four times the sample it costs **0.0001** — nothing.
+The 0.0005 was sample noise in a comparison whose PAIRING made it look exact; paired removes the
+model's noise, not the sample's.
+
+**What survives, and is now firmer:** seq earns its place in the MAP block. Dropping it there costs
+Consistency 0.9752 → 0.9736 on both samples. And its total contribution to the ensemble is
+**+0.0004, all of it Consistency** — twice the +0.0002 A25 read, and still bought with 75% of the
+training budget.
+
+(Absolute scores here are lower than the tail's — 0.9933 against 0.9945 — because they are
+different shots. Only the within-column differences mean anything.)
+
+The general lesson is worth more than the arms: **a member's solo score on a term does not say
+whether it belongs in that term's average.** A25 measured the same thing from the other side — the
+seq family scores worse alone and carries real independent signal.
+
+## "The last decile" is not ramp-down, and A22's mechanism rests on assuming it is — 2026-08-20
+
+The covariates sit beside the costs in `fc_prod.csv`, so the question needs no new run:
+
+| decile | median \|Ip\| | median \|dIp\| | cost x mean | median li |
+|---|---|---|---|---|
+| 0 | 621 | 0.769 | 1.49 | 0.897 |
+| 3–8 | ~1090 | ~0.13 | 0.71–0.88 | ~1.00 |
+| **9** | **1010** | 0.173 | **2.35** | **1.176** |
+
+**The current is still at flat-top in the last tenth of a shot.** 1010 against ~1090 is 8% down,
+and |Ip| falls below 80% of flat-top on only **22%** of those frames. So for most shots in this
+fold the final decile is not a ramp-down at all.
+
+**That undercuts both of A22's stated mechanisms, which each assume termination.** Its "missing
+state" clause reads "the current is decaying fastest, so the vessel eddy currents are largest and
+most transient exactly here", and its label-noise clause reads "EFIT's own reconstruction is least
+constrained as the plasma terminates". The plasma is not terminating in these frames. (The
+label-noise clause was already refuted on its own evidence — the truth's d2/d1 is LOWER there — so
+this is a second, independent reason it does not apply.)
+
+**What is actually elevated there is li: 1.176 against 1.00 in the middle, an 18% rise.** It also
+carries the strongest frame-level correlation with cost of any available covariate (+0.284), is one
+of the two worst-scoring Consistency scalars (0.9728), and is the quantity whose truth moves twice
+as fast in the tail as mid-shot.
+
+**But li is not the driver, and the obvious reading of the paragraph above is wrong.** Splitting
+cost by li quintile WITHIN each position band separates the two:
+
+| li quintile | first decile | middle | last decile |
+|---|---|---|---|
+| q1 (lowest) | 1.33 | 0.90 | 1.04 |
+| q3 | 0.84 | 0.54 | 0.76 |
+| **q5 (highest)** | **6.53** | **0.84** | **4.26** |
+
+Inside the middle alone, the top li quintile costs **0.94x** the bottom — li on its own does
+nothing. At the same top quintile, the last decile costs **5.07x** the middle. So this is an
+INTERACTION, not a main effect: a peaked current profile is harmless at flat-top and very expensive
+at either end of the shot. Saying "the model is bad at peaked profiles" would credit li with an
+effect it does not have on its own; the frames that cost are the intersection.
+
+The design consequence is that weighting by POSITION already captures this, and adding li as a
+second term would buy little — it is flat wherever the position weight is low.
+
+**Concentration is more extreme than the decile view suggests**: the most expensive **5% of frames
+carry 46% of the cost**, and they are spread 19% / 18% across the two end deciles with roughly 8%
+in each middle one. So even a perfect fix at both ends leaves most of the expensive frames
+untouched.
+
+## The cost is U-shaped, not tail-heavy — and only one end has an explanation — 2026-08-20
+
+`diagnose_frames.py` decomposes the composite onto every scored frame. Run for `prod` alone and for
+`prod+vesseld`, 14831 frames, the clean tail:
+
+| decile | frames | prod's cost | +vesseld | saved | share of the saving | median \|dIp/dt\| |
+|---|---|---|---|---|---|---|
+| **0 (first)** | 1515 | 0.00075 | 0.00065 | +0.00009 | **27%** | **0.769** |
+| 1–8 | ~11860 | ~0.00303 | ~0.00291 | +0.00014 | 39% | ~0.13 |
+| **9 (last)** | 1452 | 0.00116 | 0.00105 | +0.00011 | **34%** | 0.174 |
+
+**The U is a Consistency phenomenon, and D_LCFS is nearly flat in position.** Splitting the same
+per-frame costs into the two scored geometry terms (Consistency is 0.00396 of the 0.00493 lost,
+D_LCFS the other 0.00098), as a density against a flat shot:
+
+| decile | Consistency | D_LCFS |
+|---|---|---|
+| 0 (first) | **1.57x** | 1.27x |
+| 1–8 | 0.59–0.85x | 0.83–1.00x |
+| 9 (last) | **2.66x** | 1.34x |
+
+So the concentration that makes a per-frame weight attractive is almost entirely Consistency's, and
+D_LCFS barely varies with position at all. That is a third independent measurement pointing at the
+same term — after C2's 76% of the headroom and the instrument's 94% of the noise — and it explains
+the pattern every arm has shown: `jac`, `ema` and `bnd` all moved Consistency and all left D_LCFS
+where they found it. D_LCFS is flat in position, uncorrelated with what moves Consistency, and
+needs something of its own.
+
+**A22 reproduces on a different model**: the last decile is 9.8% of the frames and **23.5%** of the
+cost, against the 24.1% over 10.2% A22 measured.
+
+**But the shape is a U, and A22 only ever looked at one arm of it.** The FIRST decile is twice the
+middle. Between them the two ends hold 20% of the frames, 39% of the cost, and **61% of everything
+`vesseld` saves**.
+
+**The tidy explanation is half wrong, and the check is what caught it.** The obvious story —
+`vesseld` integrates dI/dt, eddy currents scale with dI/dt, dI/dt is large at both ends — predicts
+that cost should track the current ramp rate. It does not: the correlation is **+0.299 across
+deciles and +0.105 frame by frame**, and the decisive detail is that the last decile is **the most
+expensive of the ten while its median |dIp/dt| is 0.174 against the middle's 0.13**. The first
+decile fits the story (ramp rate 6x the middle, cost 2x). The last one does not fit it at all.
+
+So: the ramp-UP end is expensive in a way vessel currents explain. The ramp-DOWN end is expensive
+for a reason still unidentified — A22's "under-representation" hypothesis (a small, differently
+distributed, deforming plasma) survives here and the eddy-current one does not reach it.
+
+**This changes the frame-weight design in `ideas.md` (entry Z), which is the useful part.** That
+entry proposed a step at the last decile, on A22's evidence. The measurement says the weight should
+be raised at BOTH ends. And a weight by |dIp/dt| — which looked like the more physical
+parametrisation — is now measurably the WRONG one: it would put its mass on the first decile and
+almost none on the most expensive decile of the ten.
+
+## The trio's weighting is already right, and 215 combinations were scored without a rescore
+
+**The technique first, because it is reusable.** A per-frame residual is `truth − prediction` and
+the truth is the same for every model, so the residual of an average IS the average of the
+residuals. Any weighted combination of models already scored by `diagnose_frames.py` can therefore
+be evaluated from the CSVs alone. Validated against three known answers before use:
+
+| combination | from residuals | measured |
+|---|---|---|
+| prod alone | 0.9802 | **0.9802** |
+| prod + vesseld | 0.9823 | 0.9818 |
+| prod + vesselp | 0.9820 | 0.9814 |
+| the trio | 0.9826 | 0.9819 |
+
+Exact for a single model, and optimistic by ~0.0006 for combinations — the non-linearity of
+deriving scalars from an averaged map rather than averaging the scalars. The bias is nearly
+constant across combinations, so **differences are trustworthy even though levels are not**, which
+is all a relative search needs.
+
+**The search, 215 weightings of prod : vesseld : vesselp:**
+
+| prod | vesseld | vesselp | Consistency | vs equal |
+|---|---|---|---|---|
+| 2 | 1.5 | 1 (i.e. 4:3:2) | 0.98269 | **+0.00014** |
+| 1.5 | 1 | 1 | 0.98267 | +0.00012 |
+| **1 : 1 : 1 (shipped)** | | | 0.98255 | — |
+| 0.5 | 0.5 | 3 | 0.98047 | −0.00208 |
+
+**The shipped equal weighting is essentially optimal.** The best alternative leans slightly toward
+prod — the strongest member, being the only one with the sequence model — and is worth **+0.00003
+of S**. The curve is not flat (over-weighting vesselp costs 0.002), so this is a real optimum
+rather than a noise plateau; it simply sits where we already are.
+
+**And the same technique bounds the whole question, which closes A21.** Optimising all seven
+available models at once — the three artifacts plus the four individual MLP seeds — over their
+weights:
+
+    shipped trio          0.98255
+    best of 7, optimised  0.98303     +0.00048 of Consistency = +0.0001 of S
+    weights: prod 0.242  vesseld 0.288  vesselp 0.220  mlp 0.183  mlp2 0.067
+
+**That +0.0001 is an in-sample CEILING**, fitted with seven free parameters on the same 70 shots it
+is scored on. Cross-validated — weights fitted on 69 shots and applied to the 70th, seventy times —
+it turns NEGATIVE:
+
+    trio, equal weights            0.98255
+    optimised, held out per shot   0.98246      -0.00002 of S
+
+**The whole +0.0001 was overfitting.** Seven free parameters on seventy shots is precisely the
+regime where the fit beats the signal, and held out the fitted weights are worse than simply
+setting them equal. The optimum leans
+slightly toward `vesseld` and adds the plain MLP — i.e. it would raise the MLP relative to the
+sequence model inside `prod` — but the size settles the matter.
+
+**A21 ("fit the ensemble weights instead of setting them") is closed, and by a NEGATIVE rather than
+a small positive: fitting the weights is measurably worse than setting them equal.** The equal mix
+is not merely near-optimal, it is the right answer, and the search for a better one costs score.
+
+It is the same lesson the MAST q95 model taught the day before — a twelve-feature fit scored +0.972
+held out and was thrown away on coefficient instability. There the gate caught the overfitting
+before anything shipped; here cross-validation caught it inside an intermediate conclusion of my
+own, ten minutes after I had written it down as a small positive.
+
+**And the same machinery prices every FUTURE member in advance, which is worth more than either
+result.** Adding a hypothetical fourth member of the same accuracy, equally weighted, as a function
+of how correlated its residual is with the trio's:
+
+| its correlation with the trio's residual | gain in S |
+|---|---|
+| 0.90 | +0.00013 |
+| 0.75 | +0.00033 |
+| 0.60 | +0.00052 |
+| 0.45 | +0.00072 |
+| 0.30 | +0.00092 |
+| **0.00 — perfect independence** | **+0.00131** |
+
+The three shipped members correlate at 0.75 with each OTHER, and a new one of the same kind would
+correlate more strongly still with their average — 0.8 to 0.9. That is the top row, +0.0001 to
++0.0002, and it reproduces the measured "adding a fourth gives 0.9950–0.9951" (2026-08-16) from
+first principles.
+
+**The hard number is the last row: even a perfectly independent model of the same accuracy is worth
++0.0013.** That caps the entire "add another member" family against the 0.0031 of Consistency still
+open — a flawless new view would close 40% of it, and a realistic one 5%. Any future ensemble
+proposal can now be priced before it is built, by estimating one correlation.
+
+This also closes a branch previously recorded as blocked: `salts:` accepts no weights, and adding
+them would mean editing `baseline_model.py` while a queue is running. It was never worth
+unblocking.
+
+## Leave one vessel arm out — the second buys a tenth of what the first does — 2026-08-20
+
+Both vessel arms cost ~40 minutes of training on every rebuild and a third of the submission's
+prediction time. On the clean 70-shot tail:
+
+| combination | S | gain over prod | Consistency |
+|---|---|---|---|
+| `prod` alone | 0.9945 | — | 0.9802 |
+| `prod + vesseld` | 0.9949 | **+0.0004** | 0.9818 |
+| `prod + vesselp` | 0.9948 | +0.0003 | 0.9814 |
+| all three (ships) | **0.9950** | +0.0005 | 0.9819 |
+
+**`vesseld` alone carries 80% of the trio's advantage**, and the second arm adds +0.0001 on top —
+at the edge of what seventy shots can say about anything. Both deliver it through Consistency
+again: 0.9802 → 0.9818 for vesseld alone.
+
+**Which scalars it fixes, and where — the residuals are in the per-frame table already.** Mean
+squared residual per scalar, prod against prod+vesseld, split at the end deciles (x1e6):
+
+| scalar | ends: prod → +vesseld | cut | middle: prod → +vesseld | cut |
+|---|---|---|---|---|
+| volume | 60086 → 48909 | **19%** | 18451 → 17288 | 6% |
+| kappa | 696 → 586 | **16%** | 319 → 309 | 3% |
+| R_axis | 49.8 → 43.5 | 13% | 24.4 → 26.8 | **−10%** |
+| Z_axis | 38.0 → 33.6 | 12% | 9.6 → 9.0 | 6% |
+| tri_top | 796 → 712 | 10% | 352 → 337 | 4% |
+| li | 5688 → 5276 | 7% | 1240 → 972 | **22%** |
+| tri_bot | 867 → 884 | −2% | 414 → 403 | 3% |
+
+At the ends it acts broadly, 10–19% across most of the geometry. In the middle it acts on **li
+specifically, 22%** — the largest single improvement anywhere in the table — and it makes
+**R_axis 10% worse**.
+
+**That localises an anomaly recorded earlier and unexplained.** R_axis is the one scalar of the
+seven the trio scores WORSE than prod alone (−0.0019). The damage is in the MIDDLE of the shot, not
+at the ends where the vessel term does its work — so the vessel integrals are buying end-of-shot
+geometry and paying for it in mid-shot axis position. Nothing here says whether that trade is
+avoidable; it says where to look.
+
+**The mechanism lines up with A22, which is what makes this more than bookkeeping.** `vesseld` is
+leaky integrals of dI/dt on ECOILA and the plasma current — a proxy for the vessel's eddy currents.
+Those are largest exactly where the current is decaying fastest, which is the final decile where
+A22 measured **24.1% of the geometry cost over 10.2% of the frames**. The narrow arm is already
+paying for part of A22's target, and the broad one (all twenty poloidal signals) adds almost
+nothing on top — so what helps is the specific physical quantity, not more signals to integrate.
+
+Not acted on: +0.0001 is not a reason to drop `vesselp` from a submission that is already built,
+and the trio is what the 0.9938 board entry was measured with. Recorded so that if a rebuild is
+ever time-constrained, the arm to drop is known and its price is measured.
+
+## The sequence model's weight, swept again on four times the sample — 2026-08-20
+
+Its whole contribution is Consistency, and Consistency is where 76% of the headroom and 94% of the
+instrument's noise live. So: is one part in five too little? Rescored on 300 validation shots, no
+training, no model noise:
+
+| seq weight | its share | S | R²qb | Consistency |
+|---|---|---|---|---|
+| 0.5 | 0.11 | 0.9932 | 0.9963 | 0.9747 |
+| 1 (shipped) | 0.20 | 0.9933 | 0.9963 | 0.9752 |
+| **2** | **0.33** | **0.9934** | 0.9961 | **0.9757** |
+| 3 | 0.43 | 0.9933 | 0.9958 | 0.9755 |
+| 5 | 0.56 | 0.9930 | 0.9953 | 0.9749 |
+
+**Unimodal, peaking at a share of 0.33, and the mechanism is visible in the terms**: Consistency
+rises to weight 2 and falls after it, while R²qb declines MONOTONICALLY as seq takes more of the
+average (0.9963 → 0.9953). The optimum is a balance between two terms, not a noise plateau — which
+is what makes the shape worth more than the number.
+
+**The shape replicates.** The 2026-08-15 sweep, on a different selection set and a different
+artifact, put the peak in the same place: 0.9930 at 0.20 against 0.9932 at 0.33 and 0.43.
+
+**The magnitude does not clear the clean data.** +0.0001 over the shipped weight, and that same
+2026-08-15 entry recorded the honest ending: on the untouched tail, 0.20 / 0.33 / 0.43 all scored
+**0.9945**. Two sweeps now agree about where the optimum is and neither can show it is worth
+anything on data nothing has touched.
+
+**Confirmed on the clean tail, in direction only.** Scored on the untouched 70 shots:
+
+| | S | R²qb | Consistency |
+|---|---|---|---|
+| `ensemble` (weight 1) | 0.9945 | 0.9967 | 0.9802 |
+| `seq*2` | 0.9945 | 0.9968 | **0.9805** |
+
+S is identical to four decimals. Worked out term by term it is **+0.00007** — Consistency moves the
+same way it did on the selection set, which is now three independent samples agreeing about the
+direction, and the size stays below what the display shows, let alone what the fold could.
+
+**Verdict: a free change with a replicated shape and an unmeasurable size.** It costs one number in
+`params.yaml` and nothing at inference. It should NOT be spent as a submission of its own —
++0.0001 against a board-to-local offset that drifts by 0.0003 would tell us nothing. If ema clears
+its production confirmation, this rides along in the same entry, where the combined change is large
+enough for the board to speak about.
+
+## The shipped configuration re-scored today, and what headroom it actually has — 2026-08-20
+
+A regression check before trusting any plan built on recorded numbers. The three shipped artifacts,
+scored on the same untouched 1% tail with today's code:
+
+| | S | R²ψ | R²qb | 1 − D_LCFS | Consistency |
+|---|---|---|---|---|---|
+| `ensemble` (prod alone, 5 members) | **0.9945** | 0.9998 | 0.9967 | 0.9902 | 0.9802 |
+| `salts:prod+vesseld+vesselp` (what ships) | **0.9950** | 0.9999 | 0.9974 | 0.9908 | 0.9819 |
+
+Both reproduce their recorded values exactly. **Nothing has drifted**, so the 0.9945 / 0.9950 /
+0.9938-on-the-board chain of numbers every current plan rests on is sound.
+
+**And it gives the target its true value.** The trio's gain over prod alone is +0.0005, of which
+Consistency is +0.00034 — two thirds, again. More usefully, the SHIPPED Consistency is **0.9819**
+against C2's ceiling of 0.9974, so what is actually left in the term that holds everything is
+
+    (0.9974 − 0.9819) × 0.20 = **+0.0031 of S**
+
+That is the number to measure future work against, not the +0.0059 the one-net screen suggests: the
+screen sits at Consistency 0.9770 and has room the shipped model has already spent by averaging
+thirteen nets across three feature sets.
+
+**The target list, per scalar, on the configuration that actually ships:**
+
+| scalar | prod alone | the trio | trio's gain | room to 1.0 | worth in S |
+|---|---|---|---|---|---|
+| **kappa** | 0.9601 | **0.9640** | +0.0039 | 0.0360 | **+0.00103** |
+| **li** | 0.9680 | **0.9728** | +0.0048 | 0.0272 | **+0.00078** |
+| R_axis | 0.9806 | 0.9787 | **−0.0019** | 0.0213 | +0.00061 |
+| volume | 0.9814 | 0.9829 | +0.0015 | 0.0171 | +0.00049 |
+| Z_axis | 0.9883 | 0.9901 | +0.0018 | 0.0099 | +0.00028 |
+| tri_bot | 0.9908 | 0.9918 | +0.0010 | 0.0082 | +0.00023 |
+| tri_top | 0.9922 | 0.9931 | +0.0009 | 0.0069 | +0.00020 |
+
+**Every ceiling is now measured, not assumed.** `evaluate.py --mode basis` pushes the truth through
+the artifact's own 50 components and back, which is what a perfect regression could reach:
+
+| scalar | shipped | basis ceiling | room | worth in S |
+|---|---|---|---|---|
+| **kappa** | 0.9640 | **0.9908** | 0.0268 | **+0.00077** |
+| **li** | 0.9728 | 0.9985 | 0.0257 | **+0.00073** |
+| R_axis | 0.9787 | 0.9999 | 0.0212 | +0.00061 |
+| volume | 0.9829 | 0.9997 | 0.0168 | +0.00048 |
+| Z_axis | 0.9901 | 0.9996 | 0.0095 | +0.00027 |
+| tri_bot | 0.9918 | 0.9968 | 0.0050 | +0.00014 |
+| tri_top | 0.9931 | 0.9969 | 0.0038 | +0.00011 |
+| | | | | **+0.00311** |
+
+The total reconciles with the +0.0031 computed independently from C2's aggregate ceiling, and the
+composite ceiling reproduces at 0.9990.
+
+**Two corrections to the placeholder version of this table.** kappa's room falls from 0.0360 to
+0.0268 — its ceiling, **0.9908, is by far the lowest of the seven**, so the 50-component basis
+itself struggles to represent elongation, which is exactly why C2 called it the sharpest case. And
+both triangularities cap at 0.9968–0.9969 rather than 1.0, so their value was overstated by nearly
+half.
+
+**kappa and li still hold half of what is left**, and the top four hold 0.0026 of the 0.0031.
+
+**Is kappa's low ceiling fixable by a bigger basis? Measured, and no.** The artifact stores exactly
+50 components so more cannot be tried without refitting — but FEWER can, and the slope at 50 says
+whether the ceiling is still climbing. Truth projected onto k directions and back, then run through
+the scorer's own derivations, no fitting anywhere:
+
+| scalar | k=10 | k=20 | k=30 | k=40 | k=50 | slope 40→50 |
+|---|---|---|---|---|---|---|
+| **kappa** | **0.3219** | 0.9598 | 0.9821 | 0.9881 | 0.9908 | **+0.0027** |
+| li | 0.7705 | 0.9653 | 0.9926 | 0.9972 | 0.9985 | +0.0014 |
+| Z_axis | 0.7295 | 0.8627 | 0.9888 | 0.9984 | 0.9996 | +0.0012 |
+| tri_bot | 0.8649 | 0.9811 | 0.9929 | 0.9957 | 0.9968 | +0.0011 |
+| R_axis | 0.7373 | 0.9688 | 0.9940 | 0.9994 | 0.9999 | +0.0005 |
+| tri_top | 0.9006 | 0.9849 | 0.9943 | 0.9964 | 0.9969 | +0.0005 |
+| volume | 0.7692 | 0.9895 | 0.9977 | 0.9991 | 0.9997 | +0.0005 |
+
+kappa's ceiling IS still climbing at 50, and faster than anything else — twice the next scalar. But
+the arithmetic closes the branch: kappa sits at **0.9640 against a ceiling of 0.9908**, a gap of
+0.0268, while ten more directions would move that ceiling by about 0.003. **The representation is
+worth at most a tenth of the gap; the other nine tenths are the regression.** And `j7_npca75`
+already measured n_pca = 75 at −0.0015 on overall S, because the extra directions are targets the
+fit has to predict and it predicts them badly.
+
+**One genuinely new fact about the geometry**: at k = 10, kappa scores **0.32** where every other
+scalar is between 0.73 and 0.90. Elongation depends on fine boundary structure that the leading PCA
+directions simply do not carry — it needs roughly twice as many directions as its neighbours before
+it is representable at all.
+
+**One anomaly, small and worth remembering: R_axis is the only scalar the trio makes WORSE than
+prod alone** (−0.0019, against +0.0009 to +0.0048 on the other six). Whatever the two vessel arms
+add, they cost something in where the magnetic axis lands. There is no lever to exploit it — the
+`psi=`/`qb=` grammar splits the map from the submitted scalars, and the seven Consistency scalars
+are DERIVED rather than predicted, so no mix can be chosen for them separately.
+
+**Which sharpens the ema question rather than settling it.** ema's +0.00082 of Consistency was
+measured where there was more room and one net. The trio already averages thirteen, so its
+variance-reduction third (32% of the effect) is the part most likely to be absorbed; the level
+shift (68%) is the part that should survive. The paired production confirmation is what decides it,
+and this is the baseline it will be read against.
+
+## B9's open half, answered: the regression predicts every direction that carries variance — 2026-08-20
+
+C2 measured what the 50 directions can REPRESENT and explicitly left the narrower question open:
+"reduced-rank regression is about which directions are PREDICTABLE, and nothing here measures
+that." Projecting both the truth and the ensemble's prediction onto the same basis measures it
+exactly, per direction, on the clean tail:
+
+| component | share of psi variance | R² of the regression |
+|---|---|---|
+| 0 | **72.20%** | 0.9998 |
+| 1 | 19.79% | 0.9999 |
+| 2–3 | 5.29% | 0.9996–0.9998 |
+| 19 | 0.01% | 0.9350 |
+| 29 | ~0% | 0.8619 |
+| 39 | ~0% | 0.7249 |
+| 49 | ~0% | **0.4291** |
+
+**Variance-weighted mean R² = 0.9997.** Exactly one component of fifty scores under 0.5, and it
+carries 0.00% of the flux variance.
+
+**This closes B9.** Reduced-rank regression drops the directions that are hard to predict — and
+those are precisely the ones with no variance, so dropping them costs nothing in R²psi and takes
+away exactly what the geometry needs. There is nothing to win there.
+
+**And it states the central paradox of this challenge precisely, which nothing had done before.**
+Put beside the ceiling-vs-basis-size curve — kappa scores **0.32** at k = 10 and its ceiling is
+still climbing at k = 50 — the two measurements say:
+
+> the regression predicts the first four components (97.3% of the flux) essentially perfectly, and
+> the derived functionals depend on components 20 to 50, where its R² falls from 0.93 to 0.43.
+
+That is why R²psi reads 0.9998 against a ceiling of 1.0000 while Consistency reads 0.9819 against
+0.9974. The map is finished as pixels because pixels are dominated by four directions; the seven
+scalars are not, because a boundary's shape lives in the directions that carry almost no energy.
+
+**And the loss already does the obvious thing about it — by a factor of 1434.** The target scaler
+is not a per-component scaling but a full 50x50 matrix, so the loss is `||L (c_pred - c_true)||²`
+and an error of 1 in component i costs `||L[:, i]||²`. Reading those column norms out of the
+shipped artifact:
+
+| component | share of flux variance | share of the loss weight | ratio |
+|---|---|---|---|
+| 0 | **73.97%** | **0.45%** | 0.0 |
+| 1 | 16.58% | 1.56% | 0.1 |
+| 5 | 0.72% | **24.44%** | 34 |
+| 19 | 0.007% | 0.84% | 117 |
+| 29 | ~0% | 1.12% | 3060 |
+| 49 | ~0% | 0.56% | 75059 |
+| **20–49 together** | **0.021%** | **30.0%** | **1434** |
+
+The Jacobian metric already gives thirty percent of the loss to directions holding two hundredths
+of a percent of the flux, and it all but ignores the component that holds three quarters of it.
+
+**So the loss weighting is not the problem, and that closes the obvious next idea before it is
+proposed.** It also explains `jac`'s +0.00044: the weights were already approximately right, so
+estimating them on four times the frames refines something that was not the binding constraint.
+
+**What is left is an information limit.** Components 20–49 get thirty percent of the loss, are
+represented by the basis, and are still predicted at R² 0.43 to 0.93 — while 66% of the residual is
+shared by every seed, so it is not optimisation noise either. The inputs simply do not determine
+the fine boundary structure. Four directions are exhausted at once by this: more members (seed
+floor 56%, feature floor 75%), a bigger basis (worth a tenth of kappa's gap), a better-estimated
+metric (`jac`, refuted), and re-weighting toward the geometry (already 1434x).
+
+**The one direction with a measured success is new information**: `vesseld`'s leaky integrals of
+dI/dt bought +0.0004, the largest single gain since the four-seed ensemble, and they work by
+telling the model something the 84 instantaneous features could not. That, and not another model,
+is where the remaining 0.0031 of Consistency lives.
+
+## Two thirds of the error is shared by every seed, and that bounds the whole averaging family
+
+Scoring `mlp`, `mlp1`, `mlp2`, `mlp3` separately on the clean tail and splitting each scalar's
+residual into the part the four share and the part specific to a seed:
+
+| scalar | shared | removable by averaging | mean pairwise r |
+|---|---|---|---|
+| **li** | **76%** | 24% | 0.686 |
+| **R_axis** | **76%** | 24% | 0.685 |
+| **kappa** | **71%** | 29% | 0.620 |
+| volume | 65% | 35% | 0.542 |
+| tri_bot | 63% | 37% | 0.511 |
+| tri_top | 61% | 39% | 0.488 |
+| Z_axis | 54% | 46% | 0.398 |
+
+**Pooled, the four-seed average keeps 66% of a single seed's squared error**, and the textbook form
+reproduces it exactly: with pairwise correlation rho ≈ 0.55, an n-member average carries
+`rho + (1 - rho)/n`, which is 0.55 + 0.45/4 = 0.6625.
+
+Three consequences:
+
+* **8 seeds would carry 0.55 + 0.45/8 = 0.606** — recovering 5.6 points of the 34 that were ever
+  removable, a sixth of the remainder. That is an independent confirmation, by a completely
+  different route, of the costing that declined the eight-seed arm the same day.
+* **An infinite ensemble of these seeds floors at 55%.** Nothing below that is reachable by
+  averaging at all.
+* **kappa (71% shared) and li (76%) are the LEAST helped by averaging** — and they are exactly the
+  two scalars holding half the remaining headroom. That is why ema's gain, though real and 16/16,
+  is small precisely where the money is.
+
+**It also corrects a phrase used earlier in this file.** "The remaining error is variance, not
+bias" was too loose: the residuals are unbiased (bias/sd between −0.09 and +0.08), but two thirds
+of what is left is *shared model error* — the same mistakes on the same frames whatever the seed —
+which averages to zero across frames while being immune to averaging across seeds. Only the other
+third was ever seed noise, and four seeds have taken three quarters of it.
+
+So the remaining work belongs to changes that alter what every seed does — features, architecture,
+loss, data — and not to more copies of the same fit.
+
+**And feature diversity, measured the same way, is WEAKER than seed diversity — the opposite of
+what was assumed.** Scoring the three shipped artifacts separately and correlating their residuals:
+
+| | mean pairwise r | the average keeps | floor at infinity |
+|---|---|---|---|
+| 4 seeds, one feature set | **0.561** | 67% | 56% |
+| 3 feature sets | **0.746** | 83% | 75% |
+
+Three feature sets decorrelate LESS than four seeds of one. Two reasons, and both are visible in
+how they are built: the trio's members are themselves four-seed ensembles, so the seed component
+has already been averaged out of each and what remains is the shared model error they hold in
+common; and the vessel arms are the same 84-feature base with two or twenty extra integral columns,
+which is a variation on a view rather than a different one.
+
+**The bound this puts on the whole ensembling direction:** a fourth feature set of this kind takes
+83% to 81%, a fifth to 80%, and the floor is **75%** — three quarters of one artifact's squared
+error survives any number of them. That is the measured content of "it saturates at three"
+(2026-08-16), which recorded the saturation without a number.
+
+The caveat that keeps this honest: this measures the diversity of THIS family — leaky integrals
+bolted onto one feature base. It says nothing about a genuinely different representation (other
+targets, another architecture, a different decomposition), which has never been tried and is not
+bounded by these numbers.
+
+The three arms still queued (`huber`, `stopcomp`, `aux`) all change what every model does rather
+than how many are averaged, which is now the only direction the measurements leave open.
+
+## The seven Consistency scalars fail almost independently — 2026-08-20
+
+Correlating the seven per-frame residuals against each other, each standardised by its own spread,
+on the clean tail:
+
+    eigenvalues  1.59  1.37  1.05  1.02  0.92  0.69  0.37
+    leading component 22.7% of the variance   (complete independence would be 1/7 = 14.3%)
+    mean |off-diagonal| correlation 0.12, max 0.36
+
+**There is no dominant error mode.** The strongest pairs are kappa–tri_bot (0.36), kappa–tri_top
+(0.29), kappa–li (**−0.27**), volume–li (0.23); everything else is under 0.15.
+
+Two consequences, and the second is unwelcome:
+
+* **No single fix lifts all seven.** That is why every arm measured so far produces a small, broad
+  Consistency gain rather than a jump — there is no common latent cause to remove. It also lowers
+  the expected value of any idea sold as "fix the boundary and the geometry follows".
+* **kappa and li are ANTI-correlated at −0.27**, and they are precisely the two scalars holding
+  half the remaining headroom (0.0268 and 0.0257 of room). A change that improves one may cost the
+  other, so their gains cannot be assumed to add.
+
+This does NOT argue against a per-frame position weight, which is sometimes confused with it: that
+change reallocates optimisation effort to frames rather than removing a shared factor, so seven
+independent errors at the same expensive frames can all shrink at once. What it does argue against
+is expecting one mechanism to be worth the sum of the seven gaps.
+
+(For contrast, the same measurement on MAST put the leading component at 34.8% — its error is
+markedly more coherent than DIII-D's.)
+
+## Everything that moves S at all moves it through Consistency — 2026-08-20
+
+Three arms measured on the same instrument, decomposed the same way, in units of contribution to S:
+
+| arm | R²ψ | R²qb | 1 − D_LCFS | Consistency | total |
+|---|---|---|---|---|---|
+| `jac` (n=16, refuted) | +0.00002 | −0.00001 | −0.00000 | **+0.00043** | +0.00044 |
+| `ema` (n=16, accepted) | +0.00004 | +0.00008 | −0.00008 | **+0.00082** | +0.00101 |
+| `bnd` (n=6, incomplete) | +0.00000 | −0.00006 | +0.00002 | **+0.00039** | +0.00032 |
+
+**Not one of the three moves anything else.** R²ψ carries 55% of the composite's weight and has not
+moved by more than 0.00004 in any arm, because the map is already at 0.9998 against a ceiling of
+1.0000 — there is nothing there to win. The whole game is the seven functionals read OFF that map.
+
+`bnd` is the sharpest illustration and the early rows are worth flagging before the arm completes:
+the boundary term was added specifically to supply what the Jacobian cannot express about
+**D_LCFS**, and at n=6 D_LCFS is the one term it does not move (+0.00002, 1 of 6 salts). What moves
+is Consistency, 5 of 6. If that survives to sixteen, the reading is that displacing a level set
+changes the functionals that READ the boundary long before it changes a Hausdorff maximum over it —
+which is a fact about the metric, not about the term.
+
+This converges with two independent measurements: C2 put **76% of the reachable 0.0045 in
+Consistency**, and the noise decomposition puts **94% of the instrument's variance** there too. The
+term that holds the headroom is also the term that holds the noise, and it is the only one anything
+has yet moved.
+
+## A22's open half, closed — the tail's error is the MODEL's, not EFIT's — 2026-08-20
+
+A22 measured that the final tenth of every shot carries **24.1% of the geometry cost over 10.2% of
+the frames**, with the implied coefficient error 2.22x the fold average, and left one hypothesis
+explicitly open since 2026-08-15: part of that may be irreducible **label noise**, because EFIT's
+own reconstruction is least constrained as the plasma terminates. That question decides the sign of
+A22's proposed fix — up-weighting the tail helps if the error is the model's and fits noise harder
+if it is EFIT's.
+
+**It is answerable without training anything**, from the truth alone, and the shipped columns
+`efit_li`, `efit_r_axis` and `efit_z_axis` are all it takes. On a 20 ms frame clock a physical
+quantity evolves smoothly, so reconstruction noise shows up in the SECOND difference.
+
+First reading, 60 shots, median |d2| in units of each shot's own spread — the truth IS rougher at
+the end: **li 1.72x, z_axis 1.24x, r_axis 1.14x** against mid-shot. Taken alone that supports the
+label-noise story.
+
+**It does not survive the control, and the control reverses it.** Roughness conflates noise with
+genuinely faster evolution — at ramp-down the plasma really is changing quickly. The discriminator
+is d2 against d1: white noise inflates the second difference far more than the first, while fast
+smooth motion raises both together.
+
+| | d2/d1, last vs mid | first difference alone |
+|---|---|---|
+| li | **0.85x** | 2.01x |
+| r_axis | **0.89x** | 1.29x |
+| z_axis | **0.88x** | 1.39x |
+
+The last decile is **smoother per unit of motion**, not rougher: li moves twice as fast there and
+its d2/d1 ratio FALLS. That is coherent dynamics, not reconstruction noise, and li — the scalar
+that looked worst on the raw measure — is simply the fastest-moving one.
+
+**So the label-noise hypothesis is refuted and A22's fix is legitimate.** The tail's error belongs
+to the model. Up-weighting those frames is fitting signal, not noise.
+
+Two limits on how far to carry this. The three scalars measured are the ones shipped as columns;
+kappa, the triangularities and volume would have to be derived frame by frame, and kappa is the
+expensive one. And "the model's fault" does not mean "the loss's fault" — C7 already measured the
+metric's sensitivity in the tail at 0.98x the median, so the frames are not under-weighted BY THE
+METRIC. What is left is that they are simply harder, which is what a per-frame weight by position
+is for.
+
+## Scoring on 5% instead of 1% — worthless on the screen, worth 44% on production — 2026-08-20
+
+The scored tail is 1% of the shot list, 70 shots, and `--share` takes from the end, so anything
+past 1% reaches into validation. Enlarging it means moving shots out of validation
+(0.80/0.15/0.05), which only affects early stopping.
+
+**Whether it helps depends entirely on which instrument, and the split is stark.** Subsampling the
+70 scored shots without replacement and correcting for the finite population — without that
+correction the constant is not flat and the extrapolation is wrong — the sampling standard
+deviation of a paired difference is `k/sqrt(n)` with **k = 0.00132**:
+
+    sampling sd at  70 shots (1%)   0.000158
+    sampling sd at 350 shots (5%)   0.000071
+
+| instrument | total paired sd | of which sampling | at a 5% tail |
+|---|---|---|---|
+| quality screen, one net | 0.00085 | **3%** of the variance | −1% noise |
+| production, four MLPs | 0.00017 | **86%** of the variance | **−44% noise** |
+
+On the screen the noise is training randomness — which salt, where the trajectory lands — and more
+scored shots do nothing about it. On a production comparison the training part is only 0.00006 and
+**the 70-shot sample is almost all of it**; five times the shots would take the paired sd to
+0.00009.
+
+**Applied to the 27-hour final confirmation, which now scores 5%.** Scoring 350 shots instead of 70
+costs a few minutes per run against 36 minutes of training, so the 44% is close to free. The
+six-pair confirmation already running stays at 1% — changing the scored set mid-measurement would
+make its pairs incomparable, and it is nearly done.
+
+**The general lesson worth more than the arms:** the same knob has opposite verdicts on the two
+instruments, and reading the decomposition rather than the total is what tells them apart. "Score
+more shots to cut noise" is right or worthless depending on where the noise actually is.
+
+## What limits the 16-salt instrument, and why the obvious fix is not worth buying
+
+Decomposing the paired standard error of S into the four scored terms, over the ema arm:
+
+| term | raw SE | × weight | SE in S | share of variance |
+|---|---|---|---|---|
+| **Consistency** | 0.00073 | 0.20 | **0.00015** | **94%** |
+| R²qb | 0.00019 | 0.15 | 0.00003 | 3% |
+| R²ψ | 0.00004 | 0.55 | 0.00002 | 3% |
+| 1 − D_LCFS | 0.00005 | 0.10 | 0.00001 | 0% |
+
+The quadrature sum is 0.00015 against 0.00014 measured directly on S, so the decomposition closes.
+**Consistency alone sets what this instrument can resolve** — R²ψ carries the largest weight in the
+composite and contributes 3% of its noise, because the model reproduces the map almost exactly
+(0.9998) and reproduces the functionals read off it far less exactly.
+
+**The obvious sharpening, priced and declined.** Consistency is scored on the 1% tail — 70 shots.
+Doubling it to 140 (shares 0.80/0.18/0.02, taking from validation rather than training, since
+validation only drives early stopping) would cut its noise by sqrt(2): paired SE 0.00014 → 0.00010,
+2 sigma 0.00028 → 0.00020. It costs nothing in validity, because both arms of a pair lose the same
+shots and the difference is untouched.
+
+**It is not worth it yet.** A different tail is a different scored set, so every number in the
+program above becomes incomparable and the baseline arm has to be re-run — 2.7 hours — to buy a
+resolution improvement from 0.00028 to 0.00020 when the effects being chased are 0.0005 to 0.0010
+and already clear the current threshold. Recorded because knowing WHERE the noise lives is worth
+having; the fix goes in the drawer until an effect actually lands between 0.0002 and 0.0003.
+
+## What a production run actually costs, and where it goes — 2026-08-20
+
+Read off a full run's own fit timings, because the plan for the ema confirmation was built on a
+guess and the guess was wrong by a factor of four:
+
+| model | fit time |
+|---|---|
+| ridge | 1.2 s |
+| mlp | 256.8 s |
+| mlp1 | 451.7 s |
+| mlp2 | 270.7 s |
+| mlp3 | 306.2 s |
+| **seq** | **3984.1 s** |
+
+**The sequence model is 75% of a production run.** Four MLP seeds fit in 21 minutes together; seq
+alone takes 66. A production fit is therefore about **1.7 hours**, not the ~10 minutes a quality
+screen takes, and sixteen of them would have been 27 hours.
+
+A trap in reading the logs that cost a wrong estimate first time: the bracketed timestamp is
+`H:MM.S` on long runs, so `[3:47.0]` at the end of a run is three hours forty-seven, not three
+minutes. The fit timings are what settle it.
+
+**And the cost/benefit of seq is worth stating plainly.** A25 measured the ensemble at **0.9943**
+with seq against **0.9941** without: seq buys **+0.0002** for 75% of the training budget. For
+comparison ema, at zero cost, buys +0.00101 on the screen. If the paired production confirmation
+lands anywhere near its predicted +0.0007, ema will be worth **three times what the sequence model
+is worth, for none of the time**. That does not by itself argue for dropping seq — its value in an
+ensemble is diversity rather than accuracy, and A25 showed the seq family carries real independent
+signal (three seq seeds averaged 0.9932 against 0.9909/0.9914/0.9916 individually) — but it does
+mean the 66 minutes should be justified rather than assumed.
+
 ## Measurement facts worth not re-deriving
 
 - **MAST's real machine dimensions are known, not guessed.** The first wall is a closed 37-vertex
@@ -749,3 +1988,660 @@ and light regularisation together, which neither it-11 nor grid C tested.
   gains absorb the plasma's own field. Pooled amplitude reads 0.997 on 10 shots and 0.911 on 40;
   per frame it is 0.87–0.89 at any size. `ECOILA` is not identifiable at all — its gain moves
   between +142 and −10 depending on the fit — so the pipeline fits its own gains instead.
+
+## The composite was being PRINTED at four decimals — fixed 2026-08-21
+
+`local_score.py` printed its summary row at `:8.4f`, and every screen and production CSV is built by
+parsing that row. The differences these experiments resolve are around 0.0009, so the printer was
+quantising each measurement into steps of 0.0001, contributing sd 0.00004 to a paired difference
+whose sample sd is 0.00009 — a 10% wider interval, given away for nothing.
+
+It is visible in the `ema` production pairs, whose per-salt differences are exact multiples of
+1e-4: `+3.0 +0.0 +0.0 +1.0 -4.0`. Some of those zeros are not zeros. They are differences smaller
+than the printer could show.
+
+This is the second time the same class of bug has cost something here. The MAST inboard wall
+literal was also first taken at four decimals — 0.04 mm on a 30 mm grid, worth 0.0001 of S, and it
+was measured and then shipped exact. A number that is only ever read by a human can be rounded; one
+that is parsed by a tool cannot.
+
+Now `:10.6f`. Formatting only — no computation changed — and the file was replaced ATOMICALLY so a
+run starting mid-edit could not import a half-written module. Every parser was checked against the
+new width before the change: the runners' `awk` extraction, `paired.py`, and `mast/loo.py`'s
+`COMPOSITE S` regex, which reads a different line that was left alone.
+
+`my_experiments/prodpair.py` was added alongside it. `paired.py` matches a baseline FILE against arm
+FILES, but the production confirmations put both arms in ONE file, because a lane runs both arms of
+a salt back to back so a pair always completes together. It was validated by reproducing the known
+`ema` answer — +0.00000, 2/5 signs — before being pointed at anything new.
+
+## `seq` dropout 0.1: strongly negative, and it refutes the reason I ran it — 2026-08-21
+
+First pair, salt 0: **0.990500 -> 0.986600, a fall of 0.0039**, with every term down — psi 0.9997
+-> 0.9993, qb 0.9913 -> 0.9869, 1-D_LCFS 0.9860 -> 0.9837, Cons 0.9669 -> 0.9531. That is forty
+times the effect these screens usually resolve, so one pair settles the sign.
+
+**It is not a measurement artefact.** The obvious suspicion was that dropout stayed active during
+validation, which would corrupt early stopping rather than the model; it does not — `seq_model.py`
+calls `net.eval()` before validating (line 266) and `net.train()` after (275), and again on both
+prediction paths. The dropout run also ended in 2767 s against the baseline's 5311 s, which looked
+like a premature stop, but the curve says otherwise: its best was 0.044549 at step 25500 and
+validation then ROSE — 0.0499, 0.0565, 0.0702 — so it had settled worse, not been cut off early.
+
+**What actually happened is the opposite of the hypothesis.** Dropout made the model UNDERFIT.
+Training loss never went below 0.0298 against the baseline's 0.012, and validation followed it down
+only to 0.0445 against 0.0320. The train/val gap did narrow, 2.7x -> 1.66x, exactly as a
+regulariser promises — but it narrowed by ruining the fit, not by improving generalisation.
+
+So the 2.6x gap I cited as evidence of overfitting is **not the kind of overfitting regularisation
+repairs**. `seq` is capacity-limited like the MLP before it, and dropout takes away capacity it
+needs. The parameter-counting prior — 5633 sequences against 1.25M rows — was a real argument and
+it is now refuted by measurement, which is the point of running it.
+
+The remaining seven salts were cancelled rather than spend eighteen hours confirming a sign that
+one pair had already established at forty times the noise.
+
+## The better finding was hiding in the BASELINE curve: `seq` trains at a constant learning rate
+
+Reading the control arm rather than the treatment: baseline validation swings about 30% between
+adjacent evaluations late in the fit — 0.032029, 0.043272, 0.035239, 0.043711 — so the "best
+checkpoint" is being selected partly out of noise. Both `seq` and `mlp` ship `lr_schedule: none`,
+a constant 1e-3 for the whole run, and that volatility at convergence is what a constant learning
+rate looks like.
+
+`cosine` is implemented and unused for `seq`. The horizon is the trap — `models.py:384` records
+that a fit stopping near a quarter of its declared horizon only traverses the cosine's flat
+beginning — and here the horizon is known from the baseline: best at 73000, stopped at 83000. So
+`lr_t_max_steps=80000` traverses the actual curve. Queued as the `cos` arm on salts 0-7.
+
+## The `D_LCFS` weight had the wrong sign in the analysis tools — fixed 2026-08-21
+
+`paired.py` and `prodpair.py` carried `"D_LCFS": -0.10`. The runners write `1 - D_LCFS` into that
+column, because that is what `local_score.py:481` prints, and in the composite the term is
+`+0.10 * (1 - D_LCFS)`. So the weight is **+0.10**: higher is better in that column, like every
+other one.
+
+Caught by arithmetic, not by reading the code. The per-term contributions must sum to the measured
+dS, and for `huber` they summed to +0.00079 against a measured +0.00088. With the sign corrected
+they sum to +0.00087. A decomposition that does not add up to the total it decomposes is the
+cheapest possible check, and it should be run on every such table.
+
+**No decision was affected.** Every gate is applied to the `S` column directly, which is parsed from
+the score and never reconstructed from terms; the weights are used only to explain a result after
+it is in. But the explanations built on them were wrong, which is why this is recorded rather than
+quietly patched.
+
+## Where `huber`'s gain actually comes from — and a sharper prediction for production
+
+With the sign fixed, the 16-salt decomposition of the accepted `huber` arm:
+
+| term | raw | as S | signs |
+|---|---|---|---|
+| R2_psi | +0.00002 | +0.00001 | 2/16 |
+| R2_qb | +0.00068 | +0.00010 | 7/16 |
+| 1-D_LCFS | +0.00041 | +0.00004 | 13/16 |
+| **Consistency** | **+0.00359** | **+0.00072** | 12/16 |
+
+**82% of the gain is Consistency, and R2_psi contributes nothing measurable** — +0.00001 with 2/16
+salts up, which is not a small effect but no effect. That is a coherent mechanism: Huber
+down-weights large-residual frames, Consistency is the mean of seven pooled R2 over all frames, and
+a pooled statistic is dominated by its worst members.
+
+**This partly undercuts my own prediction, and I would rather say so before the production pairs
+land than after.** I argued `huber` should survive ensembling because it changes what every model
+does, unlike `ema`, which the ensemble had already done for free. That still holds in kind. But
+averaging four seeds ALSO helps worst-case frames most — variance reduction is largest where
+variance is largest — so the specific term `huber` works through is a term the ensemble is already
+improving by another route. The expected production effect is therefore somewhere between the
+screen's +0.00088 and the full dilution `ema` suffered, and closer to the screen only if the two
+mechanisms are as independent as they look.
+
+Six pairs at a paired sd of ~0.00009 give SE ~0.00004, so even a quarter of the screen effect lands
+at t = 6. The measurement can resolve the answer whichever way it falls.
+
+## Did the 1% -> 5% tail actually cut the noise? Asked properly — 2026-08-21
+
+The change was made on a decomposition: 86% of a production comparison's paired variance was the
+shot SAMPLE rather than the training, so five times the shots should cut the paired sd from 0.00017
+to 0.00009. Cost measured since: median wall 1854 s -> 2666 s, **+44% per run**.
+
+**The direct check on live data does not confirm it, and cannot yet.** `ema` prod (70 shots) has a
+paired sd of 0.00025 over 5 pairs; `huber` prod (352 shots) has 0.00042 over 5. The point estimate
+moved the WRONG way, but the comparison is confounded — `ema`'s true effect is zero on every salt,
+so its paired sd is nearly pure noise, while `huber`'s effect may genuinely vary by salt and that
+heterogeneity sits inside the same number — and at n=5 each, an sd ratio of 1.7 is about one sigma.
+
+**`my_experiments/tailnoise.py`** asks it without training anything: cut the tail into K disjoint
+blocks, score each, and the spread across blocks is the sample noise at that block size; blocks
+share no shots, so the full-tail sd is block_sd / sqrt(K).
+
+Two things came out of the first run, one useful and one a correction to my own design.
+
+**Useful: the shot sample dominates the ABSOLUTE score.** Across 5 disjoint blocks of 14, single
+models range 0.9779 to 0.9957 — per-model sd 0.0029 to 0.0070, i.e. 0.0013 to 0.0032 at 70 shots.
+Absolute S is not comparable across splits at anything like the resolution these experiments work
+at, which is exactly why every arm is read PAIRED inside a salt. That practice is now measured
+rather than assumed.
+
+**The correction: two seeds are not two arms.** The tool first used seed pairs as a stand-in,
+arguing they "differ only in initialisation". Measured, that proxy gives a pooled paired sd of
+0.00125 at 70 shots against the 0.00025 the real base-vs-`ema` production difference shows — an
+overstatement of about fivefold. A seed change is a LARGE perturbation whose effect varies shot to
+shot; a loss change at fixed seed is a small one. The docstring now says so, and the mode prints a
+warning; a `--artifact-b` mode was added that compares two artifacts differing in one setting, and
+refuses if their salts or their train/val file lists disagree.
+
+**The guard earned itself immediately.** Pointed at the shipped production artifact with a 5% tail,
+the tool refused: 282 of those 352 shots were TRAINED or VALIDATED on. The shipped artifacts use
+0.80 + 0.19 = 0.99, leaving exactly the 70 clean shots — which is why the original production pairs
+used a 1% tail. It was not a choice. The 5%-tail runs free the tail by spending validation
+(0.19 -> 0.15), so they are a valid paired comparison but NOT the shipped configuration.
+
+Queued: `base` and `huber` artifacts at salt 0 under 0.80/0.15/0.05, kept rather than overwritten,
+so the question can be asked of a real arm comparison.
+
+**A lead, noticed in passing:** in block 0, `mlp2` scores 0.977925 where the other three seeds score
+0.9825 to 0.9881 and where every other block has all four at 0.990+. One block, one seed, an order
+more damage than typical — worth finding which shot does that and whether it is the same one the
+tail-expert diagnostics keep landing on.
+
+## `shot-tail-features` — the vessel integrals do NOT fix the tail. REFUTED 2026-08-21, for free
+
+A22's missing-state branch: the last decile costs double because the current decays fastest there,
+so vessel eddy currents are largest and most transient exactly where 21 instantaneous levels cannot
+express them. The shipped submission blends three artifacts and the eddy-current integrals live only
+in two of them, so the branch tests itself at zero cost — C1 decomposes the score onto frames and
+trains nothing.
+
+| artifact | total cost | last decile | share | density |
+|---|---|---|---|---|
+| `prod` | 0.00493 | **0.00119** | 24.0% | 2.35x |
+| `vesseld` | 0.00504 | **0.00118** | 23.5% | 2.30x |
+| `vesselp` | 0.00540 | **0.00119** | 22.0% | 2.15x |
+
+**The absolute tail cost does not move: 0.00119, 0.00118, 0.00119.** The integrals do nothing there.
+
+**And the shares would have said the opposite, which is the reusable part.** `vesselp`'s last decile
+looks 2 points better as a SHARE — 22.0% against 24.0% — purely because its TOTAL cost is higher
+(0.00540 against 0.00493). It is a worse model, so the tail is a smaller fraction of a bigger whole.
+Comparing shares across models whose denominators differ reads improvements that are not there;
+compare absolute costs.
+
+**Consequence for the backlog.** The missing-state branch is refuted in its vessel-integral form,
+which was the only form with features already built. That leaves `shot-tail-weight` as the one
+remaining candidate for the measured 0.00106 bound, and raises it: the tail is expensive, the
+expense is not the metric's doing (C7: sensitivity 0.98x, coefficient error 2.22x), not the basis's
+(the ceiling is flat across the shot), and now not the vessel state's either.
+
+**An unpredicted finding: both ENDS are expensive, not just the tail.** The first decile carries
+15.1% of the cost over ~10% of the frames, a density of 1.48x, against 6.4-8.8% for the middle
+eight. `my_experiments/frame_weight.py` already has `ends_weight()` beside `position_in_shot()`;
+this says the two-sided form is the one to run, and that a tail-only step would leave half of a
+measured concentration on the table.
+
+## `huber` in production: ZERO. Six pairs, and the screen is now 0 for 2 — 2026-08-21
+
+    n=6   mean +0.00000   SE 0.00017   t 0.0   signs 3/6
+    per salt: +0.0 +5.0 -6.1 +1.4 +3.1 -3.2   (units 1e-4)
+
+The term decomposition finishes it: **Consistency -0.00004 raw**, against **+0.00359** on the
+screen. Not reduced — gone. Every other term is inside 0.00001 of S.
+
+**The prediction that this tests was written before the data landed, and it holds.** When the
+16-salt decomposition showed 82% of `huber`'s gain coming through Consistency, I wrote that this
+undercut my own earlier argument: averaging four seeds also helps worst-case frames most, because
+variance reduction is largest where variance is largest, so `huber` was working through a term the
+ensemble already improves by another route. That is exactly what happened.
+
+**The larger result is about the instrument, not the arm. The screen is now 0 for 2.**
+
+| arm | screen | production |
+|---|---|---|
+| `ema` | +0.00101, 16/16, t=7.2 | **0.00000** |
+| `huber` | +0.00088, 13/16, t=2.4 | **0.00000** |
+
+Two changes have cleared the pre-registered gate and both measured exactly zero where it counts.
+The distinction I drew after `ema` — variance-type changes are discounted by an ensemble, changes
+to what every model does are not — survives as a mechanism but has stopped being useful as a filter,
+because BOTH mechanisms turn out to route through terms the ensemble already covers.
+
+**So the 16-salt screen on ONE net does not answer the question being asked.** It measures what a
+change does to a single fit; the submission is a five-member ensemble, and the ensemble has already
+taken the kind of gain a single fit shows. This belongs to backlog position 0 (`resolution`): the
+screen needs to be replaced by, or gated behind, a production-configuration comparison. The cost is
+roughly 4x a screen run, which is the price of measuring the right quantity instead of a correlate.
+
+## I broke every fit in the fork for eleven minutes, and the runners' guard is what saved the data
+
+Wiring the frame weight in, I added `frame_ends_strength: float = 0.0` to `TorchMLPModel` ABOVE
+`grad_clip: float`, which has no default. Dataclasses reject a non-default field after a defaulted
+one, so every fit raised `TypeError` at construction. Two queued lanes — the 12-pair `huber`
+extension and the seq cosine arm — ran their whole salt lists in seconds, failing each run instantly.
+
+**No bad data was written, and that was not luck.** Every runner extracts the `ensemble` row and
+does `[ -z "$ROW" ] && { echo "  NO ensemble row"; continue; }` before appending. Twenty failed runs
+produced twenty skips instead of twenty junk rows. A runner that had trusted the exit code, or
+written whatever it parsed, would have poisoned two CSVs.
+
+The fix: the two fields are now REQUIRED, not defaulted, with the reason written beside them —
+`params.yaml` supplies both keys for all four MLP blocks, so defaults were never needed and were
+only what broke the ordering rule. Verified by `load_params`, which constructs all six models; that
+is what a run does at startup, so it is the check that matters rather than a bare import.
+
+## A scale difference between MSE and Huber, chased down and mostly cleared — 2026-08-21
+
+torch's `HuberLoss` is **0.5 x^2** in its quadratic region while `MSELoss` is **x^2**, so switching
+loss halves the gradient on every ordinary frame. That looked at first like the confound this fork
+has been bitten by before — a learning-rate change wearing another costume. Chased to the end, it
+mostly is not, and the reason is worth keeping:
+
+- **Adam is scale-invariant.** The update is m/(sqrt(v)+eps), so a constant factor on the loss
+  cancels in the ratio. Both models use `torch.optim.Adam`. The halved gradient does NOT halve the
+  step.
+- **`weight_decay` is 0.0** for the MLP, so there is no coupled-L2 path for the scale to act through
+  either — with torch's Adam the decay is added to the gradient, so a nonzero value WOULD have
+  doubled in relative weight.
+- **`grad_clip` is 1.0 and IS scale-sensitive.** Halved gradients cross the threshold less often, so
+  `huber` and `mse` differ in how much clipping they receive. `models.py` already warns that a clip
+  firing on most steps is a disguised rate cut; this is the same interaction seen from the other
+  side, and it is a real if second-order difference between the two arms.
+
+**One recorded sentence needs correcting.** The `hd4` write-up says "at delta 4.0 Huber is nearly
+MSE". In VALUE it is nearly MSE/2, not MSE. In EFFECT, under Adam, it is nearly MSE — which is what
+that argument needed — so the two-sided-optimum conclusion stands, but for a reason the entry did
+not state.
+
+**The clean control, if it is ever worth the run:** `huber_delta` at 1e6 is exactly MSE/2 with no
+clipping whatever. Against `mse` it isolates the pure scale-and-clip effect from the outlier
+handling. Not queued: `huber` measured zero in production, so this decides nothing that is still
+open — it is recorded so the next person does not have to rediscover the asymmetry.
+
+**Consequence for new code.** The sequence model's Huber is implemented SCALED BY 2, matching the
+existing squared-error scale, so a `seq` huber arm differs from its control in outlier handling
+alone and not in how often the gradient clip fires.
+
+## `tail-noise` settled: the shot sample IS 73% of paired variance, and the 5% tail paid — 2026-08-21
+
+Two artifacts, `base` and `huber`, trained at the SAME salt on the SAME split under 0.80/0.15/0.05,
+then both scored on 5 disjoint blocks of ~71 shots from the 352-shot tail. Because the training is
+identical across blocks, the spread of the paired difference across blocks is the SAMPLE component
+alone, measured rather than argued.
+
+| shots scored | paired sd |
+|---|---|
+| ~71 | 0.00079 |
+| 352 | **0.00035** |
+
+The observed TOTAL paired sd of the huber production comparison — six salts, 352 shots — is
+**0.00041**. That decomposes the whole thing:
+
+    sample     0.00035     -> 73% of the variance
+    training   sqrt(0.00041^2 - 0.00035^2) = 0.000215
+
+So at 70 shots the total would have been sqrt(0.00079^2 + 0.000215^2) = **0.00082**. The 5% tail
+cut it to 0.00041 — **halved, for 44% more wall clock**. The change was worth making and the
+original 86% claim was close: measured, it is 73%.
+
+**And this explains the confounded comparison that made it look otherwise.** `ema`'s production
+pairs showed a paired sd of 0.00025 at 70 shots, far below the 0.00082 predicted here — because
+`ema`'s two arms are nearly the same model, so their difference barely varies shot to shot.
+**Paired sd is a property of the ARM as much as of the sample size**, and only equal-sized changes
+may be compared. This measurement uses base-vs-huber precisely because that is the comparison whose
+noise it is meant to explain.
+
+**The ceiling is now known.** With infinitely many scored shots the paired sd bottoms out at the
+training component, **0.000215**. Shots cannot go below it; only PAIRS can, as 1/sqrt(n). With the
+production shares only 5% of shots are free anyway, so shots are spent — 12 pairs is the remaining
+lever, and it takes SE to 0.00012.
+
+## `seq` gets weight averaging and Huber, and the EMA is PROVEN wired rather than assumed
+
+`seq` had neither `loss` nor `ema_decay`. Both are now plumbed, with Huber **scaled by 2** so it
+matches the squared-error scale and an arm differs from its control in outlier handling alone rather
+than also in how often `grad_clip` fires.
+
+The first smoke test returned byte-identical scores for `ema_decay=0.999` and the baseline, which is
+exactly what a change that was never wired in would return. Rather than assume, the model now
+REPORTS its win count — even when it is zero, because zero is the ambiguous case — and a second
+check separated the two:
+
+    ema_decay=0.9     averaged weights won 4 evaluation(s)    S 0.940815
+    ema_decay=0.999   averaged weights won 0 evaluation(s)    S 0.937936  (identical to base)
+
+Wired, and losing for a stated reason: at decay 0.999 the averaging window is 1000 steps against a
+1200-step smoke run, so the average still carries the initialisation. On a real 68000-step fit the
+window is a fraction of the trajectory.
+
+## `shot-tail-weight` refuted — the backlog's best-supported entry, dead at 5 pairs — 2026-08-22
+
+Backlog position 1, the only open entry with a MEASURED upper bound (0.00106, 27% of everything
+left, concentrated in 10% of the frames). Run two-sided, because the cost decomposition had just
+shown both ENDS of a shot are expensive, not only the tail: 24.0% of the cost in the last decile and
+15.1% in the first, against 6.4-8.8% for the middle eight.
+
+    ends   n=8   mean +0.00002   SE 0.00003   t 0.5   signs 4/8
+    per salt: -0.3 +0.3 -0.6 -0.5 -0.8 +2.1 +0.7 +0.4   (units 1e-4)
+
+**The effect is zero.** Not "fell short of the gate" — absent, against a measured bound of +0.00106.
+
+*Corrected twice the same day, which is the part worth keeping.* At five pairs this read -0.00004
+with 1/5 signs and every term slightly down, and was written up as "a uniformly tiny negative". The
+sixth salt came in at +2.1 and moved the mean to zero; the eighth left it at 4/8, an exact
+coin-flip. Five points of a null always have a shape, and describing that shape as a result is the
+error — with |t| < 2 the answer is "zero", and the picture the points happen to make says nothing.
+The refutation never moved (a bound of 0.00106 is missed either way), but the resolution claim
+shrank with the sign: SE went 0.00002 -> 0.00003, so this arm is about five times finer than
+`huber`'s, not eight.
+
+Stopped at 8 of 12 pairs deliberately: the arm was settled, and its 20 job slots were slowing a
+submission build that was actually wanted.
+
+**The null is trustworthy because the setting was verified to land, not assumed.** The saved
+artifact's own `params_yaml` carries `frame_ends_strength=1.5, edge=0.1` on all four MLPs. This
+project has now produced two silent no-ops (a defaulted dataclass field that broke every fit, an EMA
+that returned byte-identical scores), so a null is only worth recording once the knob is proven to
+have moved.
+
+**Why the resolution is so much better here than for `huber`, and it is a reusable point.** SE is
+0.00004 at 6 pairs against `huber`'s 0.00017 at 6 — four times finer for the same protocol. Paired
+sd is a property of the ARM, not of the sample size: `huber` replaced the loss everywhere, so its
+effect genuinely varied from split to split, while this reweights 20.4% of frames by 1.5 with the
+mean normalised out, which is a small and uniform perturbation. **The instrument is not one number;
+it is one number per kind of change.**
+
+**Why weighting cannot have worked, in hindsight that the earlier measurements already supported.**
+A22 measured **55% of the last decile's residual as SHARED across the four seeds**. Shared residual
+is bias — of this model-and-feature class — not variance. Re-weighting frames changes how much
+attention the fit pays them; it does not supply information the inputs do not carry. So it can only
+move error between the middle and the ends, which is exactly what a uniformly tiny negative looks
+like. The same reasoning already killed `shot-tail-features` from the other side: adding the vessel
+integrals left the absolute tail cost at 0.00119 against 0.00119.
+
+**What this closes.** The tail family is now refuted in both of its separable mechanisms —
+under-representation (this) and missing state (`shot-tail-features`) — leaving only label noise,
+which A22 flagged as untestable by the measurements available and which no weighting or feature can
+address. The 0.00106 bound stands as real, and unreachable by anything in this file.
+
+## The board stayed at 0.9938, and that is the ceiling of the INSTRUMENT, not a refutation — 2026-08-22
+
+The 2026-08-22 submission shipped one change: the GRU's cosine schedule, measured in production at
+**+0.00009 with 3 signs of 3**. The board came back **0.9938, unchanged from 2026-08-19**.
+
+That is not evidence against the change. **The board prints four decimals, so its resolution is
+0.0001** — an effect of 0.00009 sits exactly on the boundary and may or may not move the last digit.
+0.9938 is consistent with the measurement; it simply cannot distinguish it from zero.
+
+**And that is the finding worth acting on.** Local measurement now resolves 0.00003 (the frame-weight
+arm) while the LEADERBOARD resolves 0.0001. The remaining local headroom is 0.0039 spread over seven
+functionals, and the changes actually available are worth 0.0001-0.001 each. So for Challenge 1 we
+have entered a regime where:
+
+- a genuinely good change moves the board by one or two units of the last printed digit;
+- a good change and a useless one are indistinguishable there;
+- and the only trustworthy signal is the local paired protocol, which costs 9-36 h per answer.
+
+**The day's production ledger, all measured in the shipped configuration:**
+
+| change | production | verdict |
+|---|---|---|
+| `huber` | +0.00000, 5/11, 12 pairs | dead |
+| `ema` | +0.00000, 2/5 | dead |
+| `one-vs-four` | −0.00106, 0/6 | decisively worse |
+| `shot-tail-weight` | +0.00002, 4/8 | dead, against a 0.00106 bound |
+| `seq-cosine` | +0.00009, 3/3 | real but below board resolution |
+
+Five changes, one survivor, and the survivor is too small for the scoreboard to see.
+
+**CORRECTION, same day, once the leaderboard was read properly.** The paragraph above argued for
+abandoning Challenge 1 as finished. That was the wrong conclusion from the right numbers, and the
+error is worth naming because it is a general one.
+
+First place is **0.9944**; we are at **0.9938**. The gap is **+0.0006** — six times the board's
+printed resolution, and well inside the 0.0039 of local headroom. Someone has already taken it, so
+it is reachable in fact and not only in principle.
+
+What I did was measure the resolution for detecting ONE change (0.0001, marginal) and conclude the
+GOAL was out of reach. Those are different quantities. The goal is +0.0006, which is comfortably
+detectable; it just cannot be delivered by one change. Three or four arms worth +0.0002 each close
+it, and +0.0002 is exactly the size the local paired protocol resolves at t = 2 with 12 pairs.
+
+The strategic argument for MAST stands on its own arithmetic — 0.43 unclaimed against 0.0039, and a
+noiseless board — but "Challenge 1 is finished" was false. It is 0.0006 from first place.
+
+## `coef-expansion` refuted, and the refutation is a lesson about sweeps — 2026-08-23
+
+Re-opened from D5, which had measured the per-shot optimal coefficient factor at median **1.0095**
+with **two thirds of shots wanting to be pushed AWAY from the fold mean** — and then closed the
+family because its oracle, +0.00033 of S, sat below the 0.0013 a paired run then resolved. Only
+SHRINKAGE had ever been run (-0.0005); expansion never had. The instrument now resolves 0.00017 and
+the test costs no training at all: `FUSION_COEF_LAMBDA` scales the PCA coefficients at decode time,
+and the basis is centred, so that scales each frame's deviation from the mean.
+
+**The sweep looked like a find.** On the shipped artifact's 70 clean tail shots, eleven values gave a
+clean unimodal curve peaking near D5's own median:
+
+    0.9900 -0.000340 | 1.0000  0.000000 | 1.0050 +0.000075 | 1.0095 +0.000058
+    1.0200 -0.000293 | 1.0400 -0.002230 |  (components 20+ only: 1.1000 +0.000035)
+
+Shrinkage negative, expansion positive, peak next to the predicted place. Every part of it agreed
+with the mechanism.
+
+**Cross-validation killed it.** `my_experiments/lambda_cv.py` splits the 352-shot clean tail of
+`artefacts/tailnoise/base_s0.joblib` into two disjoint halves, round-robin through the sha1 order,
+picks lambda on one and reports what it earns on the other:
+
+| fit on | lambda* | in-sample | **out-of-sample** |
+|---|---|---|---|
+| half 0 | 1.0050 | +0.000054 | **-0.000300** |
+| half 1 | **1.0000** | 0 | 0 |
+
+**mean out-of-sample: -0.000150.** The two halves do not agree on the direction: half 0 peaks at
+1.005, half 1 peaks at 1.0000 and falls monotonically as lambda rises. An optimum that does not
+survive a disjoint half of the SAME tail is not an optimum.
+
+**The reusable part.** A sweep of N values always returns a positive best, because the best of N
+noise draws is positive by construction — and here that bias (+0.000075) was LARGER than any effect
+present. The first sweep was not wrong about its arithmetic; it was answering "what is the best of
+eleven numbers" when the question was "does a lambda exist". Any future free sweep gets the same
+two-column treatment: what the sweep reports, and what it is worth on shots the sweep never saw.
+
+D5's original closure stands, and its sentence turns out to have been exact: *"there is nothing here
+for a confidence signal to do, however good it is."*
+
+## `report()` printed four decimals too — the same bug, the third time — 2026-08-23
+
+`report_comparison` was widened to six decimals on 2026-08-21, but `report()` — the single-model
+block — was missed, because nothing parsed it until the lambda sweep, which scores ONE model and so
+never reaches the comparison table at all. Three sweep runs scored perfectly and recorded nothing,
+for a second reason: the runner grepped for the comparison table's `ensemble` row, which only prints
+when more than one model is scored.
+
+Both are now fixed. Worth noting how it was caught: not by the runs failing — they succeeded — but
+by the recurring health check's "rows written, not just headers" test, added after 2026-08-22's
+2 h 40 m of lanes that looked alive and wrote nothing.
+
+## `seq-cosine` CONFIRMED in production — the campaign's first survivor — 2026-08-23
+
+    cos   n=6   mean +0.00011   SE 0.00003   t 3.9   signs 6/6
+    per salt: +0.4 +2.1 +0.3 +1.4 +1.0 +1.2   (units 1e-4)
+    R2_psi +0.00000 | R2_qb +0.00001 | 1-D_LCFS +0.00002 | Cons +0.00007   (as S)
+
+Final at eight pairs: **+0.00010, SE 0.00002, t = 5.1, signs 8/8**, contributing through
+Consistency (+0.00007) and D_LCFS (+0.00002) with R2_psi at exactly zero. Stopped at 8 of 12
+deliberately — at t = 5.1 the remaining four pairs could not change the verdict or the shipping
+decision, and the `seq-ema` lane behind it had been idle for ten hours.
+
+Six salts of six, t = 3.9. Against a day in which `huber`, `ema`, `one-vs-four` and
+`shot-tail-weight` all measured zero or worse in production, this is the one that transferred.
+
+**Why it transferred, stated before the pairs landed and now confirmed.** `ema` and `huber` died
+because the four-seed MLP ensemble already does what they do — average away trajectory noise, and
+damp the worst frames. **`seq` is a single member with no ensemble of its own**, so nothing was
+already doing this for it. The dilution arithmetic also came out right: one member of five, a screen
+effect of +0.00111, so expect roughly +0.0002 in the ensemble; measured +0.00011.
+
+**Where it was found is the part worth repeating.** Not in a treatment arm — in the CONTROL arm of
+the `seq-dropout` experiment, whose validation curve swung ~30% between adjacent evaluations
+(0.032029, 0.043272, 0.035239, 0.043711). That volatility at convergence is what a constant learning
+rate looks like, and both `seq` and `mlp` shipped `lr_schedule: none`. The horizon came from the same
+control curve — best at step 73000, stopped at 83000 — so `lr_t_max_steps=80000` traverses the real
+curve instead of the cosine's flat beginning, which is the trap `models.py:384` records.
+
+**What it implies for the backlog.** `seq` is a full production member that had never been swept at
+all, and its FIRST swept knob paid. Its remaining knobs — `learning_rate`, `seq_hidden`,
+`seq_layers`, `patience_steps` — are untested, and `ema_decay` and `loss` were only plumbed into it
+on 2026-08-21. The same no-dilution argument applies to every one of them.
+
+## `jac` refuted in production — the first `recheck` candidate, and it was right to be closed — 2026-08-23
+
+`loss.jacobian_frames` 300 -> 1200: estimate the loss metric on four times the frames. It was the
+strongest entry in the `recheck` section — screened at **+0.00044 against a 0.00065 gate**, i.e.
+dismissed as indistinguishable rather than measured as zero — and it passed the ensemble filter,
+because a better-estimated metric changes what every member optimises and averaging cannot
+substitute for that.
+
+    jac   n=6   mean -0.00000   SE 0.00009   t -0.0   signs 3/6
+    per salt: +0.5 +2.7 -2.8 -2.4 +2.3 -0.4   (units 1e-4)
+    R2_psi -0.00001 | R2_qb -0.00001 | 1-D_LCFS -0.00002 | Cons +0.00003   (as S)
+
+Exactly zero, three signs each way. At SE 0.00009 a true +0.0002 would have shown t = 2.2, so the
+effect these six pairs rule out is precisely the size the arm was re-opened to find.
+
+**A confound was checked BEFORE the result was known, which is the only time such a check is worth
+anything.** One `jac` run reached 90000 seq steps where the baseline usually stops near 83000, so
+the arm might have been buying its effect with extra steps rather than with the metric. Mean stop
+step over five runs each: **base 53500, jac 53200**. No systematic lengthening; that run was simply
+a long one.
+
+**What it says about the `recheck` idea itself.** The premise was right — a verdict reached with an
+instrument coarser than the effect is not a measurement — but this particular verdict turns out to
+have been correct anyway, for a reason it did not state. "Below the gate" became "measured zero".
+That is the recheck working as intended: it converts an unknown into a fact, and the fact is
+allowed to be a null.
+
+Stopped at 6 of 12 pairs under the convention recorded this morning: the answer was in, and the
+lane was needed for `recheck-a15`, whose answer is not.
+
+## `seq-ema` refuted — and it CONFIRMS a rule that was written down before it closed — 2026-08-24
+
+    ema   n=5   mean +0.00001   SE 0.00002   t 0.7   signs 2/5
+    per salt: +0.8 +0.1 +0.0 -0.1 -0.1   (units 1e-4)
+
+**The mechanism fired and the gain did not arrive.** The averaged weights won 99 and 123 evaluations
+per run — this is not a silent no-op, and the model reports the count precisely so that "zero wins"
+and "never wired in" can be told apart. It is wired, it is active, and it is worth nothing here.
+
+**The prediction, recorded 2026-08-24 BEFORE these pairs landed.** The transfer rule up to then was:
+a change measures zero when the ENSEMBLE already does its work — that killed `ema` and `huber` on the
+MLPs, while `seq-cosine` transferred because `seq` is a single member with nothing to dilute it. When
+`seq-ema` began fading on the same member cosine had just paid on, the rule was widened in advance:
+
+> A change measures zero when its work is already being done by ANYTHING already in the
+> configuration — the ensemble, or another change measured earlier.
+
+Cosine and EMA both stabilise where the trajectory ends. Cosine was measured against a base without
+it and paid; EMA is measured on top of it and does not. The pre-registration named the outcome that
+would refute the widening — a positive `seq-ema` at six pairs — and that outcome did not occur.
+
+**The operational consequence is larger than the arm.** Every measurement from here is an INCREMENT
+on the accepted stack, not a standalone value. Screen effects cannot be added up: a set of arms that
+each screened at +0.001 does not close a 0.0006 gap if they all work through the same mechanism.
+
+## First pairs run high, and I have over-read them repeatedly — 2026-08-24
+
+A pattern worth naming, because it has shaped three write-ups this week:
+
+    seq-cosine  +0.4 +2.1 ... -> settled at +0.00010
+    h512        +0.6 +1.5 -0.1 +0.7
+    a15-width   +3.9 +0.9 +0.1
+    seq-ema     +0.8 +0.1 +0.0 -0.1 -0.1 -> zero
+
+The first salt is routinely the largest, and the arm then subsides. This is not a property of these
+arms; it is regression to the mean under a large paired sd, made visible because a high first point
+is what prompts a comment while a low one does not. **The first pair carries almost no information**,
+and reporting its shape — however encouraging — is the same error as describing the shape of five
+null points. Useful reading starts around four to six pairs.
+
+## The lanes were discarding five sixths of every model they trained — 2026-08-25
+
+`lane.sh` wrote each fit to `artefacts/lanes/<lane>.joblib`, one path per LANE, so every salt
+overwrote the one before it. Six salts of four MLPs and a seq were trained per arm and exactly one
+survived. Found while acting on the user's idea of submitting a blend across everything already
+fitted — which is when it became obvious that "everything already fitted" was one artifact per lane,
+not twenty-four.
+
+Fixed: the path is now `artefacts/lanes/baseline_<row>.joblib`, one per salt AND arm, which is also
+the naming `salts:a+b+c` resolves, so any future blend needs no extra training whatever.
+
+**Why the discarded models mattered, and it is not sentiment about wasted compute.** Diversity was
+measured on two axes and bounded on both — seeds correlate at **0.56**, feature sets at **0.75**,
+which is worse — and `ideas.md` says in as many words that these numbers bound only that family:
+a genuinely different representation "has never been tried and is not bounded". Salt is exactly such
+an axis. Each salt is a different 80% of the shots, so its members share neither initialisation nor
+training data, and nothing in this fork has ever measured how far apart that puts them.
+
+**The nine that did survive, assembled as `artefacts/mega/`:** 4 distinct salts (0, 4, 5, 8) across
+3 feature sets, about 50 MLPs and 7 seq, against the shipped trio's 12 MLPs and 1 seq on one salt.
+
+**And it cannot be scored here — checked, not assumed.** The union of what those nine trained or
+validated on covers **all 7041 shots** of the config; zero are unseen by all of them. So there is no
+honest local number, and the leaderboard is the only instrument that can read this. The public test
+split is a separate config no model has touched, so the blend is legitimate there.
+
+## The mega-blend PAID: 0.9938 -> 0.994081 on the board, +0.0003 — 2026-08-25
+
+The user's idea — submit a blend of everything already fitted, since testing it locally is
+impossible but submitting it is cheap — returned **+0.0003**, three times the confirmed `seq-cosine`
+gain, from nine artifacts across four salts with **no new training at all**. The gap to first place
+(0.9944) is now **0.00032**.
+
+**Split diversity is real, and it was the one axis never measured.** Seeds correlate at 0.56, feature
+sets at 0.75; which 80% of the shots a member trains on had never been varied, and `ideas.md` says
+in as many words that the measured bounds cover only their own family. This is the first direct
+evidence on that axis, and it is worth more per unit of effort than anything measured this week —
+because the effort was zero.
+
+## The leaderboard's detailed breakdown, and it reorders everything — 2026-08-25
+
+The submission returned a full per-term and per-scalar table from the TEST set. Recomputing the
+composite from it gives 0.994081 to the last digit, so the metric is understood exactly.
+
+| term | value | unclaimed S |
+|---|---|---|
+| R2_psi | 0.999832 | 0.000092 |
+| R2_qb | 0.996539 | 0.000519 |
+| 1-D_LCFS | 0.988773 | **0.001123** |
+| Consistency | 0.979077 | **0.004185** |
+
+And inside Consistency, at 0.20/7 = 0.02857 of S per unit of R2:
+
+| scalar | R2 | unclaimed S | vs the 0.00032 gap |
+|---|---|---|---|
+| **li** | 0.960156 | 0.001138 | **3.6x** |
+| **kappa** | 0.965434 | 0.000988 | **3.1x** |
+| R_axis | 0.978202 | 0.000623 | 1.9x |
+| volume | 0.984592 | 0.000440 | 1.4x |
+| Z_axis | 0.984992 | 0.000429 | 1.3x |
+| tri_bot | 0.989229 | 0.000308 | 1.0x |
+| tri_top | 0.990932 | 0.000259 | 0.8x |
+
+**`li` and `kappa` together hold 0.002126 — 6.6x the gap to first place.**
+
+**This explains the week.** Nine production arms were general-purpose knobs — huber, ema, dropout,
+width, hidden size, a better-estimated metric — and every one of them acts on all seven scalars
+alike. The loss is concentrated in TWO of the seven. We were optimising an average whose damage is
+not spread.
+
+**And it is a FITTING loss, not a representation one — C2 measured that on 2026-08-15 and the entry
+was left unused.** "Of the 0.0055 remaining, 0.0045 is reachable by FITTING and 0.0010 is the basis…
+The model's psi is essentially perfect as pixels — 0.9998 against a ceiling of 1.0000 — and the
+scalars derived FROM it are off by 2-4% of variance. The basis can produce those scalars to 0.99+;
+the fit does not. So this is not representation and it is not capacity: it is that the loss and the
+score disagree about where on the map the error matters." `kappa`'s basis ceiling is **0.9908**; the
+board says we achieve **0.9654**. Twenty-five thousandths of kappa's R2 are lost to fitting alone.
+
+**Which re-prices `aux`, demoted to position 8 on an argument that is wrong in an important way.**
+It was ranked down because "the loss already up-weights the geometry directions 1434x". True — but
+the Jacobian metric knows which DIRECTIONS in flux space matter, components 20-49 collectively. It
+does not know that of the seven SCALARS the score reads, two carry two thirds of the loss. Teaching
+`li` and `kappa` as auxiliary outputs targets exactly the thing the metric weighting cannot express.

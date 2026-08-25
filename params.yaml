@@ -339,6 +339,12 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
     # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
     # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
     # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
@@ -414,6 +420,12 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
     # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
     # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
     # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
@@ -489,6 +501,12 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
     # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
     # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
     # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
@@ -564,6 +582,12 @@ models:
     # in units of the scaled target, which has average unit variance by construction.
     loss: mse
     huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
     # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
     # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
     # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
@@ -649,6 +673,12 @@ models:
     lr_schedule: none
     lr_final_factor: 0.01
     lr_t_max_steps: 0
+    # `mse`, or `huber` at `huber_delta` sd of the scaled target. Scaled by 2 to
+    # match the squared-error scale, so an arm differs in outlier handling alone.
+    loss: mse
+    huber_delta: 2.0
+    # Weight averaging, judged against the live weights at every evaluation. 0.0 is off.
+    ema_decay: 0.0
 
   seq1:
     type: torch_seq
@@ -703,6 +733,12 @@ models:
     lr_schedule: none
     lr_final_factor: 0.01
     lr_t_max_steps: 0
+    # `mse`, or `huber` at `huber_delta` sd of the scaled target. Scaled by 2 to
+    # match the squared-error scale, so an arm differs in outlier handling alone.
+    loss: mse
+    huber_delta: 2.0
+    # Weight averaging, judged against the live weights at every evaluation. 0.0 is off.
+    ema_decay: 0.0
 
   seq2:
     type: torch_seq
@@ -757,6 +793,12 @@ models:
     lr_schedule: none
     lr_final_factor: 0.01
     lr_t_max_steps: 0
+    # `mse`, or `huber` at `huber_delta` sd of the scaled target. Scaled by 2 to
+    # match the squared-error scale, so an arm differs in outlier handling alone.
+    loss: mse
+    huber_delta: 2.0
+    # Weight averaging, judged against the live weights at every evaluation. 0.0 is off.
+    ema_decay: 0.0
 
 ensemble:
   # Predictions of the members, averaged with these weights (renormalized to sum to 1). Averaging

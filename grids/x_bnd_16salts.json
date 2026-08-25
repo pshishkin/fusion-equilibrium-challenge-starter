@@ -1,0 +1,114 @@
+[
+  {
+    "name": "x_bnd_s0",
+    "salt": 0,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s1",
+    "salt": 1,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s2",
+    "salt": 2,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s3",
+    "salt": 3,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s4",
+    "salt": 4,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s5",
+    "salt": 5,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s6",
+    "salt": 6,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s7",
+    "salt": 7,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s8",
+    "salt": 8,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s9",
+    "salt": 9,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s10",
+    "salt": 10,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s11",
+    "salt": 11,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s12",
+    "salt": 12,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s13",
+    "salt": 13,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s14",
+    "salt": 14,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  },
+  {
+    "name": "x_bnd_s15",
+    "salt": 15,
+    "sets": [
+      "loss.boundary=true"
+    ]
+  }
+]

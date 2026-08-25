@@ -1,0 +1,82 @@
+[
+  {
+    "name": "x_base_s0",
+    "salt": 0,
+    "sets": []
+  },
+  {
+    "name": "x_base_s1",
+    "salt": 1,
+    "sets": []
+  },
+  {
+    "name": "x_base_s2",
+    "salt": 2,
+    "sets": []
+  },
+  {
+    "name": "x_base_s3",
+    "salt": 3,
+    "sets": []
+  },
+  {
+    "name": "x_base_s4",
+    "salt": 4,
+    "sets": []
+  },
+  {
+    "name": "x_base_s5",
+    "salt": 5,
+    "sets": []
+  },
+  {
+    "name": "x_base_s6",
+    "salt": 6,
+    "sets": []
+  },
+  {
+    "name": "x_base_s7",
+    "salt": 7,
+    "sets": []
+  },
+  {
+    "name": "x_base_s8",
+    "salt": 8,
+    "sets": []
+  },
+  {
+    "name": "x_base_s9",
+    "salt": 9,
+    "sets": []
+  },
+  {
+    "name": "x_base_s10",
+    "salt": 10,
+    "sets": []
+  },
+  {
+    "name": "x_base_s11",
+    "salt": 11,
+    "sets": []
+  },
+  {
+    "name": "x_base_s12",
+    "salt": 12,
+    "sets": []
+  },
+  {
+    "name": "x_base_s13",
+    "salt": 13,
+    "sets": []
+  },
+  {
+    "name": "x_base_s14",
+    "salt": 14,
+    "sets": []
+  },
+  {
+    "name": "x_base_s15",
+    "salt": 15,
+    "sets": []
+  }
+]

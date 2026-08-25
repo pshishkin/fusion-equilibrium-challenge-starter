@@ -12,6 +12,10 @@ baseline_*.joblib
 # Decoded shots, rebuilt on demand — see my_experiments/shot_cache.py. Tens of GB, and keyed by
 # the source parquet's mtime, so it is worthless to anyone else's checkout.
 .shot_cache/
+# A9's per-frame functionals, one npz per split — see my_experiments/aux_targets.py. About 30 MB
+# each and 13 core-hours to rebuild, but keyed by the exact file list, so a checkout with a
+# different split cannot use them. Missed when A9 was built; a full per-salt set is ~600 MB.
+.aux_targets/
 
 # Your Hugging Face read token, included by the Makefile. .env.example is the tracked stub.
 .env
@@ -25,3 +29,14 @@ manifest.json
 # Every run tees its output here, named by UTC timestamp. Watchable while it happens, and not
 # worth versioning: tqdm's carriage returns push a production run past a megabyte.
 logs/
+
+# Fitted artifacts. `baseline_*.joblib` was already covered, which is the naming the lanes now use
+# (one per salt AND arm, so a mega-blend can be assembled with no extra training) — but the older
+# per-lane names and the tail-noise pair were not, and they are 14 MB each. None of this belongs in
+# a public fork: every one is reproducible from params.yaml plus a salt.
+artefacts/lanes/
+artefacts/tailnoise/
+artefacts/mega/
+artefacts/cos/
+artefacts/laneB/
+artefacts/laneF/

@@ -1,4 +1,14 @@
-# Ideas, ranked
+# DIII-D / Challenge 1 — ideas, ranked
+
+> **The ranked list now lives in [backlog.md](backlog.md), keyed by SLUG.** Entries here are numbered
+> `A22 / B9 / Z3` because that is how they were written; the numbering is retired and kept only so
+> old write-ups stay findable. This file holds the long reasoning behind each entry — read
+> `backlog.md` to decide what runs next, read this to understand why.
+
+**This file is Challenge 1 only.** MAST keeps its own list in
+[ideas_mast.md](ideas_mast.md), and its own record in
+[experiments_mast.md](experiments_mast.md), because almost nothing crosses between the two
+machines — that is itself a measured result, not an organising convenience.
 
 Things worth trying, written down before anyone has measured them. An idea leaves this file in one
 of two directions: it gets measured and moves to [experiments_history.md](experiments_history.md)
@@ -131,6 +141,339 @@ more data, and every physics construction was refuted.
    budget in a much smaller regime and never revisited.
 5. **MAST.** `predict_row` still raises `NotImplementedError`, so Challenge 2 scores zero — the
    largest structural gap left, and worth more than any refinement on DIII-D.
+
+## X. The 16-salt program, PRE-REGISTERED 2026-08-19 before any of it ran
+
+**Why now.** Every screen in this fork so far read a single paired run, whose seed sigma is
+**0.0013** for one net. Sixteen salts cut the standard error to **0.0013 / 4 = 0.00033**, which is
+where it stops being worth buying: the local-to-board offset has read 0.0018 / 0.0013 / 0.0012 over
+three submissions, so it drifts by about 0.0003 of its own accord and a local measurement finer
+than that cannot predict the board any better. Sixteen is the matching point, not a budget.
+
+**The instrument is the quality screen** (one net), not production (four seeds plus the sequence
+model): production's sigma is about half, but its runs cost several times as much, and 16 salts of
+the cheap screen already lands at the useful ceiling.
+
+**What is being tested, and why these three.** C2 measured that the map is essentially perfect as
+pixels (R²ψ 0.9998 against a ceiling of 1.0000) while the scalars derived FROM it are off by 2-4%
+of variance, and that **76% of the reachable 0.0045 is in Consistency alone**. So the target is not
+capacity and not the basis — it is that the loss and the score disagree about where on the map the
+error matters. All three arms aim at that disagreement:
+
+| arm | change | mechanism |
+|---|---|---|
+| `jac` | `loss.jacobian_frames` 300 → 1200 | the metric-aware loss weights are ESTIMATED on 300 frames; a noisy estimate is a noisy loss |
+| `ema` | `models.mlp.ema_decay` 0 → 0.999 | average the weights along the trajectory — variance reduction that costs nothing at inference |
+| `aux` | `loss.aux_scalars = kappa, li` at weight 0.1 | teach the two most expensive scored functionals directly (A9, previously flat at 0.0013 resolution) |
+| `bnd` | `loss.boundary = true` | B8, and the sharpest case of the same diagnosis: D_LCFS is a DISTANCE, zero at the ground truth, so a central difference sees no derivative and the Jacobian loss has structurally never contained it |
+
+**Amendment, made before any arm had produced a single row** (`x_jac_16salts.csv` was header-only,
+the other two did not exist): a fourth arm, `bnd`, was added. `loss.boundary` has been implemented
+in `params.yaml` with a written rationale since 2026-08-13 and has **never been run** — no results
+row, no history entry. Adding it moves the multiplicity term to SE*sqrt(2 ln 4) = **0.00055**,
+which is still under the +0.00065 gate, so the gate does not move. A fifth arm would take it to
+0.00059 and a seventh would breach it; that is the budget.
+
+A knob considered and rejected for a slot: `loss.monitor_frames`. It only takes effect under
+`models.mlp.stop_on = composite`, and production stops on `loss` — so raising it alone would have
+been a no-op dressed as an experiment, and would have cost 2.7 hours to discover.
+
+**The gate, fixed before the first run.** An arm is ACCEPTED if the mean paired ΔS over the sixteen
+salts is **≥ +0.00065** (2 standard errors) **and** at least **12 of 16** signs are positive. Both,
+not either.
+
+**The multiplicity correction is why the gate is not simply 2 SE.** Over three arms, the expected
+best-from-noise alone is SE·sqrt(2 ln 3) = 0.00033 x 1.48 = **0.00049**. The +0.00065 gate sits
+above that; a finer instrument finds finer noise unless the threshold moves with it, which is the
+lesson the thirty-arm grid of 08-14 already paid for.
+
+**Paired means paired.** Every arm is compared to `x_base` on the SAME salt. Absolute scores are
+never compared across salts — the scored shots differ.
+
+## Y. The second 16-salt program, PRE-REGISTERED 2026-08-20 before any of it ran
+
+**The baseline is `x_ema` (decay 0.999), not `x_base`.** Every arm below is a change ON TOP of an
+accepted setting, so the question is marginal gain over what already ships.
+
+| arm | decay | averaging window | why |
+|---|---|---|---|
+| `d9999` | 0.9999 | 10000 steps | the direction the window arithmetic points |
+| `d9995` | 0.9995 | 2000 steps | the near neighbour, to shape the curve |
+| `d99995` | 0.99995 | 20000 steps | the far end, to find where it turns over |
+| `emacos` | 0.999 + cosine to 70000 | 1000 steps | the only knob that ever screened positive, retested on a run that now averages its weights |
+
+**Why these three decays and not 0.99.** The EMA update is per STEP, so the window is
+`1/(1 - decay)`: 0.99 is a 100-step window on a 70000-step run — the live weights with extra
+arithmetic. An earlier draft of this program had it, and reading `models.py` rather than assuming
+is what replaced it.
+
+**The cosine horizon is 70000, not the 368000 ceiling.** `models.py` warns in as many words that a
+horizon far beyond where the fit ends measures "a 16% rate cut, not an annealing schedule". The
+ema arm's mean best step is 65669, so the horizon is set just past it.
+
+**The gate, fixed before the first run** — the same one, and for the same reason: mean paired ΔS
+**≥ +0.00065** and **≥ 12/16** signs positive. Four arms put the best-from-noise at
+SE·sqrt(2 ln 4) = 0.00055, still under it.
+
+## Z. A per-frame weight by position in the shot — DESIGNED 2026-08-20, not yet applied
+
+**Why it is now worth building.** A22 measured the final tenth of a shot at **24.1% of the geometry
+cost over 10.2% of the frames** — a cost density of 2.36x — and left open whether that is the model
+or EFIT. That half is now closed: the truth's d2/d1 in the last decile is **0.85-0.89x** mid-shot
+while its first difference is 1.3-2.0x, so the tail moves faster without moving less smoothly. The
+error is the model's, and weighting those frames fits signal.
+
+**It is a four-line change, because the plumbing already exists.** `Model.fit` already takes
+`shots` — a per-frame shot id — and `models.py:516` says in as many words that the MLP "accepts and
+ignores" it. So the position of a frame within its shot is computable inside `fit` with no change
+to the data pipeline at all.
+
+    # models.py ~699: build the criterion unreduced
+    loss_fn = torch.nn.MSELoss(reduction="none")        # or HuberLoss(..., reduction="none")
+    # once, before the loop: position within each shot, then the weight, MEAN-NORMALISED
+    pos = position_in_shot(shots)                        # 0.0 at a shot's first frame, 1.0 at its last
+    w = 1.0 + strength * (pos >= 0.9)                    # the step the measurement actually supports
+    w = w / w.mean()                                     # <- the part that makes the arm interpretable
+    # models.py ~756: weight the per-sample loss
+    per = loss_fn(net(xb), yb).mean(dim=1)
+    loss = (per * w_t[ib]).mean()
+
+**Mean-normalising the weight is not cosmetic.** Without it the average gradient magnitude scales
+with `1 + 0.1 * strength`, so the arm would be measuring a learning-rate change wearing a
+frame-weight costume — precisely the confound that made `cos600` look like a score result when it
+was a 16% rate cut (see `models.py`'s own note on `lr_t_max_steps`).
+
+**Corrected 2026-08-20 by measurement, before it was built.** The cost is **U-shaped**, not
+tail-heavy: the first decile costs twice the middle and the last costs three times it, and the two
+ends hold 39% of the cost over 20% of the frames. A step at the last decile alone would leave the
+first one unweighted. Two candidate shapes now, and a weight by |dIp/dt| is NOT one of them — cost
+correlates with the ramp rate at only +0.10 frame by frame, and the most expensive decile of the
+ten has an unremarkable ramp rate.
+
+**The shape to try first is a step, not a curve.** The measurement is a per-decile cost density,
+so a step at the last decile is the form the evidence actually supports; a smooth `p^k` ramp adds a
+second free parameter nothing has measured. `strength` is the swept knob: 1.0 gives the last decile
+twice the weight of the rest, which is close to matching its 2.36x cost density.
+
+**REDIRECTED 2026-08-20: weight by seed DISAGREEMENT, not by position.** Ranking every target by
+what perfect success on it would buy, on the shipped trio:
+
+| target | oracle | frames |
+|---|---|---|
+| the most expensive 20% of frames, by TRUE cost | +0.00244 | 20% |
+| the top 20% by **seed disagreement** — implementable | **+0.00159** | 20% |
+| the most expensive 5%, by true cost | +0.00167 | 5% |
+| **the two end deciles — what this entry proposed** | **+0.00082** | 20.4% |
+
+**Position is a weak proxy for difficulty.** The expensive frames are spread — 19% in the first
+decile, 18% in the last, and about 8% in each middle one — so a position weight reaches only a
+third of what a difficulty weight would.
+
+**And difficulty is measurable without the truth.** C8 established it and this reproduces it on
+today's artifact: the spread of the seven derived scalars across the four already-fitted seeds
+correlates with per-frame cost at Spearman **+0.596** (C8 measured +0.565). It needs no labels, so
+it can weight the training set.
+
+The scheme is two-pass: fit the four seeds, derive per-frame disagreement on the TRAINING frames —
+no truth required, only predictions — and refit with weights proportional to it. One extra
+prediction pass over 5633 shots, computed once.
+
+**The known blind spot, from C8, and it is on the money:** disagreement measures variance and is
+blind to shared error. It under-reports the tail by more than two (1.19x disagreement against 2.61x
+cost) because seed residuals correlate +0.550 there — four seeds wrong the same way look confident.
+Even so it doubles what position achieves.
+
+**Priced by an oracle before building it — 2026-08-20.** Replacing the end-decile residuals with
+the middle's level, on the shipped trio, and re-deriving Consistency:
+
+| outcome | gain in S |
+|---|---|
+| the ends made EXACTLY as good as the middle | **+0.00082** |
+| half the excess at the ends removed | +0.00047 |
+| a quarter removed | +0.00025 |
+
+The first row is unreachable by construction — a weight reallocates optimisation effort, it does
+not delete error — so the honest expectation is the third row, **+0.00025**, with +0.00047 a good
+outcome. Against 0.0031 of Consistency still open, a perfect version would close 26% of it.
+
+That is more than `ema` returns in production (+0.00015 at two pairs) and far more than the decay
+sweep's remainder, which makes this the best-priced idea left and the last unexplored mechanism on
+the list.
+
+**Pre-registered risk, worth stating before the run.** C7 measured the metric's own sensitivity in
+the tail at **0.98x** the median — so these frames are NOT under-weighted by the metric, they are
+simply harder. A weight helps only if extra gradient on hard frames buys more than it costs the
+easy ones. That is exactly what the 16-salt instrument is for, and the same gate applies.
+
+**Do not apply while a sweep queue is running.** Every `make sweep` entry re-imports `models.py`
+fresh, so an edit to the training path lands in every queued arm. This change waits for the queue
+to drain.
+
+## A9 / `aux` re-priced downward — 2026-08-20, by a measurement made for another purpose
+
+A9 teaches kappa and li as auxiliary OUTPUTS, i.e. it tells the net those quantities matter. The
+loss already does: the target scaler is a full 50x50 matrix, and reading its column norms shows
+components 20–49 hold **0.021% of the flux variance and receive 30% of the loss weight** — the
+Jacobian metric up-weights exactly the directions the geometry lives in, by **1434x**. The loss
+already knows what `aux` would tell it.
+
+The mechanisms are not identical — an auxiliary task also regularises, where a weight only
+re-scales — so this does not refute A9. It does mean the expected value is materially lower than
+it looked, and A9 was already measured **flat** once.
+
+**Priority against the other unbuilt idea, set explicitly so it is not re-decided by intuition:**
+
+| | oracle | expected | prerequisite |
+|---|---|---|---|
+| disagreement weighting | **+0.00159** | +0.0004 to +0.0008 | one prediction pass, ~6.5 h |
+| `aux` (A9) | none measured | unknown, once flat | per-salt caches, ~24 h |
+
+The caches are being built anyway, on cores the training lanes leave idle during their GPU fits,
+and nothing waits on them — the 27-hour production confirmation is queued behind other work
+regardless. So they continue. But if the two ever compete for the same capacity, the disagreement
+vector goes first.
+
+## Z3. `huber_delta`, PRE-REGISTERED 2026-08-20 after `huber` passed and before these ran
+
+`huber` cleared its gate at +0.00095 with 13 signs of 15, and its threshold has never been swept:
+`huber_delta = 2.0` is where it has sat since the loss was implemented. Delta is measured in
+standard deviations of the scaled target, so it sets how large a residual has to be before the
+frame stops dominating its batch.
+
+| arm | delta | what it tests |
+|---|---|---|
+| `hd1` | 1.0 | more aggressive — more frames treated as outliers |
+| `hd4` | 4.0 | gentler — nearly MSE, so it should approach the baseline |
+
+`hd4` is the control as much as an arm: if it lands near zero the effect really is the outlier
+clipping and not something else about the Huber curve.
+
+Same gate, unchanged: mean paired ΔS **≥ +0.00065** and **≥ 12/16** signs, against `x_base`. Four
+arms in this programme now put the best-from-noise at SE·sqrt(2 ln 4) = 0.00055, still under it.
+
+## Z2. The third 16-salt program, PRE-REGISTERED 2026-08-20 before either arm ran
+
+Baseline `x_base`. Two arms, so the best-from-noise is SE*sqrt(2 ln 2) = **0.00039**, under the
+unchanged gate of **+0.00065 and 12/16 signs**.
+
+**`huber` — `models.mlp.loss = huber`.** Measured once, on 2026-08-16, but only as an extra
+ENSEMBLE MEMBER (0.9941 alone against a 0.9940 control); never as a paired replacement for MSE.
+Today's cost decomposition makes it sharp: the most expensive **5% of frames carry 46% of the
+cost**, and Huber's own rationale in `models.py` is that "a frame the model reconstructs badly
+stops dominating the gradient of the batch it lands in". So Huber DOWN-weights exactly the frames
+the planned per-frame weight (entry Z) wants to UP-weight. The two are opposite directions on one
+axis, and this arm is the cheap half — an existing knob, no code.
+
+Whatever it returns is informative: if Huber helps, concentrating the loss on the expensive frames
+is the wrong idea and entry Z should not be built; if it hurts, that is the first direct evidence
+FOR entry Z, obtained without writing it.
+
+**`stopcomp` — `models.mlp.stop_on = composite` with `loss.monitor_frames` 150 → 600.** A13 tested
+stopping on the composite and was refuted at the old 0.0013 resolution. The mechanism for a retest
+is not "more salts" but a diagnosis: the composite monitor is ESTIMATED on 150 validation frames,
+and today's noise decomposition put 94% of the instrument's variance in Consistency — the term that
+monitor is mostly reading. A noisy stopping criterion stops in the wrong place. Quadrupling the
+monitor is the arm; A13's refutation stands if it still loses.
+
+(Rejected for a slot: `frame_gaps`, already refuted at −0.0012 with a mechanism — 97.86% of steps
+are 20 ms, so the column is nearly constant and buys two directions to fit noise in.)
+
+## Eight MLP seeds instead of four — PRICED AND DECLINED 2026-08-20
+
+Never tried: `params.yaml` defines exactly four MLP members and nothing in the history goes past
+them. And the motivation looked strong — seed averaging is **the largest single gain in this fork**
+(+0.0042 from one seed to four, three salts, every sign agreeing), and last night established that
+what is left is variance rather than bias or representation, which is exactly what averaging cures.
+
+**Two estimates, and they disagree — which is the useful part.**
+
+A pure 1/n variance model fits the measured 1→4 gain with a budget of V = 0.0056 and predicts
+
+    4 -> 8 seeds   V(1/4 - 1/8) = +0.0007      (+0.0006 after diluting by the 4-of-5 member share)
+
+But an empirical upper bound already exists in this repository. The shipped trio averages **12 MLPs
+plus a seq across THREE feature sets** and scores 0.9950 against prod's 0.9945 — so tripling the
+member count, *with feature diversity on top of seed diversity*, is worth **+0.0005 in total**.
+More seeds inside ONE feature set must be worth less than that.
+
+**The empirical bound wins, and the disagreement names the reason.** The 1/n law assumes
+independent members; seeds sharing a feature set share systematic error and are far more correlated
+than members drawn from different features. The measured saturation ("it saturates at three",
+2026-08-16) is the same fact from the other side.
+
+**Declined.** Expected value ~+0.0002 to +0.0003 for double the MLP training cost, and the paired
+test alone would be ~7 hours — a 6-salt production comparison, because the quality screen fits ONE
+net and so cannot measure seed count at all. Recorded rather than run, with the arithmetic, so it
+is not re-proposed on the strength of the +0.0042 headline.
+
+## The state of the search after 2026-08-20 — what the measurements have closed
+
+A night of measurement narrowed the space rather than widening it. Each line below is closed by a
+number, not by an argument:
+
+| direction | closed by |
+|---|---|
+| more seeds | pairwise seed correlation 0.56 → an infinite ensemble floors at 56% of one seed's squared error; 4 seeds already took three quarters of what was removable |
+| more feature sets | pairwise correlation **0.75**, HIGHER than seeds → floor 75%, a 4th set worth 83%→81% |
+| a bigger basis | kappa's ceiling climbs fastest of the seven and still only ~0.003 per ten components against a 0.027 gap; `j7_npca75` measured −0.0015 overall |
+| reduced-rank regression (B9) | the badly-predicted directions carry 0.00% of the flux variance — dropping them removes exactly what the geometry needs |
+| re-weighting the loss toward the geometry | already done, and by **1434x**: components 20–49 hold 0.021% of the flux and get 30% of the loss |
+| a better-estimated metric | `jac` refuted at +0.00044 — the weights were already right |
+| the boundary term | `bnd` refuted at +0.00040, and it does not move D_LCFS at all |
+| bias correction | there is no bias: bias/sd between −0.09 and +0.08 on all seven scalars |
+| vessel integrals, more signals | `poloidal` (20 signals) adds ~nothing over `driving` (2) |
+| vessel integrals, more time constants | the bank is already 20–2500 ms, geometric, spanning both the L/R and the profile-diffusion scales |
+
+**What that leaves.** The map is finished as pixels (R²psi 0.9998 of a 1.0000 ceiling). The seven
+functionals live in components 20–50, which carry 0.02% of the flux variance, already receive 30%
+of the loss, and are predicted at R² 0.43–0.93 — with **66% of the residual shared by every seed**,
+so it is not optimisation noise. That is an information limit: the 21 instantaneous signals plus
+their derivatives and integrals do not determine the fine structure of the boundary.
+
+**Every legitimate input is already used.** All 19 F-coils, ECOILA, bcoil, the plasma current,
+Thomson with chord positions, and the coil geometry through the field subtraction.
+`magnetics_dsep` is the one column left out and it must be: it is EFIT-derived, so using it would
+read the target.
+
+**So the honest expectation for Challenge 1 is small.** 0.0031 of Consistency remains, ema has
+taken about 0.0010 of the screen's version of it, and the arms still queued (`huber`, `stopcomp`,
+`aux`, the decay sweep) are the reasonable last attempts rather than a promising list. This is not
+a counsel of despair — it is what closes an entry, and it argues for spending the next effort where
+0.43 of S is unclaimed rather than 0.003.
+
+## X2. What the 16-salt instrument should measure next — *2026-08-20, written while the first program ran*
+
+**The survey that produced this list.** Every `results/*.csv` in the fork was re-read looking for
+arms that landed inside the old +-0.0013 resolution — unresolvable then, resolvable now. Read it
+as a coarse filter only: those CSVs mix salts, and comparing absolute scores across salts is
+reading a quantity (sd 0.00165) larger than most of the effects listed. What survives that caveat
+is a striking fact rather than a ranking: **almost every arm ever screened is NEGATIVE against its
+own reference.** The only positives in the whole history are the cosine schedule, at +0.0009 and
++0.0006.
+
+Ranked by what the accepted `ema` result now implies:
+
+1. **`ema_decay` is unswept.** 0.999 was chosen without a sweep and accepted at +0.00101. The
+   neighbouring values have never been tried, and the decay sets the averaging window — too short
+   and it tracks the noise it is meant to remove, too long and it lags the trajectory. **0.9995 and
+   0.99 against 0.999**, one line each. This is the cheapest open thing in the fork with a
+   confirmed mechanism behind it.
+2. **Cosine, retested ON TOP of ema.** The schedule is the only knob that ever screened positive
+   (+0.0009 / +0.0006), and its refutation stood on TWO confirmation salts — mean −0.0007 with a
+   standard error of about 0.0009, which settles nothing. It is also the knob most likely to
+   interact with weight averaging: both act on where the trajectory ends. The question is no longer
+   "does cosine help" but "does cosine help a run that already averages its weights".
+3. **EMA for the sequence model.** `seq` is a different model class and has no `ema_decay` field at
+   all. If the mechanism is general — and 965 to 3019 winning evaluations per run says it is not
+   specific to this architecture — the sequence member is currently the only ensemble member not
+   getting it. Needs code, not a `--set`.
+4. **Patience, now that the best step arrives 15% earlier.** `ema` reaches its best at 65669 steps
+   against the baseline's 76884. `patience_steps` was tuned for the old trajectory.
+
+**What the survey rules OUT, so it is not re-proposed:** `n_pca` upward (`j7_npca75` at −0.0015,
+and C2 already measured the whole basis floor at 0.0010), width and depth (every `i_capacity`,
+`r_deep_rate` and `s_depth_confirm` arm negative), batch size (all of `b_cosine_batch` negative),
+and the regularisers (`c_regularisers`, all negative).
 
 # Group A — one to a few production runs
 
@@ -1123,7 +1466,7 @@ training step and of the early-stopping metric with it.
 **Refuted if** the principal angles between the three regime subspaces are small, which after C7's
 result is the way to bet. **ΔS ≈ 0…+0.002, confidence 0.2.**
 
-## A21. Fit the ensemble weights instead of setting them — *2026-08-15*
+## A21. Fit the ensemble weights instead of setting them — *2026-08-15* — **CLOSED 2026-08-20, NEGATIVE: optimised weights cross-validate to −0.00002 of S, worse than equal**
 
 **Hypothesis.** Solving for the ensemble weights on a holdout, rather than writing 0.6/0.4 in
 `params.yaml`, gains ≥ 0.0005 — and per-block weights (one set for ψ, one for q95/βN) gain more.
@@ -1334,6 +1677,15 @@ shares: `81_f10_s0 = 0.9907` at `0.80/1.0`, salt 0.
 
 | arm | what it varies | why |
 |---|---|---|
+**Started 2026-08-21, and the prior for `q6` now has measurement behind it.** The pre-registration
+argued from parameter counts alone. The logs agree: the last full seq fit
+(`logs/20260815-094427-pair_confirm.log`) ended at train 0.0140 against val 0.0365, a gap of
+**2.6x**, where the MLP runs at 1.85x; an earlier fit in the same log stopped at 3.0x. So `seq`
+demonstrably overfits, and `dropout` and `weight_decay` are both already plumbed — no code change.
+
+Running as `q_seq_drop`: base vs `models.seq.dropout=0.1`, 16 salts split across two lanes, both
+arms in the same lane so a pair always completes together. ~72 min a run, so ~19 h a lane.
+
 | `q1` | the block as it stands: lr 1e-3, `seq_hidden` 256, one layer, 32 shots | the reference the other five are read against |
 | `q2` | lr 3e-4 | recurrences are usually run below the rate a feed-forward net of the same width takes, and the MLP's 2.8e-3 was tuned for a batch of frames, not of shots |
 | `q3` | lr 3e-3 | the other side of it — the argument above is a convention, not a measurement |

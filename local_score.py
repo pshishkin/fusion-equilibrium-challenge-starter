@@ -453,17 +453,22 @@ def _machine_of(shots: list[dict]) -> tuple:
 
 def report(res: dict, n_shots: int, label: str | None, machine: str) -> None:
     """The per-model block: composite, the four weighted terms, and where extraction failed."""
-    title = f"  COMPOSITE S = {res['S']:.4f}      ({n_shots} held-out {machine} shots)"
+    # Six decimals, for the same reason the comparison table has them: the differences these
+    # experiments resolve are ~0.0002, and a 4-decimal print quantises every measurement into steps
+    # of 0.0001. The comparison table was fixed on 2026-08-21; this path was missed because nothing
+    # parsed it until the test-time lambda sweep, which scores ONE model and so never reaches the
+    # table at all.
+    title = f"  COMPOSITE S = {res['S']:.6f}      ({n_shots} held-out {machine} shots)"
     print("\n" + "=" * 62)
     print(f"{title}{'' if label is None else f'   [{label}]'}")
     print("=" * 62)
     for name, key, w in [("R2_psi", "r2_psi", 0.55), ("R2_{q95,betaN}", "r2_qb", 0.15),
                          ("1 - D_LCFS", "dlcfs", 0.10), ("Consistency", "consistency", 0.20)]:
         v = (1.0 - min(1.0, res["dlcfs"])) if key == "dlcfs" else res[key]
-        print(f"  {name:>16s}  {v:8.4f}   x {w:.2f}  =  {w * max(0.0, v):.4f}")
+        print(f"  {name:>16s}  {v:10.6f}   x {w:.2f}  =  {w * max(0.0, v):10.6f}")
     print("\n  per-derived-scalar R2 (the Consistency term):")
     for k, v in res["r2_cons_each"].items():
-        print(f"      {k:>8s}  {'  n/a' if v is None else f'{v:7.4f}'}")
+        print(f"      {k:>8s}  {'  n/a' if v is None else f'{v:9.6f}'}")
     print(f"\n  LCFS extraction failed on {res['lcfs_fail_frac']:.1%} of frames; "
           f"derivations on {res['cons_fail_frac']:.1%}")
     print(f"  psi_sign = {res['psi_sign']:+d}")
@@ -474,11 +479,14 @@ def report_comparison(results: dict[str, dict], n_shots: int, machine: str) -> N
     print("\n" + "=" * 78)
     print(f"  MODEL COMPARISON   ({n_shots} held-out {machine} shots, same shots for every model)")
     print("=" * 78)
-    print(f"  {'model':>16s}  {'S':>8s}  {'R2_psi':>8s}  {'R2_qb':>8s}  {'1-D_LCFS':>9s}  "
-          f"{'Cons':>8s}")
+    print(f"  {'model':>16s}  {'S':>10s}  {'R2_psi':>10s}  {'R2_qb':>10s}  {'1-D_LCFS':>10s}  "
+          f"{'Cons':>10s}")
     for name, res in sorted(results.items(), key=lambda kv: -kv[1]["S"]):
-        print(f"  {name:>16s}  {res['S']:8.4f}  {res['r2_psi']:8.4f}  {res['r2_qb']:8.4f}  "
-              f"{1.0 - min(1.0, res['dlcfs']):9.4f}  {res['consistency']:8.4f}")
+        # Six decimals, not four. The paired screens resolve differences of ~0.0009, and at 4 dp
+        # the rounding alone contributes sd 0.00004 to a paired difference against a sample sd of
+        # 0.00009 — a 10% wider interval bought back for nothing. Widths grow to keep the columns.
+        print(f"  {name:>16s}  {res['S']:10.6f}  {res['r2_psi']:10.6f}  {res['r2_qb']:10.6f}  "
+              f"{1.0 - min(1.0, res['dlcfs']):10.6f}  {res['consistency']:10.6f}")
 
 
 def main(argv: list[str] | None = None) -> int:

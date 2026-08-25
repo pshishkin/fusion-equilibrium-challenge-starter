@@ -79,7 +79,37 @@ HERE = Path(__file__).resolve().parent
 # already does it, so several fits can coexist under their own names — which is what averaging
 # across salts needs, since each salt's fit is a whole pipeline of its own and not a member of
 # anyone else's artifact.
-ARTIFACT = Path(os.environ.get("FUSION_ARTIFACT", HERE / "baseline.joblib"))
+def _artifact_path() -> Path:
+    """Where a fit is written and read. `FUSION_ARTIFACT` is REQUIRED for anything that fits.
+
+    It used to default to `HERE / "baseline.joblib"`, and that default caused a real corruption on
+    2026-08-22: two concurrent lanes both wrote there, so one overwrote the other's artifact BETWEEN
+    the fit and the scoring and three runs died with `KeyError: no model 'seq' ... it holds
+    ['ridge','mlp',...]`. Crashing was the LUCKY outcome — two lanes whose model sets share a name
+    would not crash, they would silently score the wrong model and report the number as their own.
+
+    Reading is still allowed to fall back, so scoring and diagnostic tools that legitimately want
+    "whatever was fitted last" keep working; `require=True` is what a FIT asks for.
+    """
+    env = os.environ.get("FUSION_ARTIFACT")
+    return Path(env) if env else (HERE / "baseline.joblib")
+
+
+def require_artifact_path() -> Path:
+    """The fit's own artifact path, refusing the shared default. Called before any training."""
+    env = os.environ.get("FUSION_ARTIFACT")
+    if not env:
+        raise SystemExit(
+            "FUSION_ARTIFACT is not set, and training will not write to a shared default.\n"
+            "Two lanes both writing my_experiments/baseline.joblib overwrite each other between\n"
+            "the fit and the scoring, which on 2026-08-22 killed three runs outright and could\n"
+            "have silently scored one lane's model as another's. Give this fit a name of its own:\n"
+            "    FUSION_ARTIFACT=artefacts/lanes/<lane>.joblib uv run python my_experiments/...\n"
+        )
+    return Path(env)
+
+
+ARTIFACT = _artifact_path()
 
 # `salts:a+b` as a model name averages the DECODED predictions of `baseline_a.joblib` and
 # `baseline_b.joblib`. It has to be decoded rather than coefficient space: every fit has its own
@@ -1059,6 +1089,11 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     right behind the training one; it never enters a fit as data, it is what CatBoost and the MLP
     stop on and pick their best iteration by.
     """
+    # Refuse the shared default BEFORE reading a single shot: a fit that discovers this after
+    # forty minutes of training has already wasted the forty minutes, and the failure mode it
+    # prevents — two lanes overwriting one another's artifact between fit and score — is silent
+    # whenever the two happen to fit models of the same name.
+    out = require_artifact_path()
     params: Params = load_params(params_path, salt, only, sets)
     shot_share, frame_share = parse_share(share)
     val_shot_share, val_frame_share = parse_share(val_share)
@@ -1309,8 +1344,9 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         "holdout_files": [p.name for p in holdout],
         "holdout_share": params.holdout_share,
     }
-    joblib.dump(artifact, ARTIFACT)
-    print(f"\nSaved {ARTIFACT}: {', '.join(model_names(artifact))}")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(artifact, out)
+    print(f"\nSaved {out}: {', '.join(model_names(artifact))}")
     print("Now score it:  uv run python my_experiments/evaluate.py --share 0.001")
     return artifact
 
@@ -1501,6 +1537,23 @@ def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE,
     P = _predict_targets(art, model, Xs)
 
     n_pca = art["n_pca"]
+    # TEST-TIME ONLY, default 1.0, i.e. off. `FUSION_COEF_LAMBDA` scales the PCA coefficients before
+    # decoding; since the basis is CENTRED, that scales each frame's deviation from the fold mean.
+    # `FUSION_COEF_LAMBDA_FROM` restricts it to components at or above that index, which is where
+    # the seven derived functionals live (20-50) and where the flux variance is 0.02%.
+    #
+    # WHY IT EXISTS. D5's oracle measured the per-shot factor that minimises each shot's own error:
+    # median 1.0095, and only 35% of shots want SHRINKING — two thirds want to be pushed AWAY from
+    # the mean. Only shrinkage was ever tried (-0.0005). The family was closed because the oracle,
+    # +0.00033 of S, sat under the 0.0013 a paired run then resolved; the production protocol now
+    # resolves 0.00017, and this costs no training at all.
+    lam = float(os.environ.get("FUSION_COEF_LAMBDA", "1.0"))
+    if lam != 1.0:
+        lo = int(os.environ.get("FUSION_COEF_LAMBDA_FROM", "0"))
+        if not 0 <= lo < n_pca:
+            raise SystemExit(f"FUSION_COEF_LAMBDA_FROM={lo} is outside [0, {n_pca})")
+        P = P.copy()
+        P[:, lo:n_pca] *= lam
     psirz = np.asarray(art["pca"].inverse_transform(P[:, :n_pca]))
     if plan["subtract"]:
         # What was taken off the targets, put back on the prediction — the same maps, the same

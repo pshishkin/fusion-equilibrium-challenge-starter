@@ -110,7 +110,20 @@ class TorchSeqModel(TargetModel):
     lr_schedule: str
     lr_final_factor: float
     lr_t_max_steps: int
+    # `mse`, or `huber` with the transition at `huber_delta` standard deviations of the scaled
+    # target. SCALED BY 2 against torch's convention, which is 0.5*x^2 in the quadratic region
+    # where MSELoss is x^2: without the factor a huber arm would also halve every ordinary
+    # gradient, and `grad_clip` is scale-sensitive even though Adam is not — so the arm would
+    # differ from its control in how often the clip fires as well as in outlier handling. The
+    # factor makes the two losses agree wherever no clipping happens, which is the point of a
+    # controlled arm.
+    loss: str
+    huber_delta: float
+    # Decay of an exponential moving average of the WEIGHTS, judged beside the live ones at every
+    # evaluation; the fit keeps whichever validates better, so it can only help or tie. 0.0 is off.
+    ema_decay: float
     _state: dict[str, np.ndarray] | None = field(default=None, init=False, repr=False)
+    _ema_wins: int = field(default=0, init=False, repr=False)
     _n_in: int = field(default=0, init=False, repr=False)
     _n_out: int = field(default=0, init=False, repr=False)
     _best_step: int = field(default=-1, init=False, repr=False)
@@ -221,9 +234,21 @@ class TorchSeqModel(TargetModel):
             keep = torch.from_numpy(mask).to(dev)
             xb, yb = Xs[idx], Ys[idx]
             pred = net(xb, torch.from_numpy(lengths_[ids]))
-            err = ((pred - yb) ** 2).mean(dim=2) * keep
+            if self.loss == "mse":
+                el = (pred - yb) ** 2
+            else:
+                el = 2.0 * torch.nn.functional.huber_loss(
+                    pred, yb, reduction="none", delta=self.huber_delta)
+            err = el.mean(dim=2) * keep
             return err.sum(), int(mask.sum())
 
+        if self.loss not in ("mse", "huber"):
+            raise ValueError(f"torch_seq: unknown loss {self.loss!r}; known ['huber', 'mse']")
+        if not 0.0 <= self.ema_decay < 1.0:
+            raise ValueError(f"torch_seq: ema_decay is {self.ema_decay}, must be in [0, 1)")
+        # Cloned, not referenced: the average must not follow `opt.step()`.
+        ema = ({k: v.detach().clone() for k, v in net.state_dict().items()}
+               if self.ema_decay else None)
         opt = torch.optim.Adam(net.parameters(), lr=self.learning_rate,
                                weight_decay=self.weight_decay, fused=(dev == "cuda"))
         sched = None
@@ -255,6 +280,15 @@ class TorchSeqModel(TargetModel):
             opt.step()
             run_t += total.detach()
             run_n += n
+            if ema is not None:
+                with torch.no_grad():
+                    for k, v in net.state_dict().items():
+                        # Integer buffers cannot take a decayed average; they are counters, so the
+                        # live value is the only meaningful one.
+                        if ema[k].is_floating_point():
+                            ema[k].mul_(self.ema_decay).add_(v, alpha=1 - self.ema_decay)
+                        else:
+                            ema[k].copy_(v)
             if sched is not None and step <= t_max:
                 sched.step()
 
@@ -265,21 +299,35 @@ class TorchSeqModel(TargetModel):
 
             net.eval()
             with torch.no_grad():
-                v_tot, v_n = torch.zeros((), device=dev), 0
-                for i in range(0, len(lengths_val), self.batch_shots):
-                    ids = np.arange(i, min(i + self.batch_shots, len(lengths_val)))
-                    t, k = batch_loss(Xvt, Yvt, starts_val, lengths_val, ids)
-                    v_tot += t
-                    v_n += k
-                val_loss = float(v_tot) / v_n
+                def measure() -> float:
+                    v_tot, v_n = torch.zeros((), device=dev), 0
+                    for i in range(0, len(lengths_val), self.batch_shots):
+                        ids = np.arange(i, min(i + self.batch_shots, len(lengths_val)))
+                        tt, kk = batch_loss(Xvt, Yvt, starts_val, lengths_val, ids)
+                        v_tot += tt
+                        v_n += kk
+                    return float(v_tot) / v_n
+
+                val_loss = measure()
+                # A20 for the recurrence: the running weight average is a second candidate, judged
+                # by the same rule at the same moment, so this cannot lose to not having it.
+                from_ema = False
+                if ema is not None:
+                    live = {k: v.detach().clone() for k, v in net.state_dict().items()}
+                    net.load_state_dict(ema)
+                    ema_loss = measure()
+                    if ema_loss < val_loss:
+                        val_loss, from_ema = ema_loss, True
+                        self._ema_wins += 1
+                    net.load_state_dict(live)
             net.train()
             train_loss = float(run_t) / run_n
             run_t, run_n = torch.zeros((), device=dev), 0
 
             if val_loss < best_loss or not self.patience_steps:
                 best_loss, since_best, self._best_step = val_loss, 0, step
-                best_state = {k: v.detach().cpu().numpy().copy()
-                              for k, v in net.state_dict().items()}
+                keep = ema if (from_ema and ema is not None) else net.state_dict()
+                best_state = {k: v.detach().cpu().numpy().copy() for k, v in keep.items()}
             else:
                 since_best += self.eval_every_steps
             bar.update(step - bar.n)
@@ -323,7 +371,11 @@ class TorchSeqModel(TargetModel):
         else:
             ceiling = f" (of {self.max_steps} allowed)" if self._ran_steps < self.max_steps else ""
             where = f", best step {self._best_step} of {self._ran_steps} run{ceiling}"
-        return f"{where}, the shot moved the prediction by {self._delta_share:.1%} of it"
+        # Reported even when it is zero, and that is the point: a run whose averaged weights won
+        # NOTHING is indistinguishable in its score from a run where the averaging was never wired
+        # in at all. Printing the count is what separates "measured and lost" from a silent no-op.
+        ema = (f", averaged weights won {self._ema_wins} evaluation(s)" if self.ema_decay else "")
+        return (f"{where}, the shot moved the prediction by {self._delta_share:.1%} of it{ema}")
 
     def predict(self, X: FloatArray) -> FloatArray:
         """(T, n_targets) for ONE shot, whose frames are `X` in time order.
