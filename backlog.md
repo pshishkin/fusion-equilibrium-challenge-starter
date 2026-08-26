@@ -248,6 +248,46 @@ loss is a linear map on targets shared by ridge too — so the ensemble would mi
 
 </details>
 
+### 1c. `cons-reweight` — the metric splits its Consistency weight SEVEN WAYS EQUALLY. Found 2026-08-26
+**This came out of the user asking why, if the LINEAR predictor beat the surrogate on gradient
+fidelity (kappa 0.732 vs 0.610), the linear one was not trained instead.** The answer is that it
+already is — and the answer exposed the gap.
+
+**The algebra, which is why no linear surrogate should ever be built.** If kappa is linear in the
+coefficients, `kappa ~ w.c`, then penalising its error is `(w.dc)^2 = dc^T (w w^T) dc` — a rank-one
+quadratic form on the coefficient error. And the metric the loss already carries is
+
+    dc^T M dc  =  sum_j (W_CONS / N_CONS) * (df_j)^2 / var(f_j)
+
+which for linearised `f_j` is `dc^T [sum_j weight_j w_j w_j^T] dc`. **A linear aux term for kappa is
+literally one of the seven summands already in M.** Adding it changes nothing but kappa's RELATIVE
+weight among the seven.
+
+**And that weight has never been touched.** `target_metric.py:288` reads
+`m += (W_CONS / N_CONS) * cal[j]**2 / var[j] * block` — the same `W_CONS/N_CONS` for every one of
+the seven, with no per-scalar knob anywhere. The recorded argument "the loss already up-weights the
+geometry by 1434x" is about geometry DIRECTIONS against flux, and says nothing about the split
+inside the seven.
+
+**Why the split is worth moving, from the test set.** li 0.9602 and kappa 0.9654 hold 0.002126 of
+unclaimed S between them — 6.6x the gap to first place — while tri_top is at 0.9909 and tri_bot at
+0.9892, where almost nothing is left to take. The loss spends equal effort on all seven.
+
+**The honest objection, which must be stated because it is not obviously answerable.** The scorer
+DOES weight the seven equally, so re-weighting makes the loss deliberately disagree with the score.
+The defence is that a loss should allocate by MARGINAL RETURN rather than by the score's weights: a
+unit of R2 is worth the same everywhere, but a unit of gradient buys more R2 where the scalar is
+further from saturation. That is an argument, not a measurement — and it is exactly the kind of
+argument this project has been wrong about before.
+
+**Cost: a per-scalar weight vector in `jacobian_form` plus one config key. No architecture change,
+no extra targets, no cache.** Cheaper than `aux`, which needs 13 core-hours of derived targets per
+split, and it attacks the same two scalars.
+
+**Pre-registered gate:** production pairs, and the named scalars must move — same rule as `aux`.
+Refuted if kappa and li gain less than +0.005 of R2 each, or if the other five lose more than the
+two gain.
+
 ### 2b. `one-vs-four`, the original entry — replace the four-seed ensemble with ONE net carrying ema + huber
 **The user's proposal, and the converse of tonight's two zeros.** `ema` and `huber` both measured
 exactly zero in production *because* the four-seed ensemble had already taken their gain. If that is
