@@ -2714,3 +2714,37 @@ went to zero.
 over five pairs, so A15's "this model is not short of parameters" survives its re-run at
 `grad_clip: 1.0` — the precondition its own author asked for. `h512` says the GRU may be slightly
 short, at a size the instrument cannot resolve. Neither is where the test set says the loss is.
+
+## Where a production run's time actually goes, measured — 2026-08-26
+
+Asked whether a 4090 or 5090 would help. Measured rather than guessed, on a completed base run at
+the production shares:
+
+| phase | time | share | bound by |
+|---|---|---|---|
+| reading shots | 1.3 min | 0.6% | CPU |
+| 4 MLP fits | 10.3 min | 5.0% | GPU, at 18% SM |
+| **seq fit** | **131.0 min** | **62.8%** | **GPU** |
+| scoring + predict | 66.0 min | 31.6% | CPU |
+| total | 208.6 min | | |
+
+GPU utilisation during a seq fit is **81% mean over 40 samples, range 79-86%** — the card really is
+the bottleneck there, and this corrects the older "18% utilisation" note, which was measured on an
+MLP fit and does not describe the seq one.
+
+**An infinitely fast GPU would still leave 32% of the run.** By Amdahl: 2x on the GPU gives 1.5x
+overall, 3x gives 1.8x, and the ceiling is 3.1x. A 4090 is 5.3x the V100 on paper FP32, but a GRU's
+recurrence is sequential in time with small matrices (256x256 at batch 32), so it is latency- and
+occupancy-bound rather than FLOPS-bound, and memory bandwidth rises only 1.12x. Two to three times
+on the seq fit is the realistic expectation, i.e. 1.5-1.8x on the run.
+
+**For this workload more cards beat a faster card.** We run two or three independent lanes sharing
+one GPU, so a second V100 is close to 2x on experiment throughput, and unlike a faster card it also
+hides the 32% CPU tail: one lane's scoring overlaps another lane's fit.
+
+**Two free levers exist and were not spent.** Scoring is 32% of the run on 14 processes against a
+30.7-CPU quota. And the fits run in FP32 while the V100's tensor cores do ~125 TFLOPS in FP16
+against 15.7 in FP32 — mixed precision could be worth multiples on the same hardware, at the risk
+that a half-precision recurrence converges differently, which one run would settle.
+
+Decision: stay on the current machine.

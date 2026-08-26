@@ -71,6 +71,42 @@ def _derive_maps(args: tuple) -> np.ndarray:
     return out
 
 
+def _jac_task(args: tuple) -> np.ndarray:
+    """(len(WANT), n_pca) — one frame's df/dc by central differences, the scorer's own derive."""
+    import local_score
+    c, comps, mean, step, ctx = args
+    idx = [CONS_SCALARS.index(w) for w in WANT]
+
+    def f(cc: np.ndarray) -> np.ndarray:
+        psi = (cc @ comps + mean).reshape(ctx["grid_Z"].size, ctx["grid_R"].size)
+        con = extract_lcfs(psi, ctx["grid_R"], ctx["grid_Z"], ctx["machine"],
+                           ctx["mask_coarse"], ctx["mask_f"], n_points=local_score.N_POINTS)
+        v = derive_frame(psi, ctx["grid_R"], ctx["grid_Z"], ctx["machine"],
+                         ctx["mask_coarse"], ctx["mask_f"], contour=con, with_li=True)
+        return np.array([v[CONS_SCALARS[i]] for i in idx])
+
+    out = np.zeros((len(WANT), len(c)))
+    for k in range(len(c)):
+        up, dn = c.copy(), c.copy()
+        up[k] += step
+        dn[k] -= step
+        out[:, k] = (f(up) - f(dn)) / (2 * step)
+    return out
+
+
+def jacobians(C: np.ndarray, comps: np.ndarray, mean: np.ndarray, step: float,
+              ctx: dict, jobs: int) -> np.ndarray:
+    """(N, len(WANT), n_pca). Central differences, `step` set at the model's own error scale.
+
+    PER FRAME, deliberately. `jacobian_form` builds ONE Jacobian averaged over probe frames, and a
+    Sobolev target that is constant across frames would make the best surrogate AFFINE — i.e. would
+    reproduce the linear predictor that already scores 0.732 and make the nonlinearity pointless.
+    The whole reason to want a nonlinear `g` is that `df/dc` varies frame to frame.
+    """
+    print(f"    per-frame Jacobians: {len(C)} frames x {C.shape[1]} coefficients x 2")
+    return np.stack(list(pimap(_jac_task, [(c, comps, mean, step, ctx) for c in C], jobs)))
+
+
 def derive_all(psi: np.ndarray, ctx: dict, jobs: int, desc: str) -> np.ndarray:
     """Derive over a big stack, chunked so each worker gets a reasonable slice."""
     chunks = np.array_split(psi, max(jobs, 1) * 4)
@@ -88,8 +124,19 @@ def apply_linear(W: np.ndarray, C: np.ndarray) -> np.ndarray:
     return np.hstack([C, np.ones((len(C), 1))]) @ W
 
 
-def fit_surrogate(C: np.ndarray, Y: np.ndarray, hidden: int, steps: int, seed: int):
-    """Two hidden layers, plain MSE on standardised targets. Small on purpose: this is a gate."""
+def fit_surrogate(C: np.ndarray, Y: np.ndarray, hidden: int, steps: int, seed: int,
+                  sobolev: float = 0.0, J: np.ndarray | None = None):
+    """Two hidden layers on standardised targets, optionally trained on DERIVATIVES too.
+
+    `sobolev > 0` adds `sobolev * ||grad g - J||^2` to the value loss, where `J` is the true
+    Jacobian `df/dc` at each sample. This exists because the first gate found the precise failure:
+    the surrogate reached a value loss of 0.00001 and still got the direction wrong — it fit `f`
+    and learned nothing about `df/dc`. Fitting values alone does not constrain slopes, and with 50
+    inputs and a flexible net it will not do so by accident.
+
+    The derivative targets are not new information: `jacobian_form` already computes `df_j/dc_k` by
+    finite differences, and the metric the loss carries is built from exactly them.
+    """
     import torch
     torch.manual_seed(seed)
     cm, cs = C.mean(0), C.std(0) + 1e-12
@@ -101,10 +148,30 @@ def fit_surrogate(C: np.ndarray, Y: np.ndarray, hidden: int, steps: int, seed: i
                               torch.nn.Linear(hidden, Y.shape[1]))
     opt = torch.optim.Adam(net.parameters(), lr=3e-3)
     n = len(Xt)
+    # The Jacobian in STANDARDISED coordinates: g works on (c-cm)/cs and outputs (y-ym)/ys, so a
+    # target dy/dc becomes (dy/dc) * cs / ys. Getting this wrong would train the net towards a
+    # correctly-shaped but wrongly-scaled slope, which is worse than not training it at all.
+    Jt = None
+    if sobolev > 0:
+        if J is None:
+            raise ValueError("sobolev > 0 needs the true Jacobian df/dc")
+        if J.ndim != 3 or J.shape[1:] != (Y.shape[1], C.shape[1]):
+            raise ValueError(f"J must be (N, {Y.shape[1]}, {C.shape[1]}), got {J.shape}")
+        # J_std[n,k,j] = J[n,k,j] * cs[j] / ys[k]: g reads (c-cm)/cs and writes (y-ym)/ys, so the
+        # chain rule scales each column by its input spread and each ROW by its output spread.
+        Jt = torch.tensor(J * (cs[None, None, :] / ys[None, :, None]), dtype=torch.float32)
     for i in range(steps):
-        idx = torch.randint(0, n, (min(4096, n),))
+        idx = torch.randint(0, n, (min(1024 if sobolev > 0 else 4096, n),))
         opt.zero_grad()
-        loss = torch.nn.functional.mse_loss(net(Xt[idx]), Yt[idx])
+        if sobolev > 0:
+            xb = Xt[idx].clone().requires_grad_(True)
+            out = net(xb)
+            loss = torch.nn.functional.mse_loss(out, Yt[idx])
+            for k in range(Y.shape[1]):
+                gk = torch.autograd.grad(out[:, k].sum(), xb, create_graph=True)[0]
+                loss = loss + sobolev * torch.nn.functional.mse_loss(gk, Jt[idx, k])
+        else:
+            loss = torch.nn.functional.mse_loss(net(Xt[idx]), Yt[idx])
         loss.backward()
         opt.step()
     net.eval()
@@ -126,6 +193,10 @@ def main() -> int:
     ap.add_argument("--jobs", type=int, default=10)
     ap.add_argument("--hidden", type=int, default=128)
     ap.add_argument("--steps", type=int, default=4000)
+    ap.add_argument("--sobolev", type=float, default=0.0,
+                    help="weight on ||grad g - df/dc||^2; 0 is the original value-only gate")
+    ap.add_argument("--jac-frames", type=int, default=300,
+                    help="frames given per-frame Jacobians (50 coefficients x 2 derives each)")
     ap.add_argument("--share", type=float, default=0.05)
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR)
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
@@ -187,8 +258,20 @@ def main() -> int:
     fit_idx, test_idx = half[: len(half) // 2], half[len(half) // 2:]
 
     W = fit_linear(c_pert[fit_idx], f_pert[fit_idx])
-    g, gl = fit_surrogate(c_pert[fit_idx], f_pert[fit_idx], a.hidden, a.steps, 0)
-    print(f"  surrogate final training loss (standardised): {gl:.5f}\n")
+    J = None
+    sub = fit_idx
+    if a.sobolev > 0:
+        # Jacobians are the expensive part, so only a subset gets them and the surrogate is fitted
+        # on that subset alone — a fair comparison needs the value-only arm to see the same rows.
+        sub = fit_idx[: a.jac_frames]
+        comps = np.asarray(pca.pca.components_)
+        pmean = np.asarray(pca.pca.mean_)
+        J = jacobians(c_pert[sub], comps, pmean, float(np.median(scale)), ctx, a.jobs)
+        print(f"    |df/dc| median over frames and coefficients: "
+              f"{np.median(np.abs(J)):.4g}")
+    g, gl = fit_surrogate(c_pert[sub], f_pert[sub], a.hidden, a.steps, 0, a.sobolev, J)
+    print(f"  surrogate final training loss (standardised): {gl:.5f}"
+          f"{'  [value only]' if a.sobolev == 0 else f'  [sobolev {a.sobolev}]'}\n")
 
     actual = f_pred[test_idx] - f_true[test_idx]
     preds = {
