@@ -288,6 +288,34 @@ split, and it attacks the same two scalars.
 Refuted if kappa and li gain less than +0.005 of R2 each, or if the other five lose more than the
 two gain.
 
+### 1d. `aux-surrogate-frozen` and `1e. aux-surrogate-trained` — RESTORED 2026-08-26 at the user's
+request, to run AFTER `cons-reweight`. **Stated plainly: the pre-registered gate said no** — kappa
+gradient correlation 0.610 against a required 0.90, and worse than the linearisation's 0.732 — and
+these run anyway, out of curiosity, with that on the record rather than quietly forgotten.
+
+**What could make the gate wrong, honestly listed:**
+- The surrogate was small and cheaply trained: 2 hidden layers of 128, 4000 steps, ONE perturbation
+  draw per frame, fitted on 592 frames from 6 shots. None of that was tuned.
+- The gate is itself a proxy. It measures gradient fidelity along `dc = c_pred - c_true` at ONE
+  artifact's error scale; what actually matters is whether the arm pays in production.
+- 1183 frames from 6 shots is a small sample for a correlation.
+
+**And the fix the gate points straight at, which is why re-running is not just repeating.** The
+failure was specific: `g` learned the VALUES almost exactly (training loss 0.00001) and the
+DERIVATIVES badly. That is exactly what **Sobolev training** repairs — fit `g` to match both `f` and
+`df/dc`, not `f` alone. The derivative targets already exist: `jacobian_form` computes `df_j/dc_k`
+by finite differences and its output is what the current metric is built from. So the loss becomes
+
+    ||g(c) - f(c)||^2  +  lambda * ||grad g(c) - df/dc||^2
+
+**Run the gate again after Sobolev training, before spending a production lane.** If the kappa
+correlation clears 0.90 the arms proceed on their merits; if it does not, we will at least know
+whether the surrogate idea fails because surrogates cannot do this or because that one was trained
+for the wrong objective — which the first gate could not distinguish.
+
+**Order:** `cons-reweight` first (cheaper, same target, no new machinery), then Sobolev + re-gate,
+then the two arms if it clears.
+
 ### 2b. `one-vs-four`, the original entry — replace the four-seed ensemble with ONE net carrying ema + huber
 **The user's proposal, and the converse of tonight's two zeros.** `ema` and `huber` both measured
 exactly zero in production *because* the four-seed ensemble had already taken their gain. If that is
