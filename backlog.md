@@ -338,6 +338,41 @@ for the wrong objective — which the first gate could not distinguish.
 **Order:** `cons-reweight` first (cheaper, same target, no new machinery), then Sobolev + re-gate,
 then the two arms if it clears.
 
+### 1f. `pca-head` — layers over the PCA output trained on the TRUE kappa and li, values only
+**User's design, 2026-08-26. The gradient-fidelity gate that closed the surrogate arms DOES NOT
+APPLY here, and the distinction is the whole point of the entry.**
+
+**The design.** The net outputs the 50 coefficients as now; a small head `g` sits on top of them and
+predicts kappa and li; the extra loss is `||g(c) - kappa_true||^2` against the CACHED GROUND TRUTH.
+Trunk and head train together. No derivatives anywhere.
+
+**Why the gate does not apply.** In `aux-surrogate-frozen`, `g` STANDS IN for the true functional:
+the model is taught by `g`'s derivative, so if `dg/dc` disagrees with `df/dc` the model is pushed the
+wrong way, and L3's threshold is the right test — which it failed at 0.610 against 0.90. Here `g` is
+not standing in for anything. It is a readout trained on real labels, and the requirement is not
+"reproduce `df/dc`" but "let `c` carry enough for a small net to read kappa off it". A head can be a
+useful training signal while being a poor approximation of `f` away from the data.
+
+**Why it is not plain `aux` either.** In `aux` the auxiliary scalars are extra ROWS of the same
+output layer, each with its own weights, so the trunk can satisfy them by routes the coefficients
+never see — and at inference only the coefficients are read, so that route buys nothing. Here the
+head reads ONLY `c`, so the only way to lower the auxiliary loss is to put the information into the
+coefficients themselves. That is the property plain `aux` cannot enforce and the frozen surrogate
+tried to buy with a gradient it did not have.
+
+**What it shares with the closed arms, and therefore what to watch.** Co-adaptation: head and trunk
+can meet in the middle, with the auxiliary loss falling while the map does not improve. **Read the
+head's own loss beside the map-derived `R2_cons`** — if the first falls much further than the second
+follows, that is the failure, named in advance. It is the same diagnostic written for
+`aux-surrogate-trained` and it costs nothing.
+
+**Cost:** a head and one loss term. No cache beyond `.aux_targets/`, which is already built for
+salts 0-5; no derivatives, so none of the Jacobian machinery. Cheaper than either surrogate arm.
+
+**Gate:** production pairs, t >= 2 and >= 9/12 signs, AND kappa and li must move by >= +0.005 of R2
+each in the map-derived block — the same rule as `aux`, for the same reason: the mechanism has to
+move the scalar it names.
+
 ### 2b. `one-vs-four`, the original entry — replace the four-seed ensemble with ONE net carrying ema + huber
 **The user's proposal, and the converse of tonight's two zeros.** `ema` and `huber` both measured
 exactly zero in production *because* the four-seed ensemble had already taken their gain. If that is

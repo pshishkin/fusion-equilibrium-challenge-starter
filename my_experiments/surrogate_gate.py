@@ -125,7 +125,7 @@ def apply_linear(W: np.ndarray, C: np.ndarray) -> np.ndarray:
 
 
 def fit_surrogate(C: np.ndarray, Y: np.ndarray, hidden: int, steps: int, seed: int,
-                  sobolev: float = 0.0, J: np.ndarray | None = None):
+                  sobolev: float = 0.0, J: np.ndarray | None = None, wd: float = 0.0):
     """Two hidden layers on standardised targets, optionally trained on DERIVATIVES too.
 
     `sobolev > 0` adds `sobolev * ||grad g - J||^2` to the value loss, where `J` is the true
@@ -160,21 +160,49 @@ def fit_surrogate(C: np.ndarray, Y: np.ndarray, hidden: int, steps: int, seed: i
         # J_std[n,k,j] = J[n,k,j] * cs[j] / ys[k]: g reads (c-cm)/cs and writes (y-ym)/ys, so the
         # chain rule scales each column by its input spread and each ROW by its output spread.
         Jt = torch.tensor(J * (cs[None, None, :] / ys[None, :, None]), dtype=torch.float32)
+    # On the GPU when there is one: the Sobolev term needs a second backward pass per output
+    # through `create_graph`, and on the CPU that made the first attempt so slow that 6000 steps
+    # left the net UNCONVERGED — value loss 0.03 against 0.00001 for the value-only arm — which is
+    # what actually produced its bad gradients. The finite-difference targets were fine: two steps
+    # 4x apart agree at 0.92 (kappa) and 0.90 (li), so they are signal.
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    net, Xt, Yt = net.to(dev), Xt.to(dev), Yt.to(dev)
+    if Jt is not None:
+        Jt = Jt.to(dev)
+    # weight_decay because the failure mode measured on 2026-08-26 was OVERFITTING, three ways:
+    # 60000 steps scored WORSE than 6000 (0.394 against 0.610), the gradient loss fell tenfold at
+    # sobolev 10 while test-direction fidelity fell to its worst (0.116), and the net carries ~23k
+    # parameters against 300 training frames.
+    opt = torch.optim.AdamW(net.parameters(), lr=3e-3, weight_decay=wd)
+    v_last = g_last = float("nan")
     for i in range(steps):
-        idx = torch.randint(0, n, (min(1024 if sobolev > 0 else 4096, n),))
+        # A VALUE-ONLY WARMUP for the first fifth. Starting with the derivative term active makes
+        # the net chase slopes of a function it has not yet fit at all, and that is a worse initial
+        # condition than either objective alone.
+        warm = i < steps // 5
+        idx = torch.randint(0, n, (min(1024 if (sobolev > 0 and not warm) else 4096, n),),
+                            device=dev)
         opt.zero_grad()
-        if sobolev > 0:
+        if sobolev > 0 and not warm:
             xb = Xt[idx].clone().requires_grad_(True)
             out = net(xb)
-            loss = torch.nn.functional.mse_loss(out, Yt[idx])
+            v = torch.nn.functional.mse_loss(out, Yt[idx])
+            gterm = 0.0
             for k in range(Y.shape[1]):
                 gk = torch.autograd.grad(out[:, k].sum(), xb, create_graph=True)[0]
-                loss = loss + sobolev * torch.nn.functional.mse_loss(gk, Jt[idx, k])
+                gterm = gterm + torch.nn.functional.mse_loss(gk, Jt[idx, k])
+            loss = v + sobolev * gterm
+            v_last, g_last = float(v.item()), float(gterm)
         else:
             loss = torch.nn.functional.mse_loss(net(Xt[idx]), Yt[idx])
+            v_last = float(loss.item())
         loss.backward()
         opt.step()
     net.eval()
+    net = net.to("cpu")
+    print(f"    value loss {v_last:.5f}"
+          + (f"   gradient loss {g_last:.5f}" if sobolev > 0 else "")
+          + f"   ({steps} steps on {dev})")
 
     def predict(Cq: np.ndarray) -> np.ndarray:
         import torch as T
@@ -192,6 +220,7 @@ def main() -> int:
     ap.add_argument("--shots", type=int, default=12, help="clean-tail shots to probe")
     ap.add_argument("--jobs", type=int, default=10)
     ap.add_argument("--hidden", type=int, default=128)
+    ap.add_argument("--wd", type=float, default=0.0, help="AdamW weight decay on the surrogate")
     ap.add_argument("--steps", type=int, default=4000)
     ap.add_argument("--sobolev", type=float, default=0.0,
                     help="weight on ||grad g - df/dc||^2; 0 is the original value-only gate")
@@ -269,7 +298,7 @@ def main() -> int:
         J = jacobians(c_pert[sub], comps, pmean, float(np.median(scale)), ctx, a.jobs)
         print(f"    |df/dc| median over frames and coefficients: "
               f"{np.median(np.abs(J)):.4g}")
-    g, gl = fit_surrogate(c_pert[sub], f_pert[sub], a.hidden, a.steps, 0, a.sobolev, J)
+    g, gl = fit_surrogate(c_pert[sub], f_pert[sub], a.hidden, a.steps, 0, a.sobolev, J, a.wd)
     print(f"  surrogate final training loss (standardised): {gl:.5f}"
           f"{'  [value only]' if a.sobolev == 0 else f'  [sobolev {a.sobolev}]'}\n")
 
@@ -289,6 +318,13 @@ def main() -> int:
         print(f"  {name:<12}" + "".join(f"{c:>12.3f}" for c in cors))
     ks = WANT.index("kappa")
     kc = np.corrcoef(preds["surrogate"][:, ks], actual[:, ks])[0, 1]
+    # The same correlation on the frames `g` was FITTED on. A large gap between this and the
+    # held-out column is overfitting, stated rather than inferred.
+    a_fit = f_pred[sub] - f_true[sub]
+    p_fit = g(c_pred[sub]) - g(c_true[sub])
+    fit_cor = [np.corrcoef(p_fit[:, j], a_fit[:, j])[0, 1] if p_fit[:, j].std() > 0 else float("nan")
+               for j in range(len(WANT))]
+    print(f"  {'surrogate ON ITS FIT FRAMES':<12}" + "".join(f"{c:>12.3f}" for c in fit_cor))
     print(f"\n  GATE: kappa correlation for the surrogate is {kc:.3f}; L3 requires > 0.90")
     print(f"  -> {'PROCEED' if kc > 0.90 else 'BOTH SURROGATE ARMS CLOSE'}")
     return 0

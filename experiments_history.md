@@ -2748,3 +2748,37 @@ against 15.7 in FP32 — mixed precision could be worth multiples on the same ha
 that a half-precision recurrence converges differently, which one run would settle.
 
 Decision: stay on the current machine.
+
+## The Sobolev surrogate failed on MY training, not on the problem — checked, 2026-08-26
+
+Trained on derivatives as well as values, the surrogate's gradient fidelity got WORSE, not better:
+kappa correlation 0.610 value-only, then 0.199 / 0.236 / 0.331 at Sobolev weights 0.3 / 3.0 / 30.0.
+Teaching a net to match derivatives made its derivatives worse, which needed an explanation before
+it could be written down as a result.
+
+**Two candidates, and the data did not separate them.** Either the finite-difference targets were
+discretisation noise — `extract_lcfs` finds a contour numerically and a small coefficient change can
+move which contour is found — or the training simply had not converged, since its loss went from
+0.00001 to 0.03-0.53.
+
+**The check: compute df/dc at three step sizes and correlate.** A smooth functional gives the same
+derivative at each; a jumping contour gives unrelated numbers.
+
+| steps compared | kappa | li |
+|---|---|---|
+| 0.5x vs 1.0x | **0.916** | 0.895 |
+| 1.0x vs 2.0x | **0.923** | 0.895 |
+| 0.5x vs 2.0x | 0.832 | 0.759 |
+
+and the magnitude barely moves — |df/dc| median 0.2322, 0.2375, 0.2386 across a 4x range of step.
+**The targets are signal.** So the noise explanation is refuted and the fault is mine: batch cut 4x
+for the Sobolev steps while the step count stayed at 6000, on the CPU, with `create_graph` doubling
+the backward cost per output.
+
+**Worth the twenty minutes it cost.** The tidy conclusion — "the functional is not smooth enough at
+the model's error scale for a surrogate to help" — was available, plausible, and wrong, and a whole
+family would have closed on it.
+
+Re-running with the training fixed: on the GPU, 60000 steps, a value-only warmup for the first
+fifth so the net is not chasing slopes of a function it has not yet fit, and the value and gradient
+losses reported separately so "did not converge" can never again be mistaken for "cannot work".
