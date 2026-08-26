@@ -2782,3 +2782,42 @@ family would have closed on it.
 Re-running with the training fixed: on the GPU, 60000 steps, a value-only warmup for the first
 fifth so the net is not chasing slopes of a function it has not yet fit, and the value and gradient
 losses reported separately so "did not converge" can never again be mistaken for "cannot work".
+
+## The surrogate closes for a BETTER reason: the functional is already linear — 2026-08-26
+
+Third pass on the gate, with the overfitting diagnosis acted on: 3000 frames instead of 300, hidden
+64 instead of 128, weight decay 0.01, and the correlation on the FIT frames printed beside the
+held-out one so the gap is shown rather than argued.
+
+| | kappa | li |
+|---|---|---|
+| linear | **0.905** | 0.874 |
+| surrogate | 0.787 | **0.907** |
+| surrogate, on its own fit frames | 0.781 | 0.910 |
+
+**Overfitting is gone** — 0.781 fitted against 0.787 held out. The diagnosis was right and the cure
+was data.
+
+**And the earlier numbers were themselves small-sample artefacts.** The linear predictor read 0.732
+on 592 frames and reads **0.905** on 3000. L3's threshold — "above 0.90, against the linearisation's
+0.77" — was set against a baseline measured under the same shortage, so the bar and its reference
+have both moved.
+
+**The real conclusion, and it is worth more than the arms it closes.** The nonlinear surrogate does
+not beat a linear fit on kappa: 0.787 against 0.905. Over the range the model's errors actually
+span, **the map from coefficients to kappa is close to linear** — so a nonlinear surrogate has
+nothing to add there, and the linear version is not a new mechanism at all: it is exactly what the
+Jacobian metric already carries.
+
+**On li it is the other way**: the surrogate reaches 0.907 against linear's 0.874, so li does have
+usable curvature. That is the **fourth** independent time these two scalars have split — D1 (+0.0119
+kappa, −0.0047 li), gate 1 (0.610/0.793), gate 2, and now this. They should not be treated as one
+target.
+
+**Sobolev remains worse (0.476) and still does not converge** — value loss 0.129 after 20000 steps
+on 3000 frames. With the data problem removed, that is now a property of the objective rather than
+of the sample: matching per-frame derivatives is simply hard to optimise here.
+
+**What it implies for what is running.** If kappa is linear in the coefficients, the Jacobian metric
+is the right object and the only open question is its WEIGHTS — which is `cons-reweight`, already in
+production and at +0.00011 on its first pair.

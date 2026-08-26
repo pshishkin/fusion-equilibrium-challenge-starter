@@ -310,7 +310,11 @@ more than the two gain. The scorer weights all seven equally, so a trade that mo
 to kappa one-for-one is worth exactly zero, and only a genuine difference in marginal return pays.
 That is the whole hypothesis, stated as something that can fail.
 
-### 1d. `aux-surrogate-frozen` and `1e. aux-surrogate-trained` — RESTORED 2026-08-26 at the user's
+### 1d/1e. ~~`aux-surrogate-frozen` / `-trained`~~ — **CLOSED AGAIN 2026-08-26, on a better argument.** With 3000 frames the overfitting vanished (0.781 fitted vs 0.787 held out) and the LINEAR predictor rose to **0.905** for kappa against the surrogate's 0.787. Over the model's own error range the coefficient-to-kappa map is close to linear, so a nonlinear surrogate adds nothing there — and the linear version is already the Jacobian metric. On li the surrogate DOES win (0.907 vs 0.874), the fourth split between these two scalars.
+
+<details><summary>the restoration entry</summary>
+
+### RESTORED 2026-08-26 at the user's
 request, to run AFTER `cons-reweight`. **Stated plainly: the pre-registered gate said no** — kappa
 gradient correlation 0.610 against a required 0.90, and worse than the linearisation's 0.732 — and
 these run anyway, out of curiosity, with that on the record rather than quietly forgotten.
