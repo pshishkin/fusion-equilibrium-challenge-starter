@@ -379,6 +379,59 @@ salts 0-5; no derivatives, so none of the Jacobian machinery. Cheaper than eithe
 each in the map-derived block — the same rule as `aux`, for the same reason: the mechanism has to
 move the scalar it names.
 
+### 1g. `cons-reweight-all-9` — move weight BETWEEN the q95/betaN block and the seven
+**User's proposal, 2026-08-26. `cons_split` only moves weight inside `W_CONS`; this opens the split
+across all nine scalars the loss actually contains.**
+
+**What the board says, and it is not what I expected.** Per-scalar, from the 2026-08-25 test set:
+
+| scalar | R2 | unclaimed R2 | weight now | S available |
+|---|---|---|---|---|
+| li | 0.960156 | **0.039844** | 0.0286 | 0.001138 |
+| kappa | 0.965434 | 0.034566 | 0.0286 | 0.000988 |
+| R_axis | 0.978202 | 0.021798 | 0.0286 | 0.000623 |
+| volume | 0.984592 | 0.015408 | 0.0286 | 0.000440 |
+| Z_axis | 0.984992 | 0.015008 | 0.0286 | 0.000429 |
+| tri_bot | 0.989229 | 0.010771 | 0.0286 | 0.000308 |
+| tri_top | 0.990932 | 0.009068 | 0.0286 | 0.000259 |
+| **betaN** | 0.996402 | **0.003598** | **0.0750** | 0.000270 |
+| **q95** | 0.996677 | **0.003323** | **0.0750** | 0.000249 |
+
+**q95 and betaN carry 2.6x li's weight with 12x less unclaimed R2.** That is the scorer's own
+arithmetic — `W_QB = 0.15` over two scalars against `W_CONS = 0.20` over seven — not a mistake of
+ours, and the loss inherits it.
+
+**Why NOT simply weight by headroom, which is the obvious move.** `aux` has just measured the
+exchange rate inside Consistency at roughly **1:1**: kappa +0.0029 and li +0.0031 against R_axis
+-0.0024 and Z_axis -0.0024, even though those pairs differ two- to three-fold in headroom. So
+marginal return does NOT track headroom the way the table invites you to assume, and a blanket
+proportional reweight would be betting on exactly the thing just refuted.
+
+**What is still open is the EXTREME ratio.** Between q95 and li the headroom differs 12x, not 2x —
+a regime `aux` never probed. "A nearly saturated scalar has little marginal return" is untested
+there and is the only version of this hypothesis still standing.
+
+**The asymmetry that sets the size of the move.** q95 and betaN are SUBMITTED directly and carry
+0.15 of the score. The whole prize on li and kappa is 0.002126. If a starved qb slipped from 0.9965
+to 0.99, that is **-0.00098** — three times the gap to first place. There is far more to lose here
+than to win, so the arm is deliberately small.
+
+**PRE-REGISTERED:**
+
+    arm      W_QB   W_CONS   what moves
+    control  0.15   0.20     as shipped
+    qb10     0.10   0.25     a third of the qb block, given to li and kappa only
+
+Not the proportional split (which would cut q95/betaN to 0.10x): that is a bet on headroom-tracking
+that `aux` argues against, and its downside is the steep one.
+
+**Gate:** production pairs, t >= 2 and >= 9/12 signs. **Plus a hard stop that outranks the gate:**
+if `R2_qb` falls by more than 0.001 the arm is abandoned whatever `S` does, because that is the
+regime where the loss is unbounded and the gain is capped.
+
+**Code:** `jacobian_form` already takes `cons_weights`; this needs the same for the qb block and a
+`qb_weight` config key. Half a day, no new targets, no cache.
+
 ### 2b. `one-vs-four`, the original entry — replace the four-seed ensemble with ONE net carrying ema + huber
 **The user's proposal, and the converse of tonight's two zeros.** `ema` and `huber` both measured
 exactly zero in production *because* the four-seed ensemble had already taken their gain. If that is
