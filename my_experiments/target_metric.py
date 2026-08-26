@@ -188,6 +188,7 @@ def jacobian_form(components: FloatArray, psi: FloatArray, delta: float, ctx: di
                   jobs: int = 0,
                   calibrate: bool = False,
                   li_form: str = "jacobian",
+                  cons_weights: FloatArray | None = None,
                   ) -> tuple[FloatArray, FloatArray, FloatArray, int, FloatArray]:
     """Measure how the seven scored functionals respond to each PCA coefficient.
 
@@ -275,6 +276,30 @@ def jacobian_form(components: FloatArray, psi: FloatArray, delta: float, ctx: di
 
     if li_form not in LI_FORMS:
         raise ValueError(f"li_form {li_form!r}, known are {LI_FORMS}")
+    # How W_CONS is split among the seven. `None` is the scorer's own split — 1/7 each — and is
+    # what every number before 2026-08-26 was measured on. A vector re-allocates it; it is
+    # NORMALISED to sum to 1, so the Consistency block always carries exactly W_CONS in total and
+    # this can only move effort between the seven, never change how much the block weighs against
+    # the flux term.
+    #
+    # WHY IT EXISTS. The scorer weights the seven equally, so a non-uniform split makes the loss
+    # deliberately disagree with the score. The defence is that a loss should allocate by MARGINAL
+    # RETURN rather than by the score's weights: on the 2026-08-25 test set li sits at R2 0.9602 and
+    # kappa at 0.9654 — together 6.6x the gap to first place — while tri_top is at 0.9909 and
+    # tri_bot at 0.9892, where almost nothing is left to take. A unit of R2 is worth the same
+    # everywhere; a unit of GRADIENT is not. That is an argument and not a measurement, which is
+    # exactly why it is a knob to be tested rather than a default to be changed.
+    if cons_weights is None:
+        w_cons = np.full(N_CONS, 1.0 / N_CONS)
+    else:
+        w_cons = np.asarray(cons_weights, dtype=np.float64)
+        if w_cons.shape != (N_CONS,):
+            raise ValueError(f"cons_weights must have {N_CONS} entries, one per scalar in "
+                             f"{CONS_SCALARS}, got shape {w_cons.shape}")
+        if not (w_cons >= 0).all() or not w_cons.sum() > 0:
+            raise ValueError(f"cons_weights must be non-negative with a positive sum, got {w_cons}")
+        w_cons = w_cons / w_cons.sum()
+
     m = np.zeros((len(components), len(components)))
     for j in range(N_CONS):
         jj = jac[:, j, :]
@@ -285,7 +310,7 @@ def jacobian_form(components: FloatArray, psi: FloatArray, delta: float, ctx: di
             if not tr_g > 0:
                 raise ValueError("the poloidal-field form has a non-positive trace")
             block = g * (float(np.trace(block)) / tr_g)
-        m += (W_CONS / N_CONS) * cal[j] ** 2 / var[j] * block
+        m += W_CONS * w_cons[j] * cal[j] ** 2 / var[j] * block
     return m, var, ratio, int(good.sum()), probe_ok
 
 

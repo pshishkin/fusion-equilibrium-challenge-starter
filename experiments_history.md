@@ -2696,3 +2696,21 @@ two. Nothing ships on this.
 coherent story and it is not evidence. Separating them needs a third sweep on an artifact with
 cosine at a different salt (`lanes/e`, salt 4) and one without at the same salt as `a`
 (`lanes/j`, salt 5, jac and no cosine).
+
+## Two capacity arms closed to clear the deck for `aux` — 2026-08-26
+
+`h512` (`seq_hidden` 256 -> 512), stopped at 10 of 12 pairs: **+0.00004, SE 0.00003, t = 1.6,
+7/10**. Its t wandered 2.8 -> 1.3 -> 2.0 -> 1.6 over five readings, which is what an effect sitting
+at the edge of resolution looks like rather than a signal about to declare itself. Two more pairs
+could not change that, and its GRU fit is 1.48x the baseline's (136 min against 92), so every
+comparison it takes part in costs half again as much.
+
+`wide+dropout` (MLP [1024,1024] with dropout 0.02), stopped at 1 pair on the user's instruction to
+focus. Its one reading was +0.00025 and is not reported as anything: four first pairs in a row have
+run high and settled — cosine +2.1 survived, `a_wide` +3.9 died, `h512` +1.5 hovers, `seq-ema` +0.8
+went to zero.
+
+**What the capacity family leaves behind.** `a_wide` (MLP width, no dropout) went +0.00039 -> zero
+over five pairs, so A15's "this model is not short of parameters" survives its re-run at
+`grad_clip: 1.0` — the precondition its own author asked for. `h512` says the GRU may be slightly
+short, at a size the instrument cannot resolve. Neither is where the test set says the loss is.

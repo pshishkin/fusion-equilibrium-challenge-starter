@@ -1023,6 +1023,11 @@ class Params:
     # loss they carry. `none` is off and is what every number before 2026-08-16 was measured on.
     aux_scalars: str
     aux_weight: float
+    # How the Consistency block's W_CONS is split among the seven scalars. `equal` is the scorer's
+    # own split, 1/7 each, and is what every number before 2026-08-26 was measured on. Otherwise a
+    # comma list of `name=weight`, normalised to sum to 1; names omitted get 0. Only the SPLIT
+    # moves — the block always carries exactly W_CONS against the flux term.
+    cons_split: str
     jacobian_delta: float
     boundary: bool
     subtract_coil_field: bool
@@ -1035,6 +1040,35 @@ class Params:
     # file's text, so a screening run records the configuration it actually fitted instead of the
     # one that happens to be on disk. Identical to the file when nothing was overridden.
     effective_yaml: str
+
+    @property
+    def cons_weights(self) -> Any:
+        """The seven weights in the scorer's own order, or None for the equal split.
+
+        A name that is not one of the seven is an error rather than a silent zero: `cons_split` is
+        the whole point of the arm that sets it, and a typo there would measure the equal split
+        under a different name.
+        """
+        if self.cons_split == "equal":
+            return None
+        import numpy as np
+        w = {}
+        for piece in self.cons_split.split(","):
+            name, _, val = piece.partition("=")
+            name = name.strip()
+            if name not in CONS_SCALARS:
+                raise ValueError(f"cons_split names {name!r}, which is not one of {CONS_SCALARS}")
+            w[name] = float(val)
+        if not w:
+            raise ValueError(f"cons_split is {self.cons_split!r} and names nothing")
+        v = np.array([w.get(s, 0.0) for s in CONS_SCALARS], dtype=float)
+        if not (v >= 0).all() or not v.sum() > 0:
+            raise ValueError(f"cons_split gives {v.tolist()}, which must be non-negative with a "
+                             f"positive sum")
+        # Normalised HERE, not only inside `jacobian_form`, so what gets printed and stored in the
+        # artifact is exactly what the metric used. `3,3,1,1,1,1,1` and `0.3,0.3,0.1,...` are the
+        # same split and should read the same in the log.
+        return v / v.sum()
 
     @property
     def aux_names(self) -> list[str]:
@@ -1190,7 +1224,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     _require_keys(doc["split"], {"salt", "holdout_share"}, "split", path)
     _require_keys(doc["loss"],
                   {"metric", "calibrate_scalars", "li_form", "jacobian_frames", "jacobian_delta",
-                   "boundary", "monitor_frames", "aux_scalars", "aux_weight"},
+                   "boundary", "monitor_frames", "aux_scalars", "aux_weight", "cons_split"},
                   "loss", path)
     loss_metric = str(doc["loss"]["metric"])
     if loss_metric not in LOSS_METRICS:
@@ -1267,6 +1301,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   monitor_frames=int(doc["loss"]["monitor_frames"]),
                   aux_scalars=aux_scalars,
                   aux_weight=float(doc["loss"]["aux_weight"]),
+                  cons_split=str(doc["loss"]["cons_split"]),
                   jacobian_delta=float(doc["loss"]["jacobian_delta"]),
                   boundary=bool(doc["loss"]["boundary"]),
                   subtract_coil_field=bool(doc["features"]["subtract_coil_field"]),

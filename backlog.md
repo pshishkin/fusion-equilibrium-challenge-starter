@@ -284,9 +284,31 @@ argument this project has been wrong about before.
 no extra targets, no cache.** Cheaper than `aux`, which needs 13 core-hours of derived targets per
 split, and it attacks the same two scalars.
 
-**Pre-registered gate:** production pairs, and the named scalars must move — same rule as `aux`.
-Refuted if kappa and li gain less than +0.005 of R2 each, or if the other five lose more than the
-two gain.
+**PRE-REGISTERED 2026-08-26, before any of it runs.**
+
+The knob is `loss.cons_split`, a comma list of `name=weight` normalised to sum to 1; `equal` is the
+scorer's own 1/7 each and is what everything before today was measured on. Only the SPLIT moves —
+the Consistency block always carries exactly W_CONS against the flux term, so this cannot be
+confused with re-weighting geometry against flux, which is already done and by 1434x.
+
+    arm      cons_split                                          kappa+li share
+    equal    (control)                                           2/7 = 0.286
+    x2       kappa=2,li=2,R_axis=1,Z_axis=1,tri_top=1,...=1       4/9 = 0.444
+    x3       kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,...=1       6/11 = 0.545
+
+**Only `x3` runs first.** One value, chosen in advance, because a sweep before the mechanism is
+established is the lambda mistake — eleven points, a clean curve, +0.000075 in sample and −0.00015
+out. `x2` runs only if `x3` shows something, as the check that the response is monotone rather than
+a coincidence at one setting.
+
+**Gate:** production pairs, 12 salts, t >= 2 AND >= 9/12 signs on `S`.
+
+**And the mechanism must move its named scalars**, read from the per-scalar block rather than from
+the composite — C10's lesson. Refuted if kappa and li gain less than +0.005 of R2 each. **A second
+refutation clause this arm needs and `aux` does not:** the five it takes weight FROM must not lose
+more than the two gain. The scorer weights all seven equally, so a trade that moves R2 from tri_top
+to kappa one-for-one is worth exactly zero, and only a genuine difference in marginal return pays.
+That is the whole hypothesis, stated as something that can fail.
 
 ### 1d. `aux-surrogate-frozen` and `1e. aux-surrogate-trained` — RESTORED 2026-08-26 at the user's
 request, to run AFTER `cons-reweight`. **Stated plainly: the pre-registered gate said no** — kappa
@@ -331,7 +353,11 @@ median of 1.0095; two disjoint halves of the same tail then disagreed on the DIR
 than the effect. Every future free sweep reports two columns: in-sample, and on shots the sweep
 never saw.
 
-### 2d. `seq-capacity-dropout` — PRE-REGISTERED 2026-08-23, before `h512` returned
+### 2d. ~~`seq-capacity-dropout`~~ — **h512 closed at +0.00004, t=1.6, 7/10 over 10 pairs**; the MLP variant (`wide+dropout`) stopped at 1 pair to focus on `aux`. Neither is where the test set puts the loss.
+
+<details><summary>the original entry</summary>
+
+### `seq-capacity-dropout` — PRE-REGISTERED 2026-08-23, before `h512` returned
 **The user's proposal, written down while the arm it depends on is still running.** If
 `seq_hidden` 256 -> 512 does not pay on its own, run 512 WITH dropout.
 
@@ -366,6 +392,8 @@ model and the family closes. If there is an interior optimum near 0.02-0.03, the
 diagnosis was right and 512+that value is the arm to confirm. A15's flat 0->0.02 on the MLP is a
 weak prior AGAINST finding anything, and it is weak precisely because `seq` sees 5633 sequences
 where the MLP sees 1.25M rows — three orders of magnitude fewer examples per parameter.
+
+</details>
 
 ### 2e. `recheck-a15` — the MLP capacity grid, whose own write-up calls itself provisional
 A15's record says, in as many words: *"Every cell of this grid was fitted at a learning rate that was

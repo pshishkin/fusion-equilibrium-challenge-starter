@@ -1262,7 +1262,11 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         ctx = scorer_context(plan["grid_R"], plan["grid_Z"], plan["machine"])
         m_cons, var, ratio, n_used, probe_ok = jacobian_form(images, total, delta, ctx, jobs,
                                                              params.calibrate_scalars,
-                                                             params.li_form)
+                                                             params.li_form,
+                                                             params.cons_weights)
+        if params.cons_split != "equal":
+            print(f"  Consistency split: {params.cons_split} "
+                  f"(normalised {np.round(params.cons_weights, 4).tolist()})")
         m_bnd = d_probe = None
         if params.boundary:
             m_bnd, d_probe, n_bnd, clipped = boundary_form(images, total, delta, ctx, jobs)

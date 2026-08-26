@@ -228,6 +228,10 @@ loss:
   # 0.80/1.0 split, cached by the exact file list.
   aux_scalars: none
   aux_weight: 0.1
+  # How W_CONS is split among the seven scored scalars. `equal` is the scorer's own
+  # 1/7 each and is what everything before 2026-08-26 was measured on. Otherwise a
+  # comma list of name=weight, normalised; omitted names get 0. Only the SPLIT moves.
+  cons_split: equal
   jacobian_delta: 0.0332
 
   # `jacobian` only. Add the BOUNDARY term: how far the plasma boundary moves when the
