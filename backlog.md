@@ -176,6 +176,8 @@ stays within 0.0003 of where it is.*
 
 ### 2. ~~`one-vs-four`~~ — **REFUTED: −0.00106, SE 0.00012, 0/6 signs.** One net with ema+huber is decisively WORSE than four seeds. The ensemble gives something neither mechanism does: independent initialisation error, which weight averaging inside one trajectory cannot touch.
 
+</details>
+
 ### 1b. ~~`aux-surrogate`~~ — **BOTH ARMS CLOSED 2026-08-25 by the free gradient gate.** kappa correlation 0.610 against a required 0.90, and WORSE than the linearisation's 0.732 — while the surrogate's training loss was 0.00001, i.e. it fits the values almost exactly and still gets the direction wrong. That is precisely what L3's "gate on gradient fidelity, not value R2" was written to catch. Post-hoc only: on `li` the surrogate is better (0.780 vs 0.598), the second time kappa and li have split.
 
 <details><summary>the original entry</summary>
@@ -516,7 +518,11 @@ Found 2026-08-21 in passing: in block 0 of the clean tail, `mlp2` scores **0.977
 other three seeds score 0.9825–0.9881 and every other block has all four at 0.990+. Free to chase —
 find the shot, then check whether it is the same one the tail-expert diagnostics keep landing on.
 
-### 1. `aux` — teach `kappa` and `li` directly. PROMOTED FROM 8 ON TEST-SET EVIDENCE, 2026-08-25
+### 1. ~~`aux`~~ — **REFUTED 2026-08-26: −0.00016, SE 0.00005, t = −3.1, 0/3 signs.** Not a null: li rose on all three salts and kappa on two, so the mechanism works — but R_axis and Z_axis fell by the same amount and q95/betaN on top. A one-for-one trade inside an equally-weighted seven is worth zero. This is the `cons-reweight` objection arriving early through another door.
+
+<details><summary>the original entry</summary>
+
+### `aux` — teach `kappa` and `li` directly, PROMOTED FROM 8 ON TEST-SET EVIDENCE, 2026-08-25
 **The leaderboard breakdown moved this from the bottom of the list to the top, and the evidence is
 external rather than argued.** `li` sits at R2 0.960156 and `kappa` at 0.965434 on the TEST set —
 together **0.002126 of unclaimed S, 6.6x the 0.00032 gap to first place**, and 51% of everything

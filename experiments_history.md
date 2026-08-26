@@ -2821,3 +2821,44 @@ of the sample: matching per-frame derivatives is simply hard to optimise here.
 **What it implies for what is running.** If kappa is linear in the coefficients, the Jacobian metric
 is the right object and the only open question is its WEIGHTS — which is `cons-reweight`, already in
 production and at +0.00011 on its first pair.
+
+## `aux` refuted — the mechanism works and the trade loses — 2026-08-26
+
+    aux   n=3   mean -0.00016   SE 0.00005   t -3.1   signs 0/3
+    per salt: -0.6 -2.2 -1.9   (units 1e-4)
+    R2_psi -0.00001 | R2_qb -0.00007 | 1-D_LCFS -0.00003 | Cons -0.00005   (as S)
+
+Stopped at 3 of 6 pairs: at t = -3.1 with every salt negative the sign does not turn, and the lane
+was wanted for `cons-reweight`, whose answer is unknown.
+
+**This is not a null. The mechanism did exactly what it claims, and the exchange was still a loss** —
+which is a more useful outcome than a flat zero, because it prices the idea rather than dismissing
+it.
+
+| | salt 0 | salt 1 | salt 2 |
+|---|---|---|---|
+| kappa | +0.0029 | -0.0013 | +0.0004 |
+| **li** | **+0.0031** | **+0.0051** | **+0.0026** |
+
+li rose on all three salts and kappa on two of three: teaching the two scalars directly does move
+them. What it costs, on salt 0:
+
+    R_axis   0.976245 -> 0.973885  (-0.0024)
+    Z_axis   0.986569 -> 0.984157  (-0.0024)
+    tri_top  0.991832 -> 0.991207  (-0.0006)
+    q95/betaN                       -0.00047 raw, -0.00007 of S
+
+**The losses on R_axis and Z_axis match the gains on kappa and li almost exactly, and q95/betaN is
+lost on top.** The scorer weights the seven equally, so a one-for-one trade inside Consistency is
+worth precisely zero — and the qb loss turns zero into negative.
+
+**This is the objection written for `cons-reweight` BEFORE either ran**, arriving early and through
+a different door: *"the five it takes weight FROM must not lose more than the two gain."* In `aux`
+the weight is taken implicitly — capacity and attention — and the taking cost more than the giving
+paid.
+
+**Which sharpens what `cons-reweight` is testing.** It moves weight strictly INSIDE the Consistency
+block and never touches q95/betaN, where a quarter of `aux`'s loss came from. If the remaining
+three-quarters — the one-for-one trade among the seven — is also unavoidable, it will fail the same
+way, and the two arms together will have measured that the seven scalars share one budget that
+cannot be reallocated. That is a real finding either way.
