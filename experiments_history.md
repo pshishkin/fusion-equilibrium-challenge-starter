@@ -2862,3 +2862,40 @@ block and never touches q95/betaN, where a quarter of `aux`'s loss came from. If
 three-quarters — the one-for-one trade among the seven — is also unavoidable, it will fail the same
 way, and the two arms together will have measured that the seven scalars share one budget that
 cannot be reallocated. That is a real finding either way.
+
+## `cons-reweight` — the cleanest version of the idea, and it still only reallocates — 2026-08-27
+
+    x3   n=6   mean +0.00003   SE 0.00004   t 0.8   signs 3/6
+    per salt: +1.1 -0.1 -0.8 +1.7 -0.7 +0.7   (units 1e-4)
+    R2_psi -0.00000 | R2_qb -0.00000 | 1-D_LCFS -0.00000 | Cons +0.00004   (as S)
+
+`loss.cons_split=kappa=3,li=3,rest=1` — kappa and li at 1.91x the equal share, the other five at
+0.64x, with the block's total weight against the flux untouched.
+
+**The construction did exactly what it was built to do**, which is why the null is informative
+rather than empty:
+
+    kappa            +0.001450
+    li               +0.000384
+    the other five   -0.000428
+    net across the seven  +0.001406  ->  +0.000040 of S
+
+and **q95/betaN were not touched at all** (-0.00001 raw), against `aux`'s -0.00047. That was the
+whole design difference: move weight strictly INSIDE the Consistency block, since a quarter of
+`aux`'s loss had come from the neighbouring one. It worked, and it was not enough.
+
+**Three mechanisms, one answer.** `aux` taught the scalars directly and lost 0.00016; the surrogate
+family closed because kappa is already linear in the coefficients; `cons-reweight` moved the metric's
+own weights and gained 0.00003. **What is added to two is subtracted from five, and no total value
+is created.** The seven share one fitting budget.
+
+**So the 0.0042 of unclaimed Consistency is not reachable by any weighting** — not through the
+targets, not through the metric, not through a learned surrogate of the functional. Reaching it needs
+a new input or a different representation, which is a different kind of work from anything tried
+this week.
+
+**What is left untested in this family, and it is now more interesting than before.** All three arms
+moved weight between scalars whose headroom differs two- to three-fold, and all three found a ~1:1
+exchange. Between q95 (R2 0.9967, 0.0033 unclaimed) and li (0.9602, 0.0398) the ratio is **12x** —
+a regime none of them probed. `cons-reweight-all-9` is the only place the "a nearly saturated scalar
+has little marginal return" hypothesis can still be true.

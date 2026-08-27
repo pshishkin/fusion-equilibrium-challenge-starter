@@ -250,7 +250,11 @@ loss is a linear map on targets shared by ridge too — so the ensemble would mi
 
 </details>
 
-### 1c. `cons-reweight` — the metric splits its Consistency weight SEVEN WAYS EQUALLY. Found 2026-08-26
+### 1c. ~~`cons-reweight`~~ — **REFUTED 2026-08-27: +0.00003, SE 0.00004, t = 0.8, 3/6.** The mechanism worked and q95/betaN were untouched (−0.00001 against `aux`'s −0.00047), but kappa +0.00145 and li +0.00038 were paid for by −0.00043 across the other five. Third mechanism, same answer: the seven share one budget and reallocation creates no value. What remains untested is the 12x headroom ratio to q95, i.e. `cons-reweight-all-9`.
+
+<details><summary>the original entry</summary>
+
+### `cons-reweight` — the metric splits its Consistency weight SEVEN WAYS EQUALLY, 2026-08-26
 **This came out of the user asking why, if the LINEAR predictor beat the surrogate on gradient
 fidelity (kappa 0.732 vs 0.610), the linear one was not trained instead.** The answer is that it
 already is — and the answer exposed the gap.
@@ -311,6 +315,8 @@ refutation clause this arm needs and `aux` does not:** the five it takes weight 
 more than the two gain. The scorer weights all seven equally, so a trade that moves R2 from tri_top
 to kappa one-for-one is worth exactly zero, and only a genuine difference in marginal return pays.
 That is the whole hypothesis, stated as something that can fail.
+
+</details>
 
 ### 1d/1e. ~~`aux-surrogate-frozen` / `-trained`~~ — **CLOSED AGAIN 2026-08-26, on a better argument.** With 3000 frames the overfitting vanished (0.781 fitted vs 0.787 held out) and the LINEAR predictor rose to **0.905** for kappa against the surrogate's 0.787. Over the model's own error range the coefficient-to-kappa map is close to linear, so a nonlinear surrogate adds nothing there — and the linear version is already the Jacobian metric. On li the surrogate DOES win (0.907 vs 0.874), the fourth split between these two scalars.
 
