@@ -183,7 +183,10 @@ class TorchSeqModel(TargetModel):
     def fit(self, X: FloatArray, Y: FloatArray, X_val: FloatArray, Y_val: FloatArray,
             shots: np.ndarray | None = None, shots_val: np.ndarray | None = None,
             monitor: Callable[[FloatArray], float] | None = None,
-            monitor_idx: np.ndarray | None = None) -> None:
+            monitor_idx: np.ndarray | None = None,
+            head_y: FloatArray | None = None,
+            head_y_val: FloatArray | None = None,
+            head_n_pca: int = 0) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         import torch
 

@@ -186,7 +186,10 @@ class TargetModel(abc.ABC):
             shots: npt.NDArray[np.int64] | None = None,
             shots_val: npt.NDArray[np.int64] | None = None,
             monitor: Callable[[FloatArray], float] | None = None,
-            monitor_idx: npt.NDArray[np.intp] | None = None) -> None:
+            monitor_idx: npt.NDArray[np.intp] | None = None,
+            head_y: FloatArray | None = None,
+            head_y_val: FloatArray | None = None,
+            head_n_pca: int = 0) -> None:
         """Fit on the training frames, stopping on the validation ones.
 
         The validation set is mandatory, not optional: a model that quietly trains to its full
@@ -264,7 +267,10 @@ class RidgeModel(TargetModel):
             shots: npt.NDArray[np.int64] | None = None,
             shots_val: npt.NDArray[np.int64] | None = None,
             monitor: Callable[[FloatArray], float] | None = None,
-            monitor_idx: npt.NDArray[np.intp] | None = None) -> None:
+            monitor_idx: npt.NDArray[np.intp] | None = None,
+            head_y: FloatArray | None = None,
+            head_y_val: FloatArray | None = None,
+            head_n_pca: int = 0) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         self._est = Ridge(alpha=self.alpha).fit(X, Y)
 
@@ -310,7 +316,10 @@ class CatBoostModel(TargetModel):
             shots: npt.NDArray[np.int64] | None = None,
             shots_val: npt.NDArray[np.int64] | None = None,
             monitor: Callable[[FloatArray], float] | None = None,
-            monitor_idx: npt.NDArray[np.intp] | None = None) -> None:
+            monitor_idx: npt.NDArray[np.intp] | None = None,
+            head_y: FloatArray | None = None,
+            head_y_val: FloatArray | None = None,
+            head_n_pca: int = 0) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         if self.task_type not in CATBOOST_DEVICES:
             raise ValueError(f"catboost: unknown task_type {self.task_type!r}; known "
@@ -564,6 +573,26 @@ class TorchMLPModel(TargetModel):
     # on 2026-08-21. Fields in this class are required and params.yaml supplies them.
     frame_ends_strength: float
     frame_ends_edge: float
+    # A small head over the PREDICTED PCA coefficients, trained to reproduce all SEVEN scored
+    # functionals. 0.0 is off.
+    #
+    # WHY ALL SEVEN AND NOT THE TWO EXPENSIVE ONES. `aux` taught kappa and li as direct outputs and
+    # measured -0.00016: they rose and R_axis and Z_axis fell by the same amount, because the seven
+    # share one fitting budget and moving weight between them creates nothing. A head on all seven
+    # has nothing to reallocate — it asks that the coefficients carry EVERY quantity the scorer
+    # reads, which is a structural constraint rather than a redistribution.
+    #
+    # WHY A HEAD AND NOT MORE OUTPUT ROWS. `aux`'s auxiliary scalars are extra rows of the same
+    # final layer, each with its own weights, so the trunk can satisfy them by routes the
+    # coefficients never see — and inference reads only the coefficients, so that route buys
+    # nothing. A head reading ONLY the coefficient block cannot be satisfied that way.
+    head_weight: float
+    head_hidden: int
+    # `false` trains the head with the model; `true` pre-fits it on the TRUE coefficients and then
+    # freezes it. Frozen, it is a fixed readout and cannot meet the trunk half way; trained, it
+    # tracks where the model actually lives but can co-adapt — the auxiliary loss falling while the
+    # map does not improve. Read the head loss beside the map-derived R2_cons to tell them apart.
+    head_frozen: bool
     # Rescale the gradient when its norm exceeds this; 0.0 is off. Measured 2026-08-15: at the
     # production shares and the rate tuned for a twenty-fifth of them, 15 of 28 fits BLEW UP —
     # training loss to 67.9 against unit-variance targets — and then recovered into a different
@@ -612,6 +641,7 @@ class TorchMLPModel(TargetModel):
     # A20: how many evaluations the averaged weights beat the live ones at. 0 with
     # `ema_decay` on is a result, not a bug — it says the trajectory is not rattling.
     _ema_wins: int = field(default=0, init=False, repr=False)
+    _head_loss: float = field(default=float('nan'), init=False, repr=False)
     _ran_steps: int = field(default=0, init=False, repr=False)
     _clipped: float = field(default=float("nan"), init=False, repr=False)
     _norm_median: float = field(default=float("nan"), init=False, repr=False)
@@ -629,7 +659,10 @@ class TorchMLPModel(TargetModel):
             shots: npt.NDArray[np.int64] | None = None,
             shots_val: npt.NDArray[np.int64] | None = None,
             monitor: Callable[[FloatArray], float] | None = None,
-            monitor_idx: npt.NDArray[np.intp] | None = None) -> None:
+            monitor_idx: npt.NDArray[np.intp] | None = None,
+            head_y: FloatArray | None = None,
+            head_y_val: FloatArray | None = None,
+            head_n_pca: int = 0) -> None:
         self._check_fit_input(X, Y, X_val, Y_val)
         import torch
 
@@ -707,9 +740,71 @@ class TorchMLPModel(TargetModel):
         # `reduction="none"` so a per-frame weight can multiply the per-frame loss. With the
         # weight off this is arithmetically identical to the reduced form — mean of means over a
         # fixed batch shape — so the default path is unchanged.
+        # ---- A head over the PREDICTED coefficient block, reproducing all seven functionals ----
+        aux_head = head_ys = head_ym = None
+        if self.head_weight:
+            if head_y is None:
+                raise ValueError(
+                    f"torch_mlp(seed={self.seed}): head_weight is {self.head_weight} but the caller "
+                    f"passed no functional targets. The seven come from aux_targets.py's cache; a "
+                    f"head with nothing to learn from is a silent no-op."
+                )
+            if len(head_y) != len(X):
+                raise ValueError(f"head targets hold {len(head_y)} frames against {len(X)} rows")
+            if not 0 < head_n_pca < Y.shape[1]:
+                raise ValueError(
+                    f"torch_mlp(seed={self.seed}): head_n_pca is {head_n_pca}, which does not name "
+                    f"a coefficient block inside {Y.shape[1]} targets. The head must know where the "
+                    f"coefficients END — guessing would have it read q95 and betaN as if they were "
+                    f"components.")
+            # Standardised per scalar, then weighted EQUALLY — which is what the scorer does. It
+            # reads Consistency as the mean of seven pooled R2, and R2 = 1 - SS_res/SS_tot already
+            # divides each scalar by its own spread. Three arms have now measured that moving weight
+            # BETWEEN the seven creates nothing, so the right choice here is to reproduce the
+            # scorer's split rather than to invent one.
+            head_ym = head_y.mean(axis=0)
+            head_ys = head_y.std(axis=0) + 1e-12
+            Ht = torch.from_numpy(((head_y - head_ym) / head_ys).astype(np.float32)).to(dev)
+            aux_head = build_mlp(head_n_pca, [self.head_hidden, self.head_hidden], head_y.shape[1],
+                             self.activation).to(dev)
+            # PRE-FITTED IN BOTH ARMS, on the TRUE scaled coefficients, so `frozen` and `trained`
+            # start from the same readout and differ only in whether it keeps updating. Without
+            # this the trained arm spends its first thousands of steps pouring a random head's
+            # gradient into the trunk, and the comparison would carry a noisy-start confound on top
+            # of the question actually being asked.
+            Ct = torch.from_numpy(np.ascontiguousarray(Y[:, :head_n_pca], dtype=np.float32)).to(dev)
+            # PRE-FIT ON A MIX OF TRUE AND PERTURBED COEFFICIENTS. The head is fitted on the truth
+            # but CONSUMED at the model's predictions, which sit off the manifold of real
+            # equilibria — the exact gap L3 wrote its gate around. The trained arm repairs this by
+            # continuing to learn where the model actually is; the frozen arm cannot, so it would
+            # otherwise stay calibrated on a region it is never asked about. Half the pre-fit
+            # batches are jittered by `head_prefit_jitter` standard deviations of each coefficient.
+            jit = 0.5
+            csd = Ct.std(dim=0, keepdim=True)
+            hopt = torch.optim.Adam(aux_head.parameters(), lr=3e-3)
+            for k in range(4000):
+                ib = torch.randint(0, len(Ct), (min(4096, len(Ct)),), device=dev)
+                cb = Ct[ib]
+                if k % 2:
+                    cb = cb + torch.randn_like(cb) * csd * jit
+                hopt.zero_grad()
+                hl = torch.nn.functional.mse_loss(aux_head(cb), Ht[ib])
+                hl.backward()
+                hopt.step()
+            print(f"  head: pre-fitted on the true coefficients, loss {float(hl):.5f}"
+                  f"  ({'frozen' if self.head_frozen else 'keeps training'}, weight "
+                  f"{self.head_weight})")
+            if self.head_frozen:
+                for q in aux_head.parameters():
+                    q.requires_grad_(False)
+                aux_head.eval()
+            else:
+                hopt = torch.optim.Adam(aux_head.parameters(), lr=3e-4)
+
         loss_fn = (torch.nn.MSELoss(reduction="none") if self.loss == "mse"
                    else torch.nn.HuberLoss(delta=self.huber_delta, reduction="none"))
         w_t = None
+        head_last = float('nan')
         if self.frame_ends_strength:
             if shots is None:
                 raise ValueError(
@@ -779,9 +874,22 @@ class TorchMLPModel(TargetModel):
                 ib = torch.as_tensor(idx, device=dev)
                 xb, yb = Xt[ib], Yt[ib]
                 opt.zero_grad()
-                per = loss_fn(net(xb), yb).mean(dim=1)
+                out = net(xb)
+                per = loss_fn(out, yb).mean(dim=1)
                 loss = per.mean() if w_t is None else (per * w_t[ib]).mean()
+                if aux_head is not None:
+                    # The head reads ONLY the coefficient block, so the sole way to lower this term
+                    # is to change the coefficients themselves — the property `aux` could not
+                    # enforce, since its auxiliary scalars were extra rows of the same layer and
+                    # could be satisfied by trunk routes inference never reads.
+                    hpred = aux_head(out[:, :head_n_pca])
+                    head_loss = torch.nn.functional.mse_loss(hpred, Ht[ib])
+                    loss = loss + self.head_weight * head_loss
+                    head_last = float(head_loss)
                 loss.backward()
+                if aux_head is not None and not self.head_frozen:
+                    hopt.step()
+                    hopt.zero_grad()
                 if self.grad_clip:
                     # The return value is the norm BEFORE clipping, which is the only way to tell a
                     # safety valve from a disguised learning-rate cut: if this fires on most steps
@@ -953,6 +1061,10 @@ class TorchMLPModel(TargetModel):
                 f"{self._norm_median:.3g}, max {self._norm_max:.3g}, threshold {self.grad_clip:g})")
         ema = (f", averaged weights won {self._ema_wins} evaluation(s)"
                if self.ema_decay else "")
+        # Printed so co-adaptation can be SEEN: if the trained head's own loss falls much further
+        # than the map-derived R2_cons follows, the head and the trunk met in the middle and the
+        # auxiliary signal bought nothing. Named in advance, in the arm's own output.
+        self._head_loss = head_last if self.head_weight else float("nan")
         return (f", best step {self._best_step} of {self._ran_steps} run"
                 f"{f' (of {self.max_steps} allowed)' if self._ran_steps < self.max_steps else ''}"
                 f"{clip}{ema}")

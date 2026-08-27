@@ -1202,6 +1202,33 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # C1 found the cost in. Precomputed by aux_targets.py; a missing cache is an error rather than
     # a silent fallback, because a run that quietly drops them looks exactly like one that kept
     # them and did not help.
+    # The head needs ALL SEVEN, and needs them whether or not `loss.aux_scalars` is on: `aux` puts
+    # the functionals in the TARGET vector, the head reads them from the coefficients. Two
+    # different mechanisms, one cache.
+    head_cons = head_cons_val = None
+    if any(getattr(m, "head_weight", 0.0) for m in params.models.values()):
+        from my_experiments import aux_targets
+        blocks = []
+        for block_files, n_rows, label in ((files, len(Tgt), "training"),
+                                           (val_files, len(Tgt_val), "validation")):
+            c = aux_targets.load(block_files)
+            if c is None:
+                raise SystemExit(
+                    f"a model sets head_weight but the {label} functionals are not cached for this "
+                    f"split. Build them once:\n  uv run python my_experiments/aux_targets.py "
+                    f"--share {share} --val-share {val_share} --salt {salt}")
+            if len(c) != n_rows:
+                raise ValueError(f"{label} functionals hold {len(c)} frames against {n_rows} rows")
+            a = np.asarray(c, dtype=np.float64)
+            for j in range(a.shape[1]):
+                bad = ~np.isfinite(a[:, j])
+                if bad.any():
+                    a[bad, j] = np.nanmean(a[:, j])
+            blocks.append(a)
+        head_cons, head_cons_val = blocks
+        print(f"  head targets: all {head_cons.shape[1]} functionals over "
+              f"{len(head_cons)} training frames")
+
     aux_names = params.aux_names
     if aux_names:
         # Imported here, not at module scope: aux_targets is a CLI that reaches for
@@ -1323,7 +1350,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         print(f"\n  fitting {name} ({model.kind}) on {Xs.shape[0]} frames "
               f"-> {params.n_targets} targets, stopping on {Xvs.shape[0]} validation frames")
         t0 = time.perf_counter()
-        model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val, monitor, monitor_idx)
+        model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val, monitor, monitor_idx,
+                  head_cons, head_cons_val, params.n_pca)
         print(f"  {name}: fitted in {time.perf_counter() - t0:.1f} s{model.fit_report()}")
 
     artifact: Artifact = {

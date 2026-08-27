@@ -250,7 +250,7 @@ loss is a linear map on targets shared by ridge too — so the ensemble would mi
 
 </details>
 
-### 1c. ~~`cons-reweight`~~ — **REFUTED 2026-08-27: +0.00003, SE 0.00004, t = 0.8, 3/6.** The mechanism worked and q95/betaN were untouched (−0.00001 against `aux`'s −0.00047), but kappa +0.00145 and li +0.00038 were paid for by −0.00043 across the other five. Third mechanism, same answer: the seven share one budget and reallocation creates no value. What remains untested is the 12x headroom ratio to q95, i.e. `cons-reweight-all-9`.
+### 1c. `cons-reweight` — **NOT refuted: +0.00003, SE 0.00004, t = 0.8, 3/6 — a POSITIVE estimate smaller than its own error.** Stopped at 6 pairs as a judgement about cost, mislabelled as a measurement, and resumed to 12 on 2026-08-27. The mechanism worked and q95/betaN were untouched (−0.00001 against `aux`'s −0.00047), but kappa +0.00145 and li +0.00038 were paid for by −0.00043 across the other five. Third mechanism, same answer: the seven share one budget and reallocation creates no value. What remains untested is the 12x headroom ratio to q95, i.e. `cons-reweight-all-9`.
 
 <details><summary>the original entry</summary>
 

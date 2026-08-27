@@ -2863,7 +2863,18 @@ three-quarters — the one-for-one trade among the seven — is also unavoidable
 way, and the two arms together will have measured that the seven scalars share one budget that
 cannot be reallocated. That is a real finding either way.
 
-## `cons-reweight` — the cleanest version of the idea, and it still only reallocates — 2026-08-27
+## `cons-reweight` — NOT refuted, stopped early at a weak positive — 2026-08-27
+
+**Correction, same day, after the user pushed back on the label.** This was written up as
+REFUTED. It is not. +0.00003 with SE 0.00004 is an estimate SMALLER than its own error, t = 0.8,
+signs 3/6 — by this project's own rule that reads "indistinguishable", not "refuted", and the
+point estimate is POSITIVE. What actually happened is that I judged six more pairs not worth nine
+hours and then recorded a judgement as a measurement.
+
+The arithmetic that made stopping defensible, which is what should have been written instead: at
+12 pairs SE falls to 0.000028, so the current +0.00003 would reach only t = 1.1. Clearing t = 2
+needs a true effect of 0.000057, nearly double what is seen. Resumed to 12 pairs anyway once the
+GPU was free — the estimate being positive is worth the hours when nothing else wants them.
 
     x3   n=6   mean +0.00003   SE 0.00004   t 0.8   signs 3/6
     per salt: +1.1 -0.1 -0.8 +1.7 -0.7 +0.7   (units 1e-4)
