@@ -250,7 +250,33 @@ loss is a linear map on targets shared by ridge too — so the ensemble would mi
 
 </details>
 
-### 1c. `cons-reweight` — **NOT refuted: +0.00003, SE 0.00004, t = 0.8, 3/6 — a POSITIVE estimate smaller than its own error.** Stopped at 6 pairs as a judgement about cost, mislabelled as a measurement, and resumed to 12 on 2026-08-27. The mechanism worked and q95/betaN were untouched (−0.00001 against `aux`'s −0.00047), but kappa +0.00145 and li +0.00038 were paid for by −0.00043 across the other five. Third mechanism, same answer: the seven share one budget and reallocation creates no value. What remains untested is the 12x headroom ratio to q95, i.e. `cons-reweight-all-9`.
+### 1c. `cons-reweight` — **ACCEPTED 2026-08-27 at 8 pairs: +0.000052, SE 0.000044, t = 1.18, one-sided p = 0.138.**
+The user's call, and the reasoning is decision-theoretic rather than statistical: the estimate is
+positive, the change costs nothing, and — the part that matters — **no selection happened among
+splits.** One split was tested, `kappa=3,li=3`, named in advance from the test-set headroom, not
+picked as the best of ten tried. So the estimate is not inflated by the winner's curse and taking it
+is positive expected value even at p = 0.138. 95% CI [-0.000052, +0.000157]; ~18 pairs would be
+needed to clear one-sided p < 0.05 at this effect and spread.
+
+**The mechanism WORKS, and the earlier "reallocation creates nothing" was the wrong summary.** At 6
+pairs the decomposition was kappa +0.00145, li +0.00038, the other five -0.00043 combined: the two
+targeted scalars gained much more than the five paid. What kills it is the scorer's own arithmetic,
+not the model's budget — Consistency is the MEAN of seven, so the sum divides by 7, and then by the
+0.20 weight. `+0.0014 / 7 * 0.20 = +0.00004`, which is what was measured. A gain of 0.00145 on one
+functional arrives at the composite as 0.00004. **Attenuation by 35x, not absence of transfer.**
+
+**Canonisation is DEFERRED until lane `r` finishes its 12 pairs, and the reason is a trap worth
+keeping written down.** `cons_split: equal` in params.yaml is what the CONTROL arm reads — `base`
+overrides nothing and inherits the default. Editing params.yaml mid-lane would silently turn the
+remaining base runs into a comparison of `x3` against `x3`, and the CSV would look entirely normal.
+`pca-head` was relaunched with the split pinned EXPLICITLY in both arms so it is immune to the edit
+whenever it lands.
+
+<details><summary>the reading at 6 pairs</summary>
+
+**NOT refuted: +0.00003, SE 0.00004, t = 0.8, 3/6 — a POSITIVE estimate smaller than its own error.** Stopped at 6 pairs as a judgement about cost, mislabelled as a measurement, and resumed to 12 on 2026-08-27. The mechanism worked and q95/betaN were untouched (−0.00001 against `aux`'s −0.00047), but kappa +0.00145 and li +0.00038 were paid for by −0.00043 across the other five. Third mechanism, same answer: the seven share one budget and reallocation creates no value. What remains untested is the 12x headroom ratio to q95, i.e. `cons-reweight-all-9`.
+
+</details>
 
 <details><summary>the original entry</summary>
 
