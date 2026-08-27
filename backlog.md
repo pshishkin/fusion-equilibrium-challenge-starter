@@ -411,6 +411,52 @@ salts 0-5; no derivatives, so none of the Jacobian machinery. Cheaper than eithe
 each in the map-derived block — the same rule as `aux`, for the same reason: the mechanism has to
 move the scalar it names.
 
+### 1h. `cons-split-sweep` — search the seven weights instead of naming one
+**User's request, 2026-08-27, and the entry exists mostly to say how NOT to run it.** `x3` was one
+split, named in advance from the test-set headroom. A sweep asks the obvious next question — is
+`kappa=3,li=3` the best of them — and in asking it destroys the exact property that made `x3`
+worth accepting at p = 0.138: that no selection happened.
+
+**The inflation is quantified, not feared.** Per-pair sd of dS is 0.000125, measured. If every
+candidate split were IDENTICAL in truth, the best-of-K would still score this far above the field
+by chance alone:
+
+|  K splits | 6 pairs | 12 pairs | 24 pairs |
+|---|---|---|---|
+|  4  | +0.000052 | +0.000037 | +0.000026 |
+|  8  | +0.000073 | +0.000051 | +0.000036 |
+| 16  | +0.000090 | +0.000064 | +0.000045 |
+
+Eight splits at six pairs each is 96 fits, three days of the box, and returns a winner carrying
++0.00007 of pure selection noise — **larger than the entire +0.000052 effect being hunted.** Even
+sixteen splits at twenty-four pairs, which is a month, does not get the inflation below the effect.
+A naive sweep cannot answer this question on this machine.
+
+**The precedent is already on disk and it is the same shape.** `lambda_cv` swept one scalar knob,
+picked the in-sample optimum, and measured it on held-out shots: in-sample +0.000054, out-of-sample
+**-0.000300**. The sweep reported a gain five times its own true value with the sign flipped.
+
+**So run it in this order, and stop at the first one that answers:**
+
+**1h-a. `cons-split-derived` — DERIVE the weights, do not search them.** One arm, no selection, no
+inflation. Set each scalar's weight proportional to its own headroom `1 - R2_j` measured on the
+public test set (li 0.0398, kappa 0.0346, and the five others an order of magnitude smaller). That
+is a single pre-registered hypothesis with a stated reason, exactly like `x3` but with the ratio
+taken from the data rather than rounded to 3. **Cheap: 6 pairs, ~18 h, comparable directly against
+`x3`.** If the derived split beats `x3`, the question "is 3 the right number" is answered without a
+sweep ever running.
+
+**1h-b. If a sweep still happens, it must be split-half, like `lambda_cv`.** Choose the winner on
+salts 0-5, MEASURE it on salts 6-11, and report only the second number. Nothing else is honest at
+this sd, and the cost is doubled on top of the table above — which is itself the argument for
+trying 1h-a first.
+
+**What a sweep would be for, if it clears.** Not the +0.00004 on the composite: `cons-reweight`'s
+own decomposition shows the transfer is real (kappa +0.00145) and attenuated 35x by Consistency
+being a mean of seven under a 0.20 weight. A better split still pays that 35x. The reason to look
+is that the SAME machinery aimed at `R2_psi` — weight 0.55, no averaging denominator — would keep
+what this loses.
+
 ### 1g. `cons-reweight-all-9` — move weight BETWEEN the q95/betaN block and the seven
 **User's proposal, 2026-08-26. `cons_split` only moves weight inside `W_CONS`; this opens the split
 across all nine scalars the loss actually contains.**
