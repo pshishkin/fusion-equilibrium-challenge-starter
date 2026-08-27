@@ -745,8 +745,9 @@ class TorchMLPModel(TargetModel):
         if self.head_weight:
             if head_y is None:
                 raise ValueError(
-                    f"torch_mlp(seed={self.seed}): head_weight is {self.head_weight} but the caller "
-                    f"passed no functional targets. The seven come from aux_targets.py's cache; a "
+                    f"torch_mlp(seed={self.seed}): head_weight is {self.head_weight} but the "
+                    f"caller passed no functional targets. The seven come from aux_targets.py's "
+                    f"cache; a "
                     f"head with nothing to learn from is a silent no-op."
                 )
             if len(head_y) != len(X):
@@ -754,7 +755,8 @@ class TorchMLPModel(TargetModel):
             if not 0 < head_n_pca < Y.shape[1]:
                 raise ValueError(
                     f"torch_mlp(seed={self.seed}): head_n_pca is {head_n_pca}, which does not name "
-                    f"a coefficient block inside {Y.shape[1]} targets. The head must know where the "
+                    f"a coefficient block inside {Y.shape[1]} targets. The head must know where "
+                    f"the "
                     f"coefficients END — guessing would have it read q95 and betaN as if they were "
                     f"components.")
             # Standardised per scalar, then weighted EQUALLY — which is what the scorer does. It
@@ -765,6 +767,20 @@ class TorchMLPModel(TargetModel):
             head_ym = head_y.mean(axis=0)
             head_ys = head_y.std(axis=0) + 1e-12
             Ht = torch.from_numpy(((head_y - head_ym) / head_ys).astype(np.float32)).to(dev)
+            # Standardised by the TRAINING mean and spread, not its own: the head's validation
+            # number has to be comparable to its training one, and a block rescaled by its own
+            # statistics would be measured against a different zero.
+            if head_y_val is None:
+                raise ValueError(
+                    f"torch_mlp(seed={self.seed}): head_weight is {self.head_weight} and training "
+                    f"head targets were passed, but validation ones were not. The head's own loss "
+                    f"is the pre-registered diagnostic for this arm, and it is read on validation "
+                    f"data — training it blind would leave the arm unreadable.")
+            if len(head_y_val) != len(X_val):
+                raise ValueError(f"validation head targets hold {len(head_y_val)} frames against "
+                                 f"{len(X_val)} rows")
+            Hvt = torch.from_numpy(
+                ((head_y_val - head_ym) / head_ys).astype(np.float32)).to(dev)
             aux_head = build_mlp(head_n_pca, [self.head_hidden, self.head_hidden], head_y.shape[1],
                              self.activation).to(dev)
             # PRE-FITTED IN BOTH ARMS, on the TRUE scaled coefficients, so `frozen` and `trained`
@@ -800,11 +816,15 @@ class TorchMLPModel(TargetModel):
                 aux_head.eval()
             else:
                 hopt = torch.optim.Adam(aux_head.parameters(), lr=3e-4)
+                # The pre-fit loop exits with its last batch's gradients still on the parameters,
+                # and constructing an optimizer does not clear them. Without this the first
+                # training step adds the new gradient to a stale one taken at 10x the learning
+                # rate on a jittered batch, and steps the sum.
+                hopt.zero_grad(set_to_none=True)
 
         loss_fn = (torch.nn.MSELoss(reduction="none") if self.loss == "mse"
                    else torch.nn.HuberLoss(delta=self.huber_delta, reduction="none"))
         w_t = None
-        head_last = float('nan')
         if self.frame_ends_strength:
             if shots is None:
                 raise ValueError(
@@ -885,7 +905,6 @@ class TorchMLPModel(TargetModel):
                     hpred = aux_head(out[:, :head_n_pca])
                     head_loss = torch.nn.functional.mse_loss(hpred, Ht[ib])
                     loss = loss + self.head_weight * head_loss
-                    head_last = float(head_loss)
                 loss.backward()
                 if aux_head is not None and not self.head_frozen:
                     hopt.step()
@@ -931,8 +950,8 @@ class TorchMLPModel(TargetModel):
                 scored = (watch is None
                           or last or step % self.composite_every_steps == 0)
 
-                def measure(scored: bool = scored) -> tuple[float, float, float]:
-                    """(validation loss, composite, judged) for whatever weights `net` holds.
+                def measure(scored: bool = scored) -> tuple[float, float, float, float]:
+                    """(validation loss, composite, judged, head loss) for the weights in `net`.
 
                     `scored` is bound as a default rather than closed over: the closure is rebuilt
                     every evaluation and reading a loop variable from it is the classic late-
@@ -942,16 +961,22 @@ class TorchMLPModel(TargetModel):
                     # every arm. Weighting it too would move the goalpost with the objective and
                     # the comparison would no longer be about what the model learns.
                     vl = float(loss_fn(net(Xvt), Yvt).mean())
+                    # Reported, never judged. The head is a means — the map is what is scored — so
+                    # letting it pick the kept step would select for the auxiliary task. It is
+                    # measured on the SAME weights as `vl` so the two can be read side by side.
+                    hvl = (float("nan") if aux_head is None else
+                           float(torch.nn.functional.mse_loss(aux_head(net(Xvt)[:, :head_n_pca]),
+                                                              Hvt)))
                     if watch is None:
-                        return vl, float("nan"), vl
+                        return vl, float("nan"), vl, hvl
                     if not scored:
-                        return vl, float("nan"), float("inf")
+                        return vl, float("nan"), float("inf"), hvl
                     s = watch(net(Xvt[watch_rows]).detach().cpu().numpy())
-                    return vl, s, -s
+                    return vl, s, -s, hvl
 
                 net.eval()
                 with torch.no_grad():
-                    val_loss, composite, judged = measure()
+                    val_loss, composite, judged, head_vl = measure()
                     # A20: the running average of the weights is a second candidate, judged by the
                     # same rule at the same moment. Whichever is better is what gets kept, so this
                     # cannot lose to not having it — the comparison is on validation data either
@@ -960,10 +985,10 @@ class TorchMLPModel(TargetModel):
                     if ema is not None and scored:
                         live = {k: v.detach().clone() for k, v in net.state_dict().items()}
                         net.load_state_dict(ema)
-                        ema_loss, ema_comp, ema_judged = measure()
+                        ema_loss, ema_comp, ema_judged, ema_hvl = measure()
                         if ema_judged < judged:
-                            val_loss, composite, judged, from_ema = (ema_loss, ema_comp,
-                                                                     ema_judged, True)
+                            val_loss, composite, judged, head_vl, from_ema = (
+                                ema_loss, ema_comp, ema_judged, ema_hvl, True)
                             self._ema_wins += 1
                         net.load_state_dict(live)
                 net.train()
@@ -996,6 +1021,7 @@ class TorchMLPModel(TargetModel):
                 decides = scored and (watch is None or armed)
                 if decides and (judged < best_loss or not self.patience_steps):
                     best_loss, since_best, self._best_step = judged, 0, step
+                    self._head_loss = head_vl
                     keep = ema if (from_ema and ema is not None) else net.state_dict()
                     best_state = {k: v.detach().cpu().numpy().copy() for k, v in keep.items()}
                 elif decides:
@@ -1064,10 +1090,14 @@ class TorchMLPModel(TargetModel):
         # Printed so co-adaptation can be SEEN: if the trained head's own loss falls much further
         # than the map-derived R2_cons follows, the head and the trunk met in the middle and the
         # auxiliary signal bought nothing. Named in advance, in the arm's own output.
-        self._head_loss = head_last if self.head_weight else float("nan")
+        # Printed so co-adaptation can be SEEN: if the trained head's own loss falls much further
+        # than the map-derived R2_cons follows, the head and the trunk met in the middle and the
+        # auxiliary signal bought nothing. Named in advance, in the arm's own output.
+        head = ("" if not self.head_weight else
+                f", head loss {self._head_loss:.5f} at the kept step")
         return (f", best step {self._best_step} of {self._ran_steps} run"
                 f"{f' (of {self.max_steps} allowed)' if self._ran_steps < self.max_steps else ''}"
-                f"{clip}{ema}")
+                f"{clip}{ema}{head}")
 
     def predict(self, X: FloatArray) -> FloatArray:
         if self._state is None:
