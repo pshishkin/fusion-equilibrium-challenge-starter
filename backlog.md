@@ -411,6 +411,55 @@ salts 0-5; no derivatives, so none of the Jacobian machinery. Cheaper than eithe
 each in the map-derived block — the same rule as `aux`, for the same reason: the mechanism has to
 move the scalar it names.
 
+### 1i. `cons-gain` — raise Consistency AGAINST psi in the training metric
+**User's proposal, 2026-08-27, and it is a better target than the one I named an hour earlier.** I
+had written that the machinery should be aimed at `R2_psi`, "weight 0.55, no averaging
+denominator". That reasoning counted the weight and forgot to check the HEADROOM, and the headroom
+says the opposite:
+
+| block | weight | mean level | headroom | x weight | share of what is left |
+|---|---|---|---|---|---|
+| R2_psi | 0.55 | 0.999793 | 0.000207 | 0.000114 | **1.7%** |
+| R2_qb | 0.15 | 0.995284 | 0.004716 | 0.000707 | 10.6% |
+| D_LCFS | 0.10 | 0.988720 | 0.011280 | 0.001128 | 16.8% |
+| Cons | 0.20 | 0.976256 | 0.023744 | 0.004749 | **70.9%** |
+| | | | | 0.006698 | = 1 - S, checks |
+
+**psi is saturated.** Its 0.55 is the largest weight in the metric and it is buying 1.7% of what
+remains: even a PERFECT map from here is worth +0.00011. Consistency holds 71% of everything left
+on 20% of the weight. Per unit of metric weight the headroom ratio is **114x** in Consistency's
+favour. The fit is spending most of its capacity defending a term that has almost nothing left to
+win.
+
+**This also reframes `cons-reweight`'s 35x attenuation.** That number said a gain inside
+Consistency arrives at the composite divided by 35. True — but Consistency's headroom is 44x psi's
+in absolute score, so even after the division it is the larger prize. `cons-reweight` moved weight
+BETWEEN the seven, which is a zero-sum move inside one block. This moves weight INTO the block, and
+the two are not the same experiment.
+
+**Implementation is one factor, and the metric is already written for it.** target_metric.py:433
+builds `m = eye(n) + (psi_ss_tot / W_PSI) * m_cons` — the identity IS the psi term (TargetScaler
+having already divided the psi block by `sqrt(psi_ss_tot / W_PSI)`), and the ratio between the two
+is therefore pinned at exactly the scorer's. A `cons_gain` multiplier on the second term is the
+whole change. Note line 438 scales the BOUNDARY term by the same factor, so `cons_gain` must apply
+to `m_cons` alone or D_LCFS moves too and the arm measures two things.
+
+**Pre-registered, so the reading cannot be chosen afterwards:** `cons_gain` in `{2, 4}`, both
+against the accepted `x3` baseline, 6 pairs each. Two candidates and not eight — 1h's table says
+best-of-8 at 6 pairs carries +0.00007 of selection noise, and two is the most that can be afforded
+without the split-half protocol. **The gate is `R2_psi`:** it must not fall by more than 0.00002
+(which is 10% of psi's entire remaining headroom), or the arm is buying Consistency with the one
+term that has nothing to give.
+
+**The honest risk.** psi being at 0.9998 does not prove it is cheap to hold there — it may be
+saturated precisely BECAUSE the metric defends it, and the seven may be at 0.976 because they are
+genuinely harder rather than underweighted. That is what the two gain levels test: if the gate
+trips at gain 2, the answer is the former and this whole direction closes.
+
+**Sibling, same argument, different block:** D_LCFS holds 16.8% of the headroom on 0.10 of the
+weight, and target_metric.py:438 already has its own separate term. `bnd-gain` is the same one-line
+change on `m_bnd` and should be run only after `cons-gain` reports.
+
 ### 1h. `cons-split-sweep` — search the seven weights instead of naming one
 **User's request, 2026-08-27, and the entry exists mostly to say how NOT to run it.** `x3` was one
 split, named in advance from the test-set headroom. A sweep asks the obvious next question — is
