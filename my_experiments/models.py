@@ -593,6 +593,15 @@ class TorchMLPModel(TargetModel):
     # tracks where the model actually lives but can co-adapt — the auxiliary loss falling while the
     # map does not improve. Read the head loss beside the map-derived R2_cons to tell them apart.
     head_frozen: bool
+    # How far the pre-fit perturbs the TRUE coefficients, in standard deviations of each. 0.0 is
+    # OFF and is the default after measurement: the reason jitter existed was that the head is
+    # pre-fitted on true coefficients and consumed on predicted ones, which sit off the manifold —
+    # but the model's actual error on the components that carry the flux is 0.022-0.087 sd, so the
+    # two points nearly coincide. A flat 0.5 was 15-23x the real error on components 0-3 and
+    # trained the head to be smooth exactly where the signal is fine-grained. Kept as a knob rather
+    # than deleted: the TAIL is the opposite case — components 38+ have error at or above 1 sd, so
+    # they arrive as noise, and a jitter shaped per component is a live hypothesis.
+    head_prefit_jitter: float
     # Rescale the gradient when its norm exceeds this; 0.0 is off. Measured 2026-08-15: at the
     # production shares and the rate tuned for a twenty-fifth of them, 15 of 28 fits BLEW UP —
     # training loss to 67.9 against unit-variance targets — and then recovered into a different
@@ -795,19 +804,20 @@ class TorchMLPModel(TargetModel):
             # continuing to learn where the model actually is; the frozen arm cannot, so it would
             # otherwise stay calibrated on a region it is never asked about. Half the pre-fit
             # batches are jittered by `head_prefit_jitter` standard deviations of each coefficient.
-            jit = 0.5
+            jit = self.head_prefit_jitter
             csd = Ct.std(dim=0, keepdim=True)
             hopt = torch.optim.Adam(aux_head.parameters(), lr=3e-3)
             for k in range(4000):
                 ib = torch.randint(0, len(Ct), (min(4096, len(Ct)),), device=dev)
                 cb = Ct[ib]
-                if k % 2:
+                if k % 2 and jit:
                     cb = cb + torch.randn_like(cb) * csd * jit
                 hopt.zero_grad()
                 hl = torch.nn.functional.mse_loss(aux_head(cb), Ht[ib])
                 hl.backward()
                 hopt.step()
-            print(f"  head: pre-fitted on the true coefficients, loss {float(hl):.5f}"
+            print(f"  head: pre-fitted on the true coefficients"
+                  f"{f' (+/-{jit:g} sd jitter)' if jit else ''}, loss {float(hl):.5f}"
                   f"  ({'frozen' if self.head_frozen else 'keeps training'}, weight "
                   f"{self.head_weight})")
             if self.head_frozen:
