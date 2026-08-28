@@ -395,6 +395,60 @@ for the wrong objective — which the first gate could not distinguish.
 **Order:** `cons-reweight` first (cheaper, same target, no new machinery), then Sobolev + re-gate,
 then the two arms if it clears.
 
+### 1k. `coef-shrink` — REFUTED 2026-08-28, and the ensemble is why
+Per-component shrinkage: replace each predicted coefficient by `lam_k * chat + mu_k` with
+`lam_k = cov(c, chat)/var(chat)`. Motivated by a measurement — components 38-49 arrive with error
+at or above their own sd, and component 49 at 1.49 sd, so predicting them is worse than predicting
+the mean. Inference only, nothing retrained.
+
+**It does not pay, on either term.**
+
+| | R2_psi gain | Consistency gain | composite |
+|---|---|---|---|
+| single mlp | +0.000016 | — | — |
+| ENSEMBLE | **+0.000005** | **-0.00037** | **-0.000074** |
+
+**The ensemble had already done it.** A single model needs `lam < 0.5` on five components; the
+four-model average needs it on ONE. Averaging four fits is itself a shrinkage of exactly the noise
+this was built to remove — the transfer rule again, and the fourth mechanism it has eaten.
+
+The Consistency side is a genuine surprise and worth keeping: kappa **+0.00069** and li **+0.00089**
+both improve, which is the two WORST scalars and the ones with the headroom — but Z_axis loses
+**-0.00459** and drags the mean under. So the tail coefficients that look like noise for the flux
+are carrying real information about the vertical position, and zeroing them costs more than the
+geometry gains. Shrinking only the geometry-relevant directions is a live variant; a flat
+per-component rule is not.
+
+### 1l. What actually limits Consistency: the FEATURES, not the basis
+**Measured 2026-08-28 on one set of held-out frames, so the levels are comparable to each other.**
+
+| stage | mean R2 over the seven |
+|---|---|
+| basis ceiling, 50 components, coefficients EXACT | **0.99726** |
+| direct net, features -> 7, nothing else | 0.97776 |
+| production ensemble, via the map | 0.97610 |
+| head reading the trunk's 512-d hidden | 0.97520 |
+| head reading the 50 predicted coefficients | 0.97501 |
+
+And by component count, with exact coefficients: n=20 gives 0.95844, n=30 **0.99038**, n=40 0.99503,
+n=50 0.99726.
+
+**Thirty components already ceiling at 0.990 and the model reaches 0.976 — it sits two points below
+the ceiling of a basis half the size.** The 50-dim bottleneck costs 0.0002 (side head against top
+head), truncation costs 0.0027, and the model's shortfall is 0.021. Reparameterising fixes the term
+that is two orders of magnitude too small to matter. **This closes the "try another basis"
+direction, which was the user's own question, on the user's own evidence.**
+
+What remains is the gap between the production route (0.9761) and everything achievable from the
+features (0.9778): **0.0027 in mean R2, or 0.00055 in the composite** — twice the gap to first
+place. It is reachable only by changing what the TRUNK learns, since a head reading the frozen
+trunk's output cannot find it: coefficients and hidden carry the same functional information to
+within 0.0002. That is exactly the mechanism `pca-head`'s gradient tests.
+
+**Caveat on the ceiling, stated rather than buried:** the direct net is ONE net at 512x3 for 40k
+steps. It is a lower bound on what the features support, not an upper one, so 0.978 may understate
+the room. It is a fair estimate of the ROUTE's loss, which is what the comparison is for.
+
 ### 1j. `pca-head-trunc` — let the head read only the components the model can predict
 **Follows from a measurement, 2026-08-28, not from an idea.** Against a trained artifact, the
 model's per-component coefficient error, in units of that component's own sd:
