@@ -449,6 +449,59 @@ within 0.0002. That is exactly the mechanism `pca-head`'s gradient tests.
 steps. It is a lower bound on what the features support, not an upper one, so 0.978 may understate
 the room. It is a fair estimate of the ROUTE's loss, which is what the comparison is for.
 
+### 1m. `head-weight-sweep` — how hard should the head push?
+**User's request, 2026-08-27.** `head_weight` was set to 0.1 by an argument, not a measurement: the
+Jacobian metric already carries `W_CONS = 0.20` on those directions, so 0.20 here would double the
+emphasis rather than add a signal. That reasoning fixes an ORDER, not a value, and 0.03 or 0.3 are
+equally consistent with it.
+
+**Run it only if the screen comes back positive.** If the head is worth nothing at 0.1, its best
+weight is a question about noise. Candidates `{0.03, 0.3}` against the running 0.1, so three arms —
+and three because of the arithmetic below, not because three felt like enough.
+
+**The selection cost, measured on THIS screen rather than assumed.** Per-pair sd of dS is 0.000204,
+against `cons-reweight`'s 0.000155: **the mlp-only screen is 1.3x noisier, which is what dropping
+seq costs.** If every candidate weight were identical in truth, best-of-K would still score this
+far above the field by chance:
+
+| K | 6 pairs | 12 pairs |
+|---|---|---|
+| 3 | +0.000071 | +0.000050 |
+| 4 | +0.000086 | +0.000061 |
+| 6 | +0.000106 | +0.000075 |
+
+The screen's own effect is currently +0.000162. So three candidates at 12 pairs carries +0.00005 of
+selection noise — a third of the effect, tolerable — while six at 6 pairs carries +0.00011, which is
+two thirds and is not. **Three arms, 12 pairs, or use the split-half protocol from 1h-b.**
+
+### 1n. `head-cons-weights` — weight the SEVEN inside the head by where the error actually is
+**User's proposal, 2026-08-27, and the second half of it is the part that has not been tested.**
+The head today weights the seven equally after standardising each by its own spread, which
+reproduces the scorer: Consistency is the mean of seven pooled R2 and R2 already divides by SS_tot.
+
+**Static reweighting here is NOT a new mechanism and should not be run as one.** `cons-reweight`
+already moved weight between the same seven, in the Jacobian metric, and measured +0.000041 at 12
+pairs — a positive estimate the data could not separate from zero. A static split inside the head is
+the same idea one layer up and should be expected to measure the same.
+
+**The ADAPTIVE version is different and is the entry worth running.** Weight each scalar by its
+CURRENT error during training — `w_j ∝ 1 - R2_j` recomputed every evaluation — so effort follows
+where the fit is actually losing instead of where it was losing when the config was written. This
+is a feedback loop, not a fixed allocation, and none of the three refuted reweighting arms tested
+it. The scorer-reproducing equal split is the null it must beat.
+
+**Two things to get right, both learned the hard way here:**
+- Recompute on VALIDATION, not training error, or the weights chase the fit's own overfitting and
+  the loop amplifies it.
+- Normalise the seven to a constant sum, as `cons_weights` already does, so the arm moves the SPLIT
+  and not the head's total strength — otherwise it is confounded with 1m.
+
+**Pre-register the reading, since an adaptive scheme can always be tuned after the fact:** equal
+split as control, one adaptive arm, 12 pairs, and the per-scalar R2 reported beside the composite so
+"it helped kappa and li and lost it elsewhere" stays visible. That pattern has appeared in every
+reweighting arm so far — most recently `coef-shrink`, where kappa +0.00069 and li +0.00089 were
+buried by Z_axis -0.00459.
+
 ### 1j. `pca-head-trunc` — let the head read only the components the model can predict
 **Follows from a measurement, 2026-08-28, not from an idea.** Against a trained artifact, the
 model's per-component coefficient error, in units of that component's own sd:
