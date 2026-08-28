@@ -560,6 +560,25 @@ It is the tail arriving as noise.
 of the 0.00827 -> 0.02716 gap. If it does not, the explanation above is wrong and the degradation is
 something else. Cheap: one field, `head_n_pca` already exists as the boundary the head is told about.
 
+### 1f-stop-rule. Pre-registered 2026-08-28, BEFORE the deciding pairs existed
+**The user's call, written down while `frozen` had 3 pairs and `trained` had 6, so it cannot be a
+decision taken after seeing the answer.**
+
+- **`frozen` stops at 6 pairs** if it keeps reading as it does now: -0.000003, SE 0.000056, t -0.05,
+  1/3, per-salt -0.000097 / -0.000007 / +0.000096. A null this flat does not become interesting with
+  six more pairs — at this SE, six pairs already resolve anything worth acting on, and the arm's
+  purpose was to ask whether a head that cannot co-adapt still helps. It does not.
+- **`trained` runs the full 12.** It is the arm with a live question: +0.000066 at 6 pairs, but that
+  is +0.000158 at 5 pairs and +0.000066 at 6, so one salt (-0.000395) moved it by more than its own
+  mean. That is exactly the case where stopping early is the mistake `cons-reweight` taught — it was
+  halted at 6 pairs on a judgement about cost, which I mislabelled as a measurement, and the user
+  corrected it.
+
+**Note what the frozen arm's low SE means, since it is a result rather than an accident.** Its
+per-pair spread is half the trained arm's. A frozen head delivers the same auxiliary gradient shape
+every step and cannot chase the trunk, so it adds less variance — and also adds nothing. The trained
+arm's larger scatter is the head co-adapting, which is where both the hope and the noise live.
+
 ### 1f-result-so-far. The head tracks the map instead of adding to it
 **Read at salt 0 of the screen, 2026-08-28, before any paired S exists — recorded now so it cannot
 be fitted to the answer afterwards.**
