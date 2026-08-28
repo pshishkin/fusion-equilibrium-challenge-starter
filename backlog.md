@@ -593,8 +593,17 @@ pairs cost ~18 h instead of ~37.
 straight.** The transfer rule says a change measures zero when its work is already done by anything
 else in the configuration — and `seq` is a different architecture reading the same shots, so in the
 full ensemble it plausibly supplies some of what the head supplies. Removing it removes that
-competition. **The mlp-only difference should therefore be read as an UPPER bound**, and a positive
-screen has to be confirmed with `seq` back in before anything is canonised. A null screen, by
+competition. **The mlp-only difference bounds ONE thing and not another, and conflating them is a
+mistake I made until the user caught it on 2026-08-28.** It bounds how much THIS configuration —
+`head_weight` 0.1, equal weights over the seven, reading all 50 coefficients, trained rather than
+frozen — transfers to the full ensemble, because a competitor has been removed. It does NOT bound
+what the head DIRECTION can reach: not one of those four choices has been measured. 0.1 came from
+an argument about ORDER (the Jacobian metric already carries `W_CONS = 0.20`, so 0.20 here would
+double rather than add), the seven are weighted equally by default, a dozen of the fifty inputs
+arrive as noise (1j), and the frozen arm has not run. **The direction's ceiling is the 0.00055
+measured in 1l, not the screen's number** — and that is itself a lower bound, the direct net being
+one untuned fit. A positive screen still has to be confirmed with `seq` back in before anything is
+canonised. A null screen, by
 contrast, is close to conclusive: if the head cannot move an ensemble built entirely of the models
 it is attached to, it will not move one where it is diluted.
 
