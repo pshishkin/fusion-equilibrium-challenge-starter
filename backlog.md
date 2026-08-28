@@ -250,7 +250,23 @@ loss is a linear map on targets shared by ridge too — so the ensemble would mi
 
 </details>
 
-### 1c. `cons-reweight` — **ACCEPTED 2026-08-27 at 8 pairs: +0.000052, SE 0.000044, t = 1.18, one-sided p = 0.138.**
+### 1c. `cons-reweight` — **CANONISED 2026-08-28 at 12 pairs, on a WEAKER reading than the one it was accepted on.**
+Final: **+0.000041, SE 0.000045, t = 0.91, one-sided p = 0.191, 6/12 wins, Wilcoxon p = 0.622**,
+95% CI [-0.000058, +0.000139]. The four pairs added after the decision moved it the WRONG WAY — the
+estimate fell from +0.000052 to +0.000041 and p rose from 0.138 to 0.191. **This is the regression
+to the mean that accepting at t ~ 1 invites, and it is recorded rather than smoothed over.** 6/12
+wins is a coin flip and the median per-salt dS is near zero; the positive mean rides on s9 (+0.00032)
+and s7 (+0.00027) against s11 (-0.00018).
+
+Canonised anyway, per the user's 2026-08-27 decision, on reasoning that the weaker number does not
+overturn: the point estimate is still positive and is still the best available guess, the change
+costs nothing to carry, and no selection happened among splits so the estimate is not inflated.
+**What DID change is the confidence, and the honest summary is now "a positive estimate the data
+cannot distinguish from zero", not "a small real gain".** Reversing it is one line in params.yaml.
+
+<details><summary>the reading at 8 pairs, on which the decision was taken</summary>
+
+**+0.000052, SE 0.000044, t = 1.18, one-sided p = 0.138.**
 The user's call, and the reasoning is decision-theoretic rather than statistical: the estimate is
 positive, the change costs nothing, and — the part that matters — **no selection happened among
 splits.** One split was tested, `kappa=3,li=3`, named in advance from the test-set headroom, not
@@ -270,7 +286,10 @@ keeping written down.** `cons_split: equal` in params.yaml is what the CONTROL a
 overrides nothing and inherits the default. Editing params.yaml mid-lane would silently turn the
 remaining base runs into a comparison of `x3` against `x3`, and the CSV would look entirely normal.
 `pca-head` was relaunched with the split pinned EXPLICITLY in both arms so it is immune to the edit
-whenever it lands.
+whenever it lands. **Done 2026-08-28**: params.yaml now carries the split; `pca-head` started at
+01:36 with it pinned, so it measures the head ON TOP of the accepted baseline.
+
+</details>
 
 <details><summary>the reading at 6 pairs</summary>
 

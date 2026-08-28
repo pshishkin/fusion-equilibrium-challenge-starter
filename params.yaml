@@ -231,7 +231,7 @@ loss:
   # How W_CONS is split among the seven scored scalars. `equal` is the scorer's own
   # 1/7 each and is what everything before 2026-08-26 was measured on. Otherwise a
   # comma list of name=weight, normalised; omitted names get 0. Only the SPLIT moves.
-  cons_split: equal
+  cons_split: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
   jacobian_delta: 0.0332
 
   # `jacobian` only. Add the BOUNDARY term: how far the plasma boundary moves when the
