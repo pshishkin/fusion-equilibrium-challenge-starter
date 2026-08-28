@@ -496,6 +496,41 @@ it. The scorer-reproducing equal split is the null it must beat.
 - Normalise the seven to a constant sum, as `cons_weights` already does, so the arm moves the SPLIT
   and not the head's total strength — otherwise it is confounded with 1m.
 
+**Extending it to the psi error, 2026-08-28 — the natural version is wrong and the reason is
+structural.** The user proposed adding psi to the adaptive rule, since psi error is also a sum over
+50 scalars. But the two blocks are not the same kind of object:
+
+- **psi is ONE pooled R2** over every pixel: `R2_psi = 1 - sum_k err_k^2 / SS_tot`, one denominator
+  for all fifty. A coefficient's contribution to the SCORE is its ABSOLUTE squared error, so equal
+  weights are the correct weights — which is exactly what `TargetScaler` does, one scalar divisor
+  over the whole block (Parseval).
+- **the seven are SEVEN separate R2, averaged.** Each carries its own denominator because the
+  scorer computes them independently and means them afterwards.
+
+Weighting the fifty by their own current relative error would turn one pooled R2 into fifty
+separate ones, which is not the quantity being scored. The failure direction is predictable and has
+already been measured: tail components have large RELATIVE error and negligible absolute
+contribution — zeroing components 38-49 entirely moves `R2_psi` by **0.000005** (see `coef-shrink`).
+An adaptive relative rule would send most of the weight exactly there.
+
+**The version that IS right, and is better than what was asked for.** Adapt the balance BETWEEN the
+score's blocks rather than within psi: psi, q95/betaN, D_LCFS and the seven, each weighted by how
+much of the LOST SCORE it currently holds. That is one number per block, it keeps every block's
+internal structure intact, and it is the self-tuning form of `1i cons-gain` — which is static and
+was itself motivated by the same table:
+
+| block | weight | headroom x weight | share of what is left |
+|---|---|---|---|
+| R2_psi | 0.55 | 0.000114 | 1.7% |
+| R2_qb | 0.15 | 0.000707 | 10.6% |
+| D_LCFS | 0.10 | 0.001128 | 16.8% |
+| Cons | 0.20 | 0.004749 | 70.9% |
+
+An adaptive block rule would find the same direction 1i sets by hand, and would keep finding it as
+the fit moves. **Run 1i first anyway:** a static gain of 2 or 4 answers whether the direction pays
+at all, for one field and no feedback loop, and an adaptive scheme that cannot beat a constant is
+machinery for nothing.
+
 **Pre-register the reading, since an adaptive scheme can always be tuned after the fact:** equal
 split as control, one adaptive arm, 12 pairs, and the per-scalar R2 reported beside the composite so
 "it helped kappa and li and lost it elsewhere" stays visible. That pattern has appeared in every
