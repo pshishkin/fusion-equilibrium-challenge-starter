@@ -395,6 +395,51 @@ for the wrong objective — which the first gate could not distinguish.
 **Order:** `cons-reweight` first (cheaper, same target, no new machinery), then Sobolev + re-gate,
 then the two arms if it clears.
 
+### 1j. `pca-head-trunc` — let the head read only the components the model can predict
+**Follows from a measurement, 2026-08-28, not from an idea.** Against a trained artifact, the
+model's per-component coefficient error, in units of that component's own sd:
+
+| components | error / sd | meaning |
+|---|---|---|
+| 0-3 | 0.022-0.033 | predicted almost exactly |
+| 4-12 | 0.059-0.087 | predicted well |
+| 15-25 | 0.138-0.319 | degrading |
+| 30-37 | 0.474-0.633 | poor |
+| 38-49 | 1.0-1.5 | **worse than predicting the mean — pure noise** |
+
+So a dozen of the head's fifty inputs carry no information at consumption time. **This also explains
+the one number the jitter change did NOT move.** Without jitter the pre-fit reaches 0.00827 on true
+coefficients (head R2 0.9917 across the seven) but arrives at 0.02716 when fed the model's own
+predictions (R2 0.9728) — and WITH the 0.5 jitter it was 0.02736, i.e. identical. The 3.3x
+degradation is not off-manifold-ness of the kind jitter models; the leading components barely move.
+It is the tail arriving as noise.
+
+**Sharp, falsifiable prediction:** a head reading only the first ~30 coefficients should close most
+of the 0.00827 -> 0.02716 gap. If it does not, the explanation above is wrong and the degradation is
+something else. Cheap: one field, `head_n_pca` already exists as the boundary the head is told about.
+
+### 1f-result-so-far. The head tracks the map instead of adding to it
+**Read at salt 0 of the screen, 2026-08-28, before any paired S exists — recorded now so it cannot
+be fitted to the answer afterwards.**
+
+The pre-registered co-adaptation test was: if the head's own loss falls much further than the
+map-derived score follows, the two met in the middle. **It does not fall further. It does not fall
+differently at all.** Over 46 evaluations of the first mlp, Pearson(val, headv) = 0.976, and the
+ratio headv/val sits at 0.882 with sd 0.024, drifting -0.019 across the whole fit — less than its
+own scatter.
+
+That is not collusion, and it is not encouraging either. A head carrying signal the map loss does
+not already contain would show the ratio FALLING as the trunk learned the new thing. A constant
+ratio says the head is measuring what the validation loss already measures. **This is what the
+transfer rule predicts for a null, and it is visible before the paired number exists.**
+
+The direct check agrees: per-model best validation loss, same salt, head against no head, is
++1.58%, +1.58%, -4.96%, -0.58% across the four MLPs — a within-run spread of 6.5 points that
+swallows any systematic shift. One salt cannot answer this; 12 pairs of S can. **Caveat kept
+explicit: val is MSE in target space while the score reads the map and the seven functionals, which
+is the entire reason the Jacobian metric exists. A head could move the composite without moving
+val.** So this sharpens the expectation toward zero without settling it.
+
 ### 1f-screen. `pca-head` measured on the MLP ensemble ALONE, 2026-08-28
 **User's call, and the arithmetic backs it.** The head is attached to `mlp`/`mlp1`/`mlp2`/`mlp3`
 only, so `seq` is bit-identical in both arms — confirmed on salt 0, where both recorded seq best
