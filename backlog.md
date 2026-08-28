@@ -455,9 +455,31 @@ Jacobian metric already carries `W_CONS = 0.20` on those directions, so 0.20 her
 emphasis rather than add a signal. That reasoning fixes an ORDER, not a value, and 0.03 or 0.3 are
 equally consistent with it.
 
-**Run it only if the screen comes back positive.** If the head is worth nothing at 0.1, its best
-weight is a question about noise. Candidates `{0.03, 0.3}` against the running 0.1, so three arms —
-and three because of the arithmetic below, not because three felt like enough.
+**Gate, set by the user 2026-08-27 and made numeric 2026-08-28: run it only if `trained` reaches
+one-sided p < 0.1 over its 12 pairs.** If the head is worth nothing at 0.1, its best weight is a
+question about noise. Candidates `{0.03, 0.3}` against the running 0.1.
+
+**Design, the user's, and it is better than the one this entry first recorded.** Loop over SALTS on
+the OUTSIDE and run every weight variant INSIDE each salt. That makes the variants paired with each
+other, not merely each paired against its own control: all of them see the same train/val split, the
+same shot order, the same everything except the weight, so the salt-to-salt variance — which is the
+dominant term, roughly 0.001 against an effect of 0.0001 — cancels out of every variant-to-variant
+comparison. The earlier plan of one arm per lane would have compared variants ACROSS salts and paid
+that variance in full.
+
+Two consequences worth stating:
+
+- **The selection-inflation table below is now conservative.** It was computed from the base-against-
+  trained per-pair sd of 0.000204, which is the right number for comparing a variant to no-head. The
+  variant-to-variant differences are paired AND the configurations differ only in one scalar, so
+  their sd should be smaller — but by how much is unknown until measured, so **report it from the
+  data rather than assuming it**, exactly as the 0.000204 was.
+- **The design stays balanced at every salt count.** Because a salt contributes all variants or
+  none, the sweep can be read at 4, 6 or 12 salts without the arms drifting out of alignment, and
+  a decision to stop early costs comparability rather than validity.
+
+The base (no-head) arm does NOT need re-running: `q_base_s0..s11` already exists and is the same
+configuration, so only the new weights cost anything.
 
 **The selection cost, measured on THIS screen rather than assumed.** Per-pair sd of dS is 0.000204,
 against `cons-reweight`'s 0.000155: **the mlp-only screen is 1.3x noisier, which is what dropping
