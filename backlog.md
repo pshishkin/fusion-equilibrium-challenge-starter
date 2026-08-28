@@ -582,6 +582,33 @@ It is the tail arriving as noise.
 of the 0.00827 -> 0.02716 gap. If it does not, the explanation above is wrong and the degradation is
 something else. Cheap: one field, `head_n_pca` already exists as the boundary the head is told about.
 
+### 1f-frozen. CLOSED at 6 pairs 2026-08-28 — a frozen head is mildly HARMFUL
+Stopped by the rule pre-registered below, and the rule fired on the reading it named.
+
+**-0.000054, SE 0.000075, t -0.71, one-sided p 0.746, 2/6**, CI [-0.000247, +0.000140]. Not merely
+null: `R2_psi` -0.000031 and Consistency -0.000201, both negative, on an arm whose whole purpose was
+to add a Consistency signal.
+
+**The three-way comparison is what this arm bought, and it is the cleanest number of the set:**
+
+| comparison | mean dS | SE | t |
+|---|---|---|---|
+| trained vs no head | +0.000066 | 0.000113 | 0.58 |
+| frozen vs no head | -0.000054 | 0.000075 | -0.71 |
+| **trained vs frozen, paired within salt** | **+0.000119** | **0.000063** | **1.89** |
+
+The third is cleaner than either of the others because both arms carry a head, pre-fitted
+identically from the same starting point, and differ in exactly one thing: whether it keeps
+updating. Split, shot order and head initialisation are all shared, so what is left is
+co-adaptation alone.
+
+**What it says.** A frozen head pours into the trunk a gradient calibrated for a trunk that no
+longer exists, and that is mild damage. A trainable head at least tracks. But neither beats no head
+convincingly, so the value here is not in the auxiliary signal — it is in the head being ABLE to
+follow. That is exactly what the `headv/val` trajectory said at salt 0 on 2026-08-28, before any
+paired number existed: the ratio held constant at 0.882 with sd 0.024, the head following the map
+rather than leading it.
+
 ### 1f-stop-rule. Pre-registered 2026-08-28, BEFORE the deciding pairs existed
 **The user's call, written down while `frozen` had 3 pairs and `trained` had 6, so it cannot be a
 decision taken after seeing the answer.**
