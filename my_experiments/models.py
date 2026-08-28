@@ -1069,6 +1069,12 @@ class TorchMLPModel(TargetModel):
                         f"  (MultiRMSE {multi_rmse:.4f})")
                 if watch is not None and scored:
                     head += f"  S {composite:.6f}"
+                # The head's own trajectory, beside the map's. Co-adaptation is exactly the case
+                # where these two diverge — the auxiliary loss keeps falling while the validation
+                # loss and the composite do not follow — and it cannot be seen from the endpoints
+                # alone, which is all the kept-step number gives.
+                if aux_head is not None:
+                    head += f"  headv {head_vl:.5f}"
                 if step % MLP_LOG_EVERY_STEPS < self.eval_every_steps:
                     bar.write(f"{head}  best {shown:.6f} @ {self._best_step}")
                 if last or (self.patience_steps and since_best >= self.patience_steps):
