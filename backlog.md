@@ -395,6 +395,26 @@ for the wrong objective — which the first gate could not distinguish.
 **Order:** `cons-reweight` first (cheaper, same target, no new machinery), then Sobolev + re-gate,
 then the two arms if it clears.
 
+### 1f-screen. `pca-head` measured on the MLP ensemble ALONE, 2026-08-28
+**User's call, and the arithmetic backs it.** The head is attached to `mlp`/`mlp1`/`mlp2`/`mlp3`
+only, so `seq` is bit-identical in both arms — confirmed on salt 0, where both recorded seq best
+0.030951. It was 45.1 min of the 66.0 min of fitting, **68%**, spent producing the same numbers
+twice. Dropping it takes fitting to 20.9 min and the whole run from 92 min to roughly 45, so 12
+pairs cost ~18 h instead of ~37.
+
+**This is a SCREEN and its number does not transfer to production, which is the point to keep
+straight.** The transfer rule says a change measures zero when its work is already done by anything
+else in the configuration — and `seq` is a different architecture reading the same shots, so in the
+full ensemble it plausibly supplies some of what the head supplies. Removing it removes that
+competition. **The mlp-only difference should therefore be read as an UPPER bound**, and a positive
+screen has to be confirmed with `seq` back in before anything is canonised. A null screen, by
+contrast, is close to conclusive: if the head cannot move an ensemble built entirely of the models
+it is attached to, it will not move one where it is diluted.
+
+Records to `x_pca_head_screen.csv`, 12 pairs, arms `q_base` / `q_trained`, split pinned. The one
+completed full-ensemble run is kept as `x_pca_head_full_1pair.csv` rather than mixed in — two
+different configurations must not share a file.
+
 ### 1f. `pca-head` — layers over the PCA output trained on the TRUE kappa and li, values only
 **User's design, 2026-08-26. The gradient-fidelity gate that closed the surrogate arms DOES NOT
 APPLY here, and the distinction is the whole point of the entry.**
