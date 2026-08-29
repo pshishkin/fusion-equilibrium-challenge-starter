@@ -602,6 +602,17 @@ class TorchMLPModel(TargetModel):
     # than deleted: the TAIL is the opposite case — components 38+ have error at or above 1 sd, so
     # they arrive as noise, and a jitter shaped per component is a live hypothesis.
     head_prefit_jitter: float
+    # How the head's own loss splits its effort across the seven. `equal` is today's behaviour and
+    # reproduces the scorer, which means the seven equally after each is standardised. A comma list
+    # of name=weight sets a STATIC split — but note that is `cons-reweight` one layer up, and that
+    # measured +0.000041 at 12 pairs, indistinguishable from zero. `adaptive` is the one mechanism
+    # none of the refuted reweighting arms tested: the weights are recomputed every evaluation from
+    # each scalar's CURRENT validation error, so effort follows where the fit is losing NOW rather
+    # than where it was losing when the config was written.
+    #
+    # Always renormalised to mean 1 over the seven, so this moves the SPLIT and never the head's
+    # total strength — otherwise the arm is confounded with `head_weight`.
+    head_cons_weights: str
     # Rescale the gradient when its norm exceeds this; 0.0 is off. Measured 2026-08-15: at the
     # production shares and the rate tuned for a twenty-fifth of them, 15 of 28 fits BLEW UP —
     # training loss to 67.9 against unit-variance targets — and then recovered into a different
@@ -651,6 +662,9 @@ class TorchMLPModel(TargetModel):
     # `ema_decay` on is a result, not a bug — it says the trajectory is not rattling.
     _ema_wins: int = field(default=0, init=False, repr=False)
     _head_loss: float = field(default=float('nan'), init=False, repr=False)
+    # Where the feedback rule ENDED. Printed so an adaptive arm can be read: a split that
+    # barely moved from equal says the rule found nothing to reallocate, which is a result.
+    _head_split: Any = field(default=None, init=False, repr=False)
     _ran_steps: int = field(default=0, init=False, repr=False)
     _clipped: float = field(default=float("nan"), init=False, repr=False)
     _norm_median: float = field(default=float("nan"), init=False, repr=False)
@@ -659,6 +673,29 @@ class TorchMLPModel(TargetModel):
     @property
     def kind(self) -> str:
         return "torch_mlp"
+
+    @property
+    def head_split(self) -> Any:
+        """The seven head weights with mean 1, `None` for equal, `"adaptive"` for the feedback rule.
+
+        Normalised HERE so what is printed is what is used, and to mean 1 rather than sum 1 so that
+        `equal` is numerically identical to the unweighted loss it replaces.
+        """
+        if self.head_cons_weights in ("equal", "adaptive"):
+            return None if self.head_cons_weights == "equal" else "adaptive"
+        import numpy as np
+        w = {}
+        for piece in self.head_cons_weights.split(","):
+            name, _, val = piece.partition("=")
+            name = name.strip()
+            if name not in CONS_SCALARS:
+                raise ValueError(f"head_cons_weights names {name!r}, not one of {CONS_SCALARS}")
+            w[name] = float(val)
+        v = np.array([w.get(x, 0.0) for x in CONS_SCALARS], dtype=float)
+        if not (v >= 0).all() or not v.sum() > 0:
+            raise ValueError(f"head_cons_weights gives {v.tolist()}, must be non-negative with a "
+                             f"positive sum")
+        return v * (len(v) / v.sum())
 
     def _build(self, n_in: int, n_out: int) -> Any:
         return build_mlp(n_in, self.hidden_sizes, n_out, self.activation, self.dropout,
@@ -750,7 +787,8 @@ class TorchMLPModel(TargetModel):
         # weight off this is arithmetically identical to the reduced form — mean of means over a
         # fixed batch shape — so the default path is unchanged.
         # ---- A head over the PREDICTED coefficient block, reproducing all seven functionals ----
-        aux_head = head_ys = head_ym = None
+        aux_head = head_ys = head_ym = hw = None
+        head_adaptive = False
         if self.head_weight:
             if head_y is None:
                 raise ValueError(
@@ -820,6 +858,17 @@ class TorchMLPModel(TargetModel):
                   f"{f' (+/-{jit:g} sd jitter)' if jit else ''}, loss {float(hl):.5f}"
                   f"  ({'frozen' if self.head_frozen else 'keeps training'}, weight "
                   f"{self.head_weight})")
+            hsplit = self.head_split
+            if hsplit is None:
+                hw = None
+            elif isinstance(hsplit, str):          # adaptive: starts equal, updated at each eval
+                hw = torch.ones(1, head_y.shape[1], device=dev)
+                head_adaptive = True
+            else:
+                hw = torch.from_numpy(hsplit.astype(np.float32)).to(dev).unsqueeze(0)
+            if hw is not None:
+                print(f"  head split: {self.head_cons_weights} "
+                      f"(mean-1 weights {[round(float(x), 3) for x in hw[0]]})")
             if self.head_frozen:
                 for q in aux_head.parameters():
                     q.requires_grad_(False)
@@ -913,7 +962,9 @@ class TorchMLPModel(TargetModel):
                     # enforce, since its auxiliary scalars were extra rows of the same layer and
                     # could be satisfied by trunk routes inference never reads.
                     hpred = aux_head(out[:, :head_n_pca])
-                    head_loss = torch.nn.functional.mse_loss(hpred, Ht[ib])
+                    # Weights carry mean 1, so `equal` is numerically the plain MSE it replaces.
+                    head_loss = (((hpred - Ht[ib]) ** 2) if hw is None
+                                 else ((hpred - Ht[ib]) ** 2) * hw).mean()
                     loss = loss + self.head_weight * head_loss
                 loss.backward()
                 if aux_head is not None and not self.head_frozen:
@@ -1001,6 +1052,22 @@ class TorchMLPModel(TargetModel):
                                 ema_loss, ema_comp, ema_judged, ema_hvl, True)
                             self._ema_wins += 1
                         net.load_state_dict(live)
+                # THE FEEDBACK RULE. Weights follow each scalar's CURRENT validation error, so
+                # effort goes where the fit is losing now rather than where it was losing when the
+                # config was written. Measured on VALIDATION, never on training error: on training
+                # error the loop would chase the fit's own overfitting and amplify it. Renormalised
+                # to mean 1 every time, so this moves the split and never the head's strength.
+                #
+                # The error used is the HEAD's own, not the map-derived R2 the scorer reads. The
+                # latter needs a contour extraction per frame and exists only on the composite's
+                # coarse grid; the head's is available at every evaluation and is the quantity the
+                # head's gradient can actually act on. That is a choice, and it is the obvious
+                # place to look if this arm behaves oddly.
+                if head_adaptive and aux_head is not None:
+                    with torch.no_grad():
+                        per = ((aux_head(net(Xvt)[:, :head_n_pca]) - Hvt) ** 2).mean(dim=0)
+                        hw = (per / per.mean().clamp_min(1e-12)).unsqueeze(0)
+                        self._head_split = [round(float(x), 3) for x in hw[0]]
                 net.train()
                 train_loss = float(total_t) / n
                 total_t, n = torch.zeros((), device=dev), 0
@@ -1111,6 +1178,8 @@ class TorchMLPModel(TargetModel):
         # auxiliary signal bought nothing. Named in advance, in the arm's own output.
         head = ("" if not self.head_weight else
                 f", head loss {self._head_loss:.5f} at the kept step")
+        if self._head_split is not None:
+            head += (f", split ended {dict(zip(CONS_SCALARS, self._head_split, strict=True))}")
         return (f", best step {self._best_step} of {self._ran_steps} run"
                 f"{f' (of {self.max_steps} allowed)' if self._ran_steps < self.max_steps else ''}"
                 f"{clip}{ema}{head}")
