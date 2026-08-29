@@ -449,6 +449,30 @@ within 0.0002. That is exactly the mechanism `pca-head`'s gradient tests.
 steps. It is a lower bound on what the features support, not an upper one, so 0.978 may understate
 the room. It is a fair estimate of the ROUTE's loss, which is what the comparison is for.
 
+### 1m-run. RUNNING 2026-08-29 — the gate was OVERRIDDEN, not passed
+`pca-head` closed at one-sided **p = 0.1048** against a gate of p < 0.1. **The user's call to run the
+sweep anyway.** Recorded as an override rather than folded into the gate, so the record does not
+later read as though 0.1048 cleared 0.1 — that distinction is the only thing a pre-registered
+threshold is for.
+
+The case for overriding is real and worth stating: the estimate is positive, 9/12 salts favour it,
+and the miss is 0.0048. The case against is equally real: this same arm read p = 0.058 at five pairs
+and the sixth overturned it, so p near the threshold is exactly where this measurement has already
+proved unstable once.
+
+**Arms as agreed:** `w003` (head_weight 0.03) and `w03` (0.3), 12 salts, outer loop over salts so
+every variant sits inside the same split. **0.1 needs no re-running — `q_trained_s0..s11` is that
+arm — and no-head is `q_base_s0..s11`.** So four weights (0, 0.03, 0.1, 0.3) are compared on 12
+shared salts for the cost of 24 new runs rather than 48.
+
+**Two things to check when it reads, both consequences of what the sweep is FOR:**
+- **The variant-to-variant sd, measured rather than assumed.** The base-against-trained sd is
+  0.000204; variants differing in one scalar and sharing a split should be tighter, and how much
+  tighter decides whether the selection-inflation table above is binding.
+- **Monotonicity.** Four weights spanning 0, 0.03, 0.1, 0.3 either trace a curve with an interior
+  optimum or they do not. A ragged non-monotone pattern across four levels is the signature of
+  noise, and would say the sweep is measuring nothing regardless of which level scores highest.
+
 ### 1m. `head-weight-sweep` — how hard should the head push?
 **User's request, 2026-08-27.** `head_weight` was set to 0.1 by an argument, not a measurement: the
 Jacobian metric already carries `W_CONS = 0.20` on those directions, so 0.20 here would double the
