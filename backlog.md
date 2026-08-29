@@ -582,6 +582,50 @@ It is the tail arriving as noise.
 of the 0.00827 -> 0.02716 gap. If it does not, the explanation above is wrong and the degradation is
 something else. Cheap: one field, `head_n_pca` already exists as the boundary the head is told about.
 
+### 1f. `pca-head` CLOSED 2026-08-29 — **+0.000080, t 1.33, one-sided p 0.1048, gate NOT passed**
+Twelve pairs, mlp-only screen, trained head, weight 0.1, split pinned to the canonised `x3`.
+
+| | mean d | sd | SE | t | wins |
+|---|---|---|---|---|---|
+| S | +0.000080 | 0.000209 | 0.000060 | 1.33 | 9/12 |
+| R2_psi | +0.000002 | 0.000016 | 0.000005 | 0.41 | 7/12 |
+| **R2_qb** | **+0.000133** | 0.000232 | 0.000067 | **1.98** | 7/12 |
+| D_LCFS | +0.000092 | 0.000213 | 0.000061 | 1.50 | 6/12 |
+| Cons | +0.000251 | 0.001082 | 0.000312 | 0.80 | 9/12 |
+
+95% CI [-0.000052, +0.000213]; Wilcoxon 0.1245. **The user's gate was one-sided p < 0.1 for the
+weight sweep; 0.1048 does not pass it, by 0.0048.** Recorded as failed rather than rounded, because
+the threshold was set before the data and moving it afterwards is the whole thing a pre-registered
+gate exists to prevent. ~22 pairs would be needed for p < 0.05 at this effect and spread.
+
+**The accumulation history is the most useful thing this arm produced, and it belongs in the record
+because it is an argument about METHOD rather than about heads:**
+
+| pairs | mean | t | p |
+|---|---|---|---|
+| 4 | +0.000162 | 1.59 | 0.105 |
+| 5 | +0.000158 | 1.99 | **0.058** |
+| 6 | +0.000066 | 0.58 | 0.292 |
+| 8 | +0.000046 | 0.55 | 0.300 |
+| 11 | +0.000059 | 0.95 | 0.182 |
+| 12 | +0.000080 | 1.33 | 0.105 |
+
+A random walk around a small positive value. **Had this stopped at five pairs it would have reported
+p = 0.058, passed its own gate, and launched a weight sweep built on a number the very next pair
+overturned.** That is the same failure `cons-reweight` was stopped into at six pairs, and the reason
+the user's instruction to run all twelve was right.
+
+**What survives unexplained: `R2_qb` at t 1.98, 7/12, the strongest single term — in a block the
+head does not touch.** Consistency, its actual target, reads t 0.80. Three readings and nothing yet
+separates them: chance (one of four terms at t~2 over twelve pairs is roughly what noise gives with
+no multiplicity correction); real transfer, the head improving the coefficients generally with
+q95/betaN most sensitive to it; or something in the q95/betaN block interacting with the head other
+than through the seven. **It is the one thread worth pulling if this direction is revisited.**
+
+**Read alongside 1l:** the direction's measured ceiling is 0.00055, and this took +0.00008 of it,
+about a seventh, at a cost of ~20% more fit time. And this is the mlp-only screen, so the number
+does not even transfer at full value.
+
 ### 1f-frozen. CLOSED at 6 pairs 2026-08-28 — a frozen head is mildly HARMFUL
 Stopped by the rule pre-registered below, and the rule fired on the reading it named.
 
