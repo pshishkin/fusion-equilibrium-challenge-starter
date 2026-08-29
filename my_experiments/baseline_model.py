@@ -1299,7 +1299,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
             m_bnd, d_probe, n_bnd, clipped = boundary_form(images, total, delta, ctx, jobs)
             print(f"  boundary term: {n_bnd} contours, probe moves the boundary "
                   f"{d_probe:.4g} of rgeo, {clipped:.1%} of contour points on the gradient floor")
-        psi_L = factor(metric_form(m_cons, psi_ss_tot, m_bnd, d_probe or 0.0))
+        psi_L = factor(metric_form(m_cons, psi_ss_tot, m_bnd, d_probe or 0.0,
+                                   params.cons_gain))
         print(f"  loss metric: jacobian over {n_used} of {probe.size} probe frames, step "
               f"{delta:.4g} Wb/rad, condition number {np.linalg.cond(psi_L @ psi_L.T):.1f}")
         for name, r, v, ok in zip(CONS_SCALARS, ratio, var, probe_ok, strict=True):

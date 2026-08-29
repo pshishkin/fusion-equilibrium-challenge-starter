@@ -1186,6 +1186,10 @@ class Params:
     # comma list of `name=weight`, normalised to sum to 1; names omitted get 0. Only the SPLIT
     # moves — the block always carries exactly W_CONS against the flux term.
     cons_split: str
+    # Multiplies the Consistency block of the Jacobian metric against the psi term, which is the
+    # identity. 1.0 is the scorer's own ratio. See `metric_form` for the headroom table that
+    # motivates moving it and for the counter-hypothesis that more than one level tests.
+    cons_gain: float
     jacobian_delta: float
     boundary: bool
     subtract_coil_field: bool
@@ -1382,7 +1386,8 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     _require_keys(doc["split"], {"salt", "holdout_share"}, "split", path)
     _require_keys(doc["loss"],
                   {"metric", "calibrate_scalars", "li_form", "jacobian_frames", "jacobian_delta",
-                   "boundary", "monitor_frames", "aux_scalars", "aux_weight", "cons_split"},
+                   "boundary", "monitor_frames", "aux_scalars", "aux_weight", "cons_split",
+                   "cons_gain"},
                   "loss", path)
     loss_metric = str(doc["loss"]["metric"])
     if loss_metric not in LOSS_METRICS:
@@ -1460,6 +1465,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   aux_scalars=aux_scalars,
                   aux_weight=float(doc["loss"]["aux_weight"]),
                   cons_split=str(doc["loss"]["cons_split"]),
+                  cons_gain=float(doc["loss"]["cons_gain"]),
                   jacobian_delta=float(doc["loss"]["jacobian_delta"]),
                   boundary=bool(doc["loss"]["boundary"]),
                   subtract_coil_field=bool(doc["features"]["subtract_coil_field"]),

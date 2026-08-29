@@ -407,7 +407,8 @@ def boundary_form(components: FloatArray, psi: FloatArray, delta: float, ctx: di
 
 
 def metric_form(m_cons: FloatArray, psi_ss_tot: float,
-                m_bnd: FloatArray | None = None, d_probe: float = 0.0) -> FloatArray:
+                m_bnd: FloatArray | None = None, d_probe: float = 0.0,
+                cons_gain: float = 1.0) -> FloatArray:
     """The full target metric, relative to the flux term the scaler already applies.
 
     `TargetScaler` divides the psi block by sqrt(psi_ss_tot / W_PSI), which by itself realises
@@ -430,7 +431,21 @@ def metric_form(m_cons: FloatArray, psi_ss_tot: float,
     knobs: the operating point comes from `jacobian_delta`, which is already pinned to the model's
     own flux error, and not from a number chosen to make the answer come out.
     """
-    m = np.eye(len(m_cons)) + (psi_ss_tot / W_PSI) * m_cons
+    # `cons_gain` multiplies the Consistency term ALONE, deliberately not the boundary term below:
+    # the identity IS the psi term, so this is the one number that moves the psi-to-Consistency
+    # ratio away from the scorer's own. 1.0 reproduces the scorer exactly and is the default.
+    #
+    # WHY IT EXISTS. Measured over 16 production rows, the four blocks hold this much of what is
+    # still lost: psi 1.7% on 0.55 of the weight, q95/betaN 10.6% on 0.15, D_LCFS 16.8% on 0.10,
+    # Consistency 70.9% on 0.20. psi is saturated at 0.9998 — a PERFECT map from here is worth
+    # +0.00011 — so the largest weight in the metric is defending the term with almost nothing left
+    # to win, while the block holding 71% of the headroom carries a fifth of the weight.
+    #
+    # The counter-hypothesis, which is what more than one gain level tests: psi may sit at 0.9998
+    # BECAUSE the metric defends it. If R2_psi falls when this rises, that is the answer.
+    if not cons_gain > 0:
+        raise ValueError(f"cons_gain must be positive, got {cons_gain!r}")
+    m = np.eye(len(m_cons)) + cons_gain * (psi_ss_tot / W_PSI) * m_cons
     if m_bnd is not None:
         if not d_probe > 0:
             raise ValueError(f"d_probe must be positive to weight the boundary term, got "
