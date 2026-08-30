@@ -93,6 +93,35 @@ in this file** — four knobs screened on a model whose paired sd is 0.000831 me
 is inflated by roughly +0.0005 by chance alone at 6 salts. Take the whole set into a stack or take
 none; do not take the winner.
 
+### S4. `lstm` — a THIRD architecture, model: a new member beside `seq`
+**User's request, 2026-08-30.** `seq` is a bidirectional **GRU** over the shot with a per-frame
+encoder and a zero-initialised residual head. An LSTM is the obvious sibling and has never been
+tried.
+
+**The case is diversity, not accuracy, and the numbers say so.** `seq` alone LOSES to the MLP —
+0.9914 against 0.9931, worse on every term of the composite — and earns its place only in the
+average. And the average is where the score actually lives: members sit at 0.9910-0.9912 while the
+ensemble sits at 0.9935, so **0.0024 of the score is member disagreement alone**, thirty times the
+effects being chased elsewhere. The one measurement that bounds this directly: `mlp+seq` = 0.9943
+against 0.9940 for `mlp` plus three extra seeds — **one extra architecture beats three extra
+seeds**, which is the strongest evidence in the file for spending on a new member rather than on
+more of the same.
+
+**So the reading is not "is the LSTM good", it is "does the LSTM disagree with the GRU".** An LSTM
+that scores identically and errs on the same frames adds nothing; one that scores slightly worse but
+errs elsewhere may add more than a fourth MLP seed. Report the LSTM's own composite AND its
+frame-level correlation with `seq` — seeds correlate 0.56 and feature sets 0.75, so those are the
+numbers a new architecture has to beat to be worth its training time.
+
+**Cheap to try, which matters under `0-speed`.** `TorchSeqModel` already packs to true lengths,
+handles the residual head and carries `loss`/`ema_decay`/`grad_clip`; `torch.nn.LSTM` has the same
+call signature as `torch.nn.GRU`. This is plausibly a `seq_cell: gru|lstm` field and one line at the
+construction site, not a new model class.
+
+**Screen:** the LSTM against `seq` on the same salts, 3 salts on rung one of the ladder. If it
+survives to a stack it enters as an ADDITIONAL member, not a replacement, since the whole argument
+is diversity.
+
 ### S3. `ema-patience` — model: the MLPs
 `ema` reaches its best at 65669 steps against the baseline's 76884 — **15% earlier** — and
 `patience_steps` was never revisited afterwards. One line of config.
