@@ -93,7 +93,11 @@ in this file** — four knobs screened on a model whose paired sd is 0.000831 me
 is inflated by roughly +0.0005 by chance alone at 6 salts. Take the whole set into a stack or take
 none; do not take the winner.
 
-### S4. `lstm` — a THIRD architecture, model: a new member beside `seq`
+### S4. `lstm` — a THIRD architecture, model: a new member beside `seq` — **CODE READY 2026-08-30**
+`seq_cell: gru|lstm` in the `seq` block. Both cells fit and predict in the smoke test, and an
+unknown name raises rather than silently defaulting — the failure that would make an lstm arm
+secretly a gru arm and measure zero for the right reason.
+
 **User's request, 2026-08-30.** `seq` is a bidirectional **GRU** over the shot with a per-frame
 encoder and a zero-initialised residual head. An LSTM is the obvious sibling and has never been
 tried.
@@ -122,7 +126,13 @@ construction site, not a new model class.
 survives to a stack it enters as an ADDITIONAL member, not a replacement, since the whole argument
 is diversity.
 
-### S5. `mlp-lr-adaptive` — a rate that responds to the curve, model: the MLPs
+### S5. `mlp-lr-adaptive` — a rate that responds to the curve, model: the MLPs — **CODE READY 2026-08-30**
+`lr_schedule: plateau` plus `warmup_steps` and `plateau_patience_evals` on every torch_mlp
+block, all defaulting to off. `_lr_cuts` records every cut and `fit_report` prints them, so the
+pre-registered second reading is available without further work. The smoke test proves the CUT
+PATH on unlearnable targets — cut at [160, 240, 320, 400, 480] — because the ordinary fixture
+improves throughout and only exercises the branch that reports no cut at all.
+
 **User's request, 2026-08-30.** The MLPs run at a CONSTANT rate: `lr_schedule: none` in all four
 blocks. Only two schedules exist in the code, `none` and `cosine`, and cosine on the MLP was
 refuted — `emacos` measured **-0.00015, 4 of 16 signs** against the accepted `ema`.
