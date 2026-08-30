@@ -602,12 +602,46 @@ from those features, which the direct net estimates at 0.9778. **But `D_LCFS` wa
 against a PCA truncation ceiling**, and it is the one term whose geometry is local and whose share is
 16.8%. That is the gap this entry lives in.
 
-**The cheap diagnostic that comes first, and can close or open the entry for a couple of hours of
-compute.** Take true maps, project onto the 50 PCA components, reconstruct, and score `D_LCFS`
-against the truth — the same procedure that gave the seven their 0.99726 ceiling at n=50 and 0.99038
-at n=30. **If the reconstruction ceiling for `D_LCFS` is essentially 1.0, PCA is not losing the
-boundary and this entry closes.** If it is materially below the 0.9887 production reaches, the basis
-IS costing the boundary and a spatial decoder has a named target rather than an aesthetic one.
+**DIAGNOSTIC RUN 2026-08-30, and it OPENS the entry.** True maps projected onto the PCA components
+and reconstructed, boundary extracted and scored exactly as `local_score.py` does it — N_POINTS 512,
+N_ITER 22, `axis_sign = AXIS_SIGN[machine]`, `rgeo` the MEAN over frames:
+
+| n_pca | 1 - D_LCFS with EXACT coefficients |
+|---|---|
+| 30 | 0.990593 |
+| 40 | 0.993163 |
+| **50** | **0.994777** |
+| production | 0.988700 |
+
+**Truncation costs 46% of the entire D_LCFS loss:**
+
+| | value | in the composite |
+|---|---|---|
+| basis truncation, 1 -> 0.994777 | 0.005223 | **0.000522** |
+| model error beyond it, 0.994777 -> 0.9887 | 0.006077 | 0.000608 |
+| total D_LCFS loss | 0.011300 | 0.001130 |
+
+**This is the opposite of what the seven showed**, where truncation cost 0.0027 against a model
+shortfall of 0.021 — eight times smaller and safely ignorable. On the boundary the two are
+comparable, and **0.000522 is as large as the entire measured ceiling of the Consistency direction
+and larger than anything this month has produced.**
+
+**And raising `n_pca` does not collect it** — already measured: 75 gives -0.0005 and 100 gives
+0.0000 in production, because components 38-49 arrive with error at or above their own sd, i.e. as
+noise. More global modes cannot help when the model cannot predict the ones it already has. **So the
+target is not more dimensions but dimensions in which the boundary is PREDICTABLE**, which is
+precisely what a spatial decoder offers and a global linear basis cannot.
+
+**Caveat on the number, stated rather than buried:** measured on 1500 frames from 60 validation
+shots against production's 352 tail shots, so the two are not the same sample. The truncation
+figure (0.994777 against a perfect 1.0) is internally consistent and does not depend on the
+production comparison; only the 46% split does.
+
+**A first attempt at this diagnostic returned 0.9634 — BELOW production, which is impossible for a
+perfect reconstruction, and that impossibility is what exposed four mismatches with the scorer:**
+`n_points` 100 instead of 512, `n_iter` 8 instead of 22, no `axis_sign`, and a per-frame `rgeo`
+where the scorer uses one mean. Worth keeping: the sanity check that caught it was not statistical
+but physical — a reconstruction cannot score worse than a prediction of itself.
 
 **Second reason to build it even if the first fails: it is the most decorrelated member available.**
 Under `1p` the question for a new member is not its own score but its error correlation with the
