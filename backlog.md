@@ -1139,25 +1139,12 @@ the tail: absolute last-decile cost is 0.00119 / 0.00118 / 0.00119 across `prod`
 This raises `shot-tail-weight`, now the only remaining candidate for the measured 0.00106 — and it
 should be run TWO-SIDED: the first decile is also expensive (15.1% of cost, density 1.48x).
 
-### 4. `seq-ema` + `seq-huber` — **CODE WRITTEN AND PROVEN WIRED 2026-08-21, ready to run**
-`seq` had neither. Both are now plumbed, Huber scaled by 2 so an arm differs from its control in
-outlier handling alone rather than also in how often `grad_clip` fires. The EMA is proven, not
-assumed: at decay 0.9 the averaged weights won 4 evaluations, at 0.999 they won 0 and the score was
-byte-identical to base — which is why the model now REPORTS its win count, since zero wins and
-never-wired-in are otherwise the same number. The mechanism won 965–3019
-evaluations per run on the MLP, so it is not architecture-specific, and `seq` is the only ensemble
-member not getting it. Caveat that must be respected: `ema` measured ZERO in production for the MLP,
-so this is a screen-only expectation until confirmed in production.
 
-### 5. `seq-sweep` — the rest of programme Q
-`seq` is a full production member never swept, and it earns its place — `mlp+seq` = 0.9943 against
-0.9940 for `mlp` plus three extra seeds, so one extra architecture beats three extra seeds. Arms
-left: `learning_rate` (3e-4 / 3e-3), `seq_hidden` 512, `seq_layers` 2, `patience_steps`. Dropout is
-already refuted (below). ~72 min a run, ~19 h a 16-salt arm.
-
-### 6. `ema-patience` — the patience was tuned for a trajectory that no longer happens
-`ema` reaches its best at 65669 steps against the baseline's 76884 — **15% earlier** — and
-`patience_steps` was never revisited. One line.
+### 4-6. MOVED 2026-08-30 to [single_model_hypotheses.md](single_model_hypotheses.md)
+`seq-ema` + `seq-huber`, `seq-sweep` and `ema-patience` each change ONE model and share nothing
+with the other members, so they are screened on that model rather than through the ensemble. The
+numbering keeps its gap deliberately: entries here are keyed by slug, and renumbering would break
+every reference written before today.
 
 ### 7. `mlp2-block0` — one seed, one block, an order more damage than typical
 Found 2026-08-21 in passing: in block 0 of the clean tail, `mlp2` scores **0.977925** where the
