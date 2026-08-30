@@ -386,6 +386,13 @@ models:
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
     # not a setting.
     lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
     lr_final_factor: 0.01
     # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
     # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
@@ -485,6 +492,13 @@ models:
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
     # not a setting.
     lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
     lr_final_factor: 0.01
     # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
     # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
@@ -584,6 +598,13 @@ models:
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
     # not a setting.
     lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
     lr_final_factor: 0.01
     # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
     # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
@@ -683,6 +704,13 @@ models:
     # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
     # not a setting.
     lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
     lr_final_factor: 0.01
     # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
     # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —

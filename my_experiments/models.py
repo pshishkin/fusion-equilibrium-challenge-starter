@@ -393,7 +393,7 @@ ACTIVATIONS = ("relu", "gelu", "silu", "tanh")
 # real run, so a fit that stops near a quarter of it only ever traverses the cosine's first flat
 # quarter: the rate fell from 1e-3 to 8.4e-4 and never went below 84% of its start. That measured
 # a 16% rate cut, not an annealing schedule. Set `lr_t_max_steps` near where the fit actually ends.
-LR_SCHEDULES = ("none", "cosine")
+LR_SCHEDULES = ("none", "cosine", "plateau")
 
 # What `loss` may say. `mse` is what every number recorded so far was fitted on. `huber` is the
 # same curve near zero and linear past `huber_delta`, so a frame the model reconstructs badly stops
@@ -625,6 +625,12 @@ class TorchMLPModel(TargetModel):
     # reach, so it does not depend on when the fit ends — a schedule whose shape moves with its own
     # outcome is not a setting, it is a feedback loop.
     lr_schedule: str
+    # Linear ramp from zero over this many steps, applied as a multiplier on top of whatever
+    # schedule follows. 0 is off and is every number before 2026-08-30.
+    warmup_steps: int
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: int
     lr_final_factor: float
     # Steps the schedule is spread over; 0 means "use `max_steps`". Past it the rate HOLDS at
     # learning_rate * lr_final_factor rather than cycling back up, which is what
@@ -665,6 +671,10 @@ class TorchMLPModel(TargetModel):
     # Where the feedback rule ENDED. Printed so an adaptive arm can be read: a split that
     # barely moved from equal says the rule found nothing to reallocate, which is a result.
     _head_split: Any = field(default=None, init=False, repr=False)
+    # Every step at which `plateau` cut the rate. Tightly clustered cut steps across salts and
+    # seeds would mean the feedback is a fixed schedule in disguise — the pre-registered
+    # reading of this arm, and unreadable unless recorded.
+    _lr_cuts: Any = field(default=None, init=False, repr=False)
     _ran_steps: int = field(default=0, init=False, repr=False)
     _clipped: float = field(default=float("nan"), init=False, repr=False)
     _norm_median: float = field(default=float("nan"), init=False, repr=False)
@@ -773,8 +783,29 @@ class TorchMLPModel(TargetModel):
         if self.lr_schedule not in LR_SCHEDULES:
             raise ValueError(f"torch_mlp(seed={self.seed}): unknown lr_schedule "
                              f"{self.lr_schedule!r}; known {sorted(LR_SCHEDULES)}")
-        sched = None
+        sched = plateau = None
         t_max = self.lr_t_max_steps or self.max_steps
+        # A WARMUP, which neither existing schedule has. The MLPs clip 0.2-0.5% of steps with peak
+        # gradient norms up to 201 against a threshold of 1, and the largest excursions are early —
+        # which is the textbook case for ramping the rate rather than clipping the consequence.
+        # Linear from zero over `warmup_steps`, applied as a multiplier so it composes with
+        # whatever schedule follows instead of fighting it.
+        if self.warmup_steps < 0:
+            raise ValueError(f"torch_mlp(seed={self.seed}): warmup_steps {self.warmup_steps}")
+        if self.lr_schedule == "plateau":
+            # Cuts WHEN THE CURVE SAYS SO, which is the one thing a fixed shape cannot do and
+            # weight averaging does not supply either. `cosine` was refuted on the MLP (`emacos`,
+            # -0.00015, 4/16) precisely because it and `ema` shrink the same thing; a rule driven
+            # by the validation curve is a different object.
+            #
+            # PRE-REGISTERED READING: `_lr_cuts` records the step of every cut. If those steps
+            # cluster tightly across salts and seeds, the feedback is a fixed schedule in disguise
+            # and the cheaper change is to hard-code them — the same verdict, reached the same way,
+            # that the head's adaptive split earned on 2026-08-30.
+            plateau = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                opt, factor=self.lr_final_factor if 0 < self.lr_final_factor < 1 else 0.5,
+                patience=max(1, self.plateau_patience_evals),
+                min_lr=self.learning_rate * 1e-3)
         if self.lr_schedule == "cosine":
             if t_max < 1:
                 raise ValueError(f"torch_mlp(seed={self.seed}): lr_t_max_steps resolves to {t_max}")
@@ -998,6 +1029,9 @@ class TorchMLPModel(TargetModel):
                 # back UP toward its start, which is a warm restart nobody asked for.
                 if sched is not None and step <= t_max:
                     sched.step()
+                if self.warmup_steps and step <= self.warmup_steps:
+                    for g in opt.param_groups:
+                        g["lr"] = self.learning_rate * step / self.warmup_steps
 
                 self._ran_steps = step
                 last = step >= self.max_steps
@@ -1068,6 +1102,17 @@ class TorchMLPModel(TargetModel):
                         per = ((aux_head(net(Xvt)[:, :head_n_pca]) - Hvt) ** 2).mean(dim=0)
                         hw = (per / per.mean().clamp_min(1e-12)).unsqueeze(0)
                         self._head_split = [round(float(x), 3) for x in hw[0]]
+                # The feedback rule, stepped on VALIDATION and only where the number exists. The
+                # cut is DETECTED rather than assumed: ReduceLROnPlateau gives no signal, so the
+                # rate is read before and after and a change is recorded with its step.
+                if plateau is not None:
+                    before = opt.param_groups[0]["lr"]
+                    plateau.step(val_loss)
+                    after = opt.param_groups[0]["lr"]
+                    if after < before:
+                        if self._lr_cuts is None:
+                            self._lr_cuts = []
+                        self._lr_cuts.append(step)
                 net.train()
                 train_loss = float(total_t) / n
                 total_t, n = torch.zeros((), device=dev), 0
@@ -1180,6 +1225,9 @@ class TorchMLPModel(TargetModel):
                 f", head loss {self._head_loss:.5f} at the kept step")
         if self._head_split is not None:
             head += (f", split ended {dict(zip(CONS_SCALARS, self._head_split, strict=True))}")
+        if self.lr_schedule == "plateau":
+            head += (f", lr cut at {self._lr_cuts}" if self._lr_cuts
+                     else ", lr never cut")
         return (f", best step {self._best_step} of {self._ran_steps} run"
                 f"{f' (of {self.max_steps} allowed)' if self._ran_steps < self.max_steps else ''}"
                 f"{clip}{ema}{head}")
