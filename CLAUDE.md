@@ -1,6 +1,9 @@
 # CLAUDE.md
 
 What to run next is in [backlog.md](backlog.md): one sorted list, entries keyed by slug.
+Hypotheses measured on ONE model rather than the ensemble live in
+[single_model_hypotheses.md](single_model_hypotheses.md), and what they returned in
+[single_model_results.md](single_model_results.md).
 Project documentation is in [README.md](README.md): data layout, the train → score → submit
 workflow, and the traps already walked into. Coding conventions are in [AGENTS.md](AGENTS.md),
 starting with English-only artifacts and the fail-fast rule. The organizers' original guide is
