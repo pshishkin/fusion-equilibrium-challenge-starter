@@ -858,6 +858,42 @@ The screen's own effect is currently +0.000162. So three candidates at 12 pairs 
 selection noise — a third of the effect, tolerable — while six at 6 pairs carries +0.00011, which is
 two thirds and is not. **Three arms, 12 pairs, or use the split-half protocol from 1h-b.**
 
+### 1n-canon. `pca-head` CANONISED 2026-08-30 with the STATIC split, on a cost the user accepted
+`head_weight: 0.1` and `head_cons_weights: kappa=3,li=3,...` in all four `torch_mlp` blocks.
+
+**The user's reasoning, and the numbers support it:** not established as a gain, but almost
+certainly not a loss. Twelve salts give **+0.000065, 95% CI [-0.000033, +0.000163]** — the interval's
+worst case is a third of the point estimate's size, so the downside is bounded and small.
+
+**The cost is not small, and it lands exactly on the priority set an hour earlier.** A run with the
+static head takes **+29.6%** longer, paired per salt (2527 s to 3256 s). `0-speed` had just bought
+**-30%** by scoring only what is read. **The head gives that back in full**, to the digit. Recorded
+because the two decisions were made an hour apart and the arithmetic between them is not obvious
+from either entry alone.
+
+Reverting is one line, and a lane that needs the speed more than the 0.000065 can pin
+`models.*.head_weight=0.0` per arm without touching the default.
+
+### 1r. `head-weight-003-static` — the one combination the sweep never ran
+**User's request, 2026-08-30.** The weight sweep tested 0.03, 0.1 and 0.3 with the EQUAL split; the
+split arms tested equal, static and adaptive at 0.1. **0.03 with the STATIC split is the corner
+neither covered**, and it is the interesting one for a specific reason: at 0.1 static and equal were
+indistinguishable (t -0.30), but static's per-pair sd was the smallest of the three arms
+(0.000154 against 0.000209 and 0.000191). A quieter arm at a lower weight is where a small real
+effect would show first if there is one.
+
+**And it is the cheap direction.** The canonised head costs +29.6% of every run; 0.03 should cost
+the same wall time (the head's expense is the auxiliary forward and backward, not the weight) but
+would press the trunk a third as hard — so if it matches 0.1 it is not cheaper, and the reason to
+prefer it would be that it perturbs less for the same result.
+
+**Screen:** against the canonised 0.1-static, paired within salt, 6 salts. Both arms carry a head,
+so this measures the WEIGHT alone. The no-head control already exists as `q_base_s0..s11`.
+
+**Pre-registered:** the three weights at the static split will be 0.03, 0.1 and (from the sweep, at
+equal split) 0.3 — **do not read a winner across them**, since 0.3 was measured at a different split
+and the sweep's own lesson was that four levels traced no curve.
+
 ### 1n. CLOSED 2026-08-30 — all three head splits land in the same place, none of them anywhere
 Twelve salts, `head_weight` 0.1 throughout, every arm paired within salt against the same no-head
 control.

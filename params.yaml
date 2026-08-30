@@ -362,7 +362,7 @@ models:
     # these directions, so 0.20 here would double the emphasis rather than add a
     # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
     # updating, so the two arms share a starting point.
-    head_weight: 0.0
+    head_weight: 0.1
     head_hidden: 128
     head_frozen: false
     # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
@@ -371,7 +371,7 @@ models:
     # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
     # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
     # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
-    head_cons_weights: equal
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
     # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
     # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
     # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
@@ -468,7 +468,7 @@ models:
     # these directions, so 0.20 here would double the emphasis rather than add a
     # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
     # updating, so the two arms share a starting point.
-    head_weight: 0.0
+    head_weight: 0.1
     head_hidden: 128
     head_frozen: false
     # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
@@ -477,7 +477,7 @@ models:
     # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
     # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
     # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
-    head_cons_weights: equal
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
     # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
     # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
     # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
@@ -574,7 +574,7 @@ models:
     # these directions, so 0.20 here would double the emphasis rather than add a
     # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
     # updating, so the two arms share a starting point.
-    head_weight: 0.0
+    head_weight: 0.1
     head_hidden: 128
     head_frozen: false
     # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
@@ -583,7 +583,7 @@ models:
     # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
     # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
     # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
-    head_cons_weights: equal
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
     # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
     # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
     # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
@@ -680,7 +680,7 @@ models:
     # these directions, so 0.20 here would double the emphasis rather than add a
     # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
     # updating, so the two arms share a starting point.
-    head_weight: 0.0
+    head_weight: 0.1
     head_hidden: 128
     head_frozen: false
     # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
@@ -689,7 +689,7 @@ models:
     # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
     # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
     # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
-    head_cons_weights: equal
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
     # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
     # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
     # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
