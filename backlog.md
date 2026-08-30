@@ -824,6 +824,47 @@ The screen's own effect is currently +0.000162. So three candidates at 12 pairs 
 selection noise — a third of the effect, tolerable — while six at 6 pairs carries +0.00011, which is
 two thirds and is not. **Three arms, 12 pairs, or use the split-half protocol from 1h-b.**
 
+### 1n. CLOSED 2026-08-30 — all three head splits land in the same place, none of them anywhere
+Twelve salts, `head_weight` 0.1 throughout, every arm paired within salt against the same no-head
+control.
+
+| arm | mean dS | sd | SE | t | p | wins |
+|---|---|---|---|---|---|---|
+| equal | +0.000080 | 0.000209 | 0.000060 | 1.33 | 0.105 | 9/12 |
+| static kappa=3 li=3 | +0.000065 | 0.000154 | 0.000044 | 1.46 | 0.087 | 8/12 |
+| adaptive | +0.000042 | 0.000191 | 0.000055 | 0.77 | 0.230 | 9/12 |
+
+**Nothing separates them:** static minus equal -0.000016 (t -0.30), adaptive minus equal -0.000038
+(t -0.50), static minus adaptive +0.000022 (t 0.44). Three ways of splitting the seven, one answer.
+
+**The adaptive arm produced the finding, and it is not about heads.** The feedback rule converged to
+a fixed point reproducible across **32 independent fits** (4 models x 8 salts, different seeds and
+splits): kappa 1.48, li 1.82, R_axis 0.96, volume 1.13, Z_axis 0.59, tri_top 0.47, tri_bot 0.55.
+That point correlates **0.971** with `1 - R2_j` of the head measured two days earlier by a different
+script — i.e. **the loop's answer was computable in advance and the loop added nothing.**
+
+**And the reason it lands there is the real result.** `w_j ∝ MSE_j` is a fixed point only if
+reweighting does not change the errors. Raise kappa's weight and its error should fall, dropping its
+weight and moving the equilibrium. It does not move: 32 fits settle on the profile of the
+UNWEIGHTED head. **So reallocation does not change per-scalar accuracy — the loop is measuring, not
+steering.** That is the fourth mechanism to say so (`aux`, the surrogate, `cons-reweight`, this), and
+the first to say it structurally rather than through a null.
+
+**Three corrections I made on this arm, all recorded rather than quietly fixed:**
+- I reported "adaptive over-presses and damages the map" from `dR2_psi = -0.000042` on 7 salts.
+  Paired, that was t -1.06, p 0.33. Reading means without testing them.
+- I wrote that a static split inside the head is `cons-reweight` one layer up and not worth running.
+  It ran best of the three at 7 salts. The simplification was wrong: in the Jacobian metric the
+  split competes with psi through `dc^T M dc`; in the head's loss it acts on a separate term that
+  never mixes with psi.
+- **p = 0.03 collapsed on the next salt three times in this experiment** — 5 pairs 0.058 -> 6 pairs
+  0.292; 5 salts 0.032 -> 6 salts 0.565; 7 salts 0.032 -> 9 salts 0.244. At this sd, p near 0.03
+  below about ten salts means nothing, and that is an instrument fact, not a fact about heads.
+
+**The head family is closed.** Weight 0.03 and 0.1 indistinguishable, 0.3 harmful, frozen mildly
+harmful, three splits identical, and the best reading of the best arm is p = 0.087 against a
+measured direction ceiling of 0.00055 of which it takes about an eighth.
+
 ### 1n. `head-cons-weights` — weight the SEVEN inside the head by where the error actually is
 **User's proposal, 2026-08-27, and the second half of it is the part that has not been tested.**
 The head today weights the seven equally after standardising each by its own spread, which
