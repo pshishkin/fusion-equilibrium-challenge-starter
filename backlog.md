@@ -44,6 +44,66 @@ on all seven scalars alike, and nine of those measured zero this week.
 Run the free gradient-fidelity gate before writing any training code for 1b/1c: it can close both.
 
 
+### 0-speed. SPEED IS A FIRST-CLASS GOAL, not a convenience
+**User, 2026-08-30.** Everything below is rate-limited by how many arms a day the box can answer,
+and the effects are small enough that breadth beats depth. Treat a change that makes runs cheaper as
+worth as much as a change that makes the score higher, because it multiplies every hypothesis after
+it.
+
+**Done 2026-08-30: scoring only what is read.** A run was setup 3.0 min (7%), fitting 19.2 min
+(45%), **scoring 20.5 min (48%)** — and scoring ran six members at ~2.5 min each while the lane read
+one row. `evaluate.py` already had `--models`; `train_eval.py` did not forward it. It does now, and
+the lane defaults to the ensemble alone. Run 43 min -> ~30, **1.4x, from not doing work rather than
+from measuring less.** `SCORE="mlp ensemble"` when a per-model table is actually wanted.
+
+**Still on the table:**
+- **Halve the scoring set** (352 tail shots -> 176). Both arms score the SAME shots, so the
+  set's sampling noise largely cancels in the paired difference — but that is an argument, not a
+  measurement, and it needs checking before it is believed. Worth ~15%.
+- **Futility stopping.** Drop an arm whose running mean is negative after 3 salts: kills 33% of
+  genuinely positive arms, saves ~38% of the average arm's cost. Only acceptable in the
+  accumulate-and-stack regime, where a lost hypothesis can be re-screened rather than lost.
+- **Fewer MLPs is a BAD trade** and is recorded so it is not re-proposed: the ensemble is quieter
+  than its members precisely because it averages four of them.
+
+### 0-ladder. `rank-then-stack` — one salt to RANK, not to filter
+**User's design, 2026-08-30, and the distinction is what makes it work.** Filtering on one salt is
+hopeless: the one-salt paired sd is 0.000195 against effects of 0.00005, so at any threshold the
+pass rates for a true null and a true effect are within a few points of each other — a threshold of
+0.0002 discards 78% of what works to remove 85% of what does not. **Ranking asks less.** To order
+candidates you do not need to distinguish them individually.
+
+**How well one salt ranks, by how much the hypotheses truly differ:**
+
+| spread of true effects | corr(1 salt, truth) |
+|---|---|
+| 0.00005 | 0.25 |
+| 0.00010 | 0.46 |
+| 0.00020 | 0.72 |
+
+**The ladder: K screened on 1 salt, top half to 3, top half to 6, top two to 12.** Expected TRUE
+effect of the survivors, against picking at random:
+
+| spread | K=8 | K=16 | hours (K=16) |
+|---|---|---|---|
+| 0.00005 | +0.000022 | +0.000039 | 44 |
+| 0.00010 | +0.000071 | **+0.000118** | 44 |
+| 0.00020 | +0.000196 | +0.000280 | 44 |
+
+At a plausible spread of 0.0001, sixteen candidates yield survivors worth **+0.000118 truly** —
+twice the effect this month has been chasing — against zero for choosing at random.
+
+**The ladder's power is entirely in BREADTH.** K=8 gives +0.000071, K=16 gives +0.000118. Eight is
+not enough. This is what makes `0b. recheck` fuel rather than housekeeping: a whole class of
+"indistinguishable" verdicts was returned by instruments resolving 0.0013 and 0.00065 against
+effects of 0.0002, and every one of them is a free candidate for rung one.
+
+**The trap, and its fix.** The final 12-salt number is SELECTED — those two candidates got there by
+looking good — so it is inflated even when the true effect is positive. The fix is the other half of
+the protocol: **survivors go into a STACK, and the stack is what gets confirmed**, on salts the
+ladder never saw. The ladder produces enriched candidates; the stack produces an honest number.
+Neither works alone.
+
 ### 0a. `separate-reanalyze` — screen on single models, ACCUMULATE, confirm the stack, NEXT
 **User's strategy, refined 2026-08-30.** Screen each change on the single model it touches, keep
 everything with a positive point estimate, combine all the keepers, and test the STACK on the
