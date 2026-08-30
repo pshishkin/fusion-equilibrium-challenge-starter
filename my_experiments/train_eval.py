@@ -49,6 +49,21 @@ def main(argv: list[str]) -> int:
     # the artifact is the one copy that cannot disagree with what was fitted. `--jobs` is different:
     # it is about this machine, not about the configuration, and both halves need it.
     jobs = passthrough[passthrough.index("--jobs") + 1:][:1] if "--jobs" in passthrough else []
+    # Which members to SCORE, which is a different question from which to FIT and belongs to
+    # neither half's own flags: `--only` picks what train.py builds, `--models` picks what
+    # evaluate.py measures. Scoring is 48% of a run and costs ~2.5 min per member, so a lane that
+    # reads only the ensemble row is paying for five tables nobody opens. Removed from the
+    # passthrough rather than forwarded, because train.py would reject an argument it does not know.
+    score_models: list[str] = []
+    if "--score-models" in passthrough:
+        i = passthrough.index("--score-models")
+        j = i + 1
+        while j < len(passthrough) and not passthrough[j].startswith("-"):
+            j += 1
+        score_models = passthrough[i + 1:j]
+        if not score_models:
+            raise SystemExit("--score-models needs at least one name, or omit it to score all")
+        passthrough = passthrough[:i] + passthrough[j:]
     if "/" in test_share:
         raise SystemExit(
             f"test share {test_share!r} carries a frame fraction. Scoring reads every frame of "
@@ -65,7 +80,8 @@ def main(argv: list[str]) -> int:
     print("\n" + "=" * 70)
     print(f"SCORING on {float(test_share):.1%}")
     print("=" * 70)
-    sys.argv = ["evaluate.py", "--share", test_share, *(["--jobs", *jobs] if jobs else [])]
+    sys.argv = ["evaluate.py", "--share", test_share, *(["--jobs", *jobs] if jobs else []),
+                *(["--models", *score_models] if score_models else [])]
     return evaluate.main()
 
 
