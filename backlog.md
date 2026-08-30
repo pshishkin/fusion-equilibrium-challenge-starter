@@ -574,6 +574,47 @@ are carrying real information about the vertical position, and zeroing them cost
 geometry gains. Shrinking only the geometry-relevant directions is a live variant; a flat
 per-component rule is not.
 
+### 1p. `basis-diversity` — a DIFFERENT basis, the same models, added to the blend
+**User's idea, 2026-08-30, and it escapes the bound that caps `1o`.** That bound — 0.00055, from the
+representation-free direct net — limits how well any single model can predict the seven FROM THESE
+FEATURES. Ensemble diversity is a different account entirely: members sit at 0.9910-0.9912 and the
+ensemble at 0.9935, so **0.0024 of the score is member disagreement**, and a decorrelated member
+claims part of it without being better at anything on its own.
+
+**It is architecturally free, which is the surprise.** `baseline_model.py:116` already says it:
+every artifact carries *"its own PCA basis, its own target scaler and its own coil gains, so their
+coefficients are not commensurable"* — and `salts:a+b+c` therefore averages **decoded predictions**,
+not coefficients. Mixing bases needs no new code at all. The 27-member blend already contains 27
+different PCA bases, one per salt; they simply all happen to be PCA fitted on similar data, so they
+agree.
+
+**And there is a ready-made candidate with exactly the right profile.** From 2026-08-13: `n_pca = 30`
+beat 50 **at quality on all three salts, +0.0043 with t = 4.84** — and lost to 50 in production by
+0.0014. It was closed as a reversal. **But "better on one measure, worse alone in production" is
+precisely `seq`'s profile**, and `seq` earns its place: it loses to the MLP 0.9914 against 0.9931
+and still adds +0.0007 to the average. `n_pca = 30` has never been tested as a BLEND MEMBER, only as
+a replacement.
+
+**What to measure, and it is not the member's own score.** The question is whether it disagrees:
+report the frame-level error correlation against the existing members, where seeds reach **0.56** and
+feature sets **0.75**. A basis that decorrelates below 0.56 is a better diversity axis than a new
+seed, which is the only thing that would justify it. Its own composite is almost beside the point —
+`seq` proves a member can be 0.0017 worse alone and still pay.
+
+**Cheap, and cheapest first:**
+1. **`n_pca = 30` as an extra member**, 3 salts. One config field, no new code, and the blend syntax
+   already accepts it. If the error correlation lands near 0.56 this whole family is worth pursuing;
+   near 0.9 it closes.
+2. `n_pca = 75` or `100` the same way — both measured neutral-to-negative alone (-0.0010 and 0.0000),
+   so again the alone-number is not the point.
+3. Only then a structurally different basis — Zernike, Fourier-Bessel, or the learned one from `1o`
+   — since those cost real work and the first two settle whether basis is a diversity axis at all.
+
+**The trap worth naming.** A blend of 4 MLPs + seq + an `n_pca=30` member has SIX members, and part
+of any gain is simply having one more. The control has to be the same member COUNT — five members
+plus a sixth MLP seed against five members plus the 30-component model — or the arm measures
+ensemble size and calls it basis diversity.
+
 ### 1o. `learned-basis` — an encoder trained on psi AND the seven, instead of PCA
 **User's idea, 2026-08-30.** Replace the fixed PCA decomposition with a learned representation whose
 objective is both flux reconstruction and the seven derived scalars, so the latent is shaped by what
