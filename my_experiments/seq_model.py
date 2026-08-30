@@ -70,6 +70,9 @@ def _pad_index(starts: np.ndarray, lengths: np.ndarray,
     return rows, mask
 
 
+SEQ_CELLS = ("gru", "lstm")
+
+
 @dataclass
 class TorchSeqModel(TargetModel):
     """Per-frame encoder, a bidirectional GRU over the shot, and a zero-initialised residual head.
@@ -94,6 +97,16 @@ class TorchSeqModel(TargetModel):
     # directions are concatenated before `delta`, so it sees 2 * seq_hidden.
     seq_hidden: int
     seq_layers: int
+    # Which recurrent cell. `gru` is every number before 2026-08-30. `lstm` exists for DIVERSITY,
+    # not for accuracy: `seq` alone loses to the MLP, 0.9914 against 0.9931, and earns its place
+    # only in the average — where `mlp+seq` = 0.9943 beats `mlp` plus three extra seeds at 0.9940,
+    # so one extra ARCHITECTURE beats three extra seeds. The question for this field is therefore
+    # not whether the LSTM scores higher but whether it errs ELSEWHERE: seeds correlate 0.56 and
+    # feature sets 0.75, and a cell that lands below 0.56 is a better diversity axis than a seed.
+    #
+    # The two are drop-in: both take (input, hidden, layers) and return (output, state), and the
+    # state is discarded here, so only the constructor differs.
+    seq_cell: str
     # Shots per optimizer step. The unit of a batch is the SHOT here, so this is not comparable to
     # the MLP's `batch_size` in rows: 32 shots is about 7500 frames at full frames.
     batch_shots: int
@@ -147,9 +160,12 @@ class TorchSeqModel(TargetModel):
                 self.head = build_mlp(n_in, cfg.hidden_sizes, n_out, cfg.activation, cfg.dropout)
                 self.enc = build_mlp(n_in, cfg.hidden_sizes, cfg.seq_hidden, cfg.activation,
                                      cfg.dropout)
-                self.gru = torch.nn.GRU(cfg.seq_hidden, cfg.seq_hidden, cfg.seq_layers,
-                                        batch_first=True, bidirectional=True,
-                                        dropout=cfg.dropout if cfg.seq_layers > 1 else 0.0)
+                if cfg.seq_cell not in SEQ_CELLS:
+                    raise ValueError(f"torch_seq: seq_cell {cfg.seq_cell!r}, known {SEQ_CELLS}")
+                cell = torch.nn.GRU if cfg.seq_cell == "gru" else torch.nn.LSTM
+                self.gru = cell(cfg.seq_hidden, cfg.seq_hidden, cfg.seq_layers,
+                                batch_first=True, bidirectional=True,
+                                dropout=cfg.dropout if cfg.seq_layers > 1 else 0.0)
                 self.delta = torch.nn.Linear(2 * cfg.seq_hidden, n_out)
                 # The whole point of the residual form: at initialisation this model IS `head`.
                 torch.nn.init.zeros_(self.delta.weight)

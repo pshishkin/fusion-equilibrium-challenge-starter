@@ -730,6 +730,11 @@ models:
     # model would be throwing away half the context for a constraint this task does not have.
     seq_hidden: 256
     seq_layers: 1
+    # `gru` is every number before 2026-08-30. `lstm` is a DIVERSITY arm, not an accuracy
+    # one: seq alone loses to the MLP and earns its place in the average, where one extra
+    # architecture beats three extra seeds. Judge it by error correlation with the
+    # existing members (seeds 0.56, feature sets 0.75), not by its own composite.
+    seq_cell: gru
     # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
     # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
     batch_shots: 32
