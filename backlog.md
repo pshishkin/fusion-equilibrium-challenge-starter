@@ -574,6 +574,54 @@ are carrying real information about the vertical position, and zeroing them cost
 geometry gains. Shrinking only the geometry-relevant directions is a live variant; a flat
 per-component rule is not.
 
+### 1q-resid. The PCA truncation residual IS 65% predictable — and only a sixth of that transfers
+**Built 2026-08-30 as the first step of `1q`, and it answers the architectural question the entry
+was really asking.** A small transposed-convolution decoder, 50 coefficients -> 65x65, trained on
+88k frames in three minutes.
+
+**1. The residual is nonlinearly predictable, which is exactly what a linear basis cannot do.**
+`psi - PCA_decode(c)` is orthogonal to the retained subspace BY CONSTRUCTION, so no linear decoder
+can touch it. Held-out **R2 = 0.657** from the same 50 coefficients. Flux maps lie on a smooth
+nonlinear manifold and PCA is a linear approximation to it; two thirds of what truncation discards
+is a FUNCTION of what it keeps.
+
+**2. On the boundary, with TRUE coefficients, that is worth +0.00018 of the composite.**
+
+| map | 1 - D_LCFS |
+|---|---|
+| PCA truncated | 0.994624 |
+| + recovered residual | **0.996426** |
+
+A third of the truncation loss, recovered by a decoder that took minutes.
+
+**3. On PREDICTED coefficients it collapses to a sixth of that.**
+
+| map | 1 - D_LCFS |
+|---|---|
+| model, PCA decode | 0.989325 |
+| model + residual decoder | 0.989620 |
+
+**+0.00003 in the composite** — below the paired resolution of 0.000045 at 12 salts, so it could not
+be confirmed even if it were wanted. The reason is structural: a correction computed from `c_pred`
+is the residual belonging to the map that HAS those coefficients, not to the true one.
+
+**4. So the corrector was retrained WHERE IT IS CONSUMED — and that fails decisively.** Target
+`psi_true - PCA_decode(c_pred)`, the model's FULL error, fitted on validation shots the trunk never
+saw and tested on a disjoint set. Held-out **R2 = -0.31, falling to -0.48** with more training —
+worse than predicting zero. Applied, it makes the boundary WORSE: 0.987660 -> 0.982792, and
+`R2_psi` 0.999652 -> 0.999499.
+
+**That negative is the most useful result of the four, and it generalises.** The model's own error
+carries no structure recoverable from the model's own output — **if it did, the model would already
+have removed it.** Truncation was predictable precisely because it is a property of the BASIS rather
+than of the model's mistakes. Any post-hoc corrector reading only the model's output is bounded by
+this.
+
+**What survives for `1q` proper.** The 0.65 figure says a nonlinear decoder has real work to do; the
++0.00003 says it cannot be bolted on afterwards. **The decoder has to be trained END TO END with the
+trunk**, so the coefficients it receives are the ones it was fitted for — which is the expensive
+version this entry always described, and now it has a measured reason rather than an aesthetic one.
+
 ### 1q. `upconv-decoder` — an embedding and a convolutional decoder, no basis at all
 **User's clarification, 2026-08-30: not a different PCA, but a learned embedding decoded by
 transposed convolutions.** features -> latent -> upconv stack -> 65x65 map. The decoder becomes part
