@@ -574,6 +574,59 @@ are carrying real information about the vertical position, and zeroing them cost
 geometry gains. Shrinking only the geometry-relevant directions is a live variant; a flat
 per-component rule is not.
 
+### 1o. `learned-basis` — an encoder trained on psi AND the seven, instead of PCA
+**User's idea, 2026-08-30.** Replace the fixed PCA decomposition with a learned representation whose
+objective is both flux reconstruction and the seven derived scalars, so the latent is shaped by what
+is scored rather than by explained variance.
+
+**The bound comes first, because it decides how much this can possibly be worth.** `1l` measured, on
+one set of held-out frames:
+
+| stage | mean R2 over the seven |
+|---|---|
+| PCA ceiling, 50 components, coefficients EXACT | 0.99726 |
+| **direct net, features -> 7 scalars, NO representation at all** | **0.97776** |
+| production ensemble, via the map | 0.97610 |
+| head on the trunk's 512-d hidden | 0.97520 |
+| head on the 50 PCA coefficients | 0.97501 |
+
+**The direct net has no bottleneck of any kind — it is the representation-free limit — and it reaches
+0.9778.** So no representation, learned or otherwise, can pass that from these features. The whole
+prize is 0.9778 - 0.9761 = **0.0027 in mean R2, or 0.00055 in the composite.** A learned basis is
+competing for the same 0.00055 that `pca-head` took a seventh of and could not confirm.
+
+**And the specific thing this would fix is already measured NOT to be broken.** The 50-dim
+bottleneck costs 0.0002 — that is the head reading 50 coefficients (0.97501) against the head
+reading the trunk's 512-d hidden (0.97520). Truncation costs 0.0027. The model's own shortfall is
+0.021. **Reparameterising repairs the term two orders of magnitude too small to matter.**
+
+**So what WOULD make this worth doing, stated as the hypothesis it has to be.** Not "represent psi
+better" — PCA reaches 0.9998 and 30 components already ceiling the seven at 0.990 while the model
+reaches 0.976. The only version with a mechanism is: **a basis whose coefficients are EASIER TO
+PREDICT FROM THE FEATURES.** PCA orders components by flux variance, which is not the same as by
+predictability — measured, components 0-3 come back at 0.022-0.033 sd of error while 38-49 arrive at
+1.0-1.5 sd, i.e. as noise. A basis chosen for predictability would spend its dimensions differently.
+That is a real and different objective, and it is the one to write into the loss.
+
+**Three costs to price before building anything:**
+- **Parseval breaks.** `TargetScaler` divides the psi block by one number because the PCA basis is
+  orthonormal, which makes plain MSE exactly `W_PSI * SS_res/SS_tot`. A learned decoder destroys
+  that identity, and the loss geometry — including the whole Jacobian metric built on top of it —
+  would have to be rederived rather than reused.
+- **The decoder ships.** It becomes part of inference and part of every artifact, where today the
+  basis is 50 fixed images.
+- **Every measurement on record was taken in the PCA basis.** `cons_split`, `cons_gain`,
+  `jacobian_delta`, the per-component error profile, `coef-shrink` — all of them would need
+  re-reading, and none would transfer automatically.
+
+**The cheap test that comes first, and settles whether to build the expensive thing.** Do not build
+an encoder. Ask whether a basis chosen for predictability exists at all: take the current
+coefficients, fit the model, and measure how much of the total coefficient error lies in a subspace
+that could be rotated away — i.e. whether the error is concentrated in directions PCA happened to
+choose or is isotropic. **If the predictable subspace is already 30-dimensional and the remaining 20
+are noise in ANY basis, there is nothing to rotate toward and this entry closes for free.** That is
+a diagnostic on existing artifacts, hours not days, and it is the honest first step.
+
 ### 1l. What actually limits Consistency: the FEATURES, not the basis
 **Measured 2026-08-28 on one set of held-out frames, so the levels are comparable to each other.**
 
