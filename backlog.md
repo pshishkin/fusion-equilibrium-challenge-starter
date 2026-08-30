@@ -44,6 +44,56 @@ on all seven scalars alike, and nine of those measured zero this week.
 Run the free gradient-fidelity gate before writing any training code for 1b/1c: it can close both.
 
 
+### 0a. `separate-reanalyze` — optimise `mlp` and `seq` on their own, NEXT
+**User's strategy, 2026-08-30.** Stop reading every change through the ensemble. Measure the change
+on the single model it touches, and **accept when the individual model is statistically better AND
+the ensemble is not statistically worse.** Same for `seq`.
+
+**The premise does not survive contact with the data, and that is the first thing this entry has to
+say.** The idea is that the ensemble dilutes an individual gain. It does — but it dilutes the NOISE
+harder. Measured on 12 salts of the `pca-head` arm and 12 of `cons-reweight`:
+
+| model | dS sd, head arm | dS sd, cons-reweight arm |
+|---|---|---|
+| mlp | 0.000507 | 0.000283 |
+| mlp1 | 0.000426 | 0.000473 |
+| mlp2 | 0.000424 | 0.000375 |
+| mlp3 | 0.000711 | 0.000674 |
+| seq | — | 0.000831 |
+| **ensemble** | **0.000209** | **0.000155** |
+
+**The ensemble is 2-5x quieter than any member, `seq` included.** So the t-statistics go the wrong
+way for the proposal: on `hstat` the ensemble reads t 2.26 while the best single model reads 1.04;
+on `pca-head` the ensemble reads 1.33 against mlp2's 1.80 and everything else below 0.8. Averaging
+four or five independent fits removes per-fit randomness faster than it removes a signal that is
+common to all of them.
+
+**When the proposal WOULD be right, stated so the rule can be applied where it helps.** The
+individual model is the finer instrument only when the ensemble absorbs the SIGNAL more than the
+noise — that is, when the change's work is already done by another member. That is the transfer
+rule, and it is a claim about a specific change, not about measurement in general. A change that
+touches only `seq` and duplicates what four MLPs already supply is the case to use this on; a change
+that helps every member alike is not.
+
+**The acceptance rule needs one repair before it can be used, and it is the important part.**
+"Statistically better individually AND not statistically worse on the ensemble" puts the burden of
+proof on one side only: the first half needs evidence, the second half is satisfied by ABSENCE of
+evidence. A noisy ensemble test therefore makes the gate EASIER, which is backwards. The fix is
+non-inferiority rather than a null result: require the ensemble's 95% CI to exclude harm larger than
+a stated margin. At the ensemble's measured sd of 0.000155, 12 salts give SE 0.000045, so a margin
+of 0.0001 is checkable and 0.00002 is not — the margin has to be declared with the arm, not chosen
+after seeing the interval.
+
+**Two more hazards worth writing down before the first arm runs:**
+- **Accumulation.** Several changes each individually harmless can sum to real ensemble damage; the
+  rule as stated never re-tests the stack. Re-measure the ensemble against the pre-stack baseline
+  every few accepted changes.
+- **Diversity.** The ensemble profits from members disagreeing — seeds correlate 0.56, feature sets
+  0.75. Making every member better in the SAME way removes disagreement, and can lower the ensemble
+  while raising each member. This is not hypothetical: the members sit at 0.9910-0.9912 and the
+  ensemble at 0.9935, so 0.0024 of the score is disagreement alone, thirty times the effects being
+  chased.
+
 ### 0. `resolution` — the instrument is the bottleneck, so it is the first thing to fix
 **Everything left to test is small. That makes resolution not a detail of the method but the
 binding constraint on the whole search**, and it outranks every hypothesis below because it decides
