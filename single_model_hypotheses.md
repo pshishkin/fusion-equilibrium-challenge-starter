@@ -122,6 +122,39 @@ construction site, not a new model class.
 survives to a stack it enters as an ADDITIONAL member, not a replacement, since the whole argument
 is diversity.
 
+### S5. `mlp-lr-adaptive` — a rate that responds to the curve, model: the MLPs
+**User's request, 2026-08-30.** The MLPs run at a CONSTANT rate: `lr_schedule: none` in all four
+blocks. Only two schedules exist in the code, `none` and `cosine`, and cosine on the MLP was
+refuted — `emacos` measured **-0.00015, 4 of 16 signs** against the accepted `ema`.
+
+**But that refutation does not cover what is being asked, and the difference is the entry.**
+`emacos` asked whether a FIXED decay curve helps a run that already averages its weights, and the
+answer was no, for a stated reason: both mechanisms shrink the same thing — where the trajectory
+ends up — so having one makes the other redundant. An adaptive rule (`ReduceLROnPlateau`: cut the
+rate when validation stops improving) is not a fixed curve. It cuts **when the curve says so**,
+which is information a cosine schedule does not have and weight averaging does not supply either.
+
+**The honest counter, recorded because today supplied it.** `head-cons-weights` tested exactly this
+shape of argument — a feedback rule against a fixed allocation — and the feedback rule did NOT beat
+the constant: adaptive +0.000028 against static +0.000055 over 11 salts, indistinguishable. Worse,
+the feedback rule converged to a fixed point predictable in advance (correlation 0.97 with a
+quantity measured two days earlier), so the loop was **measuring rather than steering**. An adaptive
+LR could fail the same way: if it always cuts at roughly the same step, it is a fixed schedule
+wearing a feedback costume, and the cheaper test is to read WHERE it cuts and hard-code that.
+
+**So the reading is pre-registered in two parts:**
+1. The composite against constant-rate control.
+2. **Where and how often it cut**, per fit. If the cut steps cluster tightly across salts and seeds,
+   the adaptive machinery is unnecessary regardless of the score — the same verdict the head's
+   feedback rule earned, reached the same way.
+
+**Also worth trying in the same family, since the plumbing is shared:** a WARMUP, which neither
+schedule has. The MLPs clip 0.2-0.5% of steps with a max gradient norm up to 201 against a threshold
+of 1 — the largest excursions are early, and a warmup is the standard answer to exactly that.
+
+**Screen:** 3 salts on rung one, against `lr_schedule: none`. Cheap: one field plus a scheduler
+construction beside the existing cosine branch.
+
 ### S3. `ema-patience` — model: the MLPs
 `ema` reaches its best at 65669 steps against the baseline's 76884 — **15% earlier** — and
 `patience_steps` was never revisited afterwards. One line of config.
