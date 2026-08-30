@@ -574,6 +574,61 @@ are carrying real information about the vertical position, and zeroing them cost
 geometry gains. Shrinking only the geometry-relevant directions is a live variant; a flat
 per-component rule is not.
 
+### 1q. `upconv-decoder` — an embedding and a convolutional decoder, no basis at all
+**User's clarification, 2026-08-30: not a different PCA, but a learned embedding decoded by
+transposed convolutions.** features -> latent -> upconv stack -> 65x65 map. The decoder becomes part
+of the model instead of being 50 fixed images.
+
+**The argument that PCA variants do not have, and it is a real one.** PCA is a GLOBAL basis: every
+component has support over the whole grid, and a map is a weighted sum of 50 whole-grid pictures.
+The LCFS is a LOCAL structure — a single contour whose position is what `D_LCFS` scores. A global
+basis represents a local feature only through cancellation among many modes, which is exactly the
+regime where truncation hurts most. A convolutional decoder has locality and spatial smoothness
+built in, which is the right prior for a flux field, and PCA has no spatial prior at all — it treats
+the 4225 pixels as an unordered vector and would give identical results if they were shuffled.
+
+**Where the payoff would have to come from, by the numbers.** Of what is still lost:
+
+| block | headroom x weight | share |
+|---|---|---|
+| Consistency | 0.004749 | 70.9% |
+| **D_LCFS** | **0.001128** | **16.8%** |
+| q95/betaN | 0.000707 | 10.6% |
+| R2_psi | 0.000114 | 1.7% |
+
+**Consistency is capped at 0.00055 by `1l` and that cap applies here too** — the seven derived from a
+predicted map are a function of the features, so no architecture beats the best predictor of them
+from those features, which the direct net estimates at 0.9778. **But `D_LCFS` was never measured
+against a PCA truncation ceiling**, and it is the one term whose geometry is local and whose share is
+16.8%. That is the gap this entry lives in.
+
+**The cheap diagnostic that comes first, and can close or open the entry for a couple of hours of
+compute.** Take true maps, project onto the 50 PCA components, reconstruct, and score `D_LCFS`
+against the truth — the same procedure that gave the seven their 0.99726 ceiling at n=50 and 0.99038
+at n=30. **If the reconstruction ceiling for `D_LCFS` is essentially 1.0, PCA is not losing the
+boundary and this entry closes.** If it is materially below the 0.9887 production reaches, the basis
+IS costing the boundary and a spatial decoder has a named target rather than an aesthetic one.
+
+**Second reason to build it even if the first fails: it is the most decorrelated member available.**
+Under `1p` the question for a new member is not its own score but its error correlation with the
+existing ones — seeds reach 0.56, feature sets 0.75. A convolutional decoder is a different function
+class entirely, not a different fit of the same one, so it is the strongest candidate on that axis
+in the whole file. `mlp+seq` = 0.9943 against 0.9940 for `mlp` plus three seeds already says one new
+architecture beats three new seeds.
+
+**Costs, priced honestly, because this is the most expensive entry here:**
+- **Parseval breaks and takes the Jacobian metric with it.** `TargetScaler` divides the psi block by
+  one number only because the basis is orthonormal; `metric_form`'s identity term IS the psi loss
+  because of that. A nonlinear decoder voids both, and the metric would need rederiving rather than
+  reusing.
+- **4225 outputs instead of 52.** Every fit, every artifact, every scoring pass.
+- **The decoder ships** and is part of inference.
+- **Nothing on record transfers**: `cons_split`, `cons_gain`, `jacobian_delta`, the per-component
+  error profile, `coef-shrink`, all measured in the PCA basis.
+
+**So the order is not negotiable:** the `D_LCFS` truncation diagnostic first, then — only if it
+shows a real loss, or if the diversity argument is taken on its own — the decoder.
+
 ### 1p. `basis-diversity` — a DIFFERENT basis, the same models, added to the blend
 **User's idea, 2026-08-30, and it escapes the bound that caps `1o`.** That bound — 0.00055, from the
 representation-free direct net — limits how well any single model can predict the seven FROM THESE
