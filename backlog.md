@@ -44,7 +44,52 @@ on all seven scalars alike, and nine of those measured zero this week.
 Run the free gradient-fidelity gate before writing any training code for 1b/1c: it can close both.
 
 
-### 0a. `separate-reanalyze` — optimise `mlp` and `seq` on their own, NEXT
+### 0a. `separate-reanalyze` — screen on single models, ACCUMULATE, confirm the stack, NEXT
+**User's strategy, refined 2026-08-30.** Screen each change on the single model it touches, keep
+everything with a positive point estimate, combine all the keepers, and test the STACK on the
+ensemble — asking there for a positive result, not necessarily a significant one.
+
+**This repairs the objection the first version had.** The single-model measurement is not being
+asked to prove anything; it only filters direction. The proving happens once, on the stack, where
+the effects add and the ensemble is the quieter instrument. That inverts the earlier problem
+instead of arguing with it.
+
+**Why it works, in the measured numbers.** Ensemble paired sd is 0.000155, single-model ~0.00045.
+If K accepted changes are each truly worth +0.00005 — the size these arms have been returning —
+the stack is K x that, and the ensemble resolves it easily:
+
+| K | 6 salts | 12 salts |
+|---|---|---|
+| 3 | t 2.4, P(p<0.05) 0.77 | t 3.4, P(p<0.05) 0.96 |
+| 6 | t 4.7, P(p<0.05) 0.999 | t 6.7, ~certain |
+| 10 | t 7.9 | t 11.2 |
+
+**Three changes is already enough to make a real stack visible, and six makes it unmissable.** That
+is the whole argument for accumulating rather than testing one at a time: individually these effects
+are unmeasurable on this machine, and summed they are trivial to measure.
+
+**The one hole, stated plainly.** A positive point estimate on the stack is passed by a coin flip
+**50% of the time when every accepted change is truly worth nothing** — and that probability does
+not improve with K, because accumulating zeros gives zero. The screen does not fix this either: at
+6 salts on one model, a change worth truly nothing shows a positive point estimate 50% of the time,
+and one worth +0.00005 shows it 61% of the time. **The filter enriches only slightly.**
+
+So the stack's confirmation has to carry the weight, and "positive" alone does not:
+
+- **Require significance on the stack, not just a positive sign.** The table above says that is
+  affordable — K=3 at 12 salts already has 96% power against a real effect. Asking for p < 0.05
+  there costs nothing when the effect is real and refuses the coin flip when it is not.
+- **Check that the parts ADD.** Compare the stack's measured effect against the sum of its members'
+  screened estimates. Coming in far under is the transfer rule eating the overlap, and that is worth
+  knowing rather than averaging away.
+- **Keep the screens' estimates on record**, so the stack can be decomposed if it disappoints.
+
+**Retained from the first version, since they are unaffected by the refinement:** the ensemble is
+2-5x quieter than any member (sd 0.000155 against 0.000283-0.000831, `seq` the noisiest), so the
+stack must be confirmed there and not on a member; and the members sit at 0.9910-0.9912 with the
+ensemble at 0.9935, so **0.0024 of the score is member disagreement alone** — thirty times the
+effects being chased — and a stack that improves every member in the same way can spend it.
+
 **User's strategy, 2026-08-30.** Stop reading every change through the ensemble. Measure the change
 on the single model it touches, and **accept when the individual model is statistically better AND
 the ensemble is not statistically worse.** Same for `seq`.
