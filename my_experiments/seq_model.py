@@ -97,6 +97,17 @@ class TorchSeqModel(TargetModel):
     # directions are concatenated before `delta`, so it sees 2 * seq_hidden.
     seq_hidden: int
     seq_layers: int
+    # Width of a SECOND recurrent stage on top of the first, per direction, or 0 to stack inside
+    # one module via `seq_layers`. The two are not the same knob and the difference is exactly what
+    # this field exists for: torch's stacked GRU gives every layer the same hidden size, so
+    # `seq_layers: 2` can only ever ask for 256 -> 256. A second module can be NARROWER, which is
+    # the shape worth asking about — the first stage sees 84 features per frame and has a whole
+    # shot to summarise, the second sees an already-summarised 512 and only has to refine it.
+    #
+    # At `seq_hidden2 == seq_hidden` this is `seq_layers: 2` in all but name (torch's second layer
+    # also takes 2 * hidden as its input, being bidirectional), which makes the pair a consistency
+    # check on each other rather than two independent guesses.
+    seq_hidden2: int
     # Which recurrent cell. `gru` is every number before 2026-08-30. `lstm` exists for DIVERSITY,
     # not for accuracy: `seq` alone loses to the MLP, 0.9914 against 0.9931, and earns its place
     # only in the average — where `mlp+seq` = 0.9943 beats `mlp` plus three extra seeds at 0.9940,
@@ -179,11 +190,16 @@ class TorchSeqModel(TargetModel):
                 self.gru = cell(cfg.seq_hidden, cfg.seq_hidden, cfg.seq_layers,
                                 batch_first=True, bidirectional=True,
                                 dropout=cfg.dropout if cfg.seq_layers > 1 else 0.0)
+                # A second stage, of its own width. Both directions of the first are concatenated
+                # into its input, which is why it reads 2 * seq_hidden.
+                self.gru2 = (cell(2 * cfg.seq_hidden, cfg.seq_hidden2, 1, batch_first=True,
+                                  bidirectional=True) if cfg.seq_hidden2 else None)
+                width = 2 * (cfg.seq_hidden2 or cfg.seq_hidden)
                 # One linear map, or a hidden layer first — built by `build_mlp` either way, so
                 # the activation and dropout conventions stay declared in one place.
-                self.delta = (build_mlp(2 * cfg.seq_hidden, [cfg.seq_head_hidden], n_out,
+                self.delta = (build_mlp(width, [cfg.seq_head_hidden], n_out,
                                         cfg.activation, cfg.dropout) if cfg.seq_head_hidden
-                              else torch.nn.Linear(2 * cfg.seq_hidden, n_out))
+                              else torch.nn.Linear(width, n_out))
                 # The whole point of the residual form: at initialisation this model IS `head`.
                 # Zeroing the OUTPUT layer, found rather than indexed — `build_mlp` may put
                 # dropout or a norm after the last Linear and an index would silently zero those.
@@ -206,6 +222,10 @@ class TorchSeqModel(TargetModel):
                 packed = torch.nn.utils.rnn.pack_padded_sequence(
                     self.enc(x), lengths, batch_first=True, enforce_sorted=False)
                 out, _ = self.gru(packed)
+                if self.gru2 is not None:
+                    # Straight through, still packed: unpacking between the stages would feed the
+                    # second one the padding the first was carefully never shown.
+                    out, _ = self.gru2(out)
                 seq, _ = torch.nn.utils.rnn.pad_packed_sequence(
                     out, batch_first=True, total_length=x.shape[1])
                 return self.head(x), self.delta(seq)

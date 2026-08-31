@@ -783,6 +783,11 @@ models:
     # model would be throwing away half the context for a constraint this task does not have.
     seq_hidden: 256
     seq_layers: 1
+    # A second recurrent stage of its own width, or 0 to stack inside one module with
+    # `seq_layers` above. Only this one can be NARROWER than the first: torch gives every
+    # layer of a stacked GRU the same hidden size. At 256 the two are the same architecture,
+    # which is what makes them a check on each other.
+    seq_hidden2: 0
     # `gru` is every number before 2026-08-30. `lstm` is a DIVERSITY arm, not an accuracy
     # one: seq alone loses to the MLP and earns its place in the average, where one extra
     # architecture beats three extra seeds. Judge it by error correlation with the
@@ -853,6 +858,9 @@ models:
     # model would be throwing away half the context for a constraint this task does not have.
     seq_hidden: 256
     seq_layers: 1
+    seq_cell: gru
+    seq_head_hidden: 0
+    seq_hidden2: 0
     # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
     # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
     batch_shots: 32
@@ -913,6 +921,9 @@ models:
     # model would be throwing away half the context for a constraint this task does not have.
     seq_hidden: 256
     seq_layers: 1
+    seq_cell: gru
+    seq_head_hidden: 0
+    seq_hidden2: 0
     # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
     # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
     batch_shots: 32

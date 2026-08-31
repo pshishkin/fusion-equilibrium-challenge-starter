@@ -155,6 +155,26 @@ head that scores the same but errs elsewhere is worth more than one that scores 
 the same places. Report the error correlation with the control arm alongside the composite.
 
 
+### S7. `seq-depth` — a second recurrent stage, and one that can be NARROWER — model: `seq` — **CODE READY 2026-08-31**
+`seq_layers` (already existed, never varied) and `seq_hidden2` (new). **They are not the same knob,
+and that is the entry.** torch's stacked GRU gives every layer the same hidden size, so
+`seq_layers: 2` can only ask for 256 -> 256; `seq_hidden2` is a second module and can be narrower.
+The smoke test asserts `seq_layers=2` and `seq_hidden2=256` build to the SAME parameter count
+(2703720), which makes each a check on the other rather than two independent guesses, and leaves
+`seq_hidden2: 128` as the only genuinely new shape.
+
+**User's clarification, 2026-08-31:** they meant the GRU stack, not the head — S6 is the head and
+both are being screened together.
+
+**Why narrower is the shape worth asking about.** The first stage sees 84 features per frame and has
+a whole shot to summarise; the second sees an already-summarised 512 and only has to refine it.
+Those are different jobs and there is no reason the same width serves both.
+
+**The second stage runs on the PACKED sequence**, not on a re-padded one. Unpacking between stages
+would feed the second stage exactly the padding the first was carefully never shown — a bug that
+does not crash, does not change any shape, and quietly trains the model on the pad value.
+
+
 ### S5. `mlp-lr-adaptive` — a rate that responds to the curve, model: the MLPs — **CODE READY 2026-08-30**
 `lr_schedule: plateau` plus `warmup_steps` and `plateau_patience_evals` on every torch_mlp
 block, all defaulting to off. `_lr_cuts` records every cut and `fit_report` prints them, so the
