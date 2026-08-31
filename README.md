@@ -617,6 +617,41 @@ D_LCFS is deliberately absent from `M`: it is a distance, zero at the ground tru
 difference sees no derivative at all. It improves anyway, because the shape scalars that ARE in `M`
 overlap it.
 
+## The lane runner
+
+`tools/lane.sh` is what produces every paired number in this project: for each salt and each arm it
+trains one artifact, scores it, and appends a row to a CSV. It lived in a scratch directory until
+2026-08-31 and was therefore invisible to the history — while carrying two bugs in one week, neither
+of which left a trace anywhere reviewable. That is why it is here now.
+
+```
+JOBS=10 NAME=q OUTFILE=x_something.csv ARMS="base treat" MODELS="ridge mlp mlp1 mlp2 mlp3" \
+  ARM_SET_base="" ARM_SET_treat="--set models.mlp.head_weight=0.1" \
+  SALTS="0 1 2 3 4 5" tools/lane.sh [wait-pids...]
+```
+
+Salts are the OUTER loop and arms the inner, so every arm of a salt sits inside the same split and
+the arms are paired with each other rather than merely each against its own control. Trailing
+arguments are PIDs to wait for, which is how one lane queues behind another. It resumes from the
+CSV, so a killed lane loses only the run in flight.
+
+**`SCORE` names which members to score, default `ensemble` alone.** Scoring is about half a run at
+~2.5 min a member, and reading one row while scoring six was pure waste. Pass `SCORE="mlp ensemble"`
+when a per-model table is actually wanted.
+
+**Two traps it has already sprung, both worth reading before touching it:**
+
+- **Never edit `lane.sh` while a lane is running.** Bash reads a script as it executes, so an edit
+  shifts byte offsets under the interpreter and the loop can misexecute or die mid-run. This
+  happened on 2026-08-30; the data survived by luck, not by design. Stop the lane, edit, relaunch —
+  it resumes from the CSV.
+- **The row extractor reads TWO formats, and that is not redundancy.** `local_score.py` prints its
+  comparison table only when more than one model is scored, so `SCORE=ensemble` — the default, for
+  speed — produces no table at all. The extractor tries the table row, then falls back to the
+  single-model block. Before the fallback existed, a finished 45-minute run was discarded with a
+  "NO ensemble row" message; the same shape of failure had already cost three runs in the lambda
+  sweep in August. **If a change alters what scoring prints, check this extractor.**
+
 ## Things that already cost time
 
 **Changing `FEATURE_WIDTH` while a comparison is in flight costs the comparison.** The cache key
