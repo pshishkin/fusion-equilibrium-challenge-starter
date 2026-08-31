@@ -1,0 +1,17 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+y_emacos_s11,0.9900,0.9997,0.9917,0.9877,0.9632,0.7984,263.7,41000,59400,648,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s12,0.9938,0.9998,0.9955,0.9900,0.9781,0.8206,215.0,38200,56600,514,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s13,0.9922,0.9998,0.9950,0.9887,0.9711,0.7744,266.4,38500,56900,563,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s14,0.9918,0.9998,0.9891,0.9893,0.9728,0.7186,283.9,40950,59350,645,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s15,0.9896,0.9998,0.9937,0.9788,0.9639,0.7243,247.6,37350,55750,528,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s0,0.9928,0.9998,0.9962,0.9893,0.9730,0.7651,247.9,38750,57150,533,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s1,0.9917,0.9998,0.9920,0.9872,0.9714,0.7240,270.6,38100,56500,557,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s2,0.9905,0.9996,0.9934,0.9881,0.9646,0.6295,272.6,42950,61350,565,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s3,0.9920,0.9997,0.9964,0.9884,0.9697,0.6680,211.4,35450,53850,507,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s4,0.9920,0.9997,0.9941,0.9875,0.9714,0.7894,223.3,34850,53250,519,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s5,0.9909,0.9996,0.9943,0.9857,0.9672,0.8274,251.8,33650,52050,544,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s6,0.9911,0.9998,0.9935,0.9886,0.9666,0.7492,223.2,38850,57250,523,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s7,0.9914,0.9993,0.9955,0.9866,0.9690,0.7988,287.4,41950,60350,584,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s8,0.9907,0.9996,0.9908,0.9887,0.9674,0.8068,284.3,48550,66950,593,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s9,0.9938,0.9998,0.9952,0.9892,0.9786,0.8141,236.5,45000,63400,520,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000
+y_emacos_s10,0.9894,0.9997,0.9938,0.9867,0.9592,0.6780,178.1,29350,47750,477,models.mlp.ema_decay=0.999 models.mlp.lr_schedule=cosine models.mlp.lr_t_max_steps=70000

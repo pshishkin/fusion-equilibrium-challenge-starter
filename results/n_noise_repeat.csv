@@ -1,0 +1,6 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+n1_repeat_s3,0.9889,0.9996,0.9955,0.9876,0.9555,0.6609,202.6,50000,68400,465,features.pca_frame_share=0.2
+n2_repeat_s3,0.9889,0.9996,0.9955,0.9876,0.9555,0.6609,201.2,50000,68400,463,features.pca_frame_share=0.2
+n3_repeat_s3,0.9889,0.9996,0.9955,0.9876,0.9555,0.6609,202.3,50000,68400,466,features.pca_frame_share=0.2
+n4_repeat_s3,0.9889,0.9996,0.9955,0.9876,0.9555,0.6609,199.0,50000,68400,462,features.pca_frame_share=0.2
+n5_repeat_s3,0.9889,0.9996,0.9955,0.9876,0.9555,0.6609,207.5,50000,68400,470,features.pca_frame_share=0.2

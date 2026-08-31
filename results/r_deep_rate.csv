@@ -1,0 +1,5 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+r1_w700d3_lr14,0.9927,0.9997,0.9956,0.9891,0.9730,0.7576,204.5,23850,42250,469,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[700,700,700] models.mlp.learning_rate=1.4e-3"
+r2_w700d3_lr7,0.9911,0.9997,0.9950,0.9886,0.9657,0.7576,275.8,38250,56650,538,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[700,700,700] models.mlp.learning_rate=7e-4"
+r3_w700d3_lr35,0.9917,0.9997,0.9956,0.9890,0.9680,0.7576,613.1,106700,125100,877,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[700,700,700] models.mlp.learning_rate=3.5e-4"
+r4_w512d2_lr7,0.9911,0.9997,0.9955,0.9879,0.9661,0.7576,451.5,135650,154050,713,features.pca_frame_share=0.2 models.mlp.learning_rate=7e-4

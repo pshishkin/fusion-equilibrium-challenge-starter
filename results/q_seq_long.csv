@@ -1,0 +1,2 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+q7_base_long,0.9914,0.9997,0.9914,0.9872,0.9706,0.7658,2467.8,45500,55500,2735,features.frame_gaps=true features.pca_frame_share=0.2 models.seq.max_steps=200000

@@ -1,0 +1,10 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+t0_default_s0,0.9906,0.9997,0.9921,0.9875,0.9660,0.7576,156.1,34200,52600,417,features.pca_frame_share=0.2
+t1_lr7e-4_s0,0.9911,0.9997,0.9955,0.9879,0.9661,0.7576,437.4,135650,154050,699,features.pca_frame_share=0.2 models.mlp.learning_rate=7e-4
+t2_clip1_s0,0.9921,0.9997,0.9955,0.9887,0.9705,0.7576,327.3,86850,105250,588,features.pca_frame_share=0.2 models.mlp.grad_clip=1.0
+t0_default_s3,0.9889,0.9996,0.9955,0.9876,0.9555,0.6609,199.3,50000,68400,463,features.pca_frame_share=0.2
+t1_lr7e-4_s3,0.9902,0.9996,0.9951,0.9875,0.9618,0.6609,528.2,160250,178650,792,features.pca_frame_share=0.2 models.mlp.learning_rate=7e-4
+t2_clip1_s3,0.9896,0.9996,0.9959,0.9874,0.9583,0.6609,317.3,83600,102000,580,features.pca_frame_share=0.2 models.mlp.grad_clip=1.0
+t0_default_s4,0.9894,0.9996,0.9920,0.9850,0.9617,0.7868,92.0,12050,30450,364,features.pca_frame_share=0.2
+t1_lr7e-4_s4,0.9913,0.9996,0.9935,0.9866,0.9693,0.7868,516.3,158800,177200,788,features.pca_frame_share=0.2 models.mlp.learning_rate=7e-4
+t2_clip1_s4,0.9902,0.9996,0.9932,0.9865,0.9639,0.7868,224.0,54800,73200,497,features.pca_frame_share=0.2 models.mlp.grad_clip=1.0

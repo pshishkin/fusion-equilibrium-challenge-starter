@@ -1,4 +1,15 @@
-results/
+# results/ holds two different things and only one of them is regenerable.
+#
+# The EXPERIMENT tables — x_*/y_*/z_* and the lettered grids — are every paired number this project
+# has produced: ~200 KB for 48 files, and irreplaceable, since reproducing one row costs 45 minutes
+# of GPU and the salt lists are not recorded anywhere else. Tracked from 2026-08-31, after a
+# 45-minute run was nearly lost to a runner bug that the history could not have caught.
+#
+# The PER-FRAME dumps are diagnostics: 113 MB of frame_costs_*/fc_*/frame_sens, one row per frame,
+# rebuilt on demand from an artifact. Those stay out.
+results/frame_costs*.csv
+results/fc_*.csv
+results/frame_sens.csv
 .venv/
 __pycache__/
 *.pyc

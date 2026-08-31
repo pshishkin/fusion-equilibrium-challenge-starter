@@ -1,0 +1,13 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+a15_w512_d2_p0,0.9906,0.9997,0.9921,0.9875,0.9660,0.7576,161.7,34200,52600,789,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[512,512] models.mlp.dropout=0.0"
+a15_w512_d3_p0,0.9909,0.9996,0.9944,0.9871,0.9663,0.7576,92.2,6000,24400,372,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[512,512,512] models.mlp.dropout=0.0"
+a15_w700_d2_p0,0.9915,0.9997,0.9946,0.9882,0.9681,0.7576,193.8,42350,60750,460,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[700,700] models.mlp.dropout=0.0"
+a15_w700_d3_p0,0.9832,0.9993,0.9891,0.9824,0.9352,0.7576,144.4,11650,30050,407,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[700,700,700] models.mlp.dropout=0.0"
+a15_w512_d2_p002,0.9918,0.9996,0.9954,0.9878,0.9698,0.7576,235.4,50700,69100,501,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[512,512] models.mlp.dropout=0.02"
+a15_w512_d3_p002,0.9907,0.9996,0.9938,0.9869,0.9657,0.7576,102.7,6500,24900,365,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[512,512,512] models.mlp.dropout=0.02"
+a15_w700_d2_p002,0.9903,0.9995,0.9935,0.9866,0.9641,0.7576,102.6,10650,29050,365,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[700,700] models.mlp.dropout=0.02"
+a15_w700_d3_p002,0.9911,0.9995,0.9940,0.9874,0.9679,0.7576,121.3,5850,24250,384,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[700,700,700] models.mlp.dropout=0.02"
+a15_w512_d2_p01,0.9893,0.9994,0.9930,0.9861,0.9601,0.7576,174.9,39350,57750,436,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[512,512] models.mlp.dropout=0.1"
+a15_w512_d3_p01,0.9887,0.9993,0.9924,0.9853,0.9583,0.7576,91.7,6750,25150,354,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[512,512,512] models.mlp.dropout=0.1"
+a15_w700_d2_p01,0.9887,0.9994,0.9931,0.9855,0.9573,0.7576,131.1,19650,38050,393,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[700,700] models.mlp.dropout=0.1"
+a15_w700_d3_p01,0.9870,0.9992,0.9927,0.9837,0.9511,0.7576,231.9,27650,46050,493,"features.pca_frame_share=0.2 models.mlp.hidden_sizes=[700,700,700] models.mlp.dropout=0.1"

@@ -1,0 +1,3 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_epoch,ran_epochs,wall_s,sets
+70_full_s3,0.9888,0.9996,0.9956,0.9871,0.9549,0.6609,199.3,155,216,623,models.mlp.patience=60 models.mlp.epochs=1207 features.pca_frame_share=0.1
+71_full_s4,0.9911,0.9996,0.9943,0.9866,0.9678,0.7868,160.5,124,185,589,models.mlp.patience=60 models.mlp.epochs=1207 features.pca_frame_share=0.1

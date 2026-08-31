@@ -1,0 +1,2 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+q1_base,0.9911,0.9997,0.9910,0.9872,0.9694,0.7658,1762.4,40000,40000,2031,features.frame_gaps=true features.pca_frame_share=0.2

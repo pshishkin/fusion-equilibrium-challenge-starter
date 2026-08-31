@@ -1,0 +1,2 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+x_aux_s0,0.9918,0.9997,0.9951,0.9880,0.9697,0.7651,240.8,57400,75800,665,"loss.aux_scalars=kappa,li loss.aux_weight=0.1"

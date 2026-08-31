@@ -1,0 +1,17 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+z_hd4_s0,0.9924,0.9998,0.9958,0.9889,0.9712,0.7651,373.3,91500,109900,656,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s1,0.9908,0.9997,0.9885,0.9873,0.9695,0.7240,301.7,77350,95750,583,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s2,0.9904,0.9996,0.9938,0.9875,0.9641,0.6295,441.1,114250,132650,727,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s3,0.9899,0.9995,0.9958,0.9880,0.9602,0.6680,341.4,86800,105200,645,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s4,0.9916,0.9997,0.9926,0.9871,0.9705,0.7894,283.2,64950,83350,576,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s5,0.9903,0.9995,0.9940,0.9852,0.9647,0.8274,421.9,111150,129550,729,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s6,0.9903,0.9998,0.9924,0.9884,0.9637,0.7492,369.9,97750,116150,668,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s7,0.9907,0.9996,0.9944,0.9853,0.9658,0.7988,236.5,58650,77050,602,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s8,0.9905,0.9995,0.9921,0.9881,0.9656,0.8068,620.8,132200,150600,992,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s9,0.9936,0.9998,0.9958,0.9884,0.9775,0.8141,452.1,115300,133700,987,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s10,0.9890,0.9996,0.9946,0.9868,0.9570,0.6780,252.4,42750,61150,533,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s11,0.9916,0.9997,0.9947,0.9878,0.9692,0.7984,355.5,67900,86300,640,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s12,0.9937,0.9998,0.9954,0.9896,0.9776,0.8206,357.8,93500,111900,641,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s13,0.9922,0.9998,0.9950,0.9885,0.9711,0.7744,319.1,63600,82000,601,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s14,0.9904,0.9998,0.9863,0.9887,0.9685,0.7186,411.1,92300,110700,704,models.mlp.loss=huber models.mlp.huber_delta=4.0
+z_hd4_s15,0.9909,0.9997,0.9945,0.9794,0.9698,0.7243,272.8,67400,85800,562,models.mlp.loss=huber models.mlp.huber_delta=4.0

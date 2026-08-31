@@ -1,0 +1,2 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_step,ran_steps,wall_s,sets
+y_d99995_s0,0.9928,0.9998,0.9958,0.9887,0.9734,0.7651,307.5,65300,83700,602,models.mlp.ema_decay=0.99995

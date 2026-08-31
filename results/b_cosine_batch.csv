@@ -1,0 +1,11 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,ridge_S,fit_s,best_epoch,ran_epochs,wall_s,sets
+29_const_p300,0.9873,0.9994,0.9899,0.9859,0.9525,0.7615,322.3,773,1074,471,models.mlp.patience=300
+30_cos400_p300,0.9881,0.9996,0.9903,0.9865,0.9557,0.7615,266.5,569,870,416,models.mlp.lr_schedule=cosine models.mlp.lr_t_max=400 models.mlp.patience=300
+31_cos600_p300,0.9886,0.9996,0.9911,0.9866,0.9576,0.7615,266.2,602,903,414,models.mlp.lr_schedule=cosine models.mlp.lr_t_max=600 models.mlp.patience=300
+32_cos900_p300,0.9878,0.9995,0.9908,0.9866,0.9541,0.7615,355.0,888,1189,504,models.mlp.lr_schedule=cosine models.mlp.lr_t_max=900 models.mlp.patience=300
+33_cos600_lr3e-3_p300,0.9849,0.9995,0.9882,0.9839,0.9428,0.7615,207.3,390,691,356,models.mlp.lr_schedule=cosine models.mlp.lr_t_max=600 models.mlp.learning_rate=3e-3 models.mlp.patience=300
+10_bs1024_sqrt,0.9862,0.9995,0.9906,0.9859,0.9464,0.7615,157.3,712,913,306,models.mlp.batch_size=1024 models.mlp.learning_rate=1.4e-3 models.mlp.patience=200 models.mlp.epochs=4000
+11_bs2048_sqrt,0.9874,0.9994,0.9896,0.9863,0.9534,0.7615,118.7,722,1123,333,models.mlp.batch_size=2048 models.mlp.learning_rate=2.0e-3 models.mlp.patience=400 models.mlp.epochs=8000
+12_bs4096_sqrt,0.9875,0.9995,0.9906,0.9859,0.9530,0.7615,101.1,988,1789,249,models.mlp.batch_size=4096 models.mlp.learning_rate=2.8e-3 models.mlp.patience=800 models.mlp.epochs=16000
+13_bs4096_lin,0.9826,0.9992,0.9857,0.9817,0.9349,0.7615,88.1,741,1542,236,models.mlp.batch_size=4096 models.mlp.learning_rate=8.0e-3 models.mlp.patience=800 models.mlp.epochs=16000
+15_bs256_sqrt,0.9882,0.9995,0.9909,0.9859,0.9561,0.7615,175.3,237,288,323,models.mlp.batch_size=256 models.mlp.learning_rate=7.1e-4 models.mlp.patience=50 models.mlp.epochs=1000

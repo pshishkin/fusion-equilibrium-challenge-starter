@@ -787,6 +787,16 @@ the newest; keep the rest.
 `baseline.joblib` (retrain with the command above), `submission/`, `submissions/`,
 `manifest.json` and `.env` — the last three hold the read token in plaintext.
 
+**`results/` is now split rather than excluded wholesale.** The experiment tables — `x_*`, `y_*`,
+`z_*` and the lettered grids, 48 files and about 190 KB — are tracked from 2026-08-31. They are
+every paired number this project has produced, one row costs 45 minutes of GPU to reproduce, and
+the salt lists behind them are recorded nowhere else. The per-frame dumps stay out:
+`frame_costs*`, `fc_*` and `frame_sens.csv` are 113 MB of one-row-per-frame diagnostics, rebuilt on
+demand from an artifact.
+
+`artefacts/` (1.7 GB of per-salt fits), `logs/` (99 MB) and `.aux_targets/` (454 MB, 13 core-hours
+but keyed to an exact file list) remain untracked for size.
+
 `.env` is where the token lives, as `HF_READ_TOKEN=hf_...`; the Makefile includes and exports it,
 so `make predict_and_submit_to_hf` needs no argument and the token never reaches the command line.
 `.env.example` is the tracked stub. It is deliberately not the Makefile itself — that file IS
