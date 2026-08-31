@@ -10,22 +10,30 @@
 #
 # `ridge` is fitted only because `train.py` fits something; it is never called here.
 #
-# Usage: tools/basis_ceiling.sh tag:envelope:sobolev [tag:envelope:sobolev ...]
+# Usage: tools/basis_ceiling.sh tag:envelope:sobolev[:n_pca] [...]   (n_pca defaults to 50)
+#
+# n_pca is here because it is the OTHER lever on the same ceiling, and unlike the shaped basis
+# it can only ever raise it — more components reconstruct strictly better. So the ceiling
+# cannot refute it and is not being asked to: it prices the prize, and
+# my_experiments/diagnose_components.py asks the question that can say no, which is whether the
+# regression reaches the coordinates at all.
 cd /workspace/fusion-equilibrium-challenge-starter
 mkdir -p artefacts/basis logs results
 OUT="results/${OUTFILE:-x_basis_ceiling.csv}"
-[ -f "$OUT" ] || echo "name,envelope,sobolev,S,R2_psi,R2_qb,D_LCFS,Cons,wall_s" > "$OUT"
+[ -f "$OUT" ] || echo "name,envelope,sobolev,n_pca,S,R2_psi,R2_qb,D_LCFS,Cons,wall_s" > "$OUT"
 for cand in "$@"; do
-  IFS=: read -r tag env sob <<< "$cand"
+  IFS=: read -r tag env sob npca <<< "$cand"
+  npca="${npca:-50}"
   grep -q "^${tag}," "$OUT" && { echo "have $tag"; continue; }
   ART="artefacts/basis/baseline_${tag}.joblib"
   LOG="logs/$(date -u +%Y%m%d-%H%M%S)-basis-${tag}.log"
-  echo "=== $(date -u +%H:%M) $tag  envelope x${env}  sobolev ${sob} ==="
+  echo "=== $(date -u +%H:%M) $tag  envelope x${env}  sobolev ${sob}  n_pca ${npca} ==="
   T0=$SECONDS
   FUSION_ARTIFACT="$ART" OMP_NUM_THREADS=8 OPENBLAS_NUM_THREADS=8 MKL_NUM_THREADS=8 \
     uv run python my_experiments/train.py --share "${SHARE:-0.80/1.0}" \
     --val-share "${VALSHARE:-0.15/1.0}" --jobs "${JOBS:-20}" --only ridge \
-    --set "features.basis_envelope=${env}" "features.basis_sobolev=${sob}" > "$LOG" 2>&1 \
+    --set "features.basis_envelope=${env}" "features.basis_sobolev=${sob}" \
+          "features.n_pca=${npca}" > "$LOG" 2>&1 \
     || { echo "  FIT FAILED, see $LOG"; continue; }
   FUSION_ARTIFACT="$ART" uv run python my_experiments/evaluate.py --mode basis \
     --share "${SCORE:-0.05}" --jobs "${JOBS:-20}" >> "$LOG" 2>&1 \
@@ -41,7 +49,7 @@ for cand in "$@"; do
     END {if (s!="" && p!="" && q!="" && d!="" && c!="") print s","p","q","d","c}
   ' <(sed -E 's/^\[[^]]*\] *//' "$LOG"))
   [ -z "$R" ] && { echo "  NO ceiling row in $LOG"; continue; }
-  echo "${tag},${env},${sob},${R},$((SECONDS-T0))" >> "$OUT"
+  echo "${tag},${env},${sob},${npca},${R},$((SECONDS-T0))" >> "$OUT"
   echo "  -> ${tag},${R}"
 done
 echo "BASIS CEILING SWEEP COMPLETE"
