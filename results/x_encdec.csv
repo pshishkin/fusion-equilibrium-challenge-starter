@@ -5,3 +5,14 @@ c_v3_mask4,0.983450,,,0.981870,0.932979,+ plasma envelope weighted 4x
 c_v4_lat256,0.971887,,,0.975642,0.878030,latent 256 instead of 50 — much worse
 c_v5_mask16,0.985139,0.999549,0.992349,0.982213,0.941566,envelope weighted 16x
 c_v6_sobolev,0.985652,0.999606,0.993693,0.982494,0.942827,gradient matching + envelope 4x
+c_v7_m16sob,0.985811,0.999613,0.993588,0.982439,0.943707,envelope 16x + gradient matching — seed 0
+c_v8_bilinear,0.985771,,,,,bilinear upsampling — within the seed spread
+c_v9_coords,0.985573,,,,,coordinate channels — within the seed spread
+c_v10_sobolev_1overR,0.984951,,,,,gradient term weighted 1/R — hurts every functional
+c_w_lat30,0.984586,,,,,latent 30 on the v7 base
+c_w_lat70,0.985472,,,,,latent 70 on the v7 base
+c_w_lat100,0.984197,,,,,latent 100 on the v7 base
+c_e_seed1,0.987162,,,,,v7 config, seed 1
+c_e_seed2,0.986707,,,,,v7 config, seed 2
+c_e_seed3,0.986323,,,,,v7 config, seed 3
+c_C3_ensemble,0.989124,,,,,average of seeds 0-2 — ensembling buys +0.0026
