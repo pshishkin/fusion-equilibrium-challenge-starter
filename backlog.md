@@ -628,6 +628,36 @@ replacement for PCA.** So it is judged on two axes at once — its own composite
 correlation with the existing members, where seeds reach 0.602 and `n_pca=30` reached 0.625. A
 different function class is the only untried candidate that could land below either.
 
+#### Step one, run 2026-08-31: joint training helps, but not on a trunk anyone would ship
+Two arms, identical trunks, data and steps; one trained in coefficient space as production does, one
+trained END TO END through a transposed-convolution decoder with the loss in MAP space. The decoder's
+last layer is zero-initialised, so at step 0 arm B **is** arm A.
+
+| steps | arm | 1 - D_LCFS | R2_psi |
+|---|---|---|---|
+| 12000 | A coefficient loss | 0.974776 | 0.994094 |
+| 12000 | B joint, map loss | 0.973153 | **0.997733** |
+| 60000 | A coefficient loss | 0.977514 | 0.994636 |
+| 60000 | B joint, map loss | **0.978738** | **0.998034** |
+
+**Joint training improves the map substantially (+0.0034 of R2_psi) and, once the trunk is trained
+long enough, the boundary too (+0.0012).** At 12000 steps the boundary went the other way — that
+was a training-length artifact, and it is exactly the kind of number that would have been reported
+as a finding if the longer run had not been done.
+
+**Neither number transfers, and the script now says so itself.** Both trunks sit 0.0054 and 0.0020
+from a perfect map where production sits at **0.0002** — ten to twenty-seven times further out. A
+decoder helping there is mostly rescuing an UNDERTRAINED trunk, which is not the question. The
+check is wired into the output rather than left to memory: any arm landing below R2_psi 0.999 now
+prints how far it is from production's residual, because reading 0.994 as if it were 0.9998 is the
+mistake this table exists to prevent.
+
+**Why the offline test cannot close the question.** The trunk here saw 500 shots against production's
+5633 and is one net against four ensembled. Getting to 0.9998 IS the production pipeline, so the
+remaining step is integration, not another script: the decoder has to be carried in the artifact and
+applied after `pca.inverse_transform` in `predict_row`, and `fit()` needs the PCA basis to compute a
+map-space loss at all.
+
 #### The original framing, kept: replacing PCA outright
 **User's clarification, 2026-08-30: not a different PCA, but a learned embedding decoded by
 transposed convolutions.** features -> latent -> upconv stack -> 65x65 map. The decoder becomes part
