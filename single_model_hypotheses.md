@@ -67,6 +67,28 @@ and shares nothing with the other members, which is the criterion for living her
 
 ## The shot-mixer family — S8/S9/S10, and why they rank above S4/S6/S7
 
+**All three are CODE READY 2026-08-31 and verified twice, because building is not fitting.** The
+static smoke exercises `_build` and `forward`; a real fit also packs, clips, averages weights into an
+EMA and restores a state dict, and each of those is a place a new mixer can be wrong 45 minutes into
+a lane arm instead of 90 seconds into a screen. Both were run:
+
+| arm | padding leak into valid frames | fits | correction's share of the prediction |
+|---|---|---|---|
+| `conv` | 0.000e+00 | yes | 42.8% |
+| `attn` | 0.000e+00 | yes | 58.6% |
+| `skip` | 0.000e+00 | yes | 78.2% |
+| `conv`+`skip` | 0.000e+00 | yes | 31.0% |
+
+The last column is the model's own diagnostic and it is why `parts()` returns the two halves
+separately: it says the sequence branch is actually being USED rather than sitting at the zero it
+was initialised to. At 60 steps the sizes mean nothing about accuracy — they mean the machinery is
+live, which is the only thing a smoke test can honestly claim.
+
+The leak column is the one that matters. Neither new mixer can use a `PackedSequence`, so both carry
+an explicit mask, and the test writes 9.0 over every padded frame and demands the valid outputs do
+not move. **A mask that leaks changes no shape and raises nothing** — it would simply have trained
+the model on the pad value, and been invisible in every number the lane reported.
+
 **User's request, 2026-08-31, after reading the argument below and asking for it to be kept.**
 
 **The criterion for `seq` is DISAGREEMENT, not accuracy, and that is measured rather than argued.**
