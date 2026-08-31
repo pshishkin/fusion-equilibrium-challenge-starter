@@ -37,12 +37,89 @@ The gap to A is one term: Consistency 0.9437 against 0.9740, which is 85% of the
 """
 import argparse
 import sys
+from pathlib import Path
 
 import numpy as np
 import torch
 
 sys.path.insert(0, 'my_experiments')
 sys.path.insert(0, '.')
+
+
+MAPNET_KIND = "mapnet"
+
+
+def build_nets(n_in: int, latent: int, grid: int, upsample: str, coords: bool, dev: str,
+               seed: int = 0) -> dict:
+    """Every module of a mapnet, built the same way for training and for inference.
+
+    One function rather than two because a decoder rebuilt slightly differently at predict time is
+    a silent corruption: it loads, it runs, and it returns a map that is nobody's model.
+    """
+    import torch
+    torch.manual_seed(seed)
+    enc = torch.nn.Sequential(torch.nn.Linear(n_in, 512), torch.nn.GELU(),
+                              torch.nn.Linear(512, 512), torch.nn.GELU(),
+                              torch.nn.Linear(512, latent)).to(dev)
+    lin = torch.nn.Linear(latent, grid * grid).to(dev)
+    seed_mod = torch.nn.Sequential(torch.nn.Linear(latent, 64 * 9 * 9), torch.nn.GELU(),
+                                   torch.nn.Unflatten(1, (64, 9, 9))).to(dev)
+    extra = 2 if coords else 0
+
+    class Up(torch.nn.Module):
+        def __init__(self, cin, cout, mode):
+            super().__init__()
+            self.mode = mode
+            self.op = (torch.nn.ConvTranspose2d(cin, cout, 4, 2, 1) if mode == "convt"
+                       else torch.nn.Conv2d(cin, cout, 3, 1, 1))
+
+        def forward(self, x):
+            if self.mode == "bilinear":
+                x = torch.nn.functional.interpolate(x, scale_factor=2, mode="bilinear",
+                                                    align_corners=False)
+            return self.op(x)
+
+    body = torch.nn.Sequential(
+        Up(64 + extra, 48, upsample), torch.nn.GELU(),
+        Up(48, 32, upsample), torch.nn.GELU(),
+        Up(32, 16, upsample), torch.nn.GELU(),
+        torch.nn.Conv2d(16, 1, 3, 1, 1)).to(dev)
+    qb = torch.nn.Sequential(torch.nn.Linear(latent, 128), torch.nn.GELU(),
+                             torch.nn.Linear(128, 2)).to(dev)
+    return {"enc": enc, "lin": lin, "seed": seed_mod, "body": body, "qb": qb}
+
+
+def mapnet_predict(art: dict, Xs, grid: int):
+    """Decoded maps and scalars from a mapnet artifact. Runs on the CPU, like every other member.
+
+    Mirrors `TorchMLPModel.predict`'s promise: a submission is scored on a machine this fork does
+    not control, so inference must never require a GPU.
+    """
+    import numpy as np
+    import torch
+    cfg = art["mapnet"]
+    nets = build_nets(cfg["n_in"], cfg["latent"], grid, cfg["upsample"], cfg["coords"], "cpu")
+    for k, mod in nets.items():
+        mod.load_state_dict({kk: torch.from_numpy(vv) for kk, vv in cfg["state"][k].items()})
+        mod.eval()
+    coord = None
+    if cfg["coords"]:
+        rr, zz = np.meshgrid(np.linspace(-1, 1, 9), np.linspace(-1, 1, 9), indexing="xy")
+        coord = torch.from_numpy(np.stack([rr, zz]).astype(np.float32))[None]
+    out_m, out_q = [], []
+    with torch.no_grad():
+        for i in range(0, len(Xs), 4096):
+            x = torch.from_numpy(np.ascontiguousarray(Xs[i:i + 4096], dtype=np.float32))
+            z = nets["enc"](x)
+            h = nets["seed"](z)
+            if coord is not None:
+                h = torch.cat([h, coord.expand(len(z), -1, -1, -1)], dim=1)
+            m = nets["lin"](z) + nets["body"](h)[:, 0, :grid, :grid].reshape(len(z), -1)
+            out_m.append(m.numpy())
+            out_q.append(nets["qb"](z).numpy())
+    m = np.concatenate(out_m) * cfg["ys"] + cfg["ym"]
+    q = np.concatenate(out_q) * cfg["qs"] + cfg["qm"]
+    return m.reshape(len(Xs), grid, grid), q
 
 
 def main() -> int:
@@ -69,6 +146,9 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=0,
                     help="init seed; members of a C ensemble differ only in this")
     ap.add_argument("--tag", default="v")
+    ap.add_argument("--save-artifact", default="",
+                    help="also write a self-contained artifact usable as an ensemble "
+                         "member via salts:<name>+<name>")
     ap.add_argument("--out", default="/tmp/encdec_pred.npz")
     a = ap.parse_args()
 
@@ -245,6 +325,24 @@ def main() -> int:
         out[f"shot_{i:04d}_psirz"] = M.astype(np.float32)
         out[f"shot_{i:04d}_q95"] = Q[:, 0].astype(np.float32)
         out[f"shot_{i:04d}_betaN"] = Q[:, 1].astype(np.float32)
+    if a.save_artifact:
+        # SELF-CONTAINED, because a blend member that borrows another artifact's scaler is a member
+        # that silently changes when that artifact is retrained. Weights are stored as numpy so the
+        # artifact unpickles without torch, matching every other model in this repo.
+        import joblib as _jl
+        nets = {"enc": enc, "lin": lin, "seed": seed, "body": body, "qb": qb}
+        state = {k: {kk: vv.detach().cpu().numpy() for kk, vv in mod.state_dict().items()}
+                 for k, mod in nets.items()}
+        _jl.dump({
+            "kind": MAPNET_KIND,
+            "scaler": art["scaler"], "coil": art["coil"], "n_pca": art["n_pca"],
+            "train_files": [str(f) for f in train_files],
+            "mapnet": {"n_in": St.shape[1], "latent": a.latent, "upsample": a.upsample,
+                       "coords": bool(a.coords), "state": state,
+                       "ym": ym, "ys": ys, "qm": qm, "qs": qs},
+        }, a.save_artifact)
+        print(f"  wrote artifact {a.save_artifact} — usable as salts:<other>+"
+              f"{Path(a.save_artifact).stem}", flush=True)
     np.savez(a.out, **out)
     print(f"  wrote {a.out}", flush=True)
     print("  score it with:")

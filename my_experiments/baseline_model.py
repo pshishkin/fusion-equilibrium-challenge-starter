@@ -1556,6 +1556,19 @@ def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE,
             averaged[key] = stacked.mean(axis=0).astype(parts[0][key].dtype)
         return averaged
     art = _load(artifact)
+    # A MAPNET MEMBER. It carries no PCA basis — it decodes the map itself — so it cannot go
+    # through `_predict_targets`, whose whole contract is a coefficient vector. It joins a blend
+    # the same way every other member does, because `salts:` averages DECODED maps in physical
+    # units and never coefficients: that is exactly what makes members with different
+    # representations mixable at all.
+    if art.get("kind") == "mapnet":
+        from my_experiments.mapnet import mapnet_predict
+        mn_feats = features_for_row(row)
+        mn_plan = art["coil"]
+        mn_x = art["scaler"].transform(build_inputs(mn_plan, mn_feats))
+        mn_psi, mn_qb = mapnet_predict(art, mn_x, EFIT_GRID_SIZE)
+        return {"psirz": mn_psi + coil_flux(mn_plan, mn_feats),
+                "q95": mn_qb[:, 0], "betaN": mn_qb[:, 1]}
     if source != "DIII-D":
         raise NotImplementedError(
             f"the model is trained on DIII-D only, but the row is marked source={source!r}. "

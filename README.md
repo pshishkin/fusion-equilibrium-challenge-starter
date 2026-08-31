@@ -617,6 +617,52 @@ D_LCFS is deliberately absent from `M`: it is a distance, zero at the ground tru
 difference sees no derivative at all. It improves anyway, because the shape scalars that ARE in `M`
 overlap it.
 
+## `mapnet` — the flux map predicted directly
+
+`my_experiments/mapnet.py` is the one model here with **no PCA basis anywhere**. `torch_mlp` and
+`torch_seq` predict a target vector that a fixed basis decodes; mapnet predicts the 65x65 map
+itself, through a learned latent and a decoder that is a learned linear map plus a convolutional
+refinement, with q95 and betaN read off the same latent.
+
+```
+tools/run_mapnet.sh                    # train and score in one command
+uv run python my_experiments/mapnet.py --shots 3000 --steps 60000 --latent 50 \
+    --mask-weight 16 --sobolev 1.0 --save-artifact artefacts/lanes/baseline_map_s0.joblib
+```
+
+**As an ensemble member.** With `--save-artifact` it writes a self-contained artifact — its own
+feature scaler and coil plan, weights stored as numpy so it unpickles without torch — and
+`predict_row` recognises it by `kind: "mapnet"`. It then joins a blend exactly like any other
+member:
+
+```
+uv run python local_score.py --models salts:q_base_s0+map_s0 --source local --files ...
+```
+
+That works because `salts:` averages **decoded maps in physical units**, never coefficients. The
+comment at `baseline_model.py:116` says why coefficients could never be averaged across fits — each
+has its own basis — and that same property is what lets a member with no basis at all join the
+blend.
+
+**Where it stands, measured on 352 tail shots of salt 0 (list sha1 `0d4a15c2aab058ed`, verified
+identical to production's):**
+
+| | S |
+|---|---|
+| one mapnet | 0.9855-0.9872 over four seeds, mean 0.986501, sd 0.00058 |
+| four mapnets averaged | 0.989124 |
+| four MLPs | 0.992976 |
+| four MLPs + seq | 0.993453 |
+
+**The gap is one term.** Consistency 0.9437 against 0.9740 — 85% of the shortfall, with `R2_psi`
+already at 0.9996 against 0.9998. The map is right on average and the geometry is hard to read out
+of it. Three levers moved that and are larger than the seed spread: a learned linear branch beside
+the convolutions, weighting pixels inside the plasma envelope (57.8% of the grid, so a plain loss
+spends 42% of itself where nothing is scored), and matching gradients. Bilinear upsampling,
+coordinate channels and a 1/R weight on the gradient term all landed INSIDE the seed spread and are
+unmeasured rather than refuted — a distinction worth keeping, since the spread was only measured
+after those three had been read as results.
+
 ## The lane runner
 
 `tools/lane.sh` is what produces every paired number in this project: for each salt and each arm it
