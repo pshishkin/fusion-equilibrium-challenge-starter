@@ -221,6 +221,23 @@ the same places. Report the error correlation with the control arm alongside the
 
 
 ### S7. `seq-depth` — a second recurrent stage, and one that can be NARROWER — model: `seq` — **CODE READY 2026-08-31**
+
+> **`S7same` — user's request 2026-08-31, and what it actually measures is not what it looks like.**
+> The same-width arm is ALREADY in rung 1: `L2` is `seq_layers: 2`, which is 256 -> 256, so the
+> preference is covered. And `seq` runs at `dropout: 0.0`, which closes the one gap between the two
+> knobs — torch's inter-layer dropout is the only thing `seq_layers: 2` has that a second module
+> does not, and at 0.0 it is a no-op. So `seq_hidden2: 256` is not a second architecture beside
+> `L2`; **it is the SAME architecture with a different initialisation**, because the two construct
+> their modules in a different order and consume the RNG differently.
+>
+> That is worth running anyway, for a reason that has nothing to do with depth. Rung 1 is one salt,
+> and the file's recorded paired sd for `seq` is **0.000831** — measured across salts, not within
+> one. A same-architecture replicate at the SAME salt gives the within-arm init noise directly, and
+> that number is what every other row of the rung-1 table has to be read against. Without it, an arm
+> that beats `base` by 0.0005 is uninterpretable.
+>
+> Queue it as `S7same`, and read it as the table's error bar rather than as a depth arm.
+
 `seq_layers` (already existed, never varied) and `seq_hidden2` (new). **They are not the same knob,
 and that is the entry.** torch's stacked GRU gives every layer the same hidden size, so
 `seq_layers: 2` can only ask for 256 -> 256; `seq_hidden2` is a second module and can be narrower.
