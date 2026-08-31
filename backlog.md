@@ -670,6 +670,21 @@ trunk**, so the coefficients it receives are the ones it was fitted for — whic
 version this entry always described, and now it has a measured reason rather than an aesthetic one.
 
 ### 1s. `field-and-envelope` — two metric terms, CODE READY 2026-08-31, not yet run
+
+> **`shaped-basis` is the same two terms one level down, and the two entries have to be read
+> together from now on.** `1s` reweights where the MODEL's error is penalised inside a fixed
+> subspace; `shaped-basis` reweights which subspace exists at all. They are complementary in
+> principle — a basis cannot fix an error the regression makes in a direction it does keep — and
+> **the transfer rule says the second one measured will come in under its own screen anyway**, the
+> way `ema` and `huber` did. Whichever runs first should be the one that runs alone.
+>
+> The ceiling sweep gives `shaped-basis` the stronger prior of the two: `e16s01` is worth
+> +0.000119, 9.5% of the entire remaining ceiling, and it is measured rather than argued. `1s` has
+> no measurement at all yet. It also gives one number `1s` should be read against — **the physically
+> correct 1/R weighting is NOT obviously right here**: `c_v10`, the encoder-decoder arm that put 1/R
+> on the gradient term, scored 0.984951 against v7's 0.985811 and hurt every functional. `1s`'s
+> `field_weight` carries that same 1/R, and the argument for it is physics rather than measurement.
+
 **The user's observation, and it is worth more than the experiment that produced it:** the two
 things helping the encoder-decoder can be carried back to the PCA path — and there they are EXACT
 rather than approximate, and free rather than per-step.
