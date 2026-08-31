@@ -61,6 +61,25 @@ def _grad(components: FloatArray, grid_R: FloatArray, grid_Z: FloatArray) -> tup
     return np.gradient(components, dr, axis=2), np.gradient(components, dz, axis=1)
 
 
+def envelope_form(components: FloatArray, mask_f: FloatArray, inside: float) -> FloatArray:
+    """(n, n) `E` with `dc^T E dc` = the flux error weighted `inside`x more inside the plasma.
+
+    The scorer's envelope covers 57.8% of the grid, so a plain Parseval loss — which is what the
+    identity term in `metric_form` is — spends 42% of itself outside it, where no scored functional
+    reads anything. This is that same loss with the pixels reweighted, and because the basis is
+    fixed the reweighting is exact: `dpsi^T W dpsi = dc^T (B^T W B) dc` for a diagonal W.
+
+    Normalised to mean weight 1 so only the SHAPE changes and the block keeps its scale against
+    every other term in the metric.
+    """
+    if not inside > 0:
+        raise ValueError(f"inside must be positive, got {inside!r}")
+    w = 1.0 + (inside - 1.0) * np.asarray(mask_f, dtype=np.float64).reshape(-1)
+    w = w / w.mean()
+    a = components.reshape(len(components), -1) * np.sqrt(w)[None, :]
+    return np.asarray(a @ a.T, dtype=np.float64)
+
+
 def poloidal_field_form(components: FloatArray, grid_R: FloatArray,
                         grid_Z: FloatArray) -> FloatArray:
     """(n, n) `G` with `dc^T G dc` = the squared poloidal-field error of the map error.
@@ -408,7 +427,9 @@ def boundary_form(components: FloatArray, psi: FloatArray, delta: float, ctx: di
 
 def metric_form(m_cons: FloatArray, psi_ss_tot: float,
                 m_bnd: FloatArray | None = None, d_probe: float = 0.0,
-                cons_gain: float = 1.0) -> FloatArray:
+                cons_gain: float = 1.0,
+                m_field: FloatArray | None = None, field_weight: float = 0.0,
+                m_env: FloatArray | None = None, env_weight: float = 0.0) -> FloatArray:
     """The full target metric, relative to the flux term the scaler already applies.
 
     `TargetScaler` divides the psi block by sqrt(psi_ss_tot / W_PSI), which by itself realises
@@ -446,6 +467,27 @@ def metric_form(m_cons: FloatArray, psi_ss_tot: float,
     if not cons_gain > 0:
         raise ValueError(f"cons_gain must be positive, got {cons_gain!r}")
     m = np.eye(len(m_cons)) + cons_gain * (psi_ss_tot / W_PSI) * m_cons
+    # TWO TERMS THE ENCODER-DECODER EXPERIMENTS FOUND, expressible here EXACTLY rather than
+    # approximately — and at zero training cost, since a fixed basis turns a per-pixel weighting
+    # into one (n, n) matrix computed once.
+    #
+    # `m_field` is the gradient of the map error, which is what every scored functional actually
+    # reads: the seven come from a LEVEL SET, whose position is where the flux crosses a value and
+    # whose shape is the gradient there. A Parseval loss constrains VALUES and is blind to slope —
+    # measured on 2026-08-31, the encoder-decoder reached R2_psi 0.9996 with Consistency at 0.9306,
+    # a map right on average and too smooth for a contour to be read out of.
+    #
+    # `m_env` is that same Parseval loss with the plasma envelope up-weighted.
+    #
+    # Both are normalised by their own trace against the identity's, so a weight of 1.0 means
+    # "as much as the flux term" rather than an arbitrary scale that would depend on the grid.
+    for form, wgt in ((m_field, field_weight), (m_env, env_weight)):
+        if form is None or not wgt:
+            continue
+        tr = float(np.trace(form))
+        if not tr > 0:
+            raise ValueError(f"a metric term has non-positive trace {tr}")
+        m = m + wgt * (len(m_cons) / tr) * form
     if m_bnd is not None:
         if not d_probe > 0:
             raise ValueError(f"d_probe must be positive to weight the boundary term, got "

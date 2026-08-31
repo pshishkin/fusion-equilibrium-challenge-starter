@@ -622,6 +622,44 @@ this.
 trunk**, so the coefficients it receives are the ones it was fitted for — which is the expensive
 version this entry always described, and now it has a measured reason rather than an aesthetic one.
 
+### 1s. `field-and-envelope` — two metric terms, CODE READY 2026-08-31, not yet run
+**The user's observation, and it is worth more than the experiment that produced it:** the two
+things helping the encoder-decoder can be carried back to the PCA path — and there they are EXACT
+rather than approximate, and free rather than per-step.
+
+**Why exact.** With a fixed basis, any per-pixel weighting of the flux error is one (n, n) matrix:
+`dpsi^T W dpsi = dc^T (B^T W B) dc`. So a weighting the encoder-decoder must apply to 4225 pixels
+on every training step becomes a 50x50 matrix computed once and folded into the metric the models
+already minimise. **Training cost is zero.**
+
+**Term one, `field_weight` — and half of it was already written.** `poloidal_field_form` has been in
+`target_metric.py` all along, computing `dc^T G dc = integral |grad dpsi|^2 / R dV`, the poloidal-
+field error, with the physically correct 1/R weight that a naive pixel-difference Sobolev term does
+not have. It was used ONLY to replace li's block under `li_form: field`; it was never a general term
+of the metric. It is now, behind `field_weight`.
+
+**The motivation is measured, not argued.** Every scored functional reads a LEVEL SET — its position
+is where the flux crosses a value, its shape is the gradient there — and the Parseval term is blind
+to slope. On 2026-08-31 the encoder-decoder reached `R2_psi` **0.9996** with Consistency at
+**0.9306**: a map right on average and too smooth for a contour to be read out of it. That is the
+failure mode this term addresses, and the PCA path has the same blindness for the same reason.
+
+**Term two, `env_weight`/`env_inside`.** The scorer's envelope covers **57.8%** of the grid, so a
+plain Parseval loss spends **42% of itself outside the plasma**, where no scored functional reads
+anything. `envelope_form` is that same loss with the inside up-weighted.
+
+**Both are normalised by their own trace against the identity's**, so a weight of 1.0 means "as much
+as the flux term" rather than a number whose meaning depends on the grid.
+
+**What the smoke test proves**, because "the code exists" and "the code is right" have diverged here
+before: `envelope_form` reproduces the pixel-weighted sum to a relative error of **1.1e-16** — it is
+the same quantity, not a proxy; weight 0 reproduces the previous matrix bit for bit; weight 1 adds
+exactly the identity's own trace; and a degenerate form raises rather than dividing by zero.
+
+**Not yet run — the user's call to finish the encoder-decoder first.** When it runs: `field_weight`
+in {0.3, 1.0} and `env_weight` in {0.3, 1.0} against the canonised baseline, and read `R2_psi`
+beside Consistency, since both terms deliberately spend flux accuracy to buy geometry.
+
 ### 1q. `upconv-decoder` — an embedding and a convolutional decoder, AS AN ENSEMBLE MEMBER
 **The user's actual hypothesis, and the framing matters: they asked for it in the ensemble, not as a
 replacement for PCA.** So it is judged on two axes at once — its own composite AND its error

@@ -237,6 +237,14 @@ loss:
   # the score's weights: psi holds 1.7% of what is still lost on 0.55 of the weight,
   # Consistency 70.9% on 0.20.
   cons_gain: 1.0
+  # Weight on the GRADIENT of the map error (poloidal_field_form: |grad dpsi|/R). The seven scored
+  # scalars all read a level set, whose position and shape are set by the slope, and the Parseval
+  # term is blind to it. 1.0 = as much as the flux term. 0.0 is off.
+  field_weight: 0.0
+  # Weight on the flux error with the plasma envelope up-weighted `env_inside` times. The envelope
+  # is 57.8% of the grid, so a plain Parseval loss spends 42% of itself where nothing is scored.
+  env_weight: 0.0
+  env_inside: 4.0
   jacobian_delta: 0.0332
 
   # `jacobian` only. Add the BOUNDARY term: how far the plasma boundary moves when the

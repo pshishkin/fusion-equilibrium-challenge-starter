@@ -1307,6 +1307,15 @@ class Params:
     # identity. 1.0 is the scorer's own ratio. See `metric_form` for the headroom table that
     # motivates moving it and for the counter-hypothesis that more than one level tests.
     cons_gain: float
+    # Weight on the GRADIENT of the map error, as `poloidal_field_form` measures it: |grad dpsi|/R,
+    # the poloidal-field error. Every scored functional reads a level set, whose position and shape
+    # are set by the slope, and the Parseval term is blind to slope. 1.0 means "as much as the flux
+    # term"; 0.0 is off and is every number before 2026-08-31.
+    field_weight: float
+    # Weight on the flux error with the plasma envelope up-weighted `env_inside` times. The envelope
+    # is 57.8% of the grid, so a plain Parseval loss spends 42% of itself where nothing is scored.
+    env_weight: float
+    env_inside: float
     jacobian_delta: float
     boundary: bool
     subtract_coil_field: bool
@@ -1504,7 +1513,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     _require_keys(doc["loss"],
                   {"metric", "calibrate_scalars", "li_form", "jacobian_frames", "jacobian_delta",
                    "boundary", "monitor_frames", "aux_scalars", "aux_weight", "cons_split",
-                   "cons_gain"},
+                   "cons_gain", "field_weight", "env_weight", "env_inside"},
                   "loss", path)
     loss_metric = str(doc["loss"]["metric"])
     if loss_metric not in LOSS_METRICS:
@@ -1583,6 +1592,9 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   aux_weight=float(doc["loss"]["aux_weight"]),
                   cons_split=str(doc["loss"]["cons_split"]),
                   cons_gain=float(doc["loss"]["cons_gain"]),
+                  field_weight=float(doc["loss"]["field_weight"]),
+                  env_weight=float(doc["loss"]["env_weight"]),
+                  env_inside=float(doc["loss"]["env_inside"]),
                   jacobian_delta=float(doc["loss"]["jacobian_delta"]),
                   boundary=bool(doc["loss"]["boundary"]),
                   subtract_coil_field=bool(doc["features"]["subtract_coil_field"]),

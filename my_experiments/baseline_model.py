@@ -66,9 +66,11 @@ from my_experiments.monitor import build_monitor
 from my_experiments.target_metric import (
     CONS_SCALARS,
     boundary_form,
+    envelope_form,
     factor,
     jacobian_form,
     metric_form,
+    poloidal_field_form,
     scorer_context,
 )
 from toolkit.parallel import pimap, release, resolve_jobs
@@ -1299,8 +1301,15 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
             m_bnd, d_probe, n_bnd, clipped = boundary_form(images, total, delta, ctx, jobs)
             print(f"  boundary term: {n_bnd} contours, probe moves the boundary "
                   f"{d_probe:.4g} of rgeo, {clipped:.1%} of contour points on the gradient floor")
+        # The two forms the encoder-decoder work motivated, computed once from the basis and free
+        # thereafter — see `metric_form` for why each exists.
+        m_field = (poloidal_field_form(images, plan["grid_R"], plan["grid_Z"])
+                   if params.field_weight else None)
+        m_env = (envelope_form(images, ctx["mask_f"], params.env_inside)
+                 if params.env_weight else None)
         psi_L = factor(metric_form(m_cons, psi_ss_tot, m_bnd, d_probe or 0.0,
-                                   params.cons_gain))
+                                   params.cons_gain, m_field, params.field_weight,
+                                   m_env, params.env_weight))
         print(f"  loss metric: jacobian over {n_used} of {probe.size} probe frames, step "
               f"{delta:.4g} Wb/rad, condition number {np.linalg.cond(psi_L @ psi_L.T):.1f}")
         for name, r, v, ok in zip(CONS_SCALARS, ratio, var, probe_ok, strict=True):
