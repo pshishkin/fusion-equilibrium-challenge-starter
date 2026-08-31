@@ -65,6 +65,49 @@ summed trivial to measure — that is the entire case for this file.
 Moved out of `backlog.md` on 2026-08-30 and deleted there. Each changes ONE model's configuration
 and shares nothing with the other members, which is the criterion for living here.
 
+## The shot-mixer family — S8/S9/S10, and why they rank above S4/S6/S7
+
+**User's request, 2026-08-31, after reading the argument below and asking for it to be kept.**
+
+**The criterion for `seq` is DISAGREEMENT, not accuracy, and that is measured rather than argued.**
+`seq` alone LOSES to the MLP, 0.9914 against 0.9931. Members sit at 0.9910-0.9912 while the ensemble
+sits at 0.9935, so **0.0024 of the whole score is member disagreement** — thirty times the effects
+being chased elsewhere in this file. And the one direct measurement: `mlp+seq` = 0.9943 against
+0.9940 for `mlp` plus three extra seeds, so **one extra architecture beats three extra seeds**.
+
+**Which is what puts S4, S6 and S7 in their place.** All three change CAPACITY — a different cell, a
+deeper head, a second recurrent stage — and a deeper GRU errs where a shallow one errs, only less.
+Their error correlation with the control will stay high, so in the average they will deliver less
+than their own composite promises. **Report that correlation beside dS, and read it first.** The
+three entries below change the INDUCTIVE BIAS instead, which is the axis that has actually paid.
+
+### S8. `seq-conv` — dilated temporal convolutions instead of the recurrence
+A shot is ~220 frames at 20 ms, and a GRU must carry information across the whole ramp through 220
+SEQUENTIAL steps. A dilated stack (1, 2, 4, 8, 16, 32) reaches a 127-frame receptive field in six
+layers, in parallel, and its errors are structured by locality where the GRU's are structured by
+recency. **Biggest shift in inductive bias for the least new machinery** — same inputs, same
+zero-initialised `delta`, same residual form.
+
+The correctness trap is the same one the second recurrent stage had, in a new place: a convolution
+has no notion of a packed sequence, so the padded tail of every short shot must be zeroed **before
+each layer**, not only at the end. A conv that mixes in the pad value does not crash, does not change
+any shape, and quietly trains on the padding.
+
+### S9. `seq-attn` — a small transformer encoder over the shot
+Bidirectional by construction, so it needs no separate justification for reading the future, and at
+T ~ 220 the O(T^2) attention matrix is 48k entries — free. Furthest of the three from a GRU in how it
+errs: attention is content-addressed where recurrence is position-addressed, so the frames it
+confuses are chosen differently. Needs a positional encoding and a key-padding mask; the mask is the
+same trap as S8's.
+
+### S10. `seq-skip` — `enc` straight to `delta`, past the recurrence
+The correction currently sees ONLY the recurrent state, so anything per-frame it needs must be
+re-derived inside the recurrence from a representation `enc` already computed. A skip makes the
+recurrence responsible for what is genuinely temporal and nothing else. **Cheapest of the three by
+far** — one concatenation — and it is in the spirit of the residual form already there: `delta`
+starts at zero, so a skip cannot cost anything at initialisation either.
+
+
 ### S1. `seq-ema` + `seq-huber` — model: `seq`
 **This is the entry the whole protocol was built for, and it says so in its own last sentence:**
 *"`ema` measured ZERO in production for the MLP, so this is a screen-only expectation until

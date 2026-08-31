@@ -788,6 +788,16 @@ models:
     # layer of a stacked GRU the same hidden size. At 256 the two are the same architecture,
     # which is what makes them a check on each other.
     seq_hidden2: 0
+    # Feed `enc`'s per-frame output to `delta` alongside the shot-level state. Without it the
+    # correction sees the recurrence and nothing else, so anything per-frame it needs has to be
+    # re-derived inside the recurrence from what `enc` already computed. Cannot cost anything at
+    # initialisation — `delta` still starts at zero.
+    seq_skip: false
+    # `seq_cell: conv` only. Receptive field is 2 * sum(dilations) + 1 frames, so this reads 127
+    # frames of the 20 ms series either side; depth is the list's length.
+    seq_conv_dilations: "1,2,4,8,16,32"
+    # `seq_cell: attn` only. `seq_layers` is the number of encoder layers.
+    seq_attn_heads: 8
     # `gru` is every number before 2026-08-30. `lstm` is a DIVERSITY arm, not an accuracy
     # one: seq alone loses to the MLP and earns its place in the average, where one extra
     # architecture beats three extra seeds. Judge it by error correlation with the
@@ -861,6 +871,9 @@ models:
     seq_cell: gru
     seq_head_hidden: 0
     seq_hidden2: 0
+    seq_skip: false
+    seq_conv_dilations: "1,2,4,8,16,32"
+    seq_attn_heads: 8
     # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
     # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
     batch_shots: 32
@@ -924,6 +937,9 @@ models:
     seq_cell: gru
     seq_head_hidden: 0
     seq_hidden2: 0
+    seq_skip: false
+    seq_conv_dilations: "1,2,4,8,16,32"
+    seq_attn_heads: 8
     # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
     # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
     batch_shots: 32

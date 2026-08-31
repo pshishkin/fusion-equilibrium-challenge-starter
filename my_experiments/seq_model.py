@@ -70,7 +70,111 @@ def _pad_index(starts: np.ndarray, lengths: np.ndarray,
     return rows, mask
 
 
-SEQ_CELLS = ("gru", "lstm")
+# What reads the shot. The field is still called `seq_cell` and the attribute is still `self.gru`,
+# because renaming either would change the state-dict keys and every `seq` member already sitting in
+# `artefacts/lanes/` would stop loading — a rename that breaks existing blends to improve a name.
+#
+# `gru`/`lstm` are recurrent; `conv` and `attn` are not, and that is the point of having them. See
+# single_model_hypotheses.md, "The shot-mixer family": the criterion for this model is DISAGREEMENT
+# with the MLPs, not accuracy, and a deeper GRU errs where a shallow one errs.
+SEQ_CELLS = ("gru", "lstm", "conv", "attn")
+RECURRENT_CELLS = ("gru", "lstm")
+
+
+def _activation(name: str) -> Any:
+    import torch
+    acts = {"relu": torch.nn.ReLU, "gelu": torch.nn.GELU, "silu": torch.nn.SiLU,
+            "tanh": torch.nn.Tanh}
+    if name not in acts:
+        raise ValueError(f"torch_seq: unknown activation {name!r}; known {sorted(acts)}")
+    return acts[name]
+
+
+def _dilated_stack(width: int, out_width: int, dilations: list[int], activation: str,
+                   dropout: float) -> Any:
+    """S8. Dilated temporal convolutions over the shot, masked at every layer.
+
+    A shot is ~220 frames at 20 ms and a GRU carries information across the ramp through 220
+    SEQUENTIAL steps. Dilations 1,2,4,8,16,32 reach a 127-frame receptive field in six layers, in
+    parallel, and structure their errors by LOCALITY where recurrence structures them by recency.
+
+    Symmetric padding, so it reads both directions for the same reason the GRU is bidirectional: a
+    submission is scored offline over complete shots, with no causality constraint to respect.
+
+    Residual blocks, so at initialisation the stack is close to the identity on `enc`'s output and
+    the correction still has to earn what it does — the same discipline as `delta` starting at zero.
+    """
+    import torch
+
+    act = _activation(activation)
+
+    class Dilated(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.blocks = torch.nn.ModuleList(
+                torch.nn.Sequential(
+                    torch.nn.Conv1d(width, width, 3, padding=d, dilation=d),
+                    act(), torch.nn.Dropout(dropout))
+                for d in dilations)
+            self.out = torch.nn.Conv1d(width, out_width, 1)
+
+        def forward(self, h: Any, mask: Any) -> Any:
+            # (B, T, C) -> (B, C, T), which is what Conv1d reads.
+            x = h.transpose(1, 2)
+            m = mask[:, None, :].to(x.dtype)
+            # THE MASK IS REAPPLIED BEFORE EVERY LAYER, not once at the end. A convolution has no
+            # notion of a packed sequence: with the padded tail left in, layer 1 spreads it one
+            # frame into the real data, layer 2 two more, and by layer 6 the pad value has reached
+            # 63 frames inside every short shot. It does not crash, does not change any shape, and
+            # trains the model on the padding.
+            x = x * m
+            for block in self.blocks:
+                x = (x + block(x)) * m
+            return self.out(x).transpose(1, 2)
+
+    return Dilated()
+
+
+def _shot_attention(width: int, out_width: int, layers: int, heads: int, activation: str,
+                    dropout: float) -> Any:
+    """S9. A small transformer encoder over the shot.
+
+    Bidirectional by construction, so reading the future needs no separate justification, and at
+    T ~ 220 the attention matrix is 48k entries — free. Furthest of the three mixers from a GRU in
+    HOW it errs: attention is content-addressed where recurrence is position-addressed, so the
+    frames it confuses are chosen differently. That is the property being bought.
+
+    Sinusoidal positions rather than learned ones: shots differ in length and a learned table would
+    have to be sized for the longest, leaving its tail trained on almost nothing.
+    """
+    import torch
+
+    class Attn(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            layer = torch.nn.TransformerEncoderLayer(
+                d_model=width, nhead=heads, dim_feedforward=4 * width, dropout=dropout,
+                activation=activation if activation in ("relu", "gelu") else "gelu",
+                batch_first=True, norm_first=True)
+            self.tr = torch.nn.TransformerEncoder(layer, layers)
+            self.out = torch.nn.Linear(width, out_width)
+            pos = torch.zeros(4096, width)
+            t = torch.arange(4096, dtype=torch.float32)[:, None]
+            f = torch.exp(torch.arange(0, width, 2, dtype=torch.float32)
+                          * (-np.log(10000.0) / width))[None, :]
+            pos[:, 0::2] = torch.sin(t * f)
+            pos[:, 1::2] = torch.cos(t * f)
+            self.register_buffer("pos", pos, persistent=False)
+
+        def forward(self, h: Any, mask: Any) -> Any:
+            x = h + self.pos[:h.shape[1]][None]
+            # `src_key_padding_mask` marks what to IGNORE, so it is the mask inverted. No row is
+            # fully padded — every shot has at least one frame — which is what keeps the softmax
+            # from meeting an all-masked row and returning NaN.
+            y = self.tr(x, src_key_padding_mask=~mask)
+            return self.out(y) * mask[:, :, None].to(y.dtype)
+
+    return Attn()
 
 
 @dataclass
@@ -108,6 +212,18 @@ class TorchSeqModel(TargetModel):
     # also takes 2 * hidden as its input, being bidirectional), which makes the pair a consistency
     # check on each other rather than two independent guesses.
     seq_hidden2: int
+    # S10. Feed `enc`'s per-frame output to `delta` ALONGSIDE the shot-level state, instead of only
+    # the latter. Without it the correction sees the recurrence and nothing else, so anything
+    # per-frame it needs has to be re-derived inside the recurrence from a representation `enc` has
+    # already computed. With it, the recurrence is responsible for what is genuinely temporal and
+    # nothing more. It cannot cost anything at initialisation — `delta` still starts at zero.
+    seq_skip: bool
+    # `seq_cell: conv` only. Dilations of the temporal stack, widest last; the receptive field is
+    # 2 * sum(dilations) + 1 frames, so 1,2,4,8,16,32 reads 127 frames of the 20 ms series either
+    # side. Depth IS this list's length.
+    seq_conv_dilations: str
+    # `seq_cell: attn` only. Attention heads; `seq_layers` is the number of encoder layers.
+    seq_attn_heads: int
     # Which recurrent cell. `gru` is every number before 2026-08-30. `lstm` exists for DIVERSITY,
     # not for accuracy: `seq` alone loses to the MLP, 0.9914 against 0.9931, and earns its place
     # only in the average — where `mlp+seq` = 0.9943 beats `mlp` plus three extra seeds at 0.9940,
@@ -186,15 +302,42 @@ class TorchSeqModel(TargetModel):
                                      cfg.dropout)
                 if cfg.seq_cell not in SEQ_CELLS:
                     raise ValueError(f"torch_seq: seq_cell {cfg.seq_cell!r}, known {SEQ_CELLS}")
-                cell = torch.nn.GRU if cfg.seq_cell == "gru" else torch.nn.LSTM
-                self.gru = cell(cfg.seq_hidden, cfg.seq_hidden, cfg.seq_layers,
-                                batch_first=True, bidirectional=True,
-                                dropout=cfg.dropout if cfg.seq_layers > 1 else 0.0)
-                # A second stage, of its own width. Both directions of the first are concatenated
-                # into its input, which is why it reads 2 * seq_hidden.
-                self.gru2 = (cell(2 * cfg.seq_hidden, cfg.seq_hidden2, 1, batch_first=True,
-                                  bidirectional=True) if cfg.seq_hidden2 else None)
-                width = 2 * (cfg.seq_hidden2 or cfg.seq_hidden)
+                # `self.packed` says whether the mixer consumes a PackedSequence. A plain bool, so
+                # it stays out of the state dict.
+                self.packed = cfg.seq_cell in RECURRENT_CELLS
+                self.gru2 = None
+                if self.packed:
+                    cell = torch.nn.GRU if cfg.seq_cell == "gru" else torch.nn.LSTM
+                    self.gru = cell(cfg.seq_hidden, cfg.seq_hidden, cfg.seq_layers,
+                                    batch_first=True, bidirectional=True,
+                                    dropout=cfg.dropout if cfg.seq_layers > 1 else 0.0)
+                    # A second stage, of its own width. Both directions of the first are
+                    # concatenated into its input, which is why it reads 2 * seq_hidden.
+                    self.gru2 = (cell(2 * cfg.seq_hidden, cfg.seq_hidden2, 1, batch_first=True,
+                                      bidirectional=True) if cfg.seq_hidden2 else None)
+                    width = 2 * (cfg.seq_hidden2 or cfg.seq_hidden)
+                else:
+                    # Both non-recurrent mixers emit 2 * seq_hidden, so `delta` faces the same
+                    # width whichever reads the shot and the arms differ in one thing only.
+                    width = 2 * cfg.seq_hidden
+                    if cfg.seq_cell == "conv":
+                        dil = [int(d) for d in cfg.seq_conv_dilations.split(",") if d.strip()]
+                        if not dil or any(d < 1 for d in dil):
+                            raise ValueError(f"torch_seq: seq_conv_dilations "
+                                             f"{cfg.seq_conv_dilations!r} is not a list of "
+                                             f"positive integers")
+                        self.gru = _dilated_stack(cfg.seq_hidden, width, dil, cfg.activation,
+                                                  cfg.dropout)
+                    else:
+                        if cfg.seq_hidden % cfg.seq_attn_heads:
+                            raise ValueError(f"torch_seq: seq_attn_heads {cfg.seq_attn_heads} does "
+                                             f"not divide seq_hidden {cfg.seq_hidden}")
+                        self.gru = _shot_attention(cfg.seq_hidden, width, cfg.seq_layers,
+                                                   cfg.seq_attn_heads, cfg.activation, cfg.dropout)
+                # S10: the correction also sees `enc`'s per-frame output, which is seq_hidden wide.
+                self.skip = bool(cfg.seq_skip)
+                if self.skip:
+                    width = width + cfg.seq_hidden
                 # One linear map, or a hidden layer first — built by `build_mlp` either way, so
                 # the activation and dropout conventions stay declared in one place.
                 self.delta = (build_mlp(width, [cfg.seq_head_hidden], n_out,
@@ -217,18 +360,28 @@ class TorchSeqModel(TargetModel):
                 correction near zero and a score that matches it with a large one are different
                 results, and the composite cannot tell them apart.
                 """
-                # `lengths` is on the CPU, as pack_padded_sequence requires, and
-                # enforce_sorted=False lets the batch keep its natural order.
-                packed = torch.nn.utils.rnn.pack_padded_sequence(
-                    self.enc(x), lengths, batch_first=True, enforce_sorted=False)
-                out, _ = self.gru(packed)
-                if self.gru2 is not None:
-                    # Straight through, still packed: unpacking between the stages would feed the
-                    # second one the padding the first was carefully never shown.
-                    out, _ = self.gru2(out)
-                seq, _ = torch.nn.utils.rnn.pad_packed_sequence(
-                    out, batch_first=True, total_length=x.shape[1])
-                return self.head(x), self.delta(seq)
+                h = self.enc(x)
+                if self.packed:
+                    # `lengths` is on the CPU, as pack_padded_sequence requires, and
+                    # enforce_sorted=False lets the batch keep its natural order.
+                    packed = torch.nn.utils.rnn.pack_padded_sequence(
+                        h, lengths, batch_first=True, enforce_sorted=False)
+                    out, _ = self.gru(packed)
+                    if self.gru2 is not None:
+                        # Straight through, still packed: unpacking between the stages would feed
+                        # the second one the padding the first was carefully never shown.
+                        out, _ = self.gru2(out)
+                    seq, _ = torch.nn.utils.rnn.pad_packed_sequence(
+                        out, batch_first=True, total_length=x.shape[1])
+                else:
+                    # The same guarantee packing gives the recurrent path, written out: which
+                    # frames are real. `lengths` is on the CPU by the packing convention above, so
+                    # it is moved here rather than assumed to be beside x.
+                    mask = (torch.arange(x.shape[1], device=x.device)[None, :]
+                            < lengths.to(x.device)[:, None])
+                    seq = self.gru(h, mask)
+                return self.head(x), self.delta(
+                    torch.cat([seq, h], dim=-1) if self.skip else seq)
 
             def forward(self, x: Any, lengths: Any) -> Any:
                 # (B, T, n_in) -> (B, T, n_out).

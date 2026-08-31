@@ -834,6 +834,34 @@ noise. More global modes cannot help when the model cannot predict the ones it a
 target is not more dimensions but dimensions in which the boundary is PREDICTABLE**, which is
 precisely what a spatial decoder offers and a global linear basis cannot.
 
+> **THAT MECHANISM NO LONGER HOLDS. Re-measured 2026-08-31** on 211 tail shots of salt 0 that the
+> artifact had neither fitted nor stopped on (`my_experiments/diagnose_components.py`), at the
+> CURRENT data scale — five times the frames the original was taken at, which is the reason
+> `ideas.md` kept on file for re-asking:
+>
+> | components | rel. error sd, mlp | R2_j, mlp | rel. error sd, ensemble | R2_j, ensemble | share of psi error |
+> |---|---|---|---|---|---|
+> | 0-3 | 0.035 | 0.999 | 0.031 | 0.999 | 0.7432 |
+> | 4-9 | 0.082 | 0.993 | 0.072 | 0.995 | 0.1493 |
+> | 10-19 | 0.150 | 0.971 | 0.126 | 0.978 | 0.0886 |
+> | 20-29 | 0.310 | 0.896 | 0.248 | 0.932 | 0.0146 |
+> | 30-37 | 0.542 | 0.701 | 0.439 | 0.800 | 0.0032 |
+> | **38-49** | **0.672** | **0.540** | **0.553** | **0.684** | 0.0012 |
+>
+> **NO component reaches its own sd.** Where 38-49 used to arrive at 1.0-1.5 sd — worse than
+> predicting the mean, component 49 at 1.49 — they now arrive at 0.55-0.67 with R2 0.54-0.68. The
+> "arrive as noise" finding was a statement about the OLD data volume and it has dissolved.
+>
+> **What that does and does not license.** It reopens `n_pca` upward, since the reason recorded
+> against it is gone. It does NOT predict a gain: components 38-49 hold **0.12% of the psi error**,
+> so more of them cannot move R2_psi whatever their R2_j — their only possible value is in the
+> boundary geometry, where fine local structure is what a contour is read from. That is the same
+> claim `shaped-basis` makes, arrived at from the other side.
+>
+> Two things it must not be read as. The profile is of a FIFTY-component basis: components 50-99
+> are new directions of smaller variance and their predictability has to be measured, not
+> extrapolated. And the whole table is one artifact of one salt.
+
 **Caveat on the number, stated rather than buried:** measured on 1500 frames from 60 validation
 shots against production's 352 tail shots, so the two are not the same sample. The truncation
 figure (0.994777 against a perfect 1.0) is internally consistent and does not depend on the
