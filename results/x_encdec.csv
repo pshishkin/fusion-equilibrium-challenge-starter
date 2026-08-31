@@ -1,0 +1,7 @@
+name,S,R2_psi,R2_qb,D_LCFS,Cons,note
+c_v1_upconv,0.982358,0.999617,0.993321,0.980161,0.927773,pure transposed-conv decoder, latent 50, no PCA
+c_v2_linear,0.982821,0.999607,0.991744,0.981530,0.930616,+ learned linear branch latent->map
+c_v3_mask4,0.983450,,,0.981870,0.932979,+ plasma envelope weighted 4x
+c_v4_lat256,0.971887,,,0.975642,0.878030,latent 256 instead of 50 — much worse
+c_v5_mask16,0.985139,0.999549,0.992349,0.982213,0.941566,envelope weighted 16x
+c_v6_sobolev,0.985652,0.999606,0.993693,0.982494,0.942827,gradient matching + envelope 4x

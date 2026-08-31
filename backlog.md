@@ -666,6 +666,39 @@ replacement for PCA.** So it is judged on two axes at once — its own composite
 correlation with the existing members, where seeds reach 0.602 and `n_pca=30` reached 0.625. A
 different function class is the only untried candidate that could land below either.
 
+#### The C series, 2026-08-31 — an encoder-decoder scored by the REAL scorer
+No PCA anywhere: features -> encoder -> latent 50 -> transposed-convolution decoder -> the 65x65
+map, plus two scalars off the same latent. Not a pipeline model — it writes an .npz and hands it to
+`local_score.py --pred`, so every number is the competition composite on the SAME 352 tail shots
+production is scored on (list sha1 `0d4a15c2aab058ed`, verified identical, not merely "the same
+tail"). Results in `results/x_encdec.csv`.
+
+| version | S | Consistency | what changed |
+|---|---|---|---|
+| v1 | 0.982358 | 0.927773 | pure conv decoder |
+| v2 | 0.982821 | 0.930616 | + learned linear branch |
+| v3 | 0.983450 | 0.932979 | + envelope weighted 4x |
+| v4 | **0.971887** | 0.878030 | latent 256 — much worse |
+| v5 | 0.985139 | 0.941566 | envelope 16x |
+| v6 | **0.985652** | 0.942827 | gradient matching + envelope 4x |
+
+**Controls on the same 352 shots:** `q_base_s0` 0.992976 (four MLPs, no head), `q_hstat_s0`
+0.993176 (canonised head), `p_base_s0` 0.993453 (full ensemble with seq). A single encoder-decoder
+against a four-model ensemble, so the honest architecture-to-architecture comparison is against a
+single `mlp` at ~0.9910-0.9912.
+
+**The gap is one term and has been from the start.** At v6: `R2_psi` 0.9996 against 0.9998,
+`R2_qb` 0.9937 against 0.9961, `1-D_LCFS` 0.9825 against 0.9888 — and **Consistency 0.9428 against
+0.9740, which is 85% of the total shortfall.** The map is right on average and the geometry cannot
+be read out of it, which is what the envelope and gradient terms address and why both moved it.
+
+**Deferred at the user's instruction: the LATENT SWEEP.** 30, 70 and 100 were launched on v3's
+configuration and stopped, to be re-run on the winning configuration instead — measuring latent size
+against a base that is still moving would confound the two. Known so far: 50 works, 256 loses
+0.0116 with all of it in Consistency, which reads less like "not enough capacity" than like a latent
+free to encode the same map many ways, with nothing making it smooth across frames. Geometry is
+what suffers first from that; a pixel loss does not notice.
+
 #### Step one, run 2026-08-31: joint training helps, but not on a trunk anyone would ship
 Two arms, identical trunks, data and steps; one trained in coefficient space as production does, one
 trained END TO END through a transposed-convolution decoder with the loss in MAP space. The decoder's
