@@ -711,6 +711,38 @@ architecture beats three new seeds.
 **So the order is not negotiable:** the `D_LCFS` truncation diagnostic first, then — only if it
 shows a real loss, or if the diversity argument is taken on its own — the decoder.
 
+### 1p. REFUTED 2026-08-31 — a different basis is not a diversity axis, it is slightly worse
+`n_pca = 30` trained on three salts against the `n_pca = 50` members of the SAME salt, and judged as
+the entry demanded: not by its own score but by whether its errors land elsewhere. Frame-level
+squared-error correlation over 8839 held-out frames:
+
+| pairing | mean correlation |
+|---|---|
+| within `n_pca=50`, four seeds | **0.602** |
+| **across bases, 50 against 30** | **0.625** |
+
+**The different basis is MORE correlated with the existing members than they are with each other.**
+The entry's own criterion was "below 0.56 beats another seed"; 0.625 does not beat 0.596, let alone
+0.56. A fifth member built on 30 components is worse than a fifth seed.
+
+**And the member is worse on its own too:** S 0.992562 / 0.991791 / 0.992977 on salts 0-2 against
+the 50-component ensemble's 0.9930-0.9935 on the same salts. So it fails on both counts, which is
+the one combination that leaves nothing to argue about — `seq` earns its place by being worse alone
+AND decorrelated; this is worse alone and not decorrelated.
+
+**Why the premise was wrong, which is the part worth keeping.** The 2026-08-13 record showed
+`n_pca=30` beating 50 at quality by +0.0043 and losing at production by 0.0014, and that reversal
+made it look like `seq`'s profile. It is not: `seq` differs in ARCHITECTURE — a recurrence over the
+shot against per-frame regression — while `n_pca=30` is the same model on a truncated version of
+the same basis. **Truncation removes information; it does not produce a different view of it.** The
+components the two share are the leading ones, which carry almost all the flux and almost all the
+predictable structure, so the two models are largely fitting the same thing.
+
+**This does not touch `1q`.** A convolutional decoder is a different function class, not a truncation
+of the same one, and `1q-resid` measured that PCA leaves 65% of its truncation error as recoverable
+nonlinear structure. The refutation here is specifically that MORE OR FEWER PCA COMPONENTS is not a
+diversity axis.
+
 ### 1p. `basis-diversity` — a DIFFERENT basis, the same models, added to the blend
 **User's idea, 2026-08-30, and it escapes the bound that caps `1o`.** That bound — 0.00055, from the
 representation-free direct net — limits how well any single model can predict the seven FROM THESE
