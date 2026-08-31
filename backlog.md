@@ -622,7 +622,13 @@ this.
 trunk**, so the coefficients it receives are the ones it was fitted for — which is the expensive
 version this entry always described, and now it has a measured reason rather than an aesthetic one.
 
-### 1q. `upconv-decoder` — an embedding and a convolutional decoder, no basis at all
+### 1q. `upconv-decoder` — an embedding and a convolutional decoder, AS AN ENSEMBLE MEMBER
+**The user's actual hypothesis, and the framing matters: they asked for it in the ensemble, not as a
+replacement for PCA.** So it is judged on two axes at once — its own composite AND its error
+correlation with the existing members, where seeds reach 0.602 and `n_pca=30` reached 0.625. A
+different function class is the only untried candidate that could land below either.
+
+#### The original framing, kept: replacing PCA outright
 **User's clarification, 2026-08-30: not a different PCA, but a learned embedding decoded by
 transposed convolutions.** features -> latent -> upconv stack -> 65x65 map. The decoder becomes part
 of the model instead of being 50 fixed images.
@@ -711,7 +717,12 @@ architecture beats three new seeds.
 **So the order is not negotiable:** the `D_LCFS` truncation diagnostic first, then — only if it
 shows a real loss, or if the diversity argument is taken on its own — the decoder.
 
-### 1p. REFUTED 2026-08-31 — a different basis is not a diversity axis, it is slightly worse
+### 1p. MY MISREADING, not a user hypothesis — refuted 2026-08-31, ~4.5 h of GPU spent on it
+**The user asked for one thing and I filed two.** Their words were "другой базис в ансамбле" and
+then, explicitly, *"я не про pca базис, а про эмбеддинги и дальнейший upconvolution"* — the
+embedding-and-decoder member, i.e. `1q` in a DIVERSITY framing. I had already written `1p` from the
+first reading, did not withdraw it after the correction, and later ran a lane on it. **The
+misallocation is the finding to keep; the measurement below is a by-product nobody asked for.**
 `n_pca = 30` trained on three salts against the `n_pca = 50` members of the SAME salt, and judged as
 the entry demanded: not by its own score but by whether its errors land elsewhere. Frame-level
 squared-error correlation over 8839 held-out frames:
@@ -738,10 +749,11 @@ the same basis. **Truncation removes information; it does not produce a differen
 components the two share are the leading ones, which carry almost all the flux and almost all the
 predictable structure, so the two models are largely fitting the same thing.
 
-**This does not touch `1q`.** A convolutional decoder is a different function class, not a truncation
-of the same one, and `1q-resid` measured that PCA leaves 65% of its truncation error as recoverable
-nonlinear structure. The refutation here is specifically that MORE OR FEWER PCA COMPONENTS is not a
-diversity axis.
+**This does not touch `1q`, and the distinction is exactly why the user's version was the right
+one.** A convolutional decoder is a different FUNCTION CLASS; `n_pca=30` is a truncation of the same
+one. `1q-resid` measured that PCA leaves 65% of its truncation error as recoverable nonlinear
+structure — structure no PCA member of any size can hold. The refutation here is narrow: MORE OR
+FEWER PCA COMPONENTS is not a diversity axis.
 
 ### 1p. `basis-diversity` — a DIFFERENT basis, the same models, added to the blend
 **User's idea, 2026-08-30, and it escapes the bound that caps `1o`.** That bound — 0.00055, from the
