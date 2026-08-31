@@ -126,6 +126,35 @@ construction site, not a new model class.
 survives to a stack it enters as an ADDITIONAL member, not a replacement, since the whole argument
 is diversity.
 
+### S6. `seq-head-2` — two layers after the recurrence instead of one — model: `seq` — **CODE READY 2026-08-31**
+`seq_head_hidden` in the `seq` block: 0 is the single `Linear(2*seq_hidden, 52)` every number before
+today used, a positive value inserts a hidden layer of that width. Built by `build_mlp`, so the
+activation and dropout conventions are not restated; the OUTPUT layer is found rather than indexed
+and zeroed, because `build_mlp` may place dropout after the last `Linear` and an index would zero
+that instead — which would leave the correction non-zero at step 0 and quietly cost the residual
+form its whole point. The smoke test asserts the correction starts at exactly 0.0 in all six
+(cell x width) combinations.
+
+**User's request, 2026-08-31:** *"проверь что если после gru иметь не 1 слой а 2 — может второй
+размера чуть поменьше а может нет"*.
+
+**The asymmetry this points at is real and was never argued for.** The per-frame trunk `head` is two
+hidden layers deep to produce 52 coordinates. The shot-level branch produces the same 52 coordinates
+through ONE linear map from the 2*256 recurrent state. So the only nonlinearity the sequence branch
+owns sits in `enc`, BEFORE the recurrence: whatever the GRU represents can reach the targets in a
+linear combination and in no other way. That is a modelling choice which was made by default rather
+than by measurement.
+
+**Why narrower is the interesting arm, not the cheap one.** `delta` starts at zero and grows only
+what it earns, and the model reports its size for exactly this reason. A bottleneck at 256 that
+matches 512 says the shot-level information is LOW-DIMENSIONAL — a claim about the problem, not
+about parameter count. Arms: 0 (control), 512, 256.
+
+**Read it the way S4 is read.** `seq` alone loses to the MLP and earns its place in the average, so a
+head that scores the same but errs elsewhere is worth more than one that scores higher and errs in
+the same places. Report the error correlation with the control arm alongside the composite.
+
+
 ### S5. `mlp-lr-adaptive` — a rate that responds to the curve, model: the MLPs — **CODE READY 2026-08-30**
 `lr_schedule: plateau` plus `warmup_steps` and `plateau_patience_evals` on every torch_mlp
 block, all defaulting to off. `_lr_cuts` records every cut and `fit_report` prints them, so the

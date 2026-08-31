@@ -33,6 +33,23 @@ features:
   # compared 0.1 against 1.0 and so moved the PCA's sample along with the effect it was measuring.
   pca_frame_share: 0.2
 
+  # WHICH 50 directions, as opposed to how many. Plain PCA maximises explained pixel variance,
+  # counted equally over the whole 65x65 grid; the metric counts nothing that way. 42.2% of the
+  # grid is outside the scorer's plasma envelope, and every scored functional except R2_psi is read
+  # off a CONTOUR, whose position and shape are set by the flux GRADIENT rather than by its value.
+  #
+  # These two reweight the basis's own objective by exactly the loss `mapnet` v7 was measured
+  # under, where they were worth +0.0030 composite (0.982821 -> 0.985811): the envelope weighted
+  # `basis_envelope`x more than the outside, plus `basis_sobolev` times the error in one-pixel
+  # first differences. See my_experiments/shaped_basis.py for why the coordinates are rebuilt
+  # orthonormal afterwards, and what that deliberately leaves on the table.
+  #
+  # 1.0 / 0.0 is plain PCA and takes the untouched `TargetPCA` path, so the control arm is the old
+  # code rather than a re-derivation of it. This trades R2_psi, which carries weight 0.55 but only
+  # 1.7% of what is lost, against D_LCFS and Consistency, which carry 0.30 and 87.7% of it.
+  basis_envelope: 1.0
+  basis_sobolev: 0.0
+
   # psi = psi_coil + psi_plasma, and the first term is a Green's function times a current rather
   # than a modelling problem — see README, "The flux decomposition". With this on, the models are
   # fitted on the plasma part alone and the coil part is added back, unchanged, at inference. The
@@ -771,6 +788,11 @@ models:
     # architecture beats three extra seeds. Judge it by error correlation with the
     # existing members (seeds 0.56, feature sets 0.75), not by its own composite.
     seq_cell: gru
+    # A hidden layer between the recurrent state and the correction, or 0 for the single linear
+    # map every number before 2026-08-31 used. See my_experiments/seq_model.py for why the
+    # asymmetry with `hidden_sizes` — two layers for the per-frame part, one for the shot-level
+    # part, both producing the same 52 coordinates — is worth a measurement.
+    seq_head_hidden: 0
     # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
     # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
     batch_shots: 32

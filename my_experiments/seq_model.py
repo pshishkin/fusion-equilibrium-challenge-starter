@@ -107,6 +107,19 @@ class TorchSeqModel(TargetModel):
     # The two are drop-in: both take (input, hidden, layers) and return (output, state), and the
     # state is discarded here, so only the constructor differs.
     seq_cell: str
+    # Width of a hidden layer between the recurrent state and the correction, or 0 for the single
+    # linear map every number before 2026-08-31 was measured with. The recurrence produces a
+    # 2 * seq_hidden state and `delta` has to turn it into 52 target coordinates; with one linear
+    # layer the ONLY nonlinearity the sequence branch owns lives in `enc`, before the recurrence,
+    # so whatever the GRU represents can reach the targets in a linear combination and no other
+    # way. `head` — the per-frame trunk this corrects — is two hidden layers deep for the same
+    # 52 outputs, which is the asymmetry this field exists to test.
+    #
+    # NARROWER than 2 * seq_hidden is the interesting setting rather than an economy: the
+    # correction is small by construction (`delta` starts at zero and only grows what it earns), so
+    # a bottleneck says the shot-level information is low-dimensional, which is a claim about the
+    # problem and not about the parameter count.
+    seq_head_hidden: int
     # Shots per optimizer step. The unit of a batch is the SHOT here, so this is not comparable to
     # the MLP's `batch_size` in rows: 32 shots is about 7500 frames at full frames.
     batch_shots: int
@@ -166,10 +179,18 @@ class TorchSeqModel(TargetModel):
                 self.gru = cell(cfg.seq_hidden, cfg.seq_hidden, cfg.seq_layers,
                                 batch_first=True, bidirectional=True,
                                 dropout=cfg.dropout if cfg.seq_layers > 1 else 0.0)
-                self.delta = torch.nn.Linear(2 * cfg.seq_hidden, n_out)
+                # One linear map, or a hidden layer first — built by `build_mlp` either way, so
+                # the activation and dropout conventions stay declared in one place.
+                self.delta = (build_mlp(2 * cfg.seq_hidden, [cfg.seq_head_hidden], n_out,
+                                        cfg.activation, cfg.dropout) if cfg.seq_head_hidden
+                              else torch.nn.Linear(2 * cfg.seq_hidden, n_out))
                 # The whole point of the residual form: at initialisation this model IS `head`.
-                torch.nn.init.zeros_(self.delta.weight)
-                torch.nn.init.zeros_(self.delta.bias)
+                # Zeroing the OUTPUT layer, found rather than indexed — `build_mlp` may put
+                # dropout or a norm after the last Linear and an index would silently zero those.
+                last = (self.delta if isinstance(self.delta, torch.nn.Linear) else
+                        [m for m in self.delta.modules() if isinstance(m, torch.nn.Linear)][-1])
+                torch.nn.init.zeros_(last.weight)
+                torch.nn.init.zeros_(last.bias)
 
             def parts(self, x: Any, lengths: Any) -> tuple[Any, Any]:
                 """The per-frame prediction and the correction the shot adds to it, separately.

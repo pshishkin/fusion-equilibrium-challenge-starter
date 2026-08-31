@@ -42,7 +42,6 @@ from experiments import (
     DEFAULT_LOCAL_DATA_DIR,
     EFIT_GRID_SIZE,
     HF_TRAIN_CONFIG,
-    TargetPCA,
     _as_psirz_stack,
     interpolate_magnetics_to_efit,
 )
@@ -63,6 +62,7 @@ from my_experiments.models import (
     load_params,
 )
 from my_experiments.monitor import build_monitor
+from my_experiments.shaped_basis import build_target_pca
 from my_experiments.target_metric import (
     CONS_SCALARS,
     boundary_form,
@@ -1185,7 +1185,17 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     pca_rows = thin_frames(len(Y), params.pca_frame_share)
     print(f"  features standardized; fitting PCA on {len(pca_rows)} of {len(Y)} frames "
           f"({params.pca_frame_share:.0%}) of {EFIT_GRID_SIZE ** 2} pixels")
-    pca = TargetPCA(n_components=params.n_pca)
+    # WHICH directions, not how many: at 1.0/0.0 this is `TargetPCA` unchanged, otherwise the
+    # subspace is chosen under `mapnet` v7's loss instead of under pixel variance. The envelope mask
+    # comes from the scorer's own bundle, on the plan's grid, so it is the same mask the metric
+    # reads — see my_experiments/shaped_basis.py.
+    shaped = params.basis_envelope != 1.0 or params.basis_sobolev != 0.0
+    mask_f = (scorer_context(plan["grid_R"], plan["grid_Z"], plan["machine"])["mask_f"]
+              if shaped else None)
+    pca = build_target_pca(params.n_pca, mask_f, params.basis_envelope, params.basis_sobolev)
+    if shaped:
+        print(f"  basis shaped by v7's loss: envelope x{params.basis_envelope:g}, "
+              f"sobolev {params.basis_sobolev:g}")
     # Pin the randomized SVD. sklearn chooses that solver for 50 components out of 4225 pixels and
     # TargetPCA leaves random_state at None, so unpinned it fits different components on every run
     # — different targets for every model, and a score that moves without the code changing.

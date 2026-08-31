@@ -1277,6 +1277,8 @@ class Params:
     n_pca: int
     pca_seed: int
     pca_frame_share: float
+    basis_envelope: float
+    basis_sobolev: float
     derivatives: str                    # none | raw | interp | both
     derivative_signals: str             # driving | poloidal
     # A19/A22: which signals get the leaky-integral block of dI/dt. 'none' is off.
@@ -1520,7 +1522,8 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
         raise ValueError(f"{path}: loss.metric is {loss_metric!r}, expected one of "
                          f"{sorted(LOSS_METRICS)}")
     _require_keys(doc["features"],
-                  {"n_pca", "pca_seed", "pca_frame_share", "subtract_coil_field", "inputs",
+                  {"n_pca", "pca_seed", "pca_frame_share", "basis_envelope",
+                   "basis_sobolev", "subtract_coil_field", "inputs",
                    "n_coil_pca", "derivatives", "derivative_signals", "thomson",
                    "frame_gaps", "vessel"},
                   "features", path)
@@ -1528,6 +1531,14 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     if not 0.0 < pca_frame_share <= 1.0:
         raise ValueError(f"{path}: features.pca_frame_share is {pca_frame_share}, expected a "
                          f"share in (0, 1]")
+    basis_envelope = float(doc["features"]["basis_envelope"])
+    if not basis_envelope > 0.0:
+        raise ValueError(f"{path}: features.basis_envelope is {basis_envelope}, expected a "
+                         f"positive weight (1.0 = plain PCA)")
+    basis_sobolev = float(doc["features"]["basis_sobolev"])
+    if basis_sobolev < 0.0:
+        raise ValueError(f"{path}: features.basis_sobolev is {basis_sobolev}, expected a "
+                         f"non-negative weight (0.0 = off)")
     derivatives = str(doc["features"]["derivatives"])
     if derivatives not in DERIV_MODES:
         raise ValueError(f"{path}: features.derivatives is {derivatives!r}, expected "
@@ -1576,6 +1587,8 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     return Params(n_pca=int(doc["features"]["n_pca"]),
                   pca_seed=int(doc["features"]["pca_seed"]),
                   pca_frame_share=pca_frame_share,
+                  basis_envelope=basis_envelope,
+                  basis_sobolev=basis_sobolev,
                   derivatives=derivatives,
                   derivative_signals=deriv_signals,
                   vessel=vessel,

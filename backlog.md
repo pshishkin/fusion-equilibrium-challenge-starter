@@ -44,6 +44,53 @@ on all seven scalars alike, and nine of those measured zero this week.
 Run the free gradient-fidelity gate before writing any training code for 1b/1c: it can close both.
 
 
+### `shaped-basis` — the PCA basis fitted under the metric that SCORES it — **RUNNING 2026-08-31**
+**User's request, 2026-08-31:** *"не просто pca для него взять, а pca который когда учился, то взял
+в себя идею из v7 — соболев + оболочка x16"*. Code: `my_experiments/shaped_basis.py`,
+`features.basis_envelope` / `features.basis_sobolev`.
+
+**The idea in one line.** v7's loss is a QUADRATIC FORM in the map error, so it can be handed to the
+BASIS and not only to a network — and the rank-50 subspace optimal under a quadratic form is one
+Cholesky away from ordinary PCA.
+
+**Why this is not "one more knob", and this is the whole case for it.** The basis is not a fitting
+choice, it is a CEILING: the models predict coefficients, so whatever the 50 directions cannot
+represent is lost before any regression starts. C1 measured that ceiling and it is not small —
+**the basis costs 46% of what is lost on D_LCFS** (truncation 0.000522 composite against the models'
+own 0.000608). Every other entry in this file moves the regression toward a fixed ceiling. This one
+moves the ceiling.
+
+**What it trades, with the arithmetic.** Plain PCA maximises explained pixel variance counted
+equally over the whole grid. 42.2% of that grid is outside the scorer's plasma envelope, where no
+scored functional reads anything, and every functional except R²ψ is read off a CONTOUR — a level
+set, whose position and shape are set by the flux GRADIENT. So a shaped basis is BOUND to score
+lower on R²ψ; it is buying D_LCFS and Consistency with it. The headroom table says that is the right
+direction to trade in: **R²ψ carries weight 0.55 but only 1.7% of what is lost, D_LCFS and
+Consistency carry 0.30 and 87.7% of it.**
+
+**Precedent, measured rather than argued.** The same two terms on the encoder-decoder took
+`c_v2` 0.982821 to `c_v7` 0.985811 (`results/x_encdec.csv`) — envelope x16 alone +0.0023, the
+gradient term another +0.0007. That is a different model with a different decoder, so it transfers
+as a REASON to look, not as an expectation.
+
+**The deliberate restriction, and what it leaves on the table.** The metric picks the SUBSPACE; the
+coordinates are then rebuilt orthonormal and variance-ordered inside it. That keeps three things
+true that the rest of the pipeline assumes and would otherwise silently break: `TargetScaler`
+divides the whole psi block by one number (Parseval), the Jacobian metric's identity term IS that
+same Parseval statement, and R²ψ is measured in pixels. The price is that reconstruction stays the
+ORTHOGONAL projection where the A-optimal one would be A-orthogonal. The oblique variant is a
+strictly larger change that has to pay for repairing all three, and is worth building only if
+choosing the subspace alone moves anything.
+
+**Ranked before it is screened, which is what `0-ladder` asks for.** `tools/basis_ceiling.sh` scores
+the CEILING — ground truth through the 50 components and straight back, q95 and betaN handed over
+exactly — so R²qb is 1.0 by construction and only the three traded terms can move. One shot read and
+one scoring pass per candidate, ~8 min, against ~6 h for a six-salt lane. If the ceiling does not
+move, there is nothing to train towards and no lane is spent. Grid: envelope 1/4/16 x sobolev
+0/0.1/1.0, control included so the plain path is re-derived rather than assumed
+(`results/x_basis_ceiling.csv`).
+
+
 ### 0-speed. SPEED IS A FIRST-CLASS GOAL, not a convenience
 **User, 2026-08-30.** Everything below is rate-limited by how many arms a day the box can answer,
 and the effects are small enough that breadth beats depth. Treat a change that makes runs cheaper as
