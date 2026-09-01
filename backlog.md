@@ -44,7 +44,32 @@ on all seven scalars alike, and nine of those measured zero this week.
 Run the free gradient-fidelity gate before writing any training code for 1b/1c: it can close both.
 
 
-### `shaped-basis` — the PCA basis fitted under the metric that SCORES it — **RUNNING 2026-08-31**
+### `shaped-basis` — **REFUTED 2026-09-01 at 3 pairs, −0.000272, stopped by a pre-registered rule**
+
+| salt | base | shaped | dS | dCons | dD_LCFS |
+|---|---|---|---|---|---|
+| 0 | 0.993517 | 0.993193 | −0.000324 | −0.001495 | −0.000051 |
+| 1 | 0.992831 | 0.992658 | −0.000173 | −0.000509 | −0.000069 |
+| 2 | 0.994093 | 0.993773 | −0.000320 | −0.000970 | −0.000306 |
+| | | | **−0.000272** | | |
+
+**Three of three negative, against a ceiling that promised +0.000119.** The rule that stopped it was
+written while the lane held TWO of its twelve rows, before salts 1 and 2 existed, and the remaining
+~9 hours went to `n_pca`.
+
+**The interesting part is WHERE it lost.** The ceiling gained +0.000113 of its +0.000119 in
+Consistency; production lost −0.000991 there on average, in every salt. So the direction of the
+effect is the same in both — this basis is about Consistency — and the SIGN is opposite. The
+subspace became better for reconstructing the truth and worse for regressing it: the directions that
+describe the contour more accurately are less predictable from the magnetics.
+
+**What that costs the ceiling as an instrument, stated plainly.** The ceiling is exact, noiseless,
+and it ranked six bases in an hour where a lane takes eighteen — and on the one hypothesis it was
+used to rank, it pointed the wrong way. It measures what a PERFECT regression would collect, and it
+cannot see that reshaping the basis moves the target out of the model's reach. Any future use of it
+has to carry that: **a ceiling gain is an upper bound on a gain that may not exist at all**, and it
+is worth having only because it is 18x cheaper, not because it predicts.
+
 **User's request, 2026-08-31:** *"не просто pca для него взять, а pca который когда учился, то взял
 в себя идею из v7 — соболев + оболочка x16"*. Code: `my_experiments/shaped_basis.py`,
 `features.basis_envelope` / `features.basis_sobolev`.
