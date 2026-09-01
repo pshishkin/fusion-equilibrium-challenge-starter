@@ -84,6 +84,33 @@ separately: it says the sequence branch is actually being USED rather than sitti
 was initialised to. At 60 steps the sizes mean nothing about accuracy — they mean the machinery is
 live, which is the only thing a smoke test can honestly claim.
 
+**And a stronger claim than the leak column, asked for 2026-09-01: is a padded shot treated the
+same as that shot alone?** A convolution cannot decline to compute at a padded position — it is one
+tensor — so "the padding does not leak" is weaker than what `pack_padded_sequence` gives the GRU,
+where the recurrence simply has no step past the true length. The test that settles it runs one shot
+inside a padded batch and the SAME shot alone in a tensor of exactly its length:
+
+| mixer | outputs up to | max abs difference | relative |
+|---|---|---|---|
+| `gru` (packed — the reference) | 0.1908 | 3.7e-08 | 2.0e-07 |
+| `conv` | 0.2723 | 1.6e-07 | 6.0e-07 |
+| `attn` | 2.8504 | 1.1e-06 | 3.8e-07 |
+
+All three sit at 1e-7 relative, which is float32's own resolution — a batched matmul reduces in a
+different order than an unbatched one. **So batch padding is invisible to `conv` and `attn` to the
+same precision it is invisible to the packed GRU**, which is the only sense in which "invisible" is
+available at all.
+
+**What the padding is, said plainly, because it is a modelling choice and not only a correctness
+one.** It is exact ZERO, re-imposed before every layer. Zero is not neutral in `enc`'s output space
+— that space is post-activation and zero is a particular point in it. The defence is not that zero
+means nothing; it is that **torch's own `padding=d` pads the tensor edge with zeros too**, so the
+end of a short shot inside a batch is indistinguishable from the end of the longest shot at the
+tensor's edge. Every shot gets the same boundary condition, which is what stops this being a bug.
+Whether zero is the BEST boundary is unmeasured: replicate-padding (hold the last real frame) and
+masked normalisation (divide by the number of valid taps, so a half-hanging kernel averages over
+what is actually there) are both defensible and neither has been tried.
+
 The leak column is the one that matters. Neither new mixer can use a `PackedSequence`, so both carry
 an explicit mask, and the test writes 9.0 over every padded frame and demands the valid outputs do
 not move. **A mask that leaks changes no shape and raises nothing** — it would simply have trained
