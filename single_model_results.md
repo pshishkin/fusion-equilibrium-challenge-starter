@@ -53,6 +53,51 @@ initialisation would. Read against the four MLP seeds on this salt, whose spread
 +0.000710 is two to three such spreads — but `seq` is the noisiest member on file (paired sd
 0.000831 against `mlp`'s 0.000283), so another model's error bar cannot be borrowed. Hence `S7same`.
 
+## The error-correlation matrix — 2026-09-01, and it inverts the ranking above
+
+Rung 1 read every arm by its own composite. That is the wrong number for this model and the file
+already said so: `seq` is in the ensemble because it DISAGREES, not because it is accurate. The
+matrix below is the criterion itself, computed from artifacts already on disk
+(`my_experiments/diagnose_diversity.py`, 352 tail shots of salt 0, psi block, identical basis in
+every arm).
+
+**The bar is not zero, it is what a reseed already buys.** `s7same` is the control's own
+architecture with a different initialisation, and it errs at correlation **0.605** with the control.
+Anything above that is worth less as a member than `models.seq.seed = 1`.
+
+| arm | corr. with control | vs the 0.605 reseed bar | single-model dS |
+|---|---|---|---|
+| **`conv`** | **0.546** | **below — the only one** | −0.000038 |
+| `h256` | 0.608 | level | −0.000983 |
+| `h512` | 0.611 | level | −0.000664 |
+| `h2n128` | 0.621 | above | −0.000336 |
+| `skip` | 0.624 | above | +0.000827 |
+| `lstm` | 0.630 | above | +0.000710 |
+| `L2` | 0.634 | above | −0.000980 |
+| `attn` | 0.637 | **most correlated of all** | +0.000591 |
+
+**Eight of nine arms err MORE like the control than the control's own reseed does.** The two that
+took the best composites, `lstm` and `attn`, are among the three most correlated. By composite the
+order was `skip` > `lstm` > `attn` > `base` > `conv`; by the criterion that decides membership it is
+close to reversed.
+
+`conv` is the exception and not narrowly: the lowest row in the matrix (0.491–0.593), with its
+minimum against `s7same` at 0.491 — the lowest entry in the whole table. It is also the cheapest arm
+at 21 minutes against 42–76, and it had the best R2_qb of the ten, which is the block `seq` is
+actually short in.
+
+**What this changed in the queue.** `lstm` was dropped from ladder rung 2, where the ladder's own
+composite ranking had put it. `conv` was NOT promoted there either: its single-model composite is
+already known to be level with the control, and three more salts would confirm that while answering
+nothing. The question `conv` raises is about the average, so it is asked with the average — a full
+production lane with `seq_cell: conv` against the current zoo.
+
+**The caveat that keeps this honest.** One salt, one correlation measure, on the psi block. The
+correlations sit in a narrow band (0.49–0.69) and no error bar has been put on the differences
+between them; `conv`'s 0.546 against the 0.605 bar is a gap of the same order as the band's own
+width. It reorders a queue, which is a cheap decision to get wrong, and it does not establish
+anything.
+
 ## Kept — awaiting a stack
 
 | hypothesis | model | salts | mean dS | sd | ensemble dS | notes |
