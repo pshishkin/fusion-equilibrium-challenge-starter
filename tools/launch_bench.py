@@ -17,6 +17,7 @@ The three things being distinguished, because they are usually conflated:
                                   knowing about: fuse first, then make the survivors cheap to send.
 """
 import argparse
+import subprocess
 import time
 
 import torch
@@ -52,9 +53,14 @@ def main() -> int:
     B = a.batch
     fl = 3 * 2 * B * (N_IN * H + H * H + H * N_OUT)
     peak = 15.7e12
-    util = torch.cuda.utilization()
-    print(f"  {torch.cuda.get_device_name(0)}, utilisation at start {util}% "
-          f"{'(NOT IDLE — the numbers below measure contention)' if util > 5 else '(idle)'}")
+    try:
+        util = int(subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu",
+                                   "--format=csv,noheader,nounits"],
+                                  capture_output=True, text=True, check=True).stdout.split()[0])
+        note = "(NOT IDLE — the numbers below measure contention)" if util > 5 else "(idle)"
+    except Exception:
+        util, note = -1, "(utilisation unknown)"
+    print(f"  {torch.cuda.get_device_name(0)}, utilisation at start {util}% {note}")
     x = torch.randn(B, N_IN, device=dev)
     y = torch.randn(B, N_OUT, device=dev)
     res = {}

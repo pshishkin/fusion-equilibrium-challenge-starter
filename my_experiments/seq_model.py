@@ -491,7 +491,7 @@ class TorchSeqModel(TargetModel):
         #
         # V100 is compute capability 7.0: fp16 tensor cores YES (125 against 15.7 TFLOPS), TF32 no,
         # that is Ampere. Half precision is the only precision lever this card has.
-        use_amp = os.environ.get("FUSION_AMP") == "1" and dev.type == "cuda"
+        use_amp = os.environ.get("FUSION_AMP") == "1" and str(dev) == "cuda"
         scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
         if use_amp:
             print("    seq: AMP ON (fp16 autocast + gradient scaling) — BENCHMARK MODE, and every "
