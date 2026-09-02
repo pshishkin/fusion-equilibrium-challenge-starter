@@ -53,6 +53,25 @@ initialisation would. Read against the four MLP seeds on this salt, whose spread
 +0.000710 is two to three such spreads — but `seq` is the noisiest member on file (paired sd
 0.000831 against `mlp`'s 0.000283), so another model's error bar cannot be borrowed. Hence `S7same`.
 
+
+## The mega-ensemble roster — kept members, 2026-09-02
+
+**The user's decision on 2026-09-02: `p70` goes into the mega-ensemble.** It is not a config change —
+that was measured and it is a zero, 7 pairs at −0.000006, t −0.14 — it is a MEMBER, and the two
+questions are different. A config change has to beat the control in the composite; a member only has
+to err somewhere the others do not.
+
+**What earns it a place, measured rather than argued.** `p70` improves D_LCFS on **seven salts out
+of seven**, mean +0.000252, t **+5.91** — the most reliable per-term effect anything in this file has
+produced. It buys that with a Consistency change that is not established (t −1.19, 2/7) and nets to
+zero in the composite. So the boundary gain is real and the composite cannot hold it: at weight 0.10
+it is +0.000025, against a 12-pair resolution of 0.000088. **The prize is a third of what the
+instrument can see** — which is exactly the situation where a member is the right vehicle and a
+config arm is the wrong one.
+
+And it errs in a different space by construction: 70 coordinates, not 50, so its target vector is
+not the control's with noise on top.
+
 ## The error-correlation matrix — 2026-09-01, and it inverts the ranking above
 
 Rung 1 read every arm by its own composite. That is the wrong number for this model and the file
