@@ -36,5 +36,13 @@ for arm in fp32 amp; do
   echo "${arm},${FIT:-NA},${BEST:-NA},10000,$((SECONDS-T0))" >> "$OUT"
   echo "  -> ${arm} fit ${FIT}s best_val ${BEST}"
 done
-echo "--- verdict ---"; column -s, -t "$OUT"
+echo "--- verdict, AMP ---"; column -s, -t "$OUT"
+
+# And the launch-overhead question, on the same idle card. Measured under contention on 2026-09-02
+# every variant landed within 4% of baseline, CUDA graphs included — which either means the step is
+# genuinely compute-bound at batch 4096, or that the contention was all that was ever being
+# measured. An idle card is the only thing that separates those.
+echo "--- launch overhead, same idle card ---"
+uv run --with setuptools python tools/launch_bench.py --batch 4096 \
+  2>&1 | grep -vE "Warning|warn" | tee logs/$(date -u +%Y%m%d-%H%M%S)-launchbench.log
 echo "AMP BENCH COMPLETE"
