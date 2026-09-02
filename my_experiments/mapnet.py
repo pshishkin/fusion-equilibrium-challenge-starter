@@ -124,7 +124,11 @@ def mapnet_predict(art: dict, Xs, grid: int):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shots", type=int, default=3000, help="training shots to read")
+    ap.add_argument("--shots", type=int, default=3000,
+                    help="training shots to read, from the head of the split. 0 = ALL of them, "
+                         "which is what a blend member wants: every other member of a salt is "
+                         "fitted on the full 5633, and one fitted on 3000 differs from them in "
+                         "how much data it saw as well as in what it is")
     ap.add_argument("--steps", type=int, default=60000)
     ap.add_argument("--latent", type=int, default=50)
     ap.add_argument("--batch", type=int, default=256)
@@ -149,21 +153,40 @@ def main() -> int:
     ap.add_argument("--save-artifact", default="",
                     help="also write a self-contained artifact usable as an ensemble "
                          "member via salts:<name>+<name>")
+    ap.add_argument("--reference", default="artefacts/lanes/baseline_q_base_s0.joblib",
+                    help="artifact to borrow the feature scaler and the coil plan from. Both are "
+                         "FITTED ON DATA — the coil gains are a least-squares fit against the flux "
+                         "— so a reference from a different salt was trained on a different "
+                         "training window than this run's, and the mismatch is silent. The salt is "
+                         "checked against --salt rather than trusted")
     ap.add_argument("--out", default="/tmp/encdec_pred.npz")
     a = ap.parse_args()
 
     import baseline_model as B
     files = B.sorted_shots(salt=a.salt)
-    train_files, _ = B.split_train_val(files, 0.80, 0.15)
+    # The validation window is KEPT now, not discarded. mapnet does not early-stop, so it never
+    # reads those shots — but a blend member has to declare what its split was, and `evaluate.py`
+    # unions train and val into "seen" before it will let a member into a `salts:` run. Declaring
+    # the window is conservative in the only direction that is safe.
+    train_files, val_files = B.split_train_val(files, 0.80, 0.15)
     score_files = B.take_share(files, 0.05, "tail")
-    train_files = train_files[:a.shots]
-    print(f"  {len(train_files)} training shots, {len(score_files)} scoring shots", flush=True)
+    if a.shots:
+        train_files = train_files[:a.shots]
+    print(f"  {len(train_files)} training shots, {len(val_files)} validation (unread), "
+          f"{len(score_files)} scoring shots", flush=True)
 
     Xt, psit, qbt, _ = B._read_shots(train_files, "train", 1.0, 10)
     psit = psit.astype(np.float32)
     plan = B.coil_plan_from_artifact() if hasattr(B, 'coil_plan_from_artifact') else None
     import joblib
-    art = joblib.load('artefacts/lanes/baseline_q_base_s0.joblib')
+    art = joblib.load(a.reference)
+    # The scaler and the coil plan are fitted quantities, so a reference from another salt saw a
+    # different training window. Nothing downstream would complain: the shapes match, the numbers
+    # are plausible, and the member would simply be standardised against the wrong data.
+    if int(art["split_salt"]) != a.salt:
+        raise SystemExit(f"{a.reference} was fitted under salt {art['split_salt']}, this run uses "
+                         f"salt {a.salt}. Its scaler and coil gains come from a different training "
+                         f"window; pass --reference for an artifact of salt {a.salt}.")
     plan = art['coil']
     G = psit.shape[1]
     St = art['scaler'].transform(B.build_inputs(plan, Xt)).astype(np.float32)
@@ -336,7 +359,10 @@ def main() -> int:
         _jl.dump({
             "kind": MAPNET_KIND,
             "scaler": art["scaler"], "coil": art["coil"], "n_pca": art["n_pca"],
+            "split_salt": a.salt,
             "train_files": [str(f) for f in train_files],
+            "val_files": [str(f) for f in val_files],
+            "n_train_shots": len(train_files), "n_val_shots": len(val_files),
             "mapnet": {"n_in": St.shape[1], "latent": a.latent, "upsample": a.upsample,
                        "coords": bool(a.coords), "state": state,
                        "ym": ym, "ys": ys, "qm": qm, "qs": qs},
