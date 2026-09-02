@@ -25,6 +25,7 @@ so `predict` takes its argument as one sequence — see the guard in `predict`.
 """
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -483,14 +484,30 @@ class TorchSeqModel(TargetModel):
             return ids
 
         best_loss, best_state, since_best = float("inf"), None, 0
+        # AMP, off unless `FUSION_AMP=1`. An ENV VAR and not a params.yaml key on purpose: this
+        # is an execution mode like FUSION_ARTIFACT, not a hyper-parameter, and every number on
+        # record was measured in fp32 — a config key would invite it into a lane, where half the
+        # members would be fitted at one precision and half at another.
+        #
+        # V100 is compute capability 7.0: fp16 tensor cores YES (125 against 15.7 TFLOPS), TF32 no,
+        # that is Ampere. Half precision is the only precision lever this card has.
+        use_amp = os.environ.get("FUSION_AMP") == "1" and dev.type == "cuda"
+        scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+        if use_amp:
+            print("    seq: AMP ON (fp16 autocast + gradient scaling) — BENCHMARK MODE, and every "
+                  "number on record is fp32", flush=True)
         run_t, run_n = torch.zeros((), device=dev), 0
         bar = tqdm(total=self.max_steps, desc="    seq", unit="step",
                    **bar_kwargs(off_in_log=True))
         for step in range(1, self.max_steps + 1):
             opt.zero_grad()
-            total, n = batch_loss(Xt, Yt, starts, lengths, next_batch())
-            (total / n).backward()
-            opt.step()
+            with torch.autocast("cuda", enabled=use_amp):
+                total, n = batch_loss(Xt, Yt, starts, lengths, next_batch())
+            # `total` is a SUM over frames and the targets are metric-scaled, so the loss is large
+            # while the gradient is small — exactly the regime where fp16 underflows unscaled.
+            scaler.scale(total / n).backward()
+            scaler.step(opt)
+            scaler.update()
             run_t += total.detach()
             run_n += n
             if ema is not None:
