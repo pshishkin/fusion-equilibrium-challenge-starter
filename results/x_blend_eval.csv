@@ -1,0 +1,10 @@
+salt,rung,n_artifacts,S,R2_psi,R2_qb,D_LCFS,Cons,members
+1,mixers,5,0.992488,0.999791,0.993913,0.988052,0.973555,z_npca_base_s1+c_conv_s1+c_lstm_s1+c_skip_s1+c_attn_s1
+1,bases,7,0.993022,0.999816,0.995425,0.988847,0.974624,z_npca_base_s1+z_npca_p70_s1+z_npca_p100_s1+z_sbasis_shaped_s1+c_wide_s1+c_widep70_s1+c_widep100_s1
+1,all,14,0.992779,0.999820,0.995076,0.988440,0.973866,z_npca_base_s1+c_conv_s1+c_lstm_s1+c_skip_s1+c_attn_s1+z_npca_p70_s1+z_npca_p100_s1+z_sbasis_shaped_s1+c_wide_s1+c_widep70_s1+c_widep100_s1+c_parseval_s1+c_cat_s1+c_mapnet_s1
+2,mixers,5,0.993423,0.999766,0.993476,0.987150,0.979075,z_npca_base_s2+c_conv_s2+c_lstm_s2+c_skip_s2+c_attn_s2
+2,bases,7,0.994367,0.999781,0.995656,0.988484,0.981455,z_npca_base_s2+z_npca_p70_s2+z_npca_p100_s2+z_sbasis_shaped_s2+c_wide_s2+c_widep70_s2+c_widep100_s2
+2,all,14,0.994069,0.999780,0.995303,0.987766,0.980590,z_npca_base_s2+c_conv_s2+c_lstm_s2+c_skip_s2+c_attn_s2+z_npca_p70_s2+z_npca_p100_s2+z_sbasis_shaped_s2+c_wide_s2+c_widep70_s2+c_widep100_s2+c_parseval_s2+c_cat_s2+c_mapnet_s2
+3,mixers,5,0.993821,0.999781,0.995418,0.987858,0.979214,z_npca_base_s3+c_conv_s3+c_lstm_s3+c_skip_s3+c_attn_s3
+3,bases,6,0.994289,0.999791,0.996727,0.988828,0.980059,z_npca_base_s3+z_npca_p70_s3+z_npca_p100_s3+c_wide_s3+c_widep70_s3+c_widep100_s3
+3,all,13,0.993986,0.999788,0.996454,0.987917,0.979215,z_npca_base_s3+c_conv_s3+c_lstm_s3+c_skip_s3+c_attn_s3+z_npca_p70_s3+z_npca_p100_s3+c_wide_s3+c_widep70_s3+c_widep100_s3+c_parseval_s3+c_cat_s3+c_mapnet_s3
