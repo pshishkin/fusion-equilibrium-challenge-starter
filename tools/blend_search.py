@@ -127,13 +127,19 @@ def main() -> int:
         art = joblib.load(artifact_path(n))
         if int(art["split_salt"]) != a.salt:
             raise SystemExit(f"{n} was fitted under salt {art['split_salt']}, not {a.salt}")
-        h = hashlib.sha256()
+        h, fed = hashlib.sha256(), 0
         for k in sorted(art.get("models", {})):
             st = getattr(art["models"][k], "_state", None)
             if st:
                 for _, v in sorted(st.items()):
                     h.update(np.ascontiguousarray(v).tobytes())
-        key = h.hexdigest()
+                    fed += 1
+        # NO WEIGHTS READ MEANS NO CLAIM. `mapnet` writes its own artifact schema and has no
+        # `models` key; `catboost` is not a torch model and has no `_state`. Both therefore hashed
+        # the empty stream, collided with each other, and the dedup silently dropped mapnet — the
+        # most structurally distinct member in the collection — as a duplicate of a decision tree.
+        # An empty hash is an absence of evidence, so it gets a key nothing else can match.
+        key = h.hexdigest() if fed else f"unhashable:{n}"
         if key in by_hash:
             print(f"    dropping {n}: identical weights to {by_hash[key]}")
             continue
