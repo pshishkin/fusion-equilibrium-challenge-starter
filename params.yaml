@@ -298,7 +298,12 @@ models:
     # let the validation split decide. At 70 training shots it stops itself around 2142 and keeps
     # iteration 1942, so the ceiling costs nothing; with more shots the optimum moves and the fit
     # is free to follow it.
-    iterations: 8000
+    # 16000 since 2026-09-03, doubled at the user's call because the fit KEEPS HITTING THE
+    # CEILING: 'best: 7999 of 8000' at production on 2026-08-14 and again on all three collection
+    # salts, with early stopping (patience 50) never firing. A best iteration equal to the last one
+    # allowed is not a converged fit, it is a truncated one — the number reported is a lower bound
+    # on what this model does, and every catboost number on record carries that.
+    iterations: 16000
     depth: 8
     learning_rate: 0.1
     l2_leaf_reg: 3.0
