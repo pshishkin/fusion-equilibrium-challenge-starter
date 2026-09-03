@@ -30,6 +30,7 @@ scorer reimplemented for speed is a scorer that can disagree with the one that c
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
 from pathlib import Path
 
@@ -105,19 +106,48 @@ def main() -> int:
         if p.stem.removeprefix("baseline_").startswith(("c_", "z_npca_", "z_sbasis_")))
     files = take_share(sorted_shots(DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG, a.salt),
                        a.share, "tail")
-    print(f"  salt {a.salt}: {len(names)} members, {len(files)} tail shots")
+    print(f"  salt {a.salt}: {len(names)} artifacts, {len(files)} tail shots")
 
     # The members must not have seen the shots they are scored on. Checked, not assumed.
     seen = set()
+    # THE WEIGHT OF AN ARTIFACT IS HOW MANY MODELS IT HOLDS. `z_npca_base` is a five-model
+    # ensemble and `c_conv` is one sequence model; giving them the same say puts one model against
+    # five and calls it a blend. That is what made the `mixers` rung of x_blend_eval lose on all
+    # three salts — four single models took four fifths of the weight from production.
+    #
+    # Each artifact's internal ensemble is already the EQUAL average of its members, so weighting
+    # the artifact by its member count is exactly "every model carries weight 1", without paying
+    # to predict each model separately.
+    # DEDUPLICATED BY FITTED WEIGHTS, not by name. Two lanes that ran their control arm at the same
+    # salt produce the same models byte for byte — `fit()` seeds itself — so z_sbasis_base_s1 and
+    # z_npca_base_s1 hash identically. Blending both gives that ensemble weight 10 instead of 5 and
+    # calls it diversity. Names cannot catch this; the weights can.
+    n_models, by_hash = {}, {}
     for n in names:
         art = joblib.load(artifact_path(n))
         if int(art["split_salt"]) != a.salt:
             raise SystemExit(f"{n} was fitted under salt {art['split_salt']}, not {a.salt}")
+        h = hashlib.sha256()
+        for k in sorted(art.get("models", {})):
+            st = getattr(art["models"][k], "_state", None)
+            if st:
+                for _, v in sorted(st.items()):
+                    h.update(np.ascontiguousarray(v).tobytes())
+        key = h.hexdigest()
+        if key in by_hash:
+            print(f"    dropping {n}: identical weights to {by_hash[key]}")
+            continue
+        by_hash[key] = n
+        n_models[n] = len(art["ensemble"]) if "ensemble" in art else 1
         seen |= set(art["train_files"]) | set(art.get("val_files", []))
+    names = list(n_models)
     overlap = {p.name for p in files} & seen
     if overlap:
         raise SystemExit(f"{len(overlap)} scored shots were in some member's fit")
 
+    print(f"  models per artifact: "
+          f"{', '.join(f'{k}={v}' for k, v in sorted(n_models.items(), key=lambda kv: -kv[1]))}")
+    print(f"  {sum(n_models.values())} models in total, each carrying weight 1\n")
     shots = LS.load_shots(len(files), 0, "local", DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG, files)
     machine, R, Z, mask_coarse, mask_f, refs, ref_stats, means, mean_psi = ground_truth_setup(
         shots, a.jobs)
@@ -131,9 +161,10 @@ def main() -> int:
         print(f"    {n}", flush=True)
 
     def score(members: list[str]) -> float:
-        w = 1.0 / len(members)
-        blend = [{k: sum(w * preds[n][i][k] for n in members) for k in ("psirz", "q95", "betaN")}
-                 for i in range(len(shots))]
+        tot = float(sum(n_models[n] for n in members))
+        w = {n: n_models[n] / tot for n in members}
+        blend = [{k: sum(w[n] * preds[n][i][k] for n in members)
+                  for k in ("psirz", "q95", "betaN")} for i in range(len(shots))]
         sign = LS.choose_psi_sign(shots, blend, mean_psi)
         acc = LS.Accum()
         acc.psi_sign = sign
