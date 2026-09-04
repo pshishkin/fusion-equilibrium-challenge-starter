@@ -15,24 +15,22 @@
 #
 # Usage: SALTS="1 2 3" tools/blend_by_salt.sh          # fills .blend_cache/s<N>/
 cd /workspace/fusion-equilibrium-challenge-starter
-CONFIGS_LIST="z_npca_base:5 z_npca_p70:5 z_npca_p100:5 z_sbasis_shaped:5 \
-              c_wide:1 c_widep70:1 c_widep100:1 c_lstm:1 c_attn:1 c_conv:1"
+PCT="${PCT:-75}"
 for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 120; done; done
 for SALT in ${SALTS:-1 2 3}; do
-  SPEC=""; ok=1
-  for c in $CONFIGS_LIST; do
-    n="${c%%:*}_s${SALT}"
-    [ -f "artefacts/lanes/baseline_${n}.joblib" ] || { echo "salt ${SALT}: missing ${n}, skipping"; ok=0; break; }
-    SPEC="${SPEC}+${n}*${c##*:}"
-  done
-  [ "$ok" = 1 ] || continue
-  SPEC=${SPEC#+}
-  DIR=".blend_cache/s${SALT}"
+  # The composition and the cache identity come from one place, so the directory a blend is written
+  # to always describes the blend that is in it: salt, percentile, and a hash over the members' FILE
+  # CONTENT. Retraining one member changes the hash and the next build misses rather than reusing a
+  # cache that quietly holds a different model.
+  KEY=$(uv run python tools/blend_key.py --salt "$SALT" --pct "$PCT" 2>/dev/null) || {
+    echo "salt ${SALT}: composition incomplete, skipping"; continue; }
+  SPEC=$(printf '%s' "$KEY" | cut -f1)
+  DIR=".blend_cache/$(printf '%s' "$KEY" | cut -f2)"
   if [ -f "$DIR/diii_d_public_test.npz" ] && [ -f "$DIR/mast_public_test.npz" ]; then
     echo "have salt ${SALT} at $DIR"; continue
   fi
   mkdir -p "$DIR"
-  echo "=== $(date -u +%F\ %H:%M) building salt ${SALT} ==="
+  echo "=== $(date -u +%F\ %H:%M) building salt ${SALT}, top ${PCT}% -> ${DIR} ==="
   # No --repo: this only builds the .npz. Pushing happens once, on the averaged result.
   FUSION_ARTIFACT="artefacts/lanes/baseline_z_npca_base_s${SALT}.joblib" \
     uv run python submission_skeleton.py --max-shots 0 --source local \
