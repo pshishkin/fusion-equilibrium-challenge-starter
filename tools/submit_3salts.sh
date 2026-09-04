@@ -16,6 +16,11 @@
 # composition measured 0.993261 against production's 0.992831; the three-salt version is a
 # reasonable bet on top of that and NOT a measured improvement.
 cd /workspace/fusion-equilibrium-challenge-starter
+# WAITS FOR THE PIDS IT NEEDS, not only for the artifacts. A submission build runs 28 worker
+# processes; started beside another one, plus a bake's twenty, the pool cannot be created and the
+# failure is `SemLock._rebuild -> FileNotFoundError` — the same signature a pid-budget exhaustion
+# gives, from a different cause. Any pid passed as an argument is waited out first.
+for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 120; done; done
 CONFIGS="z_npca_base:5 z_npca_p70:5 z_npca_p100:5 z_sbasis_shaped:5 \
          c_wide:1 c_widep70:1 c_widep100:1 c_lstm:1 c_attn:1 c_conv:1"
 SALTS="${SALTS:-1 2 3}"
