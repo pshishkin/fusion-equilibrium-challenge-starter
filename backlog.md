@@ -1845,6 +1845,27 @@ reworked).
 
 ## Closed — one line each, so nothing is re-proposed
 
+### `coef-cache` — DECLINED 2026-09-04 by the user, on a correctness argument rather than a cost one
+Caching each member's predicted COEFFICIENTS instead of its decoded maps is 41x smaller — 39.5 MB
+against 1.4 GB per artifact on the 190093-frame DIII-D public test, so thirty members would be
+1.2 GB instead of 41 GB. The saving is real and the arithmetic is not in dispute.
+
+**The basis is not the missing piece — it is already in the artifact** (`art["pca"]`). The problem is
+that the cache is then only valid while that FILE is unchanged, and artifacts do get overwritten:
+that is the 2026-08-22 incident that gave `lane.sh` one artifact per arm. Coefficients decoded
+through a different basis produce a plausible map, not an error — no shape mismatch, no exception,
+just a score that moves for a reason you will look for in the model.
+
+Hashing the artifact into the key fixes it and adds one more thing that can be wrong. The user's
+call was that the complexity is not worth it, and the record of this session supports it: three
+silent-lookalike bugs in one week (an empty hash matching an empty hash, a weight suffix reaching a
+filename, `dev.type` hidden behind a short circuit).
+
+**The safe version, if fast RE-WEIGHTING is ever wanted:** cache the DECODED maps. A map has no
+invariant left to violate. Ten members of DIII-D public test is 13.7 GB against 55 GB free; thirty
+is 41 GB and does not fit.
+
+
 | slug | closed by |
 |---|---|
 | `huber` | **ACCEPTED** +0.00088, 13/16. Threshold two-sided: 1.0 → −0.00058, 4.0 → −0.00036 against 2.0 |
