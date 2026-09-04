@@ -681,6 +681,69 @@ coordinate channels and a 1/R weight on the gradient term all landed INSIDE the 
 unmeasured rather than refuted — a distinction worth keeping, since the spread was only measured
 after those three had been read as results.
 
+## The collection, and how a submission is assembled
+
+The score now comes from blending many models rather than from any one of them, and the pieces below
+exist because assembling a blend naively is slow and quietly wrong in three separate ways.
+
+**`tools/registry.py` — what is on disk.** 130 artifacts holding 541 fitted models across 12 splits,
+grouped by SPLIT rather than by name, because that is what decides blendability: `salts:a+b+c`
+averages decoded predictions and `evaluate.py` refuses the run unless no member has seen a scored
+shot. Members of one salt share the split, so each group is a ready-made blend with a clean 352-shot
+tail. Scores are joined from `results/*.csv` on the artifact name, so most rows carry a number
+without re-scoring anything.
+
+**`tools/blend_search.py` — which members.** The user's design: rank by solo score, blend the top
+25/50/75/100% equally, keep the best, then add one at a time while it improves. It is affordable
+because the ground truth's LCFS extraction runs ONCE and each member is predicted ONCE — a
+combination then costs an array average plus contour extraction, turning a greedy search from days
+into hours. It deduplicates by FITTED WEIGHTS, not names: two lanes' control arms at the same salt
+are identical byte for byte, and blending both would give that ensemble double weight and call it
+diversity.
+
+**Weights are per MODEL.** `salts:a*5+b` gives an artifact a weight, the same `*` convention
+`_predict_targets` uses inside one artifact. Without it `z_npca_base` — itself five models — weighs
+the same as one sequence model, and the first confirmation of a searched blend scored a different
+thing than was searched for: 0.993115 against 0.993261.
+
+**What the search found**, averaged over salts 1-3: the top 75% beats production by +0.000403, with
+25/50/75 within 0.00004 of each other — a plateau, not a peak — while the full collection loses two
+thirds of that and goes negative on one salt. The three members it drops everywhere are `parseval`,
+`catboost` and `mapnet`, the three argued hardest for on structural-diversity grounds.
+
+### Two caches, and why only one of them is safe
+
+**MAST is cached** (`.mast_cache/`). `machines.predict_row` sends a MAST row to
+`mast.predict.predict_row(row)`, which takes the row and NOTHING ELSE — no model, no artifact — so
+every DIII-D submission was recomputing 1206 MAST shots that could not have changed, 2.7 of the 5.2
+hours a submission took. The key is the shot cache's pattern: the code that produces the output plus
+the identity of the inputs.
+
+**Per-salt blends are cached** (`.blend_cache/s<salt>_top<pct>_<hash>/`) so a salt is predicted once
+and a submission over N salts costs one salt rather than N. This is exact, not approximate: every
+salt carries the same composition at the same per-model weights, so each salt's blend is a mean over
+the same total weight, and the mean of equal-sized means is the overall mean — measured at 6.8e-08
+relative, float32's own resolution. The directory names what it holds, and the hash is over each
+member's FILE CONTENT: artifacts get overwritten here, and a stale blend is valid-looking output for
+a model that no longer exists.
+
+**Caching COEFFICIENTS was declined**, and the reason is worth keeping. It is 41x smaller — 39.5 MB
+against 1.4 GB per artifact — and the basis is not the obstacle, since it lives in the artifact. The
+obstacle is that the cache is then only valid while that FILE is unchanged, and coefficients decoded
+through a different basis produce a plausible map rather than an error. A decoded map has no
+invariant left to violate; that is the whole difference.
+
+### Assembling one
+
+    SALTS="1 2 3" tools/blend_by_salt.sh                    # fills the per-salt cache
+    uv run python tools/blend_salts.py --out submission_3salts \
+        --inputs .blend_cache/s1_top75_* .blend_cache/s2_top75_* .blend_cache/s3_top75_*
+    FUSION_ARTIFACT=... make predict_and_submit_to_hf SUBMIT_DIR=submission_3salts MODEL=...
+
+`SUBMIT_DIR=` matters: two builds share `submission/` by default and overwrite each other's arrays.
+On 2026-09-04 only the accident that their phases did not line up kept one from pushing the other's
+half-written file.
+
 ## The lane runner
 
 `tools/lane.sh` is what produces every paired number in this project: for each salt and each arm it

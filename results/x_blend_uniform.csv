@@ -17,8 +17,6 @@ salt,rung,n,S,members
 1,top50,7,0.993272,z_npca_p70_s1+z_npca_base_s1+z_sbasis_shaped_s1+z_npca_p100_s1+c_lstm_s1+c_widep100_s1+c_widep70_s1
 1,top75,10,0.993261,z_npca_p70_s1+z_npca_base_s1+z_sbasis_shaped_s1+z_npca_p100_s1+c_lstm_s1+c_widep100_s1+c_widep70_s1+c_wide_s1+c_attn_s1+c_conv_s1
 1,top100,14,0.993021,z_npca_p70_s1+z_npca_base_s1+z_sbasis_shaped_s1+z_npca_p100_s1+c_lstm_s1+c_widep100_s1+c_widep70_s1+c_wide_s1+c_attn_s1+c_conv_s1+c_skip_s1+c_cat_s1+c_mapnet_s1+c_parseval_s1
-1,greedy1,8,0.993283,z_npca_p70_s1+z_npca_base_s1+z_sbasis_shaped_s1+z_npca_p100_s1+c_lstm_s1+c_widep100_s1+c_widep70_s1+c_skip_s1
-1,greedy2,9,0.993294,z_npca_p70_s1+z_npca_base_s1+z_sbasis_shaped_s1+z_npca_p100_s1+c_lstm_s1+c_widep100_s1+c_widep70_s1+c_skip_s1+c_attn_s1
 2,solo,1,0.994131,z_npca_p70_s2
 2,solo,1,0.994093,z_npca_base_s2
 2,solo,1,0.994048,z_npca_p100_s2
@@ -39,6 +37,7 @@ salt,rung,n,S,members
 2,top100,14,0.994299,z_npca_p70_s2+z_npca_base_s2+z_npca_p100_s2+z_sbasis_shaped_s2+c_widep70_s2+c_widep100_s2+c_wide_s2+c_attn_s2+c_conv_s2+c_lstm_s2+c_skip_s2+c_mapnet_s2+c_cat_s2+c_parseval_s2
 3,solo,1,0.994233,z_npca_p70_s3
 3,solo,1,0.994221,z_npca_base_s3
+3,solo,1,0.994093,z_sbasis_shaped_s3
 3,solo,1,0.993954,z_npca_p100_s3
 3,solo,1,0.992255,c_wide_s3
 3,solo,1,0.992156,c_widep100_s3
@@ -50,7 +49,7 @@ salt,rung,n,S,members
 3,solo,1,0.987652,c_cat_s3
 3,solo,1,0.986499,c_mapnet_s3
 3,solo,1,0.971766,c_parseval_s3
-3,top25,3,0.994494,z_npca_p70_s3+z_npca_base_s3+z_npca_p100_s3
-3,top50,6,0.994495,z_npca_p70_s3+z_npca_base_s3+z_npca_p100_s3+c_wide_s3+c_widep100_s3+c_widep70_s3
-3,top75,10,0.994571,z_npca_p70_s3+z_npca_base_s3+z_npca_p100_s3+c_wide_s3+c_widep100_s3+c_widep70_s3+c_attn_s3+c_skip_s3+c_conv_s3+c_lstm_s3
-3,top100,13,0.994183,z_npca_p70_s3+z_npca_base_s3+z_npca_p100_s3+c_wide_s3+c_widep100_s3+c_widep70_s3+c_attn_s3+c_skip_s3+c_conv_s3+c_lstm_s3+c_cat_s3+c_mapnet_s3+c_parseval_s3
+3,top25,4,0.994528,z_npca_p70_s3+z_npca_base_s3+z_sbasis_shaped_s3+z_npca_p100_s3
+3,top50,7,0.994525,z_npca_p70_s3+z_npca_base_s3+z_sbasis_shaped_s3+z_npca_p100_s3+c_wide_s3+c_widep100_s3+c_widep70_s3
+3,top75,10,0.994592,z_npca_p70_s3+z_npca_base_s3+z_sbasis_shaped_s3+z_npca_p100_s3+c_wide_s3+c_widep100_s3+c_widep70_s3+c_attn_s3+c_skip_s3+c_conv_s3
+3,top100,14,0.994290,z_npca_p70_s3+z_npca_base_s3+z_sbasis_shaped_s3+z_npca_p100_s3+c_wide_s3+c_widep100_s3+c_widep70_s3+c_attn_s3+c_skip_s3+c_conv_s3+c_lstm_s3+c_cat_s3+c_mapnet_s3+c_parseval_s3
