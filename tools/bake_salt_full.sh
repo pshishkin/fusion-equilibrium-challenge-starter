@@ -25,6 +25,15 @@ for SALT in ${SALTS:-4 5 6 7 8 9 10 11 12}; do
   one "z_npca_base_s${SALT}"  ""
   one "z_npca_p70_s${SALT}"   "--set features.n_pca=70"
   one "z_npca_p100_s${SALT}"  "--set features.n_pca=100"
+  # The shaped basis, envelope x16 and sobolev 0.1 — the ceiling sweep's winner. It is REFUTED as a
+  # config change (-0.000272 over three pairs) and kept as a MEMBER, which are different questions:
+  # a member only has to err somewhere the others do not.
+  #
+  # It is here because a collection whose composition differs by salt cannot be compared across
+  # salts. Salts 1-2 had it and 3 onward did not, so "top 75%" meant 10 of 14 on one salt and 10 of
+  # 13 on another — the same fraction over a different pool, which measures composition as much as
+  # anything else.
+  one "z_sbasis_shaped_s${SALT}" "--set features.basis_envelope=16 features.basis_sobolev=0.1"
   [ -f "artefacts/lanes/baseline_z_npca_base_s${SALT}.joblib" ] || {
     echo "  no base artifact for salt ${SALT}; the rest of this salt cannot reference it, skipping"
     continue; }

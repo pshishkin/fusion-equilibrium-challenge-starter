@@ -161,7 +161,11 @@ def main() -> int:
         # has seen a scored shot, and the overlap check below is that requirement, applied to every
         # member's own file lists rather than to an assumption about which set is safe.
         for spec in [m for m in models if m.startswith(SALTS_PREFIX)]:
-            for name in spec[len(SALTS_PREFIX):].split("+"):
+            for entry in spec[len(SALTS_PREFIX):].split("+"):
+                # The weight is stripped here too. It was not, and the overlap check went looking
+                # for `baseline_<name>*5.joblib` — the guard that keeps a member from being scored
+                # on shots it trained on, defeated by a filename.
+                name = entry.partition(WEIGHT_SEP)[0]
                 member = joblib.load(artifact_path(name))
                 seen |= set(member["train_files"]) | set(member["val_files"])
                 print(f"  {artifact_path(name).name}: salt {member['split_salt']}, "
