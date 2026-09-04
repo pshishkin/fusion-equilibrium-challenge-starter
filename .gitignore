@@ -53,3 +53,4 @@ artefacts/laneB/
 artefacts/laneF/
 .mast_cache/
 submission_*/
+.blend_cache/
