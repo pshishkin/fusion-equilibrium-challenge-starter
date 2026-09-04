@@ -41,6 +41,10 @@ SPEC=${SPEC#+}
 echo "=== $(date -u +%F\ %H:%M) building, $(echo "$SPEC" | tr '+' '\n' | wc -l) artifacts ==="
 echo "$SPEC" | tr '+' '\n' | sed 's/^/    /'
 echo "$SPEC" > /tmp/submit_3salts_spec.txt
+# Its own output directory. `submission/` is the default and is shared, which is how two builds
+# come to overwrite each other's arrays.
+OUT="submission_3salts"
+mkdir -p "$OUT"
 FUSION_ARTIFACT=artefacts/lanes/baseline_z_npca_base_s1.joblib \
-  make predict_and_submit_to_hf MODEL="salts:$SPEC"
+  make predict_and_submit_to_hf SUBMIT_DIR="$OUT" MODEL="salts:$SPEC"
 echo "SUBMIT 3 SALTS COMPLETE"

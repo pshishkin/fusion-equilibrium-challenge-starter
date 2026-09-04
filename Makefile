@@ -154,6 +154,12 @@ eval:
 # not — run `make eval` (or a full `make prod`) yourself if you want to know what you are sending.
 #
 # The token comes from .env, which is NOT in git — this file is, and the fork is public.
+# SUBMIT_DIR= gives this build a directory of its own for the .npz. Two builds running at once
+# share `submission/` by default and overwrite each other's files: on 2026-09-04 a single-salt and a
+# three-salt build ran together and only the accident that their phases did not line up kept one
+# from pushing the other's half-written array. The pointer zip names a pinned HF commit rather than
+# a local path, so the finished submission was safe — but that is luck, not a guarantee.
+#
 # MODEL= picks which member of the zoo is submitted; without it the artifact's own ensemble goes.
 # `MODEL="salts:a+b"` averages the decoded maps of several artifacts, which is how an ensemble
 # across feature sets is sent — the members are baseline_<name>.joblib beside FUSION_ARTIFACT.
@@ -183,6 +189,7 @@ predict_and_submit_to_hf:
 		echo "HF_READ_TOKEN is empty. Copy .env.example to .env and fill it in."; exit 1; }
 	uv run python submission_skeleton.py --max-shots 0 --source local \
 		--configs $(SUBMIT_CONFIGS) --jobs $(SUBMIT_JOBS) --repo $(HF_REPO) \
+		$(if $(SUBMIT_DIR),--out $(SUBMIT_DIR)) \
 		$(if $(MODEL),--model "$(MODEL)")
 
 clean:
