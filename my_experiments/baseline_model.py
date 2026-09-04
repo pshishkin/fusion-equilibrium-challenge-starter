@@ -1556,14 +1556,33 @@ def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE,
     mean the same thing in every fit.
     """
     if model.startswith(SALTS_PREFIX):
-        names = model[len(SALTS_PREFIX):].split("+")
-        if len(names) < 2:
+        # `salts:a*5+b` — an artifact may carry a WEIGHT, the same `*` convention `_predict_targets`
+        # already uses for members inside one artifact. Without it every artifact weighs the same,
+        # and that is not neutral: `z_npca_base` is itself a five-model ensemble while `c_conv` is
+        # one sequence model, so equal weights put one model against five. The blend search of
+        # 2026-09-03 chose its members under per-MODEL weighting and could not be expressed here
+        # until now — the first attempt to confirm it scored a different blend, 0.993115 against
+        # the 0.993261 that was searched for.
+        #
+        # Repeating a name would also work, since the average below is over the listed entries, but
+        # it would re-predict that artifact once per repetition — five times the work for the same
+        # number.
+        spec = model[len(SALTS_PREFIX):].split("+")
+        if len(spec) < 2:
             raise ValueError(f"{model!r} names one fit; use its own model name instead")
+        names, weights = [], []
+        for entry in spec:
+            name, _, w = entry.partition(WEIGHT_SEP)
+            names.append(name)
+            weights.append(float(w) if w else 1.0)
+        if any(w <= 0 for w in weights):
+            raise ValueError(f"{model!r}: weights must be positive, got {weights}")
+        total = sum(weights)
         parts = [predict_row(row, source, ENSEMBLE, artifact_path(n)) for n in names]
         averaged: dict[str, FloatArray] = {}
         for key in parts[0]:
-            stacked = np.stack([p[key] for p in parts])
-            averaged[key] = stacked.mean(axis=0).astype(parts[0][key].dtype)
+            acc = sum((w / total) * p[key] for w, p in zip(weights, parts, strict=True))
+            averaged[key] = np.asarray(acc).astype(parts[0][key].dtype)
         return averaged
     art = _load(artifact)
     # A MAPNET MEMBER. It carries no PCA basis — it decodes the map itself — so it cannot go
