@@ -47,7 +47,9 @@ that does not exist yet. See README -> "5. Build and submit".
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
+import shutil
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -164,10 +166,57 @@ def predict_one(args: tuple) -> dict:
             "source": str(row.get("source", "DIII-D"))}
 
 
+MAST_CACHE = Path(".mast_cache")
+
+
+def _mast_cache_key(config: str, local_data_dir: Path, max_shots: int) -> str:
+    """Everything that can change a MAST .npz, hashed.
+
+    **Why a MAST cache is sound at all, and it is not a shortcut.** `machines.predict_row` sends a
+    MAST row to `mast.predict.predict_row(row)`, which takes the ROW AND NOTHING ELSE — no model, no
+    artifact. So every DIII-D submission recomputes 1206 MAST shots that cannot have changed, and on
+    2026-09-04 that was more than half the wall time of a submission whose DIII-D half was the only
+    thing being varied.
+
+    The key is the same shape as the shot cache's: the CODE that produces the output plus the
+    identity of the inputs. `mast/*.py` is the solver, `machines.py` is the dispatch that chooses
+    it, and this file assembles the arrays — a change in any of them changes the file. The parquet
+    files are keyed by name, size and mtime rather than content, because hashing 1206 shots to avoid
+    predicting them would defeat the point.
+
+    What it cannot see is the same thing the shot cache cannot: an environment change that alters
+    the arithmetic without touching a line of source, a numpy upgrade being the standard example.
+    Delete `.mast_cache` when that happens.
+    """
+    h = hashlib.sha256()
+    for f in [*sorted(Path("mast").glob("*.py")), Path("machines.py"), Path(__file__)]:
+        if f.exists():
+            h.update(f.name.encode())
+            h.update(f.read_bytes())
+    for f in sorted((Path(local_data_dir) / "data" / config).glob("*.parquet")):
+        st = f.stat()
+        h.update(f"{f.name}:{st.st_size}:{int(st.st_mtime)}".encode())
+    h.update(f"max_shots={max_shots}".encode())
+    return h.hexdigest()[:32]
+
+
 def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
                      source: str = "hf",
                      local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR,
                      model: str | None = None, jobs: int = 0) -> Path:
+    # MAST does not depend on `model`, so a DIII-D submission reuses it rather than spending an
+    # hour reproducing it. Only when the key matches — see `_mast_cache_key`.
+    cached = None
+    if config.startswith("mast_") and source == "local":
+        cached = MAST_CACHE / _mast_cache_key(config, local_data_dir, max_shots) / f"{config}.npz"
+        if cached.exists():
+            out_path = out_dir / f"{config}.npz"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(cached, out_path)
+            print(f"  {config}: reused {cached} ({out_path.stat().st_size / 1e6:.0f} MB) — MAST is "
+                  f"a function of the row alone, and neither its code nor the data has changed")
+            return out_path
+
     preds: dict[str, np.ndarray] = {}
     n = 0
     for i, out in enumerate(_predictions(config, split, source, local_data_dir, max_shots,
@@ -194,6 +243,10 @@ def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
     # keyword-splatting the per-shot arrays — the documented way to write named keys —
     # does not type-check.
     np.savez_compressed(out_path, **preds)  # type: ignore[arg-type]
+    if cached is not None:
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(out_path, cached)
+        print(f"  {config}: cached at {cached}")
     psh = preds.get("shot_0000_psirz", np.empty(0)).shape
     print(f"  {config}: {n} shots -> {out_path.name}  (e.g. shot_0000_psirz {psh}, "
           f"shot_0000_q95 {preds.get('shot_0000_q95', np.empty(0)).shape})")

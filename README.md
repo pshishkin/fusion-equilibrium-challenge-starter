@@ -30,10 +30,28 @@ before adding code under `my_experiments/`.
 
 ## Where this stands
 
-**Challenge 1 — leaderboard 0.9938, first place** (submitted 2026-08-18), from 0.9932 and 0.9896
+**Challenge 1 — leaderboard 0.9940** (submitted 2026-09-04), from 0.9938, 0.9932 and 0.9896
 before it. Local production score on salt 0 is 0.9950; the local-minus-board offset has read
 0.0018 / 0.0013 / 0.0012 over three submissions, so it is a stable constant rather than a widening
 gap, and salt 0 plus that offset predicts the board to about a thousandth.
+
+**What 0.9940 is.** A blend of ten artifacts fitted on ONE salt, weighted per MODEL — thirty models
+each carrying weight 1 — chosen by the search in `tools/blend_search.py`: four bases at five models
+each (`n_pca` 50, 70, 100 and the shaped basis), three wide MLPs, and three shot mixers (`lstm`,
+`attn`, `conv`). It is the top 75% of the collection by solo score; the coarse pass found 25/50/75%
+within 0.00004 of each other and the full set clearly worse.
+
+**Read the +0.0002 carefully.** On the local tail it beat the salt-1 production ensemble by
++0.00043, and on the board it beat an entry from 2026-08-18 by +0.0002 — but that entry is not the
+same model this one was measured against, since `cons-reweight` and `pca-head` were canonised in
+between and never submitted. The direction agrees and the record moved; the two deltas are not a
+paired comparison and should not be quoted as one.
+
+**The three-salt build now running is the paired one.** Same composition, same weights, same code —
+three salts instead of one. That difference is the only thing between the two submissions, so the
+board reading isolates the diversity axis this project has never varied: WHICH 80% of the shots a
+member trained on. It cannot be measured locally at all, because the members' training sets between
+them cover the corpus and no clean tail exists for a cross-salt blend.
 
 **What the 2026-08-20 programme settled.** Six 16-salt arms, a paired production confirmation and
 about twenty-five rescoring measurements, all in
