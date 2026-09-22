@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "name": "diii-d-public-2026-09-05",
+  "machine": "DIII-D",
+  "leaderboard": {
+    "submission_id": 915662,
+    "owner": "pshishkin",
+    "created_when_utc": "2026-09-05T08:33:05.738503Z",
+    "method_label": "6 salts",
+    "score": "0.9941",
+    "reported_decimal_places": 4,
+    "r2_psi": "0.9998",
+    "r2_qb": "0.9963",
+    "dlcfs": "0.0111",
+    "consistency": "0.9791"
+  },
+  "public_evidence": "results/leaderboard_reference_20260923.json",
+  "public_results_url": "https://www.codabench.org/competitions/17739/#/results-tab",
+  "composition_status": "The public method label says 6 salts. It does not disclose exact artifacts, member weights or submitted code. Original artifact hashes and code revision are unavailable.",
+  "original_artifact_sha256": null,
+  "original_git_commit": null,
+  "local_reproduction_certified": false,
+  "older_script_inference": "baselines/diii_d_20260904.json",
+  "current_iteration_recipe": "baselines/iteration.params.yaml"
+}

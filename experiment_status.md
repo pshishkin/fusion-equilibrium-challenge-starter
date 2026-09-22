@@ -1,16 +1,18 @@
 # DIII-D: current experiment status
 
-Updated 2026-09-22. This is the current index, not another experiment history.
+Updated 2026-09-23 (Moscow). This is the current index, not another experiment history.
 Historical explanations and negative results remain in `experiments_history.md`, `backlog.md`,
 `ideas.md`, and `single_model_results.md`. Their old "running" labels are historical.
 
 ## Two distinct baselines
 
-- **Submitted reference:** S = **0.9941**, submitted 2026-09-04, confirmed by the user on
-  2026-09-21. `baselines/diii_d_20260904.json` records the provenance and uncertainty. The
-  repository's submission script names salts 1/2/3, ten artifacts per salt and 26 model weights
-  per salt (78 total). Original artifact hashes and the submitted code revision are unavailable;
-  the current configuration is not proof of the submitted recipe.
+- **Public leaderboard reference:** Codabench submission **915662** by `pshishkin` was created
+  2026-09-05, is labelled **“6 salts”**, and scores **S 0.9941** to four decimals. The public
+  row and retrieval timestamp are in `results/leaderboard_reference_20260923.json`, with the
+  current manifest at `baselines/diii_d_20260905_leaderboard.json`. The earlier
+  `baselines/diii_d_20260904.json` describes a **three-salt script-inferred historical recipe**;
+  it does not identify this verified six-salt row. Original fitted artifacts, exact weights and
+  submitted code hashes remain unavailable, so no local config is a certified reproduction.
 - **Iteration control:** `baselines/iteration.params.yaml`, frozen from the checkout on 2026-09-22.
   Its full enabled ensemble has no fresh score. It retains the accepted configuration including the static auxiliary
   head and `cons_split`. Its sequence learning-rate schedule is `none`. The historical cosine
@@ -52,8 +54,9 @@ The fixed eleven-map/eight-scalar recipe has now been assembled locally for all 
 DIII-D public-test input shots as a float32 NPZ. The existing local validator passed every shot,
 and a held-70 dry run of the builder matched the previously scored recipe bit for bit. This is a
 reviewable local DIII-D candidate, not a leaderboard score or full two-machine submission; no
-MAST build, ZIP, upload or push occurred. Output path, hash, per-stage wall time and source/input
-identities: `results/public_diii_d_candidate_20260923.json`.
+MAST build, upload or push occurred. A later Challenge1-only root ZIP was built and checked against
+the validated NPZ. Output/source identities are in `results/public_diii_d_candidate_20260923.json`;
+ZIP hash, CRC and access audit are in `results/challenge1_offline_zip_20260923.json`.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
@@ -139,7 +142,6 @@ of paired deltas divided by sqrt(n), not an independent-shot confidence guarante
 | Consistency reweight | `results/x_cons_reweight_prod.csv`, `r_x3` minus `r_base` | 12 | +0.00004075 | 0.00004481 | 6/12 | Accepted by user; gain unresolved, not refuted |
 | PCA 70 as replacement | `results/z_npca.csv`, `z_npca_p70` minus `z_npca_base` | 7 | -0.00000571 | 0.00004100 | 4/7 | No established replacement gain; retained as a blend member |
 | Static PCA head | `backlog.md`, `1n-canon`, 2026-08-30 | 12 | +0.000065 | See historical CI | — | Accepted with uncertainty and measured +29.6% runtime cost |
-| Three-salt submission | User's leaderboard report | — | — | — | — | 0.9941 at four decimals; no clean local score for the complete blend |
 
 The script `python -m my_experiments.run status runs/<campaign>` reports local execution state;
 this document does not claim a queue is running. New runs publish scorer results directly in
@@ -156,20 +158,28 @@ uv run python my_experiments/prodpair.py results/z_npca.csv --base npca_base
 
 ## Next work, not claims of gains
 
-The iteration workflow has been exercised on real DIII-D data; see the 2026-09-22 infrastructure
-entry in `experiments_history.md` and `results/workflow_20260922.json`. Its smoke score is not a
-fresh production baseline. The complete dataset download is verified against the pinned SHA-256s.
+The compact control, geometry loss, cosine sequence, fixed-step refits, fast magnetics,
+temporal-convolution and B11 position-conditioned screens above are complete. The recovered
+older five-member collection and its fixed additions have been scored on the same 70-shot tail;
+all five individual member scores are in `results/historical_five_members_20260922.json`.
+The final Ruff/mypy/workflow checks, 39-test frozen CUDA smoke and subsequent 41-test non-GPU gate
+are recorded in `results/final_ci_20260923.json`. The complete local dataset remains pinned and
+verified. A concise score/timing index is `results/overnight_summary_20260923.md`.
 
-1. Restore the exact submitted artifacts if available; otherwise reproduce the iteration control
-   and retain its provenance separately from the historical leaderboard reference.
-2. Compare a candidate alone, the fixed baseline blend, and baseline plus candidate using
-   `run compare`. Select and confirm on separate predeclared folds. A cross-salt blend needs a
-   common holdout excluded before every fit; another salt is not an independent new dataset.
-3. Revisit final train-plus-validation refitting with a fixed training duration (ideas A4),
-   explicitly agreeing on the changed shares before running it.
-4. Screen the implemented geometry loss options (`cons_gain`, `field_weight`, `env_weight`),
-   then confirm contribution to the actual ensemble.
-5. Gate richer sub-frame signal features cheaply before building a new temporal encoder.
+1. The best observed local eleven-map/eight-scalar recipe is assembled as a **DIII-D-only**
+   float32 NPZ and a verified root-level Challenge1-only ZIP. It passed full local structural
+   validation, archive CRC and extracted-entry SHA checks. Its ZIP has no MAST component, so it
+   would not preserve a Challenge2 score. It has no public leaderboard result or upload: this
+   workspace has no accessible authenticated Codabench/HF submission route. Keep the input
+   manifest, artifacts and exact weights in `results/public_diii_d_candidate_20260923.json`
+   with the archive/access record in `results/challenge1_offline_zip_20260923.json`.
+2. A trustworthy generalization check for this adaptively selected collection needs shots held
+   out **before every member fit**. The repeatedly scored salt-0 tail and a new ordinary split
+   salt do not create an independent dataset for these existing artifacts; confirmation would
+   require a predeclared common holdout and new fits, or an actual public leaderboard evaluation.
+3. If the original September six-salt submission artifacts and weights become available, verify
+   their hashes and inference code against submission 915662. The recovered August five-member
+   artifact is a useful local control but is not the verified submitted collection.
 
 EMA/Huber, ordinary scalar auxiliary outputs and blind width increases are not reopened merely
 because a new assistant is working on the repository. Read their recorded negative results first.

@@ -1,0 +1,43 @@
+{
+  "interpretation": "Public row label says 6 salts, but original fitted artifact hashes, exact member weights and code revision are not available. This record does not certify any local recipe as its reproduction.",
+  "phase_id": 29580,
+  "results_tab_url": "https://www.codabench.org/competitions/17739/#/results-tab",
+  "retrieved_utc": "2026-09-22T22:26:11.226217+00:00",
+  "source_response_rows": 68,
+  "source_response_sha256": "e85ce7d921048fc4c82051aa65ef29a0bc7c69cd2b781437478b52c3822eae04",
+  "source_url": "https://www.codabench.org/api/phases/29580/get_leaderboard/?page=1&page_size=100",
+  "submission": {
+    "created_when_utc": "2026-09-05T08:33:05.738503Z",
+    "id": 915662,
+    "method_label": "6 salts",
+    "owner": "pshishkin",
+    "rank_in_retrieved_response": 8,
+    "scores": {
+      "d3d_S": "0.9941",
+      "d3d_consistency": "0.9791",
+      "d3d_dlcfs": "0.0111",
+      "d3d_r2_psi": "0.9998",
+      "d3d_r2_qb": "0.9963"
+    }
+  },
+  "top_three_primary_scores": [
+    {
+      "d3d_S": "0.9956",
+      "owner": "dmitryzhevn",
+      "rank": 1,
+      "submission_id": 935517
+    },
+    {
+      "d3d_S": "0.9955",
+      "owner": "shansiming",
+      "rank": 2,
+      "submission_id": 938602
+    },
+    {
+      "d3d_S": "0.9954",
+      "owner": "kimsunjoong",
+      "rank": 3,
+      "submission_id": 939161
+    }
+  ]
+}

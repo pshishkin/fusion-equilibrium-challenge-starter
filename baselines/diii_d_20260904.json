@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
   "name": "diii-d-public-2026-09-04",
+  "status": "Historical three-salt script inference, superseded as the current public reference by the verified 2026-09-05 Codabench row. Do not identify this inferred recipe with submission 915662.",
+  "superseded_by": "baselines/diii_d_20260905_leaderboard.json",
   "machine": "DIII-D",
   "leaderboard": {
     "score": 0.9941,

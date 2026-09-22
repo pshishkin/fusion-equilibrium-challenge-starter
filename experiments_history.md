@@ -3,6 +3,29 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-22 UTC — public leaderboard reference corrected:**
+The public Codabench phase 29580 API returned submission **915662** owned by `pshishkin`, created
+2026-09-05 08:33 UTC, with method label **“6 salts”** and DIII-D **S 0.9941** to four decimals.
+It ranked 8th in that retrieved response; third place was 0.9954. The earlier
+`baselines/diii_d_20260904.json` described a three-salt recipe inferred from repository scripts,
+not this row's verified fitted composition. Original submitted artifact hashes, exact weights
+and code revision remain unavailable. Verdict: the public row is the reference, and no current
+local artifact/recipe is certified as its reproduction. Time-stamped API source and row fields:
+[results/leaderboard_reference_20260923.json](results/leaderboard_reference_20260923.json).
+
+**2026-09-22 UTC — offline Challenge1-only delivery archive:**
+The locally validated float32 DIII-D public-input NPZ was packaged as a root-level
+`ZIP_STORED` archive containing only `diii_d_public_test.npz`. The archive is **2,967,287,355
+bytes**, SHA-256 `32044c6a70cf83893afa29e055bf260aa8776693f540e4e6a0b7e206468cf9f0`;
+its sole entry passed CRC32 `24302ceb`, and the extracted entry SHA equals the validated NPZ's
+`7b39cdc94ec8b95b2c89dfbee4c0fcd3db4898e2671ac3e0ac136efed5b5d704`.
+Creation/entry verification/end-to-end walls were **3.49 / 2.58 / 9.98 s**. Current official
+[submission-format rules](https://www.codabench.org/competitions/17739/#/pages-submission-format)
+permit a Challenge1-only root ZIP under the 15 GB quota, but an archive without MAST cannot
+preserve a Challenge2 score. No authenticated Codabench/HF route is available in this workspace;
+there was no upload, public score or push. Verdict: a reviewable offline Challenge1 package, not
+a leaderboard submission. [results/challenge1_offline_zip_20260923.json](results/challenge1_offline_zip_20260923.json).
+
 **2026-09-22 UTC — every member of the recovered older five, scored individually:**
 `tools/historical_compare.py` used the archived original inference revision `eb70e25` for the
 already fitted `artefacts/20260815-prod-4seeds-seq.joblib`, then the pinned native scorer on the

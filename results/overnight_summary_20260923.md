@@ -150,7 +150,9 @@ of decoded blending and 100 s of native CPU4 scoring; their exact concurrent wal
 The old-five individual table involved **no training**: prediction wall **1m22s** and five
 separate CPU4 native scorer walls **8m12s** total. The DIII-D public candidate took **22m35s**
 predicting six sources, **2m39s** assembling the final NPZ and **0m57s** validating it, total
-**26m20s**. Its CPU4 work overlapped B11 GPU fitting, and the cosine sequence refit GPU fit
+**26m20s**. The subsequent offline ZIP took **3.49 s** to create and **2.58 s** to verify its
+entry, **9.98 s** end to end. Public prediction CPU4 work overlapped B11 GPU fitting, and the
+cosine sequence refit GPU fit
 overlapped the 24-worker fast-cache preparation; those fit and build walls are not isolated
 throughput benchmarks. The original compact control's **58m31s cold run**, including its first
 target/cache construction, is a historical measurement from
@@ -183,7 +185,20 @@ The existing local validator passed all 874 shots. A 70-shot dry run of the same
 assembler reproduced every already scored map and scalar array bit for bit.
 [Build/input/validation provenance](public_diii_d_candidate_20260923.json).
 
-There is **no public-test score**, MAST public-test output, pointer ZIP, upload or push in this
-work. The September six-salt submitted collection still cannot be reproduced from the recovered
-August artifact without its original weights/artifacts/hashes. None of these same-tail screens
-provides an independent estimate of top-three leaderboard performance.
+An offline [Challenge1-only root ZIP](../runs/public-diii-d-eleven-eight-20260923/challenge1_only_diii_d_public_test.zip)
+was then built as `ZIP_STORED`, holding only `diii_d_public_test.npz` at the root. Its size is
+2,967,287,355 bytes, SHA-256
+`32044c6a70cf83893afa29e055bf260aa8776693f540e4e6a0b7e206468cf9f0`. The entry CRC32
+`24302ceb` and extracted entry SHA matched the validated NPZ. The current official rules permit
+a Challenge1-only ZIP under the 15 GB quota; without MAST in this archive, a Challenge2 score
+would not be preserved. [Archive and access evidence](challenge1_offline_zip_20260923.json).
+
+There is **no public-test score, MAST public-test output, upload or push** in this work. This
+workspace has no accessible authenticated Codabench/HF submission route; the prepared archive is
+local and reviewable. The September six-salt submitted collection still cannot be reproduced
+from the recovered August artifact without its original weights/artifacts/hashes. None of these
+same-tail screens provides an independent estimate of top-three leaderboard performance.
+In the [time-stamped public leaderboard snapshot](leaderboard_reference_20260923.json),
+`pshishkin`'s six-salt-labelled row was 8th at S 0.9941 and the third-place public score was
+0.9954. Those are public-fold numbers and cannot be compared directly with the adaptively
+selected 70-shot local S 0.995080 above.

@@ -1,0 +1,75 @@
+{
+  "access_presence": {
+    "cached_hf_login": false,
+    "codabench_cli": false,
+    "codabench_env_names": [],
+    "hf_read_token_env": false,
+    "hf_token_env": false,
+    "project_env_file": false
+  },
+  "archive": "runs/public-diii-d-eleven-eight-20260923/challenge1_only_diii_d_public_test.zip",
+  "archive_bytes": 2967287355,
+  "archive_entry": {
+    "compression": "ZIP_STORED",
+    "entries": [
+      "diii_d_public_test.npz"
+    ],
+    "entry_bytes": 2967287097,
+    "entry_crc32": "24302ceb",
+    "entry_sha256": "7b39cdc94ec8b95b2c89dfbee4c0fcd3db4898e2671ac3e0ac136efed5b5d704",
+    "zipfile_crc_verified_at_eof": true
+  },
+  "archive_sha256": "32044c6a70cf83893afa29e055bf260aa8776693f540e4e6a0b7e206468cf9f0",
+  "documented_transfer_estimate_minutes": 98.9095785,
+  "documented_transfer_estimate_note": "Derived from official ~0.5 MB/s storage rate; not a measured upload",
+  "mast_npz_in_archive": false,
+  "mast_score_preserved": false,
+  "official_rules": {
+    "challenge1_diii_d_only_allowed": true,
+    "challenge2_requires_mast": true,
+    "competition_api": "https://www.codabench.org/api/competitions/17739/",
+    "competition_id": 17739,
+    "direct_zip_allowed": true,
+    "documented_direct_transfer_mb_per_s": 0.5,
+    "fetched_utc": "2026-09-22T22:29:45+00:00",
+    "npz_at_zip_root_required": true,
+    "phases": [
+      {
+        "end": "2026-10-18T00:00:00Z",
+        "id": 29580,
+        "max_submissions_per_day": 5,
+        "max_submissions_per_person": 100,
+        "name": "Development",
+        "start": "2026-07-27T00:00:00Z",
+        "status": "Current"
+      },
+      {
+        "end": "2026-10-26T00:00:00Z",
+        "id": 29581,
+        "max_submissions_per_day": 3,
+        "max_submissions_per_person": 3,
+        "name": "Final",
+        "start": "2026-10-19T00:00:00Z",
+        "status": "Next"
+      }
+    ],
+    "storage_quota_gb": 15,
+    "submission_format_page_id": 84636,
+    "submission_format_url": "https://www.codabench.org/competitions/17739/#/pages-submission-format"
+  },
+  "packaging_script_sha256": "7fb88bb8211658aa6d1894e2170ecd0923c6f10b5c13c56de2a94fa067a9af55",
+  "purpose": "Offline Challenge-1-only direct-upload archive; not uploaded",
+  "source_full_local_validation_passed": true,
+  "source_held70_recipe_parity_exact_arrays": 210,
+  "source_npz": "runs/public-diii-d-eleven-eight-20260923/submission/diii_d_public_test.npz",
+  "source_npz_bytes": 2967287097,
+  "source_npz_sha256": "7b39cdc94ec8b95b2c89dfbee4c0fcd3db4898e2671ac3e0ac136efed5b5d704",
+  "source_provenance": "results/public_diii_d_candidate_20260923.json",
+  "source_provenance_sha256": "ea22b3003dba25799e343ac1a408f684c5aebb755501e7f3af4174d19fcbd44b",
+  "timing_seconds": {
+    "create_archive": 3.4916929839964723,
+    "total": 9.984431185002904,
+    "verify_entry": 2.5768100249988493
+  },
+  "uploaded": false
+}

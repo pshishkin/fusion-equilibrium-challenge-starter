@@ -30,12 +30,15 @@ before adding code under `my_experiments/`.
 
 ## Where this stands
 
-**Challenge 1 — latest reported leaderboard S = 0.9941**, submitted 2026-09-04 and confirmed
-by the user on 2026-09-21. The historical reference is
-[`baselines/diii_d_20260904.json`](baselines/diii_d_20260904.json). The submission script names
-three salts, ten artifacts per salt and 26 model weights per salt (78 total). The original artifact
-hashes and code revision are not available in this checkout, so this is provenance, not a claim
-that today's `params.yaml` reproduces that submission.
+**Challenge 1 — public leaderboard reference S = 0.9941**: Codabench submission 915662 by
+`pshishkin`, created 2026-09-05 and labelled “6 salts” in its public row. The time-stamped public
+API evidence is [`results/leaderboard_reference_20260923.json`](results/leaderboard_reference_20260923.json).
+The current public-reference manifest is
+[`baselines/diii_d_20260905_leaderboard.json`](baselines/diii_d_20260905_leaderboard.json).
+The earlier [`baselines/diii_d_20260904.json`](baselines/diii_d_20260904.json) is a historical
+three-salt script inference, **not** a verified recipe for that submission. Its original fitted
+artifacts, weights and code revision are unavailable; today's `params.yaml` does not establish
+reproduction of the public row.
 
 **The iteration control is frozen separately** in
 [`baselines/iteration.params.yaml`](baselines/iteration.params.yaml). It has no newly measured
@@ -51,8 +54,9 @@ the locally validated DIII-D public artifact, see the
 The D8/S6 whole-shot linear aggregate diagnostic, including Thomson inputs, failed its
 predeclared rule-out gate. It did not produce a new competition score or context model; the
 scope and measurement are in [`experiments_history.md`](experiments_history.md).
-The B11 Jacobian-direction premise survived a controlled shared-denominator diagnostic, but no
-position-dependent loss or score gain has been measured; its record is in the same history.
+The B11 Jacobian-direction premise survived a controlled shared-denominator diagnostic; the
+later position-conditioned loss improved its MLP alone but reduced both matched ensembles.
+The measurements and limits are in the same history.
 The one-control/one-candidate training screen was preregistered in
 [`experiments/position-metric-screen.json`](experiments/position-metric-screen.json): both arms
 share global target coordinates and stopping, with only the candidate's training metric varying
@@ -218,7 +222,10 @@ They reuse the same development tail and are not an independently confirmed subm
 The fixed map/scalar recipe has been assembled as a locally validated DIII-D public-input NPZ;
 the artifact, full input identity, float32 format, held-70 recipe parity and build timing are in
 [`results/public_diii_d_candidate_20260923.json`](results/public_diii_d_candidate_20260923.json).
-It has no public leaderboard score and no MAST component, ZIP or upload was produced.
+A verified Challenge1-only root ZIP is also prepared locally; its archive SHA, entry CRC,
+extracted NPZ identity, official format reference and access audit are in
+[`results/challenge1_offline_zip_20260923.json`](results/challenge1_offline_zip_20260923.json).
+It has no MAST component or public leaderboard score and was not uploaded.
 
 The completed fast magnetics screen is documented in
 [`experiments/fast-signal-diagnostic.md`](experiments/fast-signal-diagnostic.md) and
