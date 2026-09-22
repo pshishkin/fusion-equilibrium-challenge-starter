@@ -48,6 +48,8 @@ not a live queue. See [the iteration workflow](#reproducible-diii-d-iterations) 
 The D8/S6 whole-shot linear aggregate diagnostic, including Thomson inputs, failed its
 predeclared rule-out gate. It did not produce a new competition score or context model; the
 scope and measurement are in [`experiments_history.md`](experiments_history.md).
+The B11 Jacobian-direction premise survived a controlled shared-denominator diagnostic, but no
+position-dependent loss or score gain has been measured; its record is in the same history.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

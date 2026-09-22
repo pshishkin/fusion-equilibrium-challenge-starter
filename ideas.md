@@ -1479,7 +1479,28 @@ the shrinkage sweep's optimum is λ = 0.
 
 **ΔS ≈ +0.0005…+0.0015, confidence 0.45.**
 
-## B11. A loss metric that changes with the regime — *2026-08-15* — needs the loss reworked
+## B11. A loss metric that changes with frame position — **controlled direction gate passed 2026-09-22; loss unbuilt**
+
+The 2026-08-16 free diagnostic found different forms, but `diagnose_regime.py` divided each
+position group's Jacobian by that group's OWN seven scalar variances. That mixed a direction
+change with changing denominator weights. A preregistered replication held those variances and
+the compact artifact's Consistency split fixed across all groups: first 100 eligible training
+shots, one frame each at 10%, 50% and 90% of the shot's **frame index**. All 100 triplets were
+finite. The mean of the three trace-normalised relative Frobenius distances was **0.5394**,
+against **0.2837** at the 95th percentile of 100 within-shot label permutations and a fixed
+**0.20** gate. A shot-triplet bootstrap gave a 95% interval of **0.4622–0.7181**. The same frames
+with the old separate-denominator calculation gave **0.5653**: denominator drift contributes,
+but it does not explain away the direction difference. Early/middle, early/late and middle/late
+distances under the shared denominator were 0.5260 / 0.7196 / 0.3726. These are frame-position
+groups, not measured physical current regimes. [Preregistration](experiments/b11_shared_variance_prereg.json)
+and [complete result](results/b11_shared_variance_20260922.json) record the filenames, exact
+indices, hashes, traces, top-seven angles and uncertainty.
+
+The mechanism survives this controlled screen. No per-row loss was implemented, no model was
+fitted, and no competition score gain is established. `TargetScaler` still folds one global form
+into all targets; making the form row-dependent remains the substantial B11 implementation cost.
+
+### Original hypothesis
 
 **The axis nobody has looked at.** The `jacobian` metric is ONE 50×50 matrix, `JᵀJ` averaged over
 300 probe frames. C7 measured how its TRACE varies frame to frame — 10× — and found that the

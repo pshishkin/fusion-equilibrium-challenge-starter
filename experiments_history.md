@@ -106,6 +106,26 @@ rule out nonlinear/global context. Exact file hashes, filenames, protocol, alpha
 [preregistration](experiments/d8_whole_shot_prereg.json),
 [result](results/d8_whole_shot_20260922.json).
 
+**2026-09-22 — B11 shared-denominator direction replication:**
+The 2026-08-16 B11 diagnostic had reported different Jacobian form directions by shot position,
+but `diagnose_regime.py` used a different scalar variance denominator in each group. This
+preregistered control took one frame at relative **index** positions 0.1, 0.5 and 0.9 from each of
+the first 100 eligible compact-artifact training shots, all 100 with complete finite Jacobians.
+All groups used the same pooled seven scalar variances and the artifact's original Consistency
+split, with the rounded 0.06092 Wb/rad probe step from its training log. After trace
+normalisation, the three relative Frobenius distances were **0.5260 / 0.7196 / 0.3726**, mean
+**0.5394**, against **0.2837** at the 95th percentile of 100 within-shot label permutations; the
+predeclared gate also required at least 0.20. Bootstrap resampling of complete shot triplets gave
+a 95% interval **0.4622–0.7181**. Raw form traces were 48.28 / 25.95 / 33.51. On the SAME probes,
+the old separate-denominator calculation gave mean distance **0.5653**, so the denominator
+confound changes the magnitude but does not explain away the position-dependent orientation.
+**Verdict:** the directional mechanism passes a controlled diagnostic; no row-dependent loss was
+built or scored, and no S gain is implied. These are frame-index groups, not independently
+identified physical ramp phases. Exact artifact/data/source hashes, all filenames and indices,
+finite counts, top-seven angles and uncertainty:
+[preregistration](experiments/b11_shared_variance_prereg.json),
+[result](results/b11_shared_variance_20260922.json).
+
 **2026-09-22 — A4 fixed-step refit on the old validation window:**
 `python -m my_experiments.run prepare experiments/refit-production.json`, then `run execute` on
 the frozen campaign. The 6971 full-frame train shots are the exact ordered union of the compact

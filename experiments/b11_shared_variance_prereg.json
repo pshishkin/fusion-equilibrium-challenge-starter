@@ -1,0 +1,57 @@
+{
+  "name": "b11-shared-variance-direction-replication",
+  "date": "2026-09-22",
+  "purpose": "Audit whether the earlier B11 position-group direction result survives one pooled scalar variance denominator",
+  "prior_measurement": "experiments_history.md B11 2026-08-16: 25 held-out shots, 60 frames per group, 0.584/0.803/0.492 normalized-form distances; diagnose_regime.py used a separate scalar variance for each group",
+  "artifact": "runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+  "artifact_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+  "dataset_manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420",
+  "base_cache_code_key": "6b846fbf11e11c33",
+  "selection": {
+    "source": "artifact train_files in stored order",
+    "eligible_full_frames_minimum": 10,
+    "eligible_shots": 100,
+    "index_fractions": [0.1, 0.5, 0.9],
+    "index_rule": "numpy.rint(fraction * (full_frame_count - 1)), converted to int",
+    "group_labels": ["early-index", "middle-index", "late-index"],
+    "not_physical_regime_labels": true
+  },
+  "jacobian": {
+    "function": "my_experiments.target_metric._jacobian_task",
+    "probe_delta_wb_per_rad": 0.06092,
+    "delta_source": "rounded diagnostic step reported in compact-production base_s0 run log: 300/300 probes, step 0.06092 Wb/rad; no tuning",
+    "workers": 4,
+    "ordered_chunks": 8,
+    "required_complete_finite_triplets": 90,
+    "complete_triplet_rule": "A shot contributes only if all three position probes have finite baseline values and all 7x50 Jacobian entries; never replace a failed position",
+    "variance": "population variance ddof=0 of each scalar over every frame in the complete finite triplets, pooled across all three position groups",
+    "scalar_weights": "W_CONS times the artifact's original normalized loss.cons_split weights, divided by the same pooled variance in every group"
+  },
+  "comparisons": {
+    "normalization": "divide each 50x50 group-mean form by its trace; report raw traces separately",
+    "pair_distance": "Frobenius norm of the difference between trace-normalized forms divided by the mean of their Frobenius norms",
+    "primary_dispersion": "arithmetic mean of the three pair distances",
+    "descriptive_subspace_rank": 7,
+    "legacy_denominator_control": "Recompute forms on exactly the same complete probes with scalar variance estimated separately within each group; report their traces and normalized distances, not used for the gate"
+  },
+  "permutation_null": {
+    "repetitions": 100,
+    "seed": 0,
+    "shuffle": "For every complete shot, independently permute its three position labels; preserve one frame per group and all within-shot values",
+    "percentile": 95,
+    "numpy_quantile_method": "linear"
+  },
+  "bootstrap_uncertainty": {
+    "repetitions": 100,
+    "seed": 1,
+    "resample_unit": "complete shot triplet",
+    "denominator": "hold the observed pooled scalar variances fixed so this reflects shot sampling of Jacobian orientation under one common metric",
+    "dispersion_interval_percentiles": [2.5, 97.5]
+  },
+  "screening_gate": {
+    "dispersion_minimum": 0.20,
+    "strictly_greater_than_permutation_percentile": true,
+    "meaning": "Mechanism screen only; passing is not evidence of a competition score gain or authorization to implement a per-row loss"
+  },
+  "if_incomplete": "With fewer than 90 complete finite shots, report inconclusive rather than replace frames or tune the sample"
+}

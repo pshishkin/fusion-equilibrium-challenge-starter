@@ -86,6 +86,14 @@ settle nonlinear/global context. The original 1,338 validation shots were alread
 the old ensemble's early stopping, so this is a rule-out screen only. See the dated entry in
 `experiments_history.md` and `results/d8_whole_shot_20260922.json`.
 
+B11's Jacobian-direction premise has now passed a controlled denominator check: with one pooled
+scalar variance and the compact artifact's Consistency weights across three frame-index groups,
+the trace-normalised form dispersion was 0.5394 against the preregistered permutation-null 95th
+percentile of 0.2837 and a 0.20 minimum. The old group-specific denominator on identical probes
+gave 0.5653. This supports a position-dependent orientation mechanism, not a competition-score
+gain; no per-row loss has been implemented or fitted. See `experiments_history.md` and
+`results/b11_shared_variance_20260922.json`.
+
 A separate single-configuration temporal-convolution sequence member is preregistered in
 `experiments/seq-conv-production.json` from the existing sequence implementation. Its prior
 diversity evidence is in `single_model_results.md`; no current fitted artifact or production score
