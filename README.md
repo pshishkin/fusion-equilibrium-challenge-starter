@@ -160,6 +160,13 @@ therefore asks for ~200 GB and gets OOM-killed before the first shot loads.
 
 ## Reproducible DIII-D iterations
 
+The compact iteration baseline uses one seed-0 MLP and one seed-0 GRU sequence model, averaged
+with equal weights, at split salt 0 and the unchanged production data shares. Run
+`make experiment SPEC=experiments/compact-production.json` to prepare and execute it. This is a
+separate baseline from the historical submitted collection; see `experiment_status.md` for results.
+The first full run may build auxiliary-target and decoded-shot caches; distinguish that cost from
+model fitting when estimating subsequent iteration time.
+
 The canonical data protocols live in [`experiments/protocols.json`](experiments/protocols.json):
 
 | Profile | Train shots/frames | Validation shots/frames | Score shots | Purpose |

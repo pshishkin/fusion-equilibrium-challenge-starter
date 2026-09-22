@@ -1,0 +1,15 @@
+{
+  "name": "compact-production",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "production",
+  "salts": [0],
+  "jobs": 24,
+  "arms": [
+    {
+      "name": "base",
+      "only": ["mlp", "seq"],
+      "set": [],
+      "score_models": ["mlp", "seq", "ensemble"]
+    }
+  ]
+}

@@ -201,6 +201,9 @@ Non-overlap is checked against the **filenames** stored in the artifact — both
 - Paired lanes: `0.80/1.0 0.15/1.0 0.05`, the existing lane protocol, paired within split salt.
 
 Do not silently substitute other shares. A change of shares requires the user's agreement.
+The user-approved compact iteration baseline (`experiments/compact-production.json`) keeps the
+production shares and uses only `mlp` and `seq`, seed 0 each, split salt 0, equal ensemble weights.
+It is a separate working control, not a reproduction of the historical submitted collection.
 Identify the protocol, command, effective config and scored filenames when quoting a score.
 Quality is a screen; confirmation uses the intended production ensemble. New salts do not make
 reused shots an independent dataset. Selection and confirmation must be separated in advance.

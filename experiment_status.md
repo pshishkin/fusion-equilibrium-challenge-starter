@@ -18,6 +18,12 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Latest recorded evidence
 
+The user approved a compact production baseline on 2026-09-22: `mlp` and `seq` only, seed 0 each,
+salt 0, equal weights, unchanged production shares. Spec: `experiments/compact-production.json`.
+Frozen campaign: `runs/compact-production-9301af36275620f7`; inspect it with `run status` for live
+execution state. Scores and iteration timings are pending; the first run builds full auxiliary
+targets. This campaign does not measure the full enabled ensemble or reproduce the submission.
+
 Numbers below are paired within salt, recomputed from the named CSVs; they are historical
 experiments, not measurements of the newly frozen control. SE is the sample standard deviation
 of paired deltas divided by sqrt(n), not an independent-shot confidence guarantee.
