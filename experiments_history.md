@@ -3,6 +3,61 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-22 UTC — fast magnetics A/B production screen with fresh unchanged control:**
+`run prepare experiments/fast-signal-screen.json` froze the new evaluator and the production
+`0.80/1.0 0.19/1.0 0.01` salt-0 three-arm campaign. The separately keyed auxiliary targets were
+rebuilt from the new scorer producer in **1171.48 s**; full-shot fast sidecars took **33.70 s** for
+A and **39.90 s** for B. All 6971 train-plus-validation sidecars per spec were checked for full
+frame counts, finite float32 values, frozen producer keys and pinned parquet digests. A fresh
+MLP control without new columns reproduced **every native scorer field** of the original compact
+MLP, S **0.992149**, on the same 70 unseen shots. The candidate comparisons held the original
+compact sequence fixed at weight 0.5 and used the matched decoded control **S 0.993386**:
+
+| Added input columns | Candidate MLP S | Replacement S | ΔS vs decoded control | R²ψ / R²qb / D_LCFS / Consistency of replacement |
+|---|---:|---:|---:|---|
+| A: `ECOILA` centered ±5 ms dI/dt | 0.991120 | 0.992938 | −0.000448 | 0.999732 / 0.995813 / 0.010973 / 0.974053 |
+| B: A + corrected plasma-current ±20 ms dI/dt | 0.991114 | 0.993323 | −0.000063 | 0.999758 / 0.995494 / 0.011468 / 0.976392 |
+
+Fit-only times were 161.8 / 217.2 / 307.2 s for control/A/B; full child walls were 468.32 /
+416.49 / 497.01 s, and the two four-row matched comparisons took 109.59 and 115.02 s.
+Verdict: this narrow input bank did not improve the compact mixture on one salt; B repairs most
+of A's loss but does not beat the unchanged control. No candidate is promoted. The input-only
+audit's distinct variance was not proof of useful signal. Native scorer terms, exact YAML,
+weights, files and artifact hashes: [screen](results/fast_signal_screen_20260922.json),
+[frozen cache preparation](results/fast_cache_prewarm_20260922.json).
+
+**2026-09-22 UTC — single temporal-convolution sequence member:**
+`run prepare experiments/seq-conv-production.json` from the frozen pre-feature source changed
+only `models.seq.seq_cell=conv`; constant learning rate, original features/loss, seed 0 and the
+existing 1,2,4,8,16,32 dilations stayed fixed. On the same 70 unseen shots the candidate scored
+**S 0.990636** alone versus the original GRU sequence's 0.990514. The matched decoded 50/50
+mixture with the unchanged compact MLP scored **0.993279** versus **0.993386** for the original
+MLP+GRU pair, **ΔS −0.000107**. Replacement terms were R²ψ 0.999775, R²qb 0.995673,
+raw D_LCFS 0.011232 and Consistency 0.975873. Fit-only time was 387.6 s, best step 22500
+after 32500; child wall 580.32 s. Verdict: the historical residual-correlation diversity
+motivation did not translate to a compact 50/50 replacement gain on this split. A separate
+preregistered fixed 5:1 addition to the recovered old five scored **0.994615** against
+**0.994478**, **+0.000137**; terms were R²ψ 0.999840, R²qb 0.996684, raw D_LCFS 0.009805
+and Consistency 0.980904. That is a small same-tail diversity diagnostic, not an independent
+confirmation or automatic promotion. Native evidence and frozen config:
+[compact replacement](results/seq_conv_screen_20260922.json),
+[old-five addition](results/historical_five_conv_20260922.json).
+
+**2026-09-22 UTC — expanded old-ensemble stack and a scalar-block control:**
+One preregistered decoded-map blend added the two-model constant-rate refit and the cosine
+sequence fixed-step refit to the previously measured eight-member old5 + `cons_gain=2` MLP +
+`env_weight=1` MLP + cosine sequence collection, at fixed member weights **5:1:1:1:2:1**.
+On the same already reused 70-shot tail, the full eleven-member blend scored **S 0.995046**.
+Keeping those eleven members' flux maps but taking q95/βN bit for bit from the prior eight-member
+blend scored **S 0.995080**, versus **0.994872** for the prior eight and **0.994478** for the old
+five. The block-spliced result's native terms were R²ψ 0.999855, R²qb 0.997165, raw D_LCFS
+0.009378 and Consistency 0.982616. The exact map/scalar audit checked 70 map arrays and 140
+scalar arrays. Verdict: the expanded map adds a local geometry gain while its full scalar block
+gives some back; this is an adaptive diagnostic after repeated use of these shots, not independent
+confirmation, a production weight search, or a submitted leaderboard result. The fixed grid,
+source/artifact weights, predictions, hashes, files and native scorer fields are in
+[results/historical_eleven_blocks_20260922.json](results/historical_eleven_blocks_20260922.json).
+
 **2026-09-22 — export precision audit and writer repair:**
 `tools/precision_audit.py` changed only the flux-map serialization of two existing 70-shot
 decoded prediction sets, leaving q95/βN bits, filenames and scorer fixed. The recovered old five
@@ -52,6 +107,7 @@ following fixed member-count blends:
 | `cons_gain=2` MLP | 5:1 | 0.994690 | +0.000212 |
 | `env_weight=1` MLP | 5:1 | 0.994585 | +0.000107 |
 | cosine sequence | 5:1 | 0.994688 | +0.000210 |
+| convolutional sequence | 5:1 | 0.994615 | +0.000137 |
 | fixed-step cosine sequence refit | 5:1 | 0.994824 | +0.000346 |
 | fixed-step two-model refit | 5:2 | 0.994707 | +0.000229 |
 | `cons_gain=2` + `env_weight=1` + cosine sequence | 5:1:1:1 | **0.994872** | **+0.000394** |
@@ -67,7 +123,8 @@ fixed grids, decoded prediction hashes, native scorer JSON and filename checks a
 [cosine](results/historical_five_cosine_20260922.json),
 [stack](results/historical_five_stack_20260922.json), and
 [refit](results/historical_five_refit_20260922.json), and
-[cosine refit](results/historical_five_cosine_refit_20260922.json).
+[cosine refit](results/historical_five_cosine_refit_20260922.json), and
+[convolution](results/historical_five_conv_20260922.json).
 
 **2026-09-22 — fast magnetics input audit and pipeline identity, before any production fit:**
 `python my_experiments/diagnose_fast_magnetics.py` read only input columns from 100 train and 20

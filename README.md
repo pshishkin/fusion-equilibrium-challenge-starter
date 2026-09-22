@@ -200,18 +200,29 @@ original inference code. Its own score and fixed-weight additions are indexed in
 [`experiments_history.md`](experiments_history.md), with native evidence in the
 `results/historical_five_*.json` records. This recovered August artifact is a useful local
 ensemble control; its identity does not establish what was submitted in September.
+The expanded fixed-weight ensemble and its scalar-block diagnostic are indexed in
+[`experiments_history.md`](experiments_history.md), with full native evidence in
+[`results/historical_eleven_blocks_20260922.json`](results/historical_eleven_blocks_20260922.json).
+They reuse the same development tail and are not an independently confirmed submission.
 
-The proposed fast magnetics screen is documented in
+The completed fast magnetics screen is documented in
 [`experiments/fast-signal-diagnostic.md`](experiments/fast-signal-diagnostic.md) and
 [`experiments/fast-signal-screen.json`](experiments/fast-signal-screen.json). Its input-only audit
 checked 100 train and 20 public-test shots against their full hashes. The two planned additions
 are an `ECOILA` centered ±5 ms derivative, then that feature plus a corrected plasma-current
-centered ±20 ms derivative aimed at shot edges and gaps. These are unscored hypotheses; the
-current model and its score remain unchanged.
-One separate temporal-convolution sequence candidate is preregistered in
+centered ±20 ms derivative aimed at shot edges and gaps. Their scorer-native production results
+are in [`results/fast_signal_screen_20260922.json`](results/fast_signal_screen_20260922.json),
+with the explicit new-key cache preparation in
+[`results/fast_cache_prewarm_20260922.json`](results/fast_cache_prewarm_20260922.json). Neither
+candidate changed the working model.
+One separate temporal-convolution sequence candidate was preregistered in
 [`experiments/seq-conv-production.json`](experiments/seq-conv-production.json). It uses the
 existing convolution cell and changes only that setting from the compact sequence control;
-its own score and contribution beside the unchanged MLP have not been measured in this campaign.
+its own score and matched contribution beside the unchanged MLP are in
+[`results/seq_conv_screen_20260922.json`](results/seq_conv_screen_20260922.json). It did not
+improve the compact ensemble on this split.
+Its separate fixed-weight addition to the recovered old five is recorded in
+[`results/historical_five_conv_20260922.json`](results/historical_five_conv_20260922.json).
 The fast feature bank is an artifact-owned YAML setting backed by separate full-shot sidecars;
 the 208-column base shot cache remains reusable. The frozen two-feature CPU smoke and exact
 unchanged-model scorer identity are recorded in

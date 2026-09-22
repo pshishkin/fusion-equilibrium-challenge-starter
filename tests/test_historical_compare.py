@@ -10,7 +10,14 @@ from pathlib import Path
 
 import numpy as np
 
-from tools.historical_compare import _blend_arrays, _blend_many_arrays, _save, blend, blend_many
+from tools.historical_compare import (
+    _blend_arrays,
+    _blend_many_arrays,
+    _save,
+    blend,
+    blend_many,
+    splice_scalars,
+)
 
 
 class HistoricalBlendChecks(unittest.TestCase):
@@ -67,6 +74,15 @@ class HistoricalBlendChecks(unittest.TestCase):
             with np.load(output, allow_pickle=False) as packed:
                 for key in packed.files:
                     self.assertTrue(np.array_equal(packed[key], np.full_like(packed[key], 5.0)))
+            selected = folder / "selected.npz"
+            splice_scalars(output, files[1], selected)
+            with (np.load(output, allow_pickle=False) as all_members,
+                  np.load(files[1], allow_pickle=False) as old_scalars,
+                  np.load(selected, allow_pickle=False) as packed):
+                self.assertEqual(packed["shot_0000_psirz"].tobytes(),
+                                 all_members["shot_0000_psirz"].tobytes())
+                for key in ("shot_0000_q95", "shot_0000_betaN"):
+                    self.assertEqual(packed[key].tobytes(), old_scalars[key].tobytes())
             x = np.array([0.992149, 1.0, -3.0], dtype=np.float32)
             self.assertEqual(_blend_many_arrays([x] * 4, [5, 1, 1, 1]).tobytes(),
                              x.tobytes())

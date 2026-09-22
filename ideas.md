@@ -1,32 +1,8 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
-## 2026-09-22 temporal-convolution sequence member, registered before fitting
-
-`experiments/seq-conv-production.json` proposes one production-share salt-0 seed-0 sequence fit
-using the existing `seq_cell=conv` implementation. It changes only that cell from the compact
-control's GRU: the original loss, features, architecture width, constant learning-rate schedule,
-early-stopping budget and existing `1,2,4,8,16,32` dilation setting remain fixed. The older
-diversity audit in `single_model_results.md` measured a convolutional member's residual
-correlation at 0.546, below the 0.605 GRU-reseed reference, while its own score was slightly lower.
-No locally usable fitted convolution artifact was found. This tests whether the known different
-error pattern helps the currently available compact ensemble; it does not assert that convolution
-alone is better. Score it alone and as a 50/50 replacement for the original sequence beside the
-unchanged compact MLP, against the same matched decoded control and 70 unseen shots. If useful,
-test a fixed 5:1 addition to the recovered older five-member ensemble separately. No result from
-this production fit exists yet.
-
-## 2026-09-22 fast magnetics screen, registered before fitting
-
-The measured input-only audit, sample boundaries and full parquet hashes are recorded in
-`experiments/fast-signal-diagnostic.md` and `experiments_history.md`. The audit motivated a
-narrow signal test but made no prediction about score gain.
-
-`experiments/fast-signal-screen.json` proposes two separate production-share salt-0 seed-0 MLP
-arms against an unchanged control: A adds `ECOILA` ±5 ms only; B adds A plus corrected
-plasma-current ±20 ms to test gap/edge handling. The unchanged original sequence model will be
-the fixed second member in matched 50/50 replacement comparisons on the same 70 unseen shots.
-Feature availability and independence do not imply a score gain. No fit or score has been measured
-for either arm yet; see the diagnostic for sample limits and exact source/data hashes.
+The September fast-magnetics and temporal-convolution screens have been measured. Their original
+frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the
+working compact ensemble.
 
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.

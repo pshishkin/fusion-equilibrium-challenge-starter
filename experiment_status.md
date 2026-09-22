@@ -38,6 +38,12 @@ production replacement or evidence that the recovered August artifact is the Sep
 All fixed grids, member weights and native terms are in the four `results/historical_five_*.json`
 records indexed by `experiments_history.md`.
 
+An expanded eleven-member fixed blend and a separate scalar-block control were then measured on
+the same repeatedly used 70-shot tail. The best observed diagnostic takes the expanded map and
+the prior eight-member q95/βN block at S 0.995080, but its selection and evaluation share shots.
+It is neither independent confirmation nor an accepted/submitted collection. Full fixed weights,
+block identity checks and native terms: `results/historical_eleven_blocks_20260922.json`.
+
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
 reject stale half-precision caches; an old-control writer round-trip reproduced the original
@@ -72,11 +78,13 @@ scored 0.994824 against 0.994478, a positive reused-tail diagnostic without inde
 confirmation. Exact fields and provenance: `results/seq_cosine_refit_20260922.json` and
 `results/historical_five_cosine_refit_20260922.json`.
 
-The next input-feature hypothesis is a two-arm fast magnetics screen, still unmeasured. Its
-input-only audit covers 100 train and 20 public-test shots with verified file hashes; the
-predeclared A/B feature sets and the audit's edge/interior distinction are in
-`experiments/fast-signal-diagnostic.md` and `experiments/fast-signal-screen.json`. No current
-baseline score or accepted feature set changes on the strength of this audit.
+The two-arm fast magnetics production screen has now completed. A (`ECOILA` ±5 ms) lowered the
+matched compact replacement by ΔS −0.000448; B (A plus corrected Ip ±20 ms) by −0.000063. A
+fresh MLP control reproduced every native metric field of the original compact MLP exactly. The
+input-only audit had established feature availability, not predictive value; neither candidate
+is accepted. Native terms, exact files, fitted hashes and timing are in
+`results/fast_signal_screen_20260922.json`, with cache provenance in
+`results/fast_cache_prewarm_20260922.json`.
 
 D8/S6's separate whole-shot linear aggregate screen has now failed its preregistered 25%
 explained-variance gate. The all-input diagnostic returned 0.005938 unweighted and −0.022983 when
@@ -94,10 +102,13 @@ gave 0.5653. This supports a position-dependent orientation mechanism, not a com
 gain; no per-row loss has been implemented or fitted. See `experiments_history.md` and
 `results/b11_shared_variance_20260922.json`.
 
-A separate single-configuration temporal-convolution sequence member is preregistered in
-`experiments/seq-conv-production.json` from the existing sequence implementation. Its prior
-diversity evidence is in `single_model_results.md`; no current fitted artifact or production score
-exists for this compact replacement yet.
+The single-configuration temporal-convolution sequence member also completed. Its individual S
+was 0.990636, but the matched compact MLP-plus-convolution replacement was ΔS −0.000107 against
+the decoded MLP-plus-GRU control on the same 70 shots. It is not promoted; the historical
+diversity premise and the measured compact replacement are separate evidence. A separate fixed
+5:1 addition to the recovered old five was +0.000137, still a reused-tail diagnostic rather than
+confirmation. See `results/seq_conv_screen_20260922.json`,
+`results/historical_five_conv_20260922.json` and `experiments_history.md`.
 
 Numbers below are paired within salt, recomputed from the named CSVs; they are historical
 experiments, not measurements of the newly frozen control. SE is the sample standard deviation

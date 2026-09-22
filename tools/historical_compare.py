@@ -249,6 +249,60 @@ def blend_many(inputs: list[Path], weights: list[int], output: Path) -> None:
     print(f"Wrote {output}: {len(names)} shots, member weights {weights}")
 
 
+def splice_scalars(map_source: Path, scalar_source: Path, output: Path) -> None:
+    """Keep all map bits from one blend and both scalar blocks from another."""
+    map_record, scalar_record = _meta(map_source), _meta(scalar_source)
+    names = map_record["files"]
+    if names != scalar_record["files"]:
+        raise ValueError("map and scalar sources have different scored filenames or order")
+    expected = _keys(len(names))
+    arrays: dict[str, np.ndarray] = {}
+    with (np.load(map_source, allow_pickle=False) as maps,
+          np.load(scalar_source, allow_pickle=False) as scalars):
+        for path, record, packed in ((map_source, map_record, maps),
+                                     (scalar_source, scalar_record, scalars)):
+            if file_hash(path) != record["prediction_sha256"] or list(packed.files) != expected:
+                raise ValueError(f"{path}: prediction hash or keys differ from provenance")
+        for i in range(len(names)):
+            map_key = f"shot_{i:04d}_psirz"
+            psi = maps[map_key]
+            if psi.dtype != np.float32 or not np.isfinite(psi).all():
+                raise ValueError(f"{map_source}: {map_key} must be finite float32, got {psi.dtype}")
+            arrays[map_key] = psi
+            for field in ("q95", "betaN"):
+                key = f"shot_{i:04d}_{field}"
+                value = scalars[key]
+                if (value.dtype != np.float32 or value.shape != (len(psi),)
+                        or not np.isfinite(value).all()):
+                    raise ValueError(f"{scalar_source}: {key} has shape/dtype "
+                                     f"{value.shape}/{value.dtype}, expected "
+                                     f"({len(psi)},)/float32 and finite")
+                arrays[key] = value
+    _save(output, arrays)
+    with (np.load(output, allow_pickle=False) as selected,
+          np.load(map_source, allow_pickle=False) as maps,
+          np.load(scalar_source, allow_pickle=False) as scalars):
+        for key in expected:
+            reference = maps[key] if key.endswith("_psirz") else scalars[key]
+            if selected[key].tobytes() != reference.tobytes():
+                raise AssertionError(f"{output}: selected {key} differs from its source bits")
+    record = {
+        "schema": "submission_npz_v1",
+        "method": "bit-exact maps from map source; bit-exact q95/betaN from scalar source",
+        "map_source": str(map_source.resolve()),
+        "map_source_sha256": file_hash(map_source),
+        "scalar_source": str(scalar_source.resolve()),
+        "scalar_source_sha256": file_hash(scalar_source),
+        "files": names,
+        "prediction_npz": str(output.resolve()),
+        "prediction_sha256": file_hash(output),
+        "exact_map_arrays": len(names),
+        "exact_scalar_arrays": 2 * len(names),
+    }
+    write_json(output.with_suffix(".json"), record)
+    print(f"Wrote {output}: {len(names)} exact maps and {2 * len(names)} exact scalar arrays")
+
+
 def score(prediction: Path, files_json: Path, data_dir: Path,
           metrics_json: Path, jobs: int, scorer_root: Path | None = None) -> None:
     if scorer_root is not None:
@@ -313,6 +367,10 @@ def main() -> int:
     p.add_argument("--inputs", type=Path, nargs="+", required=True)
     p.add_argument("--weights", type=int, nargs="+", required=True)
     p.add_argument("--output", type=Path, required=True)
+    p = sub.add_parser("splice-scalars")
+    p.add_argument("--map-source", type=Path, required=True)
+    p.add_argument("--scalar-source", type=Path, required=True)
+    p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("score")
     p.add_argument("--prediction", type=Path, required=True)
     p.add_argument("--files-json", type=Path, required=True)
@@ -329,6 +387,8 @@ def main() -> int:
               args.base_members, args.candidate_members)
     elif args.command == "blend-many":
         blend_many(args.inputs, args.weights, args.output)
+    elif args.command == "splice-scalars":
+        splice_scalars(args.map_source, args.scalar_source, args.output)
     else:
         score(args.prediction, args.files_json, args.data_dir, args.metrics_json, args.jobs,
               args.scorer_root)

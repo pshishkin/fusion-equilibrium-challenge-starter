@@ -1,0 +1,370 @@
+{
+  "campaign": "runs/seq-conv-production-095e7773e919175e",
+  "command_execute": "setsid --wait .venv/bin/python -m my_experiments.run execute runs/seq-conv-production-095e7773e919175e",
+  "command_prepare": "cd runs/refit-production-a5034fff0c4b4f22/source && /home/pavel/fusion-equilibrium-challenge-starter/.venv/bin/python -m my_experiments.run prepare /home/pavel/fusion-equilibrium-challenge-starter/experiments/seq-conv-production.json --output /home/pavel/fusion-equilibrium-challenge-starter/runs",
+  "concurrency_note": "Independent CPU4 diagnostics and fast A/B native comparisons overlapped the GPU fit, so elapsed time is not an isolated throughput benchmark.",
+  "date_utc": "2026-09-22",
+  "effective_params_yaml": "features:\n  n_pca: 50\n  pca_seed: 0\n  pca_frame_share: 0.2\n  basis_envelope: 1.0\n  basis_sobolev: 0.0\n  subtract_coil_field: true\n  inputs: currents\n  derivatives: both\n  derivative_signals: poloidal\n  thomson: te,ne,p,pos\n  n_coil_pca: 19\n  frame_gaps: false\n  vessel: none\nsplit:\n  salt: 0\n  holdout_share: 0.0\nloss:\n  metric: jacobian\n  calibrate_scalars: false\n  li_form: jacobian\n  jacobian_frames: 300\n  monitor_frames: 150\n  aux_scalars: none\n  aux_weight: 0.1\n  cons_split: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n  cons_gain: 1.0\n  field_weight: 0.0\n  env_weight: 0.0\n  env_inside: 4.0\n  jacobian_delta: 0.0332\n  boundary: false\nmodels:\n  ridge:\n    type: ridge\n    enabled: false\n    alpha: 1.0\n  catboost:\n    type: catboost\n    enabled: false\n    iterations: 16000\n    depth: 8\n    learning_rate: 0.1\n    l2_leaf_reg: 3.0\n    early_stopping_rounds: 50\n    random_seed: 0\n    thread_count: 8\n    task_type: gpu\n  mlp:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 0\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp1:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 1\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp2:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 2\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp3:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 3\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp4:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 4\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp5:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 5\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp6:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 6\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp7:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 7\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  seq:\n    type: torch_seq\n    enabled: true\n    hidden_sizes:\n    - 512\n    - 512\n    seq_hidden: 256\n    seq_layers: 1\n    seq_hidden2: 0\n    seq_skip: false\n    seq_conv_dilations: 1,2,4,8,16,32\n    seq_attn_heads: 8\n    seq_cell: conv\n    seq_head_hidden: 0\n    batch_shots: 32\n    max_steps: 200000\n    patience_steps: 10000\n    eval_every_steps: 500\n    learning_rate: 0.001\n    weight_decay: 0.0\n    seed: 0\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    lr_schedule: none\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    loss: mse\n    huber_delta: 2.0\n    ema_decay: 0.0\n  seq1:\n    type: torch_seq\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    seq_hidden: 256\n    seq_layers: 1\n    seq_cell: gru\n    seq_head_hidden: 0\n    seq_hidden2: 0\n    seq_skip: false\n    seq_conv_dilations: 1,2,4,8,16,32\n    seq_attn_heads: 8\n    batch_shots: 32\n    max_steps: 200000\n    patience_steps: 10000\n    eval_every_steps: 500\n    learning_rate: 0.001\n    weight_decay: 0.0\n    seed: 1\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    lr_schedule: none\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    loss: mse\n    huber_delta: 2.0\n    ema_decay: 0.0\n  seq2:\n    type: torch_seq\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    seq_hidden: 256\n    seq_layers: 1\n    seq_cell: gru\n    seq_head_hidden: 0\n    seq_hidden2: 0\n    seq_skip: false\n    seq_conv_dilations: 1,2,4,8,16,32\n    seq_attn_heads: 8\n    batch_shots: 32\n    max_steps: 200000\n    patience_steps: 10000\n    eval_every_steps: 500\n    learning_rate: 0.001\n    weight_decay: 0.0\n    seed: 2\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    lr_schedule: none\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    loss: mse\n    huber_delta: 2.0\n    ema_decay: 0.0\nensemble:\n  members:\n    seq: 1.0\n",
+  "fit": {
+    "artifact_sha256": "4f85be9f4b2b7218b3ea251fe89c71c4054924419580a97f11abe8fa7a2199ea",
+    "child_wall_seconds": 580.3212282657623,
+    "completion_sha256": "743dc74dac38946de4823e259a28ad01361309b1999c4d86d40e6ff6daec398e",
+    "executed_steps": 32500,
+    "fit_logged_seconds_rounded": 387.6,
+    "individual_native": {
+      "S": 0.990636,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 0.0,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 0.0,
+      "consistency": 0.965822,
+      "dlcfs": 0.013611,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 70,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.971325,
+        "Z_axis": 0.964978,
+        "kappa": 0.940653,
+        "li": 0.951794,
+        "tri_bot": 0.985755,
+        "tri_top": 0.984651,
+        "volume": 0.9616
+      },
+      "r2_each": {
+        "betaN": 0.995099,
+        "q95": 0.99191
+      },
+      "r2_psi": 0.999649,
+      "r2_psi_per_shot_mean": 0.999399,
+      "r2_psi_unflipped": 0.999649,
+      "r2_qb": 0.993504,
+      "ref_lcfs_dropped": 0
+    },
+    "kept_step": 22500,
+    "log": "runs/seq-conv-production-095e7773e919175e/seq-conv_s0/1790110448471448679-run.log",
+    "log_sha256": "243eed9cc65c21bb916a8ddfc8ad57cb53b2316fda3275b351035a7c96e5788c",
+    "metrics_sha256": "e6f53f66a2a0b90015f0f5276defee70e4e4469d1e47b22dc84aef1ae633c2c2",
+    "timing_seconds": {
+      "score": 54.5993688479939,
+      "train": 521.2908227690059,
+      "train_and_score": 575.8901916169998
+    }
+  },
+  "n_shots": 70,
+  "protocol": {
+    "purpose": "Current Makefile production data protocol",
+    "score": 0.01,
+    "train": "0.80/1.0",
+    "validation": "0.19/1.0"
+  },
+  "purpose": "One preregistered production salt-0 temporal-convolution sequence member; no production acceptance or paired uncertainty estimate",
+  "replacement_comparison": {
+    "baseline_native": {
+      "S": 0.993385,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 0.0,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 0.0,
+      "consistency": 0.976461,
+      "dlcfs": 0.011106,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 70,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.976517,
+        "Z_axis": 0.979124,
+        "kappa": 0.961865,
+        "li": 0.968654,
+        "tri_bot": 0.9892,
+        "tri_top": 0.990586,
+        "volume": 0.969281
+      },
+      "r2_each": {
+        "betaN": 0.996117,
+        "q95": 0.99508
+      },
+      "r2_psi": 0.999753,
+      "r2_psi_per_shot_mean": 0.999661,
+      "r2_psi_unflipped": 0.999753,
+      "r2_qb": 0.995598,
+      "ref_lcfs_dropped": 0
+    },
+    "candidate": {
+      "S": 0.990636,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 0.0,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 0.0,
+      "consistency": 0.965822,
+      "dlcfs": 0.013611,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 70,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.971325,
+        "Z_axis": 0.964978,
+        "kappa": 0.940653,
+        "li": 0.951794,
+        "tri_bot": 0.985755,
+        "tri_top": 0.984651,
+        "volume": 0.9616
+      },
+      "r2_each": {
+        "betaN": 0.995099,
+        "q95": 0.99191
+      },
+      "r2_psi": 0.999649,
+      "r2_psi_per_shot_mean": 0.999399,
+      "r2_psi_unflipped": 0.999649,
+      "r2_qb": 0.993504,
+      "ref_lcfs_dropped": 0
+    },
+    "comparison_sha256": "98bbe1451f9670ff597e429e2b48a798c279687c81ee6da4cd2bd7a59e3c01a4",
+    "control_decoded": {
+      "S": 0.993386,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 0.0,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 0.0,
+      "consistency": 0.976462,
+      "dlcfs": 0.011106,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 70,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.976516,
+        "Z_axis": 0.979124,
+        "kappa": 0.961868,
+        "li": 0.968656,
+        "tri_bot": 0.989204,
+        "tri_top": 0.990586,
+        "volume": 0.969281
+      },
+      "r2_each": {
+        "betaN": 0.996117,
+        "q95": 0.99508
+      },
+      "r2_psi": 0.999753,
+      "r2_psi_per_shot_mean": 0.999661,
+      "r2_psi_unflipped": 0.999753,
+      "r2_qb": 0.995598,
+      "ref_lcfs_dropped": 0
+    },
+    "controller_run_sha256": "a6800cddb6423fe2565070cae25b7d9d4cc6de52df936923d9b60bc47695a0ab",
+    "directory": "runs/replace-1790111168789295437",
+    "evaluator_source_hash": "fe84df2c5ccc5cc63f6326e1db0a494c475c258f61528b1d5024df63661b75cf",
+    "input_artifacts": [
+      {
+        "alias": "m0",
+        "projection_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+        "selected_member": "original_ensemble",
+        "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+        "source_fit_sha256": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+        "source_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8"
+      },
+      {
+        "alias": "m1",
+        "projection_sha256": "b6202377da23767b12eb8b686728770ab679a61df14333f4036c9f22501c4541",
+        "selected_member": "seq",
+        "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/seq-conv-production-095e7773e919175e/seq-conv_s0/baseline.joblib",
+        "source_fit_sha256": "fe84df2c5ccc5cc63f6326e1db0a494c475c258f61528b1d5024df63661b75cf",
+        "source_sha256": "4f85be9f4b2b7218b3ea251fe89c71c4054924419580a97f11abe8fa7a2199ea"
+      },
+      {
+        "alias": "m2",
+        "projection_sha256": "4aa282bfa8f272bb662dbcc6b2a7db9a6273f91303af8e4ea41037719dc5a5b2",
+        "selected_member": "mlp",
+        "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+        "source_fit_sha256": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+        "source_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8"
+      },
+      {
+        "alias": "m3",
+        "projection_sha256": "0e57057770464424e3f958d15416d98adc4411205a62c99c5079ac2b26369f54",
+        "selected_member": "seq",
+        "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+        "source_fit_sha256": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+        "source_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8"
+      }
+    ],
+    "member_weights": {
+      "baseline_native": {
+        "mlp": 0.5,
+        "seq": 0.5
+      },
+      "candidate": {
+        "seq": 1.0
+      },
+      "control_decoded": {
+        "mlp": 0.5,
+        "seq": 0.5
+      },
+      "replacement": {
+        "mlp": 0.5,
+        "seq<-seq": 0.5
+      }
+    },
+    "metrics_sha256": "63b75c10f87abfd84b06acfa54a95d8f56de59e6e1620d26db97ab7701f1ec25",
+    "replacement": {
+      "S": 0.993279,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 0.0,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 0.0,
+      "consistency": 0.975873,
+      "dlcfs": 0.011232,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 70,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.97827,
+        "Z_axis": 0.978702,
+        "kappa": 0.957348,
+        "li": 0.96442,
+        "tri_bot": 0.989933,
+        "tri_top": 0.988552,
+        "volume": 0.973886
+      },
+      "r2_each": {
+        "betaN": 0.996575,
+        "q95": 0.994771
+      },
+      "r2_psi": 0.999775,
+      "r2_psi_per_shot_mean": 0.999636,
+      "r2_psi_unflipped": 0.999775,
+      "r2_qb": 0.995673,
+      "ref_lcfs_dropped": 0
+    },
+    "replacement_minus_decoded_control": -0.00010699999999996823,
+    "request_sha256": "2a96cd48171cd998201023fe84bfdffaf0734f3f7f7fc7ebcc66f4650d4329fb",
+    "scorer_wall_seconds": 105.7590503692627
+  },
+  "requested_set": [
+    "models.seq.seq_cell=conv"
+  ],
+  "scored_files": [
+    "d3d_shot_6f6a0f6402.parquet",
+    "d3d_shot_18269a24ec.parquet",
+    "d3d_shot_17b33ca9c3.parquet",
+    "d3d_shot_142a107c4c.parquet",
+    "d3d_shot_114f613ef7.parquet",
+    "d3d_shot_f64b5eb1a3.parquet",
+    "d3d_shot_f96e6d33d4.parquet",
+    "d3d_shot_1c5bbadb15.parquet",
+    "d3d_shot_5ff8a4355a.parquet",
+    "d3d_shot_4a91698251.parquet",
+    "d3d_shot_a858a12ee7.parquet",
+    "d3d_shot_371aa95fe9.parquet",
+    "d3d_shot_be4dace16b.parquet",
+    "d3d_shot_82ad35d229.parquet",
+    "d3d_shot_0348fb3d6d.parquet",
+    "d3d_shot_df7e350c4c.parquet",
+    "d3d_shot_38c0d084dd.parquet",
+    "d3d_shot_ac780074d8.parquet",
+    "d3d_shot_ef44fd4bc0.parquet",
+    "d3d_shot_7f2e032665.parquet",
+    "d3d_shot_44da465cae.parquet",
+    "d3d_shot_1558027fd7.parquet",
+    "d3d_shot_df00d1f3d7.parquet",
+    "d3d_shot_478e75f878.parquet",
+    "d3d_shot_13846ea62a.parquet",
+    "d3d_shot_4feb6ef4bc.parquet",
+    "d3d_shot_b6acd33cae.parquet",
+    "d3d_shot_d4d3e46dc0.parquet",
+    "d3d_shot_a39703d418.parquet",
+    "d3d_shot_f1b1b65798.parquet",
+    "d3d_shot_ea91470da2.parquet",
+    "d3d_shot_7435723ce1.parquet",
+    "d3d_shot_48924f7a76.parquet",
+    "d3d_shot_2f91d52895.parquet",
+    "d3d_shot_617037cb42.parquet",
+    "d3d_shot_e6ef7bb31f.parquet",
+    "d3d_shot_61d7ff3f78.parquet",
+    "d3d_shot_0b1f959de4.parquet",
+    "d3d_shot_823e788d64.parquet",
+    "d3d_shot_78742ced1d.parquet",
+    "d3d_shot_33abe119a8.parquet",
+    "d3d_shot_f5900fe0d7.parquet",
+    "d3d_shot_7191b23868.parquet",
+    "d3d_shot_92cf0fc54e.parquet",
+    "d3d_shot_bd6422ec5f.parquet",
+    "d3d_shot_d516afa29c.parquet",
+    "d3d_shot_e43a91bbcf.parquet",
+    "d3d_shot_49b9b2b895.parquet",
+    "d3d_shot_e99d2b47b2.parquet",
+    "d3d_shot_cf9ca0307c.parquet",
+    "d3d_shot_b6f6ca867d.parquet",
+    "d3d_shot_5dda5622e0.parquet",
+    "d3d_shot_420ae1f474.parquet",
+    "d3d_shot_fdad006277.parquet",
+    "d3d_shot_cfe9cae75b.parquet",
+    "d3d_shot_2f6baf99a7.parquet",
+    "d3d_shot_6a8ef5c077.parquet",
+    "d3d_shot_808aa63d41.parquet",
+    "d3d_shot_2d646a8073.parquet",
+    "d3d_shot_2907641101.parquet",
+    "d3d_shot_4212a7acef.parquet",
+    "d3d_shot_9ba43e6ea9.parquet",
+    "d3d_shot_b61f1cec26.parquet",
+    "d3d_shot_ca1a40ca3f.parquet",
+    "d3d_shot_8bec8ffa1c.parquet",
+    "d3d_shot_3fd9ee579b.parquet",
+    "d3d_shot_c97c0671ff.parquet",
+    "d3d_shot_b299845d11.parquet",
+    "d3d_shot_27b661cf0d.parquet",
+    "d3d_shot_e7535f2983.parquet"
+  ],
+  "scoring_version": "3.1.0",
+  "source_hash": "fe84df2c5ccc5cc63f6326e1db0a494c475c258f61528b1d5024df63661b75cf"
+}

@@ -1,0 +1,33 @@
+{
+  "name": "historical-eleven-blocks",
+  "date": "2026-09-22",
+  "purpose": "Test one expanded positive-member stack and one predeclared scalar-block control",
+  "status": "Adaptive diagnostic on reused 70-shot salt-0 tail; not independent confirmation",
+  "scored_files_source": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+  "scored_files_source_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+  "sources": [
+    {"name": "historical_ensemble", "prediction": "runs/historical-five-geometry-20260922/historical_ensemble.npz", "sha256": "dcc0c3434dac432723ddf66de25517b94ac961a838cde599ec73e69d43800bcc", "members": 5},
+    {"name": "cons-2", "prediction": "runs/historical-five-geometry-20260922/cons-2.npz", "sha256": "b5e217b8f81f29043ab4f738e5571b96f5fce3697a5b7aaae5bf7d71ed1f505b", "members": 1},
+    {"name": "env-1", "prediction": "runs/historical-five-geometry-20260922/env-1.npz", "sha256": "8dd78f90b57bdb918c29ceb20543a2c97c49a9234131dd1177ecb5ce9e961be1", "members": 1},
+    {"name": "cosine_seq", "prediction": "runs/historical-five-geometry-20260922/cosine_seq.npz", "sha256": "38a3f4815a5d48b8156b79b445ef03f0e8753ab67d03c8d956b4f8a711318ddf", "members": 1},
+    {"name": "refit_two", "prediction": "runs/historical-five-geometry-20260922/refit_two.npz", "sha256": "d667c5d5c7ab5a6a0c5502d7cbb16572dbabc05b8ea72f679dd8ed35505e0440", "members": 2},
+    {"name": "cosine_refit_seq", "prediction": "runs/historical-five-geometry-20260922/cosine_refit_seq.npz", "sha256": "a856d62da6f75c9273c0c71af7af94395d41ad034d7a7e9b40b591b983316f5d", "members": 1}
+  ],
+  "candidate_all_eleven": {
+    "psirz": "Single float64 weighted sum of the six decoded sources with member weights 5:1:1:1:2:1, divide by 11, cast once to float32",
+    "q95_betaN": "The same six-source weighted sum and single cast"
+  },
+  "candidate_psi_eleven_qb_prior_eight": {
+    "psirz": "Bit-exact psirz from candidate_all_eleven",
+    "q95_betaN": "Bit-exact float32 arrays from runs/historical-five-geometry-20260922/historical_positive_stack.npz",
+    "q95_betaN_source_sha256": "f919c13c79ba45ff5bb0ab6b7ac883a854e293b5cf73feab1d795156a8b25def"
+  },
+  "controls": {
+    "historical_five_S": 0.994478,
+    "prior_eight_model_stack_S": 0.994872
+  },
+  "scorer_source": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "scorer_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+  "jobs": 4,
+  "weights_searched": false
+}

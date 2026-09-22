@@ -1,0 +1,111 @@
+{
+  "aux_targets": {
+    "train": {
+      "frames": 1248457,
+      "lengths_dtype": "int64",
+      "path": "/home/pavel/fusion-equilibrium-challenge-starter/.aux_targets/cons_5633_7f4bef0f5126269d90b7630e.npz",
+      "sha256": "b07458510b7ab83d66d4450d3862576138d6069bfd21308f39771d5ea839046d",
+      "shots": 5633,
+      "target_dtype": "float32"
+    },
+    "validation": {
+      "frames": 296053,
+      "lengths_dtype": "int64",
+      "path": "/home/pavel/fusion-equilibrium-challenge-starter/.aux_targets/cons_1338_61694c2f1b4ecce7ca7adcb4.npz",
+      "sha256": "4d8d6a76345922b008b301a3e8b670f3eefe40a06428b026c1e2be027f3de0d5",
+      "shots": 1338,
+      "target_dtype": "float32"
+    }
+  },
+  "campaign": "/home/pavel/fusion-equilibrium-challenge-starter/runs/fast-signal-screen-236fa918cf2b0ffe",
+  "checks": {
+    "all_sidecar_full_frame_shapes_dtypes_keys_and_pinned_source_hashes": true,
+    "aux_lengths_and_target_rows_match_exact_windows": true,
+    "complete_corpus_order_and_manifest": true,
+    "scored_tail_excluded": true
+  },
+  "date_utc": "2026-09-22",
+  "prewarm": {
+    "aux": {
+      "log": "/home/pavel/fusion-equilibrium-challenge-starter/logs/1790107107252149115-fast-aux.log",
+      "log_sha256": "723fef2b883bc6e3091eaddfd0ea00532edb21538373b740bac920497924ab72",
+      "status_path": "/home/pavel/fusion-equilibrium-challenge-starter/runs/fast-signal-screen-236fa918cf2b0ffe/prewarm-aux-status.json",
+      "status_sha256": "5836e98a3fdb88aabed55cd003d273b2d9819aa78a41a1e5791924631d09c5cc",
+      "wall_seconds": 1171.4835982322693
+    },
+    "sidecar_a": {
+      "log": "/home/pavel/fusion-equilibrium-challenge-starter/logs/1790108414890948487-fast-sidecar-a.log",
+      "log_sha256": "1d959d40897dfa16abf154173e56c49456db80fddd42e381be5c9f8f70f8960d",
+      "status_path": "/home/pavel/fusion-equilibrium-challenge-starter/runs/fast-signal-screen-236fa918cf2b0ffe/prewarm-sidecar-a-status.json",
+      "status_sha256": "b988abc5764ae69777dddbded526dd437f236150d1bdd42c58a2f57149e06766",
+      "wall_seconds": 33.695427894592285
+    },
+    "sidecar_b": {
+      "log": "/home/pavel/fusion-equilibrium-challenge-starter/logs/1790108334832438548-fast-sidecar-b.log",
+      "log_sha256": "65f4015c5cbda6d2016e172c32ef042cf201069af5518af78c406859f65936d4",
+      "status_path": "/home/pavel/fusion-equilibrium-challenge-starter/runs/fast-signal-screen-236fa918cf2b0ffe/prewarm-sidecar-b-status.json",
+      "status_sha256": "cd53a79154a3c3a7452c6db2b6ffd040baa70aab9cd44248d707dbb7f8f94f8b",
+      "wall_seconds": 39.8958306312561
+    }
+  },
+  "protocol": {
+    "purpose": "Current Makefile production data protocol",
+    "score": 0.01,
+    "train": "0.80/1.0",
+    "validation": "0.19/1.0"
+  },
+  "purpose": "Explicit cache preparation for frozen fast-signal production campaign; no model fit or score",
+  "sidecars": {
+    "ecoila-5ms": {
+      "aggregate_path_and_bytes_sha256": "ff3a8be07926d27f0dc3601873b33d29fc71c993d46e523ee3cb69ba56fb2a76",
+      "columns": 1,
+      "spec": [
+        {
+          "halfwidth_ms": 5.0,
+          "signal": "ECOILA"
+        }
+      ],
+      "windows": {
+        "train": {
+          "bytes": 13668648,
+          "files": 5633,
+          "frames": 1248457
+        },
+        "validation": {
+          "bytes": 3244732,
+          "files": 1338,
+          "frames": 296053
+        }
+      }
+    },
+    "ecoila-5ms-ip-20ms": {
+      "aggregate_path_and_bytes_sha256": "d43844e906fd978ba3f999c4808f925863eb4b1f7bb729ec1216d09d0c187c94",
+      "columns": 2,
+      "spec": [
+        {
+          "halfwidth_ms": 5.0,
+          "signal": "ECOILA"
+        },
+        {
+          "halfwidth_ms": 20.0,
+          "signal": "plasma_current"
+        }
+      ],
+      "windows": {
+        "train": {
+          "bytes": 18662476,
+          "files": 5633,
+          "frames": 1248457
+        },
+        "validation": {
+          "bytes": 4428944,
+          "files": 1338,
+          "frames": 296053
+        }
+      }
+    }
+  },
+  "source_aux_targets_sha256": "1f6813db1c8f1c6e9aa52462e5ad263dc86242ccd34e1333aa85eb5bbc315dd8",
+  "source_fast_magnetics_sha256": "08611fce6cff814ba77ee8b1b1fb618581b1d82818bfd956d39042853d184ac5",
+  "source_hash": "7bc222f4723ad71129e0de496bfa3f862cfef0f084f38c19f3c980f60b9e82c3"
+}
