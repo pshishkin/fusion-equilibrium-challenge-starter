@@ -38,6 +38,13 @@ production replacement or evidence that the recovered August artifact is the Sep
 All fixed grids, member weights and native terms are in the four `results/historical_five_*.json`
 records indexed by `experiments_history.md`.
 
+The submission builder's former float16 flux cast has a measured deterministic score cost on
+this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
+reject stale half-precision caches; an old-control writer round-trip reproduced the original
+native scorer JSON exactly. Evidence is in `results/float16_export_audit_20260922.json` and
+`results/float32_export_parity_20260922.json`. This is a local export correction, not a claim that
+any current artifact reproduces the historical leaderboard submission.
+
 The four 2026-09-22 geometry-loss screens have completed on this same salt-0 tail. The best
 matched replacement was `env_weight=1` at ΔS +0.000144 against the decoded two-member control;
 `cons_gain=2` was +0.000053, while `cons_gain=4` and `field_weight=0.3` decreased S. This is
@@ -56,15 +63,33 @@ the same 70-shot tail. It scored S 0.992860 alone versus the compact control's 0
 equal-weight addition of the full refit artifact scored 0.994032. The former is a negative
 replacement result, the latter a positive diversity screen, with no new acceptance decision.
 Native fields, exact union file check and timings are in `results/refit_production_20260922.json`.
-The follow-up cosine sequence fixed-step refit is preregistered separately in
+The follow-up cosine sequence fixed-step refit was preregistered separately in
 `experiments/seq-cosine-refit.json`, with step and schedule budgets derived from the validated
-cosine fit's best step and exact sampler pass ratio. It has no score yet.
+cosine fit's best step and exact sampler pass ratio. Its individual native score on the same 70
+unseen shots is 0.992808; q95/βN worsened while geometry improved relative to the earlier
+80%-train cosine sequence. Its fixed 5:1 addition to the recovered old five-member ensemble
+scored 0.994824 against 0.994478, a positive reused-tail diagnostic without independent
+confirmation. Exact fields and provenance: `results/seq_cosine_refit_20260922.json` and
+`results/historical_five_cosine_refit_20260922.json`.
 
 The next input-feature hypothesis is a two-arm fast magnetics screen, still unmeasured. Its
 input-only audit covers 100 train and 20 public-test shots with verified file hashes; the
 predeclared A/B feature sets and the audit's edge/interior distinction are in
 `experiments/fast-signal-diagnostic.md` and `experiments/fast-signal-screen.json`. No current
 baseline score or accepted feature set changes on the strength of this audit.
+
+D8/S6's separate whole-shot linear aggregate screen has now failed its preregistered 25%
+explained-variance gate. The all-input diagnostic returned 0.005938 unweighted and −0.022983 when
+weighted by each shot's frame count; adding Thomson did not make the residual predictably
+recoverable by this Ridge construction. No native score or context branch was run. This does not
+settle nonlinear/global context. The original 1,338 validation shots were already seen through
+the old ensemble's early stopping, so this is a rule-out screen only. See the dated entry in
+`experiments_history.md` and `results/d8_whole_shot_20260922.json`.
+
+A separate single-configuration temporal-convolution sequence member is preregistered in
+`experiments/seq-conv-production.json` from the existing sequence implementation. Its prior
+diversity evidence is in `single_model_results.md`; no current fitted artifact or production score
+exists for this compact replacement yet.
 
 Numbers below are paired within salt, recomputed from the named CSVs; they are historical
 experiments, not measurements of the newly frozen control. SE is the sample standard deviation

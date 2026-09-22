@@ -1,0 +1,32 @@
+{
+  "name": "float16-export-audit",
+  "date": "2026-09-22",
+  "purpose": "Measure the actual metric cost of submission_skeleton.py converting only psirz from float32 to float16",
+  "protocol": "Same 70 salt-0 held-out DIII-D shots and native scorer; no model fitting or weight changes",
+  "scored_files_source": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+  "scored_files_source_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+  "inputs": [
+    {
+      "name": "historical_five",
+      "float32_npz": "runs/historical-five-geometry-20260922/historical_ensemble.npz",
+      "float32_npz_sha256": "dcc0c3434dac432723ddf66de25517b94ac961a838cde599ec73e69d43800bcc",
+      "float32_native_metrics": "runs/historical-five-geometry-20260922/historical_ensemble.metrics.json",
+      "float32_native_metrics_sha256": "5095981c185d3826525c2130afe93641b600da41f06469cfa5a2d90a36e15848",
+      "float32_S": 0.994478
+    },
+    {
+      "name": "eight_model_stack",
+      "float32_npz": "runs/historical-five-geometry-20260922/historical_positive_stack.npz",
+      "float32_npz_sha256": "f919c13c79ba45ff5bb0ab6b7ac883a854e293b5cf73feab1d795156a8b25def",
+      "float32_native_metrics": "runs/historical-five-geometry-20260922/historical_positive_stack.metrics.json",
+      "float32_native_metrics_sha256": "b334511fa3f573269d94329fcc2ebc736f6830604f27e562a617306cd52a20e9",
+      "float32_S": 0.994872
+    }
+  ],
+  "transform": "Every shot_XXXX_psirz float32 array cast once to float16; q95 and betaN remain bit-identical float32",
+  "overflow_policy": "Raise if any cast flux value is nonfinite; never clip or replace",
+  "scorer_source": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "scorer_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+  "jobs": 4,
+  "weights_searched": false
+}

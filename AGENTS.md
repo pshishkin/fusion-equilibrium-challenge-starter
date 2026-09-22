@@ -217,6 +217,9 @@ records source hashes, package versions, complete effective YAML and its data pr
 its snapshot or configs; prepare a new campaign for a change. Editing the working tree while a
 FROZEN campaign runs is allowed because its workers import the snapshot. This exception does not
 apply to the old shell lanes, which re-import the working tree.
+The frozen source must contain every repository module reached by its entry points, including
+`tools/*.py` helpers imported by the submission writer. Test an isolated import with no live
+checkout on `PYTHONPATH` when an entry point acquires a new dependency.
 
 Each arm/salt owns its artifact, log and scorer-native JSON. Resume requires a successful completion
 record with matching artifact/config/metrics hashes, never just a filename or CSV row. Preserve
@@ -255,6 +258,10 @@ For comparisons after the working tree has changed, use `run compare --source-ca
 `run compare-replacement --source-campaign` to pin the evaluator to the candidate's verified frozen
 snapshot. The comparison records the live controller source separately and checks that the
 candidate artifact belongs to that snapshot.
+Submission predictions and all reusable blend/MAST caches must store flux maps and submitted
+scalars as float32. Never silently downcast flux to float16. Blend decoded maps in float64 and cast
+once to float32; version cache keys with the output format and reject old float16 cache entries.
+Upcasting an old half-precision cache does not restore the lost information.
 An older artifact may need its original inference code to unpickle and predict. Keep that source
 isolated rather than adding compatibility guesses to current model classes; decode predictions
 before blending across artifacts and score them with a pinned native scorer and exact file list.

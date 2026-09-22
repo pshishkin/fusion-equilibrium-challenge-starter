@@ -99,7 +99,7 @@ def source_files() -> list[Path]:
             "experiments/protocols.json",
         )
     ]
-    for directory in ("my_experiments", "toolkit", "fusion_scoring", "mast", "solver"):
+    for directory in ("my_experiments", "toolkit", "fusion_scoring", "mast", "solver", "tools"):
         files += list((ROOT / directory).rglob("*.py"))
     files += [ROOT / "my_experiments/diii_d_dataset.json"]
     files += list((ROOT / "fusion_scoring/masks").glob("*.npz"))

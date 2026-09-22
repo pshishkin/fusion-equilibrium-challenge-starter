@@ -58,6 +58,8 @@ from typing import Any
 import numpy as np
 from datasets import load_dataset
 
+from tools.submission_format import EXPORT_FORMAT_VERSION, PSI_DTYPE, SCALAR_DTYPE, check_file
+
 REPO_ID = "Sophelio/fusion-equilibrium-challenge"
 TEST_CONFIGS = [("diii_d_public_test", "public_test"), ("mast_public_test", "public_test")]
 # Downloaded copy of the dataset, same layout and same default as experiments.py / local_score.py:
@@ -160,8 +162,8 @@ def predict_one(args: tuple) -> dict:
     path, model = args
     row: Any = pd.read_parquet(path).iloc[0]
     out = your_model_predict(row, str(row.get("source", "DIII-D")), model)
-    return {"psirz": np.asarray(out["psirz"], dtype=np.float16),
-            **{name: np.asarray(out[name], dtype=np.float32) for name in SCALARS},
+    return {"psirz": np.asarray(out["psirz"], dtype=PSI_DTYPE),
+            **{name: np.asarray(out[name], dtype=SCALAR_DTYPE) for name in SCALARS},
             "T": len(np.asarray(row["efit_times"])),
             "source": str(row.get("source", "DIII-D"))}
 
@@ -189,10 +191,12 @@ def _mast_cache_key(config: str, local_data_dir: Path, max_shots: int) -> str:
     Delete `.mast_cache` when that happens.
     """
     h = hashlib.sha256()
-    for f in [*sorted(Path("mast").glob("*.py")), Path("machines.py"), Path(__file__)]:
+    for f in [*sorted(Path("mast").glob("*.py")), Path("machines.py"), Path(__file__),
+              Path(__file__).resolve().parent / "tools/submission_format.py"]:
         if f.exists():
             h.update(f.name.encode())
             h.update(f.read_bytes())
+    h.update(EXPORT_FORMAT_VERSION.encode())
     for f in sorted((Path(local_data_dir) / "data" / config).glob("*.parquet")):
         st = f.stat()
         h.update(f"{f.name}:{st.st_size}:{int(st.st_mtime)}".encode())
@@ -210,6 +214,7 @@ def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
     if config.startswith("mast_") and source == "local":
         cached = MAST_CACHE / _mast_cache_key(config, local_data_dir, max_shots) / f"{config}.npz"
         if cached.exists():
+            check_file(cached)
             out_path = out_dir / f"{config}.npz"
             out_dir.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(cached, out_path)
@@ -225,9 +230,9 @@ def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
         H, W = GRID[machine]
         assert out["psirz"].shape == (T, H, W), \
             f"{config} shot {i}: psirz {out['psirz'].shape} != {(T, H, W)}"
-        # float16 keeps relative precision everywhere and costs ~0.1% of score; the scorer
-        # upcasts on read. Do NOT instead round to a fixed number of decimals -- np.round(psi, 3)
-        # leaves R2_psi at 0.99997 while destroying ~35% of the MAST Consistency term.
+        # Preserve the decoded map at float32 precision. The metric derives contours and seven
+        # functionals from it; the paired held-out cast measurement is in
+        # results/float16_export_audit_20260922.json.
         preds[f"shot_{i:04d}_psirz"] = out["psirz"]
         for name in SCALARS:
             arr = out[name]
@@ -243,6 +248,7 @@ def build_submission(config: str, split: str, out_dir: Path, max_shots: int,
     # keyword-splatting the per-shot arrays — the documented way to write named keys —
     # does not type-check.
     np.savez_compressed(out_path, **preds)  # type: ignore[arg-type]
+    check_file(out_path)
     if cached is not None:
         cached.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(out_path, cached)
@@ -268,8 +274,8 @@ def _predictions(config: str, split: str, source: str, local_data_dir: Path, max
             if max_shots and i >= max_shots:
                 break
             out = your_model_predict(row, str(row.get("source", "DIII-D")), model)
-            yield {"psirz": np.asarray(out["psirz"], dtype=np.float16),
-                   **{name: np.asarray(out[name], dtype=np.float32) for name in SCALARS},
+            yield {"psirz": np.asarray(out["psirz"], dtype=PSI_DTYPE),
+                   **{name: np.asarray(out[name], dtype=SCALAR_DTYPE) for name in SCALARS},
                    "T": len(np.asarray(row["efit_times"])),
                    "source": str(row.get("source", "DIII-D"))}
         return

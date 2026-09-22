@@ -27,6 +27,8 @@ for SALT in ${SALTS:-1 2 3}; do
   SPEC=$(printf '%s' "$KEY" | cut -f1)
   DIR=".blend_cache/$(printf '%s' "$KEY" | cut -f2)"
   if [ -f "$DIR/diii_d_public_test.npz" ] && [ -f "$DIR/mast_public_test.npz" ]; then
+    uv run python -m tools.submission_format "$DIR/diii_d_public_test.npz" \
+      "$DIR/mast_public_test.npz" || exit 1
     echo "have salt ${SALT} at $DIR"; continue
   fi
   mkdir -p "$DIR"

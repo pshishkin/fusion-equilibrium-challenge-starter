@@ -24,9 +24,20 @@ and had recomputed salt 1, which had already been predicted for the single-salt 
 from __future__ import annotations
 
 import argparse
+import sys
+from contextlib import ExitStack
 from pathlib import Path
 
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from tools.submission_format import (
+    PSI_DTYPE,
+    SCALAR_DTYPE,
+    check_file,
+    require_submission_dtypes,
+)
 
 
 def main() -> int:
@@ -46,27 +57,30 @@ def main() -> int:
         if missing:
             print(f"  {config}: skipped, missing {[str(p) for p in missing]}")
             continue
-        zs = [np.load(p) for p in paths]
-        keys = sorted(zs[0].files)
-        for z, p in zip(zs[1:], paths[1:], strict=True):
-            if sorted(z.files) != keys:
-                raise SystemExit(f"{p} holds different shots than {paths[0]} — these are not the "
-                                 f"same submission over different salts, and averaging them would "
-                                 f"silently mix two shot orders")
         out: dict[str, np.ndarray] = {}
-        for k in keys:
-            arrs = [z[k] for z in zs]
-            shp = {tuple(x.shape) for x in arrs}
-            if len(shp) != 1:
-                raise SystemExit(f"{k}: shapes differ across salts {shp}")
-            # float32 to accumulate: the stored arrays are float16 and summing N of them in float16
-            # loses the low bits of every one. Cast back at the end, which is what the scorer reads.
-            acc = np.zeros(arrs[0].shape, dtype=np.float32)
-            for x in arrs:
-                acc += x.astype(np.float32)
-            out[k] = (acc / len(arrs)).astype(arrs[0].dtype)
+        with ExitStack() as stack:
+            zs = [stack.enter_context(np.load(p, allow_pickle=False)) for p in paths]
+            for z, p in zip(zs, paths, strict=True):
+                require_submission_dtypes(z, p)
+            keys = sorted(zs[0].files)
+            for z, p in zip(zs[1:], paths[1:], strict=True):
+                if sorted(z.files) != keys:
+                    raise SystemExit(f"{p} holds different shots than {paths[0]} — these are not "
+                                     "the same submission over different salts, and averaging "
+                                     "them would silently mix two shot orders")
+            for k in keys:
+                arrs = [z[k] for z in zs]
+                shp = {tuple(x.shape) for x in arrs}
+                if len(shp) != 1:
+                    raise SystemExit(f"{k}: shapes differ across salts {shp}")
+                acc = np.zeros(arrs[0].shape, dtype=np.float64)
+                for x in arrs:
+                    acc += x.astype(np.float64)
+                dtype = PSI_DTYPE if k.endswith("_psirz") else SCALAR_DTYPE
+                out[k] = (acc / len(arrs)).astype(dtype)
         dst = a.out / f"{config}.npz"
-        np.savez_compressed(dst, **out)
+        np.savez_compressed(dst, **out)  # type: ignore[arg-type]
+        check_file(dst)
         print(f"  {config}: {len(a.inputs)} salts x {len(keys) // 3} shots -> {dst} "
               f"({dst.stat().st_size / 1e9:.2f} GB)")
     return 0

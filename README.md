@@ -45,6 +45,10 @@ evidence and unresolved candidates are indexed in
 [`experiment_status.md`](experiment_status.md); old "running" labels in the historical notes are
 not a live queue. See [the iteration workflow](#reproducible-diii-d-iterations) below.
 
+The D8/S6 whole-shot linear aggregate diagnostic, including Thomson inputs, failed its
+predeclared rule-out gate. It did not produce a new competition score or context model; the
+scope and measurement are in [`experiments_history.md`](experiments_history.md).
+
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
 from the shipped conductor rectangles. The best entry on that board is 0.7249 / 0.729, and the gap
@@ -202,6 +206,10 @@ checked 100 train and 20 public-test shots against their full hashes. The two pl
 are an `ECOILA` centered ±5 ms derivative, then that feature plus a corrected plasma-current
 centered ±20 ms derivative aimed at shot edges and gaps. These are unscored hypotheses; the
 current model and its score remain unchanged.
+One separate temporal-convolution sequence candidate is preregistered in
+[`experiments/seq-conv-production.json`](experiments/seq-conv-production.json). It uses the
+existing convolution cell and changes only that setting from the compact sequence control;
+its own score and contribution beside the unchanged MLP have not been measured in this campaign.
 The fast feature bank is an artifact-owned YAML setting backed by separate full-shot sidecars;
 the 208-column base shot cache remains reusable. The frozen two-feature CPU smoke and exact
 unchanged-model scorer identity are recorded in
@@ -273,7 +281,10 @@ the working control remains unchanged.
 The follow-up single-sequence cosine refit is predeclared in
 [`experiments/seq-cosine-refit.json`](experiments/seq-cosine-refit.json). It retains the same
 train/score split and scales the previous cosine sequence's selected steps and schedule horizon
-by the exact shot-batches-per-pass ratio; it has no result yet.
+by the exact shot-batches-per-pass ratio. Its individual score and frozen provenance are in
+[`results/seq_cosine_refit_20260922.json`](results/seq_cosine_refit_20260922.json). Its separate
+fixed-weight addition to the recovered old five-member ensemble is recorded in
+[`results/historical_five_cosine_refit_20260922.json`](results/historical_five_cosine_refit_20260922.json).
 
 Before executing the fixed-step refit, the original full-shot train and validation auxiliary
 targets can be composed into the 6971-shot cache in their exact order:
@@ -344,6 +355,9 @@ The measured cold/warm cycle, verified resume and scorer self-checks are recorde
 2026-09-22 workflow entry in [experiments_history.md](experiments_history.md), with machine-readable
 evidence in [results/workflow_20260922.json](results/workflow_20260922.json). These are smoke checks,
 not estimates of the current production score.
+Frozen campaign snapshots include `tools/*.py` as well as their callers; an isolated import test
+ensures the submission writer and its format helper resolve inside the snapshot rather than the
+live checkout.
 
 ### Candidate quality and contribution to the ensemble
 
@@ -797,6 +811,14 @@ unmeasured rather than refuted — a distinction worth keeping, since the spread
 after those three had been read as results.
 
 ## The collection, and how a submission is assembled
+
+The builder now keeps the flux map and scalar outputs in float32 through local and streaming
+prediction, cache reuse, per-salt blending and final NPZ writing. The earlier float16 flux cast
+has a measured local LCFS/Consistency cost; see the
+[export audit](results/float16_export_audit_20260922.json) and
+[writer round-trip](results/float32_export_parity_20260922.json). Cache keys include the output
+format version, and an old half-precision cache is rejected. Rebuild it from source predictions;
+upcasting its stored values cannot recover lost detail.
 
 The score now comes from blending many models rather than from any one of them, and the pieces below
 exist because assembling a blend naively is slow and quietly wrong in three separate ways.

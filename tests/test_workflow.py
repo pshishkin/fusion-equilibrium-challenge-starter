@@ -51,6 +51,30 @@ class DatasetChecks(unittest.TestCase):
 
 
 class CampaignChecks(unittest.TestCase):
+    def test_submission_helper_imports_from_isolated_frozen_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            campaign = runner.prepare(
+                runner.ROOT / "experiments/smoke.json", Path(tmp) / "runs", jobs=1
+            )
+            source = campaign / "source"
+            script = (
+                "from pathlib import Path\n"
+                "import sys\n"
+                "sys.path.insert(0, str(Path.cwd()))\n"
+                "import submission_skeleton\n"
+                "import tools.submission_format\n"
+                "root = Path.cwd().resolve()\n"
+                "assert Path(submission_skeleton.__file__).resolve().is_relative_to(root)\n"
+                "assert Path(tools.submission_format.__file__).resolve().is_relative_to(root)\n"
+            )
+            env = os.environ.copy()
+            env.pop("PYTHONPATH", None)
+            result = subprocess.run(
+                [sys.executable, "-I", "-c", script], cwd=source, env=env,
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_other_pid_namespace_is_not_mistaken_for_a_dead_worker(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -1,19 +1,19 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
-## 2026-09-22 cosine sequence fixed-step refit, registered before fitting
+## 2026-09-22 temporal-convolution sequence member, registered before fitting
 
-The separate `experiments/seq-cosine-refit.json` tests the already measured cosine sequence
-recipe on the same exact 6971-shot union of the compact train and validation windows, with the
-same 70-shot salt-0 score tail excluded. The original cosine sequence kept step 56500 after
-validation stopping, with `lr_t_max_steps=80000`. The sequence sampler has 176 full shot batches
-per pass on 5633 shots and 217 on 6971. Holding the number of data passes and the selected point
-within the cosine schedule fixed gives `round(56500*217/176)=69662` optimizer steps and
-`round(80000*217/176)=98636` schedule steps. These values, zero validation, seed 0 and the
-unchanged model/loss/features are frozen before fitting. Only sequence is trained. The prior
-constant-rate two-model refit lost as a replacement but helped as an addition; this experiment
-asks whether the already positive cosine sequence recipe transfers with the extra data. Its
-individual score and contribution when added to the previously recovered five-member ensemble
-are separate measurements. Neither has been measured for this refit yet.
+`experiments/seq-conv-production.json` proposes one production-share salt-0 seed-0 sequence fit
+using the existing `seq_cell=conv` implementation. It changes only that cell from the compact
+control's GRU: the original loss, features, architecture width, constant learning-rate schedule,
+early-stopping budget and existing `1,2,4,8,16,32` dilation setting remain fixed. The older
+diversity audit in `single_model_results.md` measured a convolutional member's residual
+correlation at 0.546, below the 0.605 GRU-reseed reference, while its own score was slightly lower.
+No locally usable fitted convolution artifact was found. This tests whether the known different
+error pattern helps the currently available compact ensemble; it does not assert that convolution
+alone is better. Score it alone and as a 50/50 replacement for the original sequence beside the
+unchanged compact MLP, against the same matched decoded control and 70 unseen shots. If useful,
+test a fixed 5:1 addition to the recovered older five-member ensemble separately. No result from
+this production fit exists yet.
 
 ## 2026-09-22 fast magnetics screen, registered before fitting
 
@@ -2397,7 +2397,25 @@ different function" from "fewer rows". If it fails, **A22's under-representation
 If it passes, build the expert as a **replacement** feature set, never a fourth member (measured
 +0.0001), and gate on the last decile's cost falling >5% before any confirmation salt is spent.
 
-## D8 / S6. Whole-shot aggregates, with Thomson this time
+## D8 / S6. Whole-shot aggregates, with Thomson this time — **DONE 2026-09-22, linear gate failed**
+
+The recovered August five-member ensemble's original 1,338 validation shots were split in stored
+order: 1,000 for a five-fold Ridge alpha search and fit, 338 for the predeclared diagnostic. Each
+shot contributed the mean and population standard deviation of all 84 inputs the model actually
+used, including Thomson, plus its EFIT duration. The target was the shot-mean error in the old
+TargetScaler's 50 psi coordinates. The best inner-CV alpha was 1,000; outer explained variance was
+**0.005938** against the preregistered **0.25** gate, and **−0.022983** when shots were weighted by
+their frame counts. Omitting Thomson gave **−0.045878** unweighted and **−0.024142** weighted. Five
+one-frame shots stayed in the sample with their exact zero elapsed duration. All 338 diagnostic
+shots had already been seen by the old ensemble's early stopping, so even a positive result would
+have been a screen, not independent confirmation. This result closes the proposed *linear
+aggregate* gate and does not rule out all nonlinear or global context. Full files, hashes, split,
+alphas and the two pre-fit amendments are in
+[`experiments/d8_whole_shot_prereg.json`](experiments/d8_whole_shot_prereg.json) and
+[`results/d8_whole_shot_20260922.json`](results/d8_whole_shot_20260922.json). No native score or
+new context model was run.
+
+### Original hypothesis
 
 it-6 could not predict the per-shot constant from 252 current-history summaries (held-out R² 0.008)
 — **but it-6 had no Thomson**, which has since been isolated at 0.0023. Regress the production

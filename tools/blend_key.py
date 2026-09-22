@@ -24,6 +24,10 @@ import hashlib
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from tools.submission_format import EXPORT_FORMAT_VERSION
+
 LANES = Path("artefacts/lanes")
 # The composition, as the blend search chose it: four bases of five models each, three wide MLPs,
 # three shot mixers. The weight is how many models the artifact holds, so every model weighs 1.
@@ -41,6 +45,7 @@ def main() -> int:
     a = ap.parse_args()
 
     members, spec, h = COMPOSITIONS[a.pct], [], hashlib.sha256()
+    h.update(EXPORT_FORMAT_VERSION.encode())
     for name, weight in members:
         p = LANES / f"baseline_{name}_s{a.salt}.joblib"
         if not p.exists():
@@ -49,7 +54,7 @@ def main() -> int:
         spec.append(f"{name}_s{a.salt}*{weight}")
         d = hashlib.sha256()
         with p.open("rb") as fh:
-            for chunk in iter(lambda fh=fh: fh.read(1 << 22), b""):
+            while chunk := fh.read(1 << 22):
                 d.update(chunk)
         h.update(f"{name}:{weight}:".encode())
         h.update(d.digest())

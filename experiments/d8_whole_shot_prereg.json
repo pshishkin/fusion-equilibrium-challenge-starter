@@ -1,0 +1,63 @@
+{
+  "name": "d8-whole-shot-thomson-diagnostic",
+  "date": "2026-09-22",
+  "purpose": "Rule out or retain D8/S6 without a new competition score or model fit",
+  "artifact": "artefacts/20260815-prod-4seeds-seq.joblib",
+  "artifact_sha256": "8dc3af11401b1024e6dafdcb76c7c50f110cdaa0a415e547d2877c709e2c2656",
+  "source_root": "/tmp/fusion_20260815_source",
+  "data_root": "/home/pavel/downloaded_huggingface/hf_dataset",
+  "parity_control": {
+    "file": "d3d_shot_6f6a0f6402.parquet",
+    "prediction_npz": "runs/historical-five-geometry-20260922/historical_ensemble.npz",
+    "prediction_sidecar": "runs/historical-five-geometry-20260922/historical_ensemble.json",
+    "npz_key_prefix": "shot_0000"
+  },
+  "selection": {
+    "source": "The artifact's val_files in stored order",
+    "calibration_count": 1000,
+    "diagnostic_count": 338
+  },
+  "feature_sets": {
+    "all": {
+      "input_prefix_width": 84,
+      "summaries": ["mean", "population_std"],
+      "append_duration_ms": true,
+      "one_frame_duration_ms": 0.0
+    },
+    "without_thomson": {
+      "input_prefix_width": 61,
+      "summaries": ["mean", "population_std"],
+      "append_duration_ms": true,
+      "one_frame_duration_ms": 0.0
+    }
+  },
+  "target": {
+    "pca_components": 50,
+    "definition": "Per-shot mean true-minus-ensemble error over PCA coefficients, transformed with the old artifact's fitted TargetScaler"
+  },
+  "inner_cv": {
+    "folds": 5,
+    "shuffle": true,
+    "random_state": 0,
+    "alphas": [1.0, 10.0, 100.0, 1000.0],
+    "preprocessing": "StandardScaler fit inside each fold",
+    "selection_metric": "sklearn explained_variance_score with multioutput=variance_weighted; maximum mean fold score, smallest alpha on ties"
+  },
+  "outer_metric": "sklearn explained_variance_score with multioutput=variance_weighted",
+  "secondary_metric": "sklearn r2_score with multioutput=variance_weighted",
+  "supplemental_reporting": {
+    "outer_frame_weighted": "Report explained_variance_score and r2_score on the same 338 diagnostic shots with sample_weight equal to each shot's EFIT frame count and multioutput=variance_weighted; this does not select alpha or change the primary gate",
+    "frame_weighted_promotion_floor": 0.05,
+    "promotion_rule": "A primary gate pass with less than 0.05 frame-weighted explained variance is not promoted to a native-score test; the original D8 arithmetic prices 0.05 at only about 0.0001 of S"
+  },
+  "control": "DummyRegressor(strategy=mean) fitted on the same 1000 calibration shots",
+  "gate": {
+    "primary_feature_set": "all",
+    "outer_explained_variance_min": 0.25
+  },
+  "pre_fit_amendments": [
+    "The first extraction failed fast on d3d_shot_d4fc5902f4.parquet, which has one EFIT frame. Before any Ridge fit or diagnostic target inspection, the declared last-minus-first duration was made explicit as 0 ms for a one-frame shot. The shot and all 1338 stored validation filenames remain in the split.",
+    "At 453/1338 summaries, before any Ridge fit or diagnostic target inspection, the second extraction was interrupted to add frame-count-weighted outer reporting. The unweighted primary gate and alpha search stay unchanged. The weighted result limits promotion because native geometry/R2 pool frames."
+  ],
+  "limitation": "All 1338 shots were already used to early-stop the historical ensemble; this is a diagnostic screen, not independent confirmation or competition S"
+}

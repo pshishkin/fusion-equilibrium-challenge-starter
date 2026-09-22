@@ -1,0 +1,21 @@
+{
+  "cache_policy": "MAST and per-salt cache keys include export-format version; old float16 cache arrays fail with filename/key/dtype error",
+  "date": "2026-09-22",
+  "exact_float32_arrays": 210,
+  "export_native_metrics_sha256": "5095981c185d3826525c2130afe93641b600da41f06469cfa5a2d90a36e15848",
+  "export_npz": "runs/float16-export-audit-20260922/diii_d_public_test.npz",
+  "export_npz_sha256": "dcc0c3434dac432723ddf66de25517b94ac961a838cde599ec73e69d43800bcc",
+  "export_record_sha256": "9a8cb3c08fa0aba21f4922cb274a7eb5a13d189f1c47de078f930d64914d66b4",
+  "format_helper_sha256": "feefcbf11b42738ca34370949f560cca5873ecb104de854c7a9a5156a2dedaf1",
+  "format_version": "psirz-float32-scalars-float32-v1",
+  "native_S": 0.994478,
+  "original_native_metrics_sha256": "5095981c185d3826525c2130afe93641b600da41f06469cfa5a2d90a36e15848",
+  "purpose": "Verify corrected submission writer retains real float32 predictions and current native scorer result",
+  "same_native_scorer_results": true,
+  "same_scored_files": true,
+  "scored_files_count": 70,
+  "source_npz": "runs/historical-five-geometry-20260922/historical_ensemble.npz",
+  "source_npz_sha256": "dcc0c3434dac432723ddf66de25517b94ac961a838cde599ec73e69d43800bcc",
+  "verification_script_sha256": "c1f78a7185af9b069ed491c78b762af71d99ff6194ee224fe447a8140c86cea4",
+  "writer_source_sha256": "4038d4b3d740d00ee84195ac8b8d5bca89ad0dc3ba7249efa052db7c03bbad28"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "seq-conv-production",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "production",
+  "salts": [0],
+  "jobs": 24,
+  "arms": [
+    {
+      "name": "seq-conv",
+      "only": ["seq"],
+      "set": ["models.seq.seq_cell=conv"],
+      "score_models": ["seq"]
+    }
+  ]
+}

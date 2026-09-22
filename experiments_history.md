@@ -3,6 +3,42 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-22 — export precision audit and writer repair:**
+`tools/precision_audit.py` changed only the flux-map serialization of two existing 70-shot
+decoded prediction sets, leaving q95/βN bits, filenames and scorer fixed. The recovered old five
+scored **S 0.994478 in float32** and **0.994100 after the old float16 cast**, ΔS **−0.000378**;
+its Consistency fell 0.001556 and raw D_LCFS rose 0.000667, while R²ψ and R²qb were unchanged at
+native six-decimal precision. The current eight-member diagnostic stack scored **0.994872** in
+float32 and **0.994475** after float16, ΔS **−0.000397**. This is deterministic serialization
+loss on the same predictions, not fit noise or independent leaderboard evidence. The corrected
+`submission_skeleton.py` local and streaming writers now preserve float32 flux and scalars.
+An actual writer round-trip retained all **210** old-control arrays byte for byte; the native
+scorer reproduced every result field and S 0.994478. MAST and per-salt caches carry a new output
+format version and reject stale float16 arrays, and per-salt blending accumulates in float64 with
+one final float32 cast. Verdict: remove the measured export loss end to end; do not upcast an old
+float16 cache and call precision restored. Evidence:
+[quantization audit](results/float16_export_audit_20260922.json),
+[float32 writer parity](results/float32_export_parity_20260922.json).
+
+**2026-09-22 — cosine sequence fixed-step refit on the train-plus-validation union:**
+`python -m my_experiments.run prepare experiments/seq-cosine-refit.json` used the frozen source of
+the prior refit, then `run execute` fitted only the cosine sequence on the exact ordered 6971-shot
+union with zero validation shots. The original cosine sequence selected step 56500 with horizon
+80000 on 176 full shot batches per pass; the 217-batch union fixed step **69662** and horizon
+**98636** before fitting. The model kept its last step. On the identical 70 unseen shots, its
+individual native **S 0.992808** versus **0.992205** for the earlier 80%-train cosine sequence;
+terms were R²ψ 0.999797, R²qb 0.991521, raw D_LCFS 0.010604 and Consistency 0.976261.
+q95/βN fell while geometry improved. Fit-only time was **2000.6 s**; child train/score time
+2157.04 / 58.85 s, wall 2220.03 s. The GPU fit overlapped a CPU24 rebuild of the new fast-screen
+auxiliary producer and sidecar prewarm, so these are not isolated throughput benchmarks. Verdict:
+the individual sequence improved on this split. A separate preregistered fixed 5:1 addition to
+the recovered old five-member ensemble scored **0.994824** against **0.994478**, ΔS
+**+0.000346**; terms were R²ψ 0.999849, R²qb 0.996512, raw D_LCFS 0.009478 and Consistency
+0.981892. This reused the same 70 shots and is a diagnostic addition, not independent
+confirmation; no collection changes yet. Complete frozen YAML, source/artifact hashes, split proof
+and native fields: [sequence fit](results/seq_cosine_refit_20260922.json),
+[historical addition](results/historical_five_cosine_refit_20260922.json).
+
 **2026-09-22 — recovered older five-member control and additive diagnostics:**
 `tools/historical_compare.py` loaded `artefacts/20260815-prod-4seeds-seq.joblib` with its original
 inference source, decoded its four MLPs and sequence model, and scored the same 70 unseen salt-0
@@ -16,6 +52,7 @@ following fixed member-count blends:
 | `cons_gain=2` MLP | 5:1 | 0.994690 | +0.000212 |
 | `env_weight=1` MLP | 5:1 | 0.994585 | +0.000107 |
 | cosine sequence | 5:1 | 0.994688 | +0.000210 |
+| fixed-step cosine sequence refit | 5:1 | 0.994824 | +0.000346 |
 | fixed-step two-model refit | 5:2 | 0.994707 | +0.000229 |
 | `cons_gain=2` + `env_weight=1` + cosine sequence | 5:1:1:1 | **0.994872** | **+0.000394** |
 
@@ -29,7 +66,8 @@ fixed grids, decoded prediction hashes, native scorer JSON and filename checks a
 [geometry](results/historical_five_geometry_20260922.json),
 [cosine](results/historical_five_cosine_20260922.json),
 [stack](results/historical_five_stack_20260922.json), and
-[refit](results/historical_five_refit_20260922.json).
+[refit](results/historical_five_refit_20260922.json), and
+[cosine refit](results/historical_five_cosine_refit_20260922.json).
 
 **2026-09-22 — fast magnetics input audit and pipeline identity, before any production fit:**
 `python my_experiments/diagnose_fast_magnetics.py` read only input columns from 100 train and 20
@@ -48,6 +86,25 @@ scored through the new evaluator reproduced every native and decoded scorer fiel
 [input audit](experiments/fast-signal-diagnostic.md),
 [smoke](results/fast_signal_smoke_20260922.json),
 [old-model identity](results/fast_signal_identity_20260922.json).
+
+**2026-09-22 — D8/S6 whole-shot aggregates with Thomson, validation-only diagnostic:**
+`python -m tools.diagnose_d8_whole_shot --mode run --jobs 2` used the recovered August five-member
+artifact and its original source, reading all 1,338 stored validation shots directly; 1,000 were
+reserved for five-fold alpha selection and Ridge fitting, the final 338 for the predeclared gate.
+Inputs were per-shot mean and population std of the exact 84 model inputs plus duration; the target
+was mean psi-coefficient residual in the artifact's metric-scaled coordinates. All-input outer
+explained variance was **0.005938**, against the **0.25** gate; frame-count-weighted variance was
+**−0.022983**. Without Thomson, the same measurements were **−0.045878** and **−0.024142**. The
+mean-only control explained 0.000000 by the same variance diagnostic. Five one-frame shots were
+retained with 0 ms elapsed duration. The first extraction failed on that boundary and a second
+was interrupted before fitting to add frame-weighted reporting; both pre-fit amendments and their
+logs were retained. A 332-frame prediction reconstructed from old coefficients was bit-identical
+to the archived old-source output. **Verdict:** the proposed linear aggregate gate fails; no
+context branch or native 70-shot score follows. The 338 diagnostic shots were already used for
+early stopping by the historical ensemble, so this is not independent confirmation and does not
+rule out nonlinear/global context. Exact file hashes, filenames, protocol, alphas and results:
+[preregistration](experiments/d8_whole_shot_prereg.json),
+[result](results/d8_whole_shot_20260922.json).
 
 **2026-09-22 — A4 fixed-step refit on the old validation window:**
 `python -m my_experiments.run prepare experiments/refit-production.json`, then `run execute` on
