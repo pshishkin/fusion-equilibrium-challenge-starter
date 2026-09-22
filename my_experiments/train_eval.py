@@ -82,8 +82,13 @@ def main(argv: list[str]) -> int:
             f"and validation shares may be thinned."
         )
 
+    fit_mode = (passthrough[passthrough.index("--fit-mode") + 1]
+                if "--fit-mode" in passthrough else "validation")
     print("=" * 70)
-    print(f"TRAINING on {train_share}, stopping on {val_share}")
+    if fit_mode == "fixed_steps":
+        print(f"FIXED-STEP REFIT on {train_share}, no validation ({val_share})")
+    else:
+        print(f"TRAINING on {train_share}, stopping on {val_share}")
     print("=" * 70)
     sys.argv = ["train.py", "--share", train_share, "--val-share", val_share, *passthrough]
     started = time.perf_counter()

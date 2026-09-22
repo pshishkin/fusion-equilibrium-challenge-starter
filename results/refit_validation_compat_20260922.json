@@ -1,0 +1,69 @@
+{
+  "date": "2026-09-22",
+  "method": {
+    "array_count": 32,
+    "comparison": "numpy.array_equal over model predictions, step pair, and every fitted state tensor",
+    "input": "x=arange(24).reshape(8,3)/24; y=sin(arange(32).reshape(8,4)); xv=arange(12).reshape(4,3)/17; yv=cos(arange(16).reshape(4,4))",
+    "max_absolute_difference": 0.0,
+    "overrides_common": [
+      "device=cpu",
+      "threads=1",
+      "hidden_sizes=[8,8]",
+      "max_steps=5",
+      "patience_steps=0",
+      "eval_every_steps=2"
+    ],
+    "overrides_mlp": [
+      "batch_size=4",
+      "head_weight=0.0"
+    ],
+    "overrides_seq": [
+      "seq_hidden=8",
+      "batch_shots=2"
+    ],
+    "parameter_file": "baselines/iteration.params.yaml",
+    "shot_lengths_seq": {
+      "train": [
+        4,
+        4
+      ],
+      "validation": [
+        2,
+        2
+      ]
+    }
+  },
+  "models": {
+    "mlp": {
+      "aggregate_sha256": "8a2667daacb7a506e19dff360b5bf1d25952b502bd9a59934c7bcadc4deda4a6",
+      "all_arrays_exact": true,
+      "arrays_compared": 8,
+      "predictions_sha256": "08cce64e84c2c5677cd9e0bf556818bd37164e7ea40bed5f0ac5ad8a5e87911e",
+      "steps": [
+        5,
+        5
+      ]
+    },
+    "seq": {
+      "aggregate_sha256": "8172b0e462108f61202add1360714ab0c8f6318c90c3d21c2c19e1034eb0be6c",
+      "all_arrays_exact": true,
+      "arrays_compared": 24,
+      "predictions_sha256": "6e6f50f26f05f6b138340ea65640099c9fb6534b50bd520fb2787652ee4204dd",
+      "steps": [
+        5,
+        5
+      ]
+    }
+  },
+  "purpose": "Ordinary validation mode numerical compatibility after adding fixed-step refit",
+  "reference": "Git HEAD 62916f3cb67d3a1ad4ce02317ccf7e2edd4b9fc0; identical to frozen geometry-loss-screen source",
+  "reference_git_commit": "62916f3cb67d3a1ad4ce02317ccf7e2edd4b9fc0",
+  "reference_source": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "source_sha256": {
+    "current_models": "d674f362118d76e855afc6f0abbb4ec379559998486f3a07b1a2385e62d298aa",
+    "current_seq_model": "434d0a36829ce53b13b4288cd7a404ff8b1585b560abebe42e55764333475176",
+    "params": "ff5b15c0c4497c802cace0d36a7308181f21cc9eaa9d832df4cd7950c7b1917d",
+    "reference_models": "826fe8cb58d833e3dd7e3b19d64d9b66c2655abe0a53288969ac5c186410f5ef",
+    "reference_seq_model": "e87c9a2a38c71af89e49e23a3d25f049dc5d48517c14241489c6f920fbbf6ed7"
+  }
+}

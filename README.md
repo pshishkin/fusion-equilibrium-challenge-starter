@@ -171,15 +171,51 @@ The completed first run, native scores, frozen provenance and timing breakdown a
 The first full run may build auxiliary-target and decoded-shot caches; distinguish that cost from
 model fitting when estimating subsequent iteration time.
 
+The 2026-09-22 geometry loss screen is frozen in
+[`experiments/geometry-loss-screen.json`](experiments/geometry-loss-screen.json). It trains four
+single-change MLP candidates at the same production shares and salt, then uses
+`python -m my_experiments.run compare-replacement` to score each MLP alone and in place of the
+original MLP beside the original sequence model. The comparison command records member-view
+provenance and verifies the unchanged native baseline and the matched decoded control on the exact
+same 70 shot filenames. Decoded averaging has a measured rounding difference, recorded in
+[`results/geometry_identity_20260922.json`](results/geometry_identity_20260922.json); compare
+replacements against the decoded control. The
+registered question and selection rule are in
+[`ideas.md`](ideas.md); results belong in `experiments_history.md` after measurement.
+
+For a candidate fitted on the same production split, freeze the evaluator to the candidate's
+campaign and pass the baseline artifact hash and the measured decoded control:
+
+```bash
+.venv/bin/python -m my_experiments.run compare-replacement \
+  --baseline runs/<compact>/base_s0/baseline.joblib \
+  --baseline-sha256 <compact-artifact-sha256> \
+  --candidate runs/<candidate>/<arm>_s0/baseline.joblib \
+  --reference-member mlp --companion-member seq --candidate-member mlp \
+  --source-campaign runs/<candidate> --decoded-control runs/<identity>/comparison.json \
+  --reference-weight 0.5 --companion-weight 0.5 --share 0.01 --jobs 24
+```
+
+Run once with the original compact artifact as both baseline and candidate, omitting
+`--decoded-control`, to establish the matched control. The command stores scorer-native metrics,
+all scored filenames, artifact hashes, the frozen evaluator identity and the comparison controller
+hash. It checks both fit and validation filenames against every scored shot.
+
 The canonical data protocols live in [`experiments/protocols.json`](experiments/protocols.json):
 
 | Profile | Train shots/frames | Validation shots/frames | Score shots | Purpose |
 |---|---|---|---|---|
 | `smoke` | 0.01/0.2 | 0.01/0.2 | 0.002 | Pipeline correctness, one MLP |
+| `smoke-refit` | 0.01/1.0 | 0/1.0 | 0.002 | Fixed-step correctness, MLP and sequence on CPU |
 | `production` | 0.80/1.0 | 0.19/1.0 | 0.01 | Production; quality uses the same data with ridge + one MLP |
+| `refit-production` | 0.99/1.0 | 0/1.0 | 0.01 | Fixed-step refit on train plus old validation shots |
 | `paired` | 0.80/1.0 | 0.15/1.0 | 0.05 | Existing multi-salt lane protocol |
 
 These are distinct protocols, not interchangeable score labels. Do not silently change shares.
+The `refit-production` shares were approved on 2026-09-22 for this separate experiment; the
+precommitted step budgets are explicit in
+[`experiments/refit-production.json`](experiments/refit-production.json). They do not replace the
+ordinary production protocol or its validation-based stopping.
 Production's enabled ensemble is four MLPs plus a sequence model. Validation is part of fitting;
 scoring uses the SHA-1-ordered tail, and every member's train/validation filenames are checked for
 overlap. The complete pinned corpus is checked before training so an ongoing download cannot

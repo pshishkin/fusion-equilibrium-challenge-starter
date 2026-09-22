@@ -88,8 +88,13 @@ def check_device(params: Path) -> dict[str, Any]:
 
 def source_files() -> list[Path]:
     files = list(ROOT.glob("*.py"))
-    files += [ROOT / name for name in (
-        ".python-version", "pyproject.toml", "uv.lock", "params.yaml", "Makefile")]
+    files += [
+        ROOT / name
+        for name in (
+            ".python-version", "pyproject.toml", "uv.lock", "params.yaml", "Makefile",
+            "experiments/protocols.json",
+        )
+    ]
     for directory in ("my_experiments", "toolkit", "fusion_scoring", "mast", "solver"):
         files += list((ROOT / directory).rglob("*.py"))
     files += [ROOT / "my_experiments/diii_d_dataset.json"]
@@ -115,6 +120,18 @@ def prepare(spec_path: Path, output: Path, jobs: int | None = None) -> Path:
     if spec["profile"] not in profiles:
         raise ValueError(f"{spec_path}: profile {spec['profile']!r}, expected {sorted(profiles)}")
     profile = profiles[spec["profile"]]
+    required_profile = {"train", "validation", "score", "purpose"}
+    extra_profile = set(profile) - required_profile
+    if not required_profile <= set(profile) or extra_profile - {"fit_mode"}:
+        raise ValueError(
+            f"{PROFILES}: profile {spec['profile']!r} keys {sorted(profile)}, "
+            f"expected {sorted(required_profile)} with optional fit_mode"
+        )
+    if "fit_mode" in profile and profile["fit_mode"] != "fixed_steps":
+        raise ValueError(
+            f"{PROFILES}: profile {spec['profile']!r} fit_mode={profile['fit_mode']!r}, "
+            "expected fixed_steps"
+        )
     if not spec["salts"] or len(set(spec["salts"])) != len(spec["salts"]):
         raise ValueError(f"{spec_path}: salts must be nonempty and unique")
     if any(type(s) is not int or s < 0 for s in spec["salts"]):
@@ -365,6 +382,7 @@ def execute(campaign: Path, data: Path) -> None:
                 str(protocol["score"]),
                 "--params",
                 str(folder / "params.yaml"),
+                *(["--fit-mode", protocol["fit_mode"]] if "fit_mode" in protocol else []),
                 "--jobs",
                 str(identity["spec"]["jobs"]),
                 "--local-data-dir",
@@ -546,6 +564,226 @@ def compare(args: argparse.Namespace) -> None:
     print(f"Comparison: {folder / 'comparison.json'}")
 
 
+def compare_replacement(args: argparse.Namespace) -> None:
+    """Score a single-member replacement against its unchanged two-member ensemble."""
+    import joblib
+
+    baseline_path = args.baseline.resolve()
+    candidate_path = args.candidate.resolve()
+    for path in (baseline_path, candidate_path):
+        if not completed(path.parent):
+            raise ValueError(f"{path}: no verified campaign completion record")
+        if path.name != "baseline.joblib":
+            raise ValueError(f"{path}: expected campaign artifact baseline.joblib")
+    baseline_hash = file_hash(baseline_path)
+    if baseline_hash != args.baseline_sha256:
+        raise ValueError(
+            f"{baseline_path}: SHA-256 {baseline_hash}, expected {args.baseline_sha256}"
+        )
+    baseline = joblib.load(baseline_path)
+    candidate = joblib.load(candidate_path)
+    reference = args.reference_member
+    companion = args.companion_member
+    selected = args.candidate_member
+    if reference == companion:
+        raise ValueError(f"{baseline_path}: reference and companion both name {reference!r}")
+    if set(baseline["models"]) != {reference, companion}:
+        raise ValueError(
+            f"{baseline_path}: fitted members {sorted(baseline['models'])}, "
+            f"expected {sorted({reference, companion})}"
+        )
+    if selected not in candidate["models"]:
+        raise ValueError(
+            f"{candidate_path}: no fitted member {selected!r}; "
+            f"available {sorted(candidate['models'])}"
+        )
+    if set(candidate["models"]) != {selected} and candidate_path != baseline_path:
+        raise ValueError(
+            f"{candidate_path}: fitted members {sorted(candidate['models'])}, "
+            f"expected only {selected!r}"
+        )
+    if any(not 0 < w < float("inf") for w in (args.reference_weight, args.companion_weight)):
+        raise ValueError("Reference and companion weights must be finite and positive")
+    requested_weights = {reference: args.reference_weight, companion: args.companion_weight}
+    actual_weights = baseline["ensemble"]
+    if set(actual_weights) != set(requested_weights) or any(
+        abs(actual_weights[k] - requested_weights[k]) > 1e-12 for k in requested_weights
+    ):
+        raise ValueError(
+            f"{baseline_path}: ensemble weights {actual_weights}, expected {requested_weights}"
+        )
+    identity_keys = (
+        "dataset_identity",
+        "split_salt",
+        "train_files",
+        "val_files",
+        "holdout_files",
+        "train_share",
+        "train_frame_share",
+        "val_share",
+        "val_frame_share",
+        "holdout_share",
+    )
+    for key in identity_keys:
+        if baseline[key] != candidate[key]:
+            raise ValueError(
+                f"{candidate_path}: {key} differs from {baseline_path}: "
+                f"{str(candidate[key])[:120]} against {str(baseline[key])[:120]}"
+            )
+    data = args.data_dir.resolve()
+    check_dataset(data)
+    folder = args.output.resolve() / f"replace-{time.time_ns()}"
+    folder.mkdir(parents=True)
+    members = (
+        ("m0", baseline_path, baseline, None),
+        ("m1", candidate_path, candidate, selected),
+        ("m2", baseline_path, baseline, companion),
+        ("m3", baseline_path, baseline, reference),
+    )
+    projected = []
+    for name, source_path, source_artifact, member in members:
+        dest = folder / f"baseline_{name}.joblib"
+        if member is None:
+            shutil.copyfile(source_path, dest)
+        else:
+            view = dict(source_artifact)
+            view["models"] = {member: source_artifact["models"][member]}
+            view["ensemble"] = {member: 1.0}
+            view["projection"] = {
+                "kind": "member_view_not_refit",
+                "source_path": str(source_path),
+                "source_sha256": file_hash(source_path),
+                "selected_member": member,
+            }
+            joblib.dump(view, dest)
+            if view["source_sha256"] != source_artifact["source_sha256"]:
+                raise ValueError(f"{dest}: projected model source hash changed")
+            if (
+                view["train_files"] != source_artifact["train_files"]
+                or view["val_files"] != source_artifact["val_files"]
+            ):
+                raise ValueError(f"{dest}: projected model changed fit or validation filenames")
+        projected.append(
+            {
+                "alias": name,
+                "source": str(source_path),
+                "source_sha256": file_hash(source_path),
+                "selected_member": member or "original_ensemble",
+                "projection_sha256": file_hash(dest),
+                "source_fit_sha256": source_artifact["source_sha256"],
+            }
+        )
+    ref_weight = args.reference_weight
+    companion_weight = args.companion_weight
+    specs = {
+        "baseline_native": "salts:m0",
+        "candidate": "salts:m1",
+        "control_decoded": f"salts:m3*{ref_weight}+m2*{companion_weight}",
+        "replacement": f"salts:m1*{ref_weight}+m2*{companion_weight}",
+    }
+    source_campaign = args.source_campaign.resolve()
+    source_meta = verify_source(source_campaign)
+    if candidate_path != baseline_path and candidate["source_sha256"] != source_meta["source_hash"]:
+        raise ValueError(
+            f"{candidate_path}: fitted source hash {candidate['source_sha256']}, "
+            f"evaluator snapshot {source_campaign} hash {source_meta['source_hash']}"
+        )
+    source_root = source_campaign / "source"
+    hashes = source_meta["identity"]["source"]
+    controller_hash = file_hash(Path(__file__))
+    for rel in hashes:
+        dest = folder / "source" / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source_root / rel, dest)
+        if file_hash(dest) != hashes[rel]:
+            raise ValueError(f"{rel}: source changed while preparing comparison")
+    write_json(
+        folder / "request.json",
+        {
+            "baseline_sha256_expected": args.baseline_sha256,
+            "inputs": projected,
+            "effective_member_weights": {
+                "baseline_native": actual_weights,
+                "control_decoded": {reference: ref_weight, companion: companion_weight},
+                "candidate": {selected: 1.0},
+                "replacement": {
+                    f"{reference}<-{selected}": ref_weight,
+                    companion: companion_weight,
+                },
+            },
+            "specs": specs,
+            "source": hashes,
+            "source_campaign": str(source_campaign),
+            "source_hash": source_meta["source_hash"],
+            "controller_run_sha256": controller_hash,
+            "share": args.share,
+            "environment": environment(),
+        },
+    )
+    shutil.copyfile(Path(__file__), folder / "controller_run.py")
+    if file_hash(folder / "controller_run.py") != controller_hash:
+        raise ValueError(f"{folder}: comparison controller changed while being copied")
+    command = [
+        sys.executable,
+        "-u",
+        "my_experiments/evaluate.py",
+        "--share",
+        str(args.share),
+        "--jobs",
+        str(args.jobs),
+        "--local-data-dir",
+        str(data),
+        "--metrics-json",
+        str(folder / "metrics.json"),
+        "--models",
+        *specs.values(),
+    ]
+    env = dict(
+        os.environ,
+        FUSION_ARTIFACT=str(folder / "baseline_m0.joblib"),
+        FUSION_SHOT_CACHE=str(ROOT / ".shot_cache"),
+        OMP_NUM_THREADS="4",
+        OPENBLAS_NUM_THREADS="4",
+        MKL_NUM_THREADS="4",
+    )
+    stream_process(command, folder / "source", env, folder / "compare.log", folder / "status.json")
+    scores = read_json(folder / "metrics.json")
+    baseline_metrics = read_json(baseline_path.parent / "metrics.json")
+    candidate_metrics = read_json(candidate_path.parent / "metrics.json")
+    if scores["files"] != baseline_metrics["files"]:
+        raise ValueError(f"{folder}: scored filenames differ from frozen baseline metrics")
+    if scores["files"] != candidate_metrics["files"]:
+        raise ValueError(f"{folder}: scored filenames differ from candidate's frozen metrics")
+    results = {role: scores["results"][spec] for role, spec in specs.items()}
+    if results["baseline_native"] != baseline_metrics["results"]["ensemble"]:
+        raise ValueError(f"{folder}: native baseline terms differ from frozen result")
+    if results["candidate"] != candidate_metrics["results"][selected]:
+        raise ValueError(f"{folder}: candidate native terms differ from frozen result")
+    if candidate_path == baseline_path and results["replacement"] != results["control_decoded"]:
+        raise ValueError(f"{folder}: original MLP replacement differs from decoded control")
+    if args.decoded_control is not None:
+        control = read_json(args.decoded_control.resolve())
+        if results["control_decoded"] != control["results"]["control_decoded"]:
+            raise ValueError(f"{folder}: decoded control differs from {args.decoded_control}")
+    write_json(
+        folder / "comparison.json",
+        {
+            "results": results,
+            "files": scores["files"],
+            "n_shots": scores["n_shots"],
+            "replacement_minus_decoded_control": results["replacement"]["S"]
+            - results["control_decoded"]["S"],
+            "candidate_minus_native_baseline": results["candidate"]["S"]
+            - results["baseline_native"]["S"],
+            "decoded_minus_native_baseline": results["control_decoded"]["S"]
+            - results["baseline_native"]["S"],
+            "request_sha256": file_hash(folder / "request.json"),
+            "metrics_sha256": file_hash(folder / "metrics.json"),
+        },
+    )
+    print(f"Replacement comparison: {folder / 'comparison.json'}")
+
+
 def interrupted(signum: int, frame: Any) -> None:
     raise KeyboardInterrupt(f"Received signal {signum}")
 
@@ -583,6 +821,21 @@ def main() -> int:
     p.add_argument("--jobs", type=int, default=1)
     p.add_argument("--data-dir", type=Path, default=DATA)
     p.add_argument("--output", type=Path, default=ROOT / "runs")
+    p = sub.add_parser("compare-replacement", help="score one fitted member in place of another")
+    p.add_argument("--baseline", type=Path, required=True)
+    p.add_argument("--baseline-sha256", required=True)
+    p.add_argument("--candidate", type=Path, required=True)
+    p.add_argument("--reference-member", required=True)
+    p.add_argument("--companion-member", required=True)
+    p.add_argument("--candidate-member", required=True)
+    p.add_argument("--source-campaign", type=Path, required=True)
+    p.add_argument("--decoded-control", type=Path)
+    p.add_argument("--reference-weight", type=float, required=True)
+    p.add_argument("--companion-weight", type=float, required=True)
+    p.add_argument("--share", type=float, required=True)
+    p.add_argument("--jobs", type=int, default=1)
+    p.add_argument("--data-dir", type=Path, default=DATA)
+    p.add_argument("--output", type=Path, default=ROOT / "runs")
     args = ap.parse_args()
     if args.command == "prepare":
         print(prepare(args.spec.resolve(), args.output, args.jobs))
@@ -592,6 +845,8 @@ def main() -> int:
         return doctor(args.data_dir, args.params)
     elif args.command == "compare":
         compare(args)
+    elif args.command == "compare-replacement":
+        compare_replacement(args)
     elif args.command == "summary":
         print(json.dumps(summary(args.campaign, args.control), indent=2))
     else:

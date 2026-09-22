@@ -3,6 +3,27 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-22 — replacement comparator identity:**
+`python -m my_experiments.run compare-replacement` with the compact artifact as both baseline and
+candidate, original `mlp` and `seq` each at weight 0.5, production tail of 70 unseen shots.
+The frozen original ensemble reproduced all native scorer fields, S **0.993385**. Averaging the
+decoded projections of the same two fitted members instead scored **0.993386**; replacing the
+projected MLP with itself reproduced every field of that decoded control exactly. The +0.000001
+S offset is numerical arithmetic order, not a fitted-model improvement. Verdict: replacement
+effects must use the matched decoded control. Full scorer fields, hashes and filenames:
+[results/geometry_identity_20260922.json](results/geometry_identity_20260922.json).
+
+**2026-09-22 — fixed-step refit pipeline validation:**
+`python -m my_experiments.run execute runs/refit-smoke-da16cac19c60b796`, CPU, 4 shot workers,
+full-frame 70-shot train / zero-shot validation / 14-shot score. Both MLP and sequence ran for
+exactly five steps after their functional-head prefit, kept their last weights, and scored through
+the native scorer. Artifact records `fit_mode=fixed_steps`, 70 train filenames, empty validation
+filenames and zero overlap with the 14 scored filenames. Separately, 32 ordinary validation-mode
+prediction, state and step arrays for both models matched the frozen pre-change code exactly in
+focused CPU tests. Verdict: the no-validation path works end to end; the tiny-fit scores are only
+correctness checks. Evidence: [results/refit_smoke_20260922.json](results/refit_smoke_20260922.json),
+[results/refit_validation_compat_20260922.json](results/refit_validation_compat_20260922.json).
+
 **2026-09-22 — compact production control and iteration cost:**
 `make experiment SPEC=experiments/compact-production.json`, production shares
 `0.80/1.0 0.19/1.0 0.01`, salt 0, seed 0 for `mlp` and `seq`, frozen iteration configuration

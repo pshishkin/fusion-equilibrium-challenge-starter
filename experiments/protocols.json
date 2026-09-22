@@ -5,11 +5,25 @@
     "score": 0.002,
     "purpose": "Pipeline correctness; never a model selection result"
   },
+  "smoke-refit": {
+    "train": "0.01/1.0",
+    "validation": "0/1.0",
+    "score": 0.002,
+    "fit_mode": "fixed_steps",
+    "purpose": "Fixed-step full-frame CPU pipeline correctness only; never a model selection result"
+  },
   "production": {
     "train": "0.80/1.0",
     "validation": "0.19/1.0",
     "score": 0.01,
     "purpose": "Current Makefile production data protocol"
+  },
+  "refit-production": {
+    "train": "0.99/1.0",
+    "validation": "0/1.0",
+    "score": 0.01,
+    "fit_mode": "fixed_steps",
+    "purpose": "Refit on the production train plus validation windows with precommitted optimizer steps"
   },
   "paired": {
     "train": "0.80/1.0",

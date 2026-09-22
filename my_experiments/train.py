@@ -49,6 +49,9 @@ def main() -> int:
                     help="shots to stop on, taken right behind the training window, same "
                          "'shots' or 'shots/frames' form (default 0.002). CatBoost and the MLP "
                          "pick their best iteration by it")
+    ap.add_argument("--fit-mode", choices=("validation", "fixed_steps"), default="validation",
+                    help="validation uses the adjacent block for checkpoint selection; fixed_steps "
+                         "requires --val-share 0/1.0 and keeps the last step")
     ap.add_argument("--params", type=Path, default=DEFAULT_PARAMS_PATH,
                     help=f"model zoo and its hyper-parameters (default {DEFAULT_PARAMS_PATH.name})")
     ap.add_argument("--jobs", type=int, default=0,
@@ -74,7 +77,7 @@ def main() -> int:
     args = ap.parse_args()
 
     train(args.share, args.val_share, args.local_data_dir, args.config, args.params,
-          args.jobs, args.salt, args.only, args.sets)
+          args.jobs, args.salt, args.only, args.sets, args.fit_mode)
     return 0
 
 

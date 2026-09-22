@@ -1,0 +1,13 @@
+{
+  "name": "geometry-loss-screen",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "production",
+  "salts": [0],
+  "jobs": 24,
+  "arms": [
+    {"name": "cons-2", "only": ["mlp"], "set": ["loss.cons_gain=2.0"], "score_models": ["mlp"]},
+    {"name": "cons-4", "only": ["mlp"], "set": ["loss.cons_gain=4.0"], "score_models": ["mlp"]},
+    {"name": "env-1", "only": ["mlp"], "set": ["loss.env_weight=1.0"], "score_models": ["mlp"]},
+    {"name": "field-03", "only": ["mlp"], "set": ["loss.field_weight=0.3"], "score_models": ["mlp"]}
+  ]
+}

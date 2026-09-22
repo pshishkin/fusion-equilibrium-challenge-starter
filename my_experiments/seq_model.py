@@ -283,6 +283,7 @@ class TorchSeqModel(TargetModel):
     _best_step: int = field(default=-1, init=False, repr=False)
     _ran_steps: int = field(default=0, init=False, repr=False)
     _delta_share: float = field(default=float("nan"), init=False, repr=False)
+    _fixed_steps: bool = field(default=False, init=False, repr=False)
 
     @property
     def kind(self) -> str:
@@ -397,7 +398,24 @@ class TorchSeqModel(TargetModel):
             monitor_idx: np.ndarray | None = None,
             head_y: FloatArray | None = None,
             head_y_val: FloatArray | None = None,
-            head_n_pca: int = 0) -> None:
+            head_n_pca: int = 0,
+            fixed_steps: bool = False) -> None:
+        self._fixed_steps = fixed_steps
+        if fixed_steps:
+            if len(X_val) or len(Y_val):
+                raise ValueError(f"torch_seq: fixed_steps requires 0 validation rows, got "
+                                 f"{len(X_val)} feature and {len(Y_val)} target rows")
+            if self.patience_steps != 0:
+                raise ValueError(f"torch_seq: fixed_steps requires patience_steps=0, got "
+                                 f"{self.patience_steps}")
+            if self.ema_decay:
+                raise ValueError(f"torch_seq: fixed_steps cannot select EMA checkpoints; "
+                                 f"ema_decay is {self.ema_decay}, expected 0")
+            if monitor is not None or monitor_idx is not None or head_y_val is not None:
+                raise ValueError("torch_seq: fixed_steps requires no validation monitor or "
+                                 "head targets")
+        elif not len(X_val):
+            raise ValueError("torch_seq: validation mode requires at least 1 validation row, got 0")
         self._check_fit_input(X, Y, X_val, Y_val)
         import torch
 
@@ -407,6 +425,11 @@ class TorchSeqModel(TargetModel):
                 "The reader returns them; a caller that concatenates and drops them is asking "
                 "this model to read one shot's future off the next shot's past."
             )
+        if not len(shots):
+            raise ValueError("torch_seq: training shot lengths have 0 shots, expected at least 1")
+        if fixed_steps and len(shots_val):
+            raise ValueError(f"torch_seq: fixed_steps requires 0 validation shots, got "
+                             f"{len(shots_val)}")
         for name, lens, n in (("train", shots, len(X)), ("val", shots_val, len(X_val))):
             if int(np.sum(lens)) != n:
                 raise ValueError(f"torch_seq: {name} shot lengths sum to {int(np.sum(lens))}, "
@@ -526,6 +549,19 @@ class TorchSeqModel(TargetModel):
             last = step >= self.max_steps
             if step % self.eval_every_steps and not last:
                 continue
+            if fixed_steps:
+                train_loss = float(run_t) / run_n
+                run_t, run_n = torch.zeros((), device=dev), 0
+                bar.update(step - bar.n)
+                bar.set_postfix(mse=f"{train_loss:.4f}", refresh=False)
+                if step % SEQ_LOG_EVERY_STEPS < self.eval_every_steps or last:
+                    bar.write(f"    seq step {step:7d}: train {train_loss:.6f}")
+                if last:
+                    self._best_step = step
+                    best_state = {k: v.detach().cpu().numpy().copy()
+                                  for k, v in net.state_dict().items()}
+                    break
+                continue
 
             net.eval()
             with torch.no_grad():
@@ -584,11 +620,14 @@ class TorchSeqModel(TargetModel):
         net.load_state_dict({k: torch.from_numpy(v) for k, v in best_state.items()})
         net.eval()
         with torch.no_grad():
-            ids = np.arange(min(self.batch_shots, len(lengths_val)))
-            rows, mask = _pad_index(starts_val, lengths_val, ids)
+            sample_starts = starts if fixed_steps else starts_val
+            sample_lengths = lengths if fixed_steps else lengths_val
+            sample_x = Xt if fixed_steps else Xvt
+            ids = np.arange(min(self.batch_shots, len(sample_lengths)))
+            rows, mask = _pad_index(sample_starts, sample_lengths, ids)
             keep = torch.from_numpy(mask).to(dev)[:, :, None]
-            frame, corr = net.parts(Xvt[torch.from_numpy(rows).to(dev)],
-                                    torch.from_numpy(lengths_val[ids]))
+            frame, corr = net.parts(sample_x[torch.from_numpy(rows).to(dev)],
+                                    torch.from_numpy(sample_lengths[ids]))
             rms = [float(torch.sqrt(((p * keep) ** 2).sum() / keep.sum() / p.shape[2]))
                    for p in (frame, corr)]
         self._delta_share = rms[1] / rms[0] if rms[0] > 0 else float("nan")
@@ -596,7 +635,9 @@ class TorchSeqModel(TargetModel):
     def fit_report(self) -> str:
         if self._best_step < 0:
             return ""
-        if not self.patience_steps:
+        if self._fixed_steps:
+            where = f", fixed-step refit, kept last step {self._best_step}"
+        elif not self.patience_steps:
             where = f", early stopping off, kept step {self._best_step}"
         else:
             ceiling = f" (of {self.max_steps} allowed)" if self._ran_steps < self.max_steps else ""
@@ -605,7 +646,9 @@ class TorchSeqModel(TargetModel):
         # NOTHING is indistinguishable in its score from a run where the averaging was never wired
         # in at all. Printing the count is what separates "measured and lost" from a silent no-op.
         ema = (f", averaged weights won {self._ema_wins} evaluation(s)" if self.ema_decay else "")
-        return (f"{where}, the shot moved the prediction by {self._delta_share:.1%} of it{ema}")
+        sample = " on training shots" if self._fixed_steps else ""
+        return (f"{where}, the shot moved the prediction by {self._delta_share:.1%} "
+                f"of it{sample}{ema}")
 
     def predict(self, X: FloatArray) -> FloatArray:
         """(T, n_targets) for ONE shot, whose frames are `X` in time order.

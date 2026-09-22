@@ -196,8 +196,12 @@ Non-overlap is checked against the **filenames** stored in the artifact — both
 `experiments/protocols.json` is the machine-readable source of data shares:
 
 - Smoke: `0.01/0.2 0.01/0.2 0.002`, one MLP, correctness only.
+- Fixed-step smoke: `0.01/1.0 0/1.0 0.002`, MLP plus sequence on CPU, correctness only.
 - Production: `0.80/1.0 0.19/1.0 0.01`; `make quality` uses the same data with ridge and one MLP,
   while `make prod` uses the enabled ensemble, including the sequence model.
+- Fixed-step refit: `0.99/1.0 0/1.0 0.01`, same salt-0 score tail, with training length declared
+  in the effective YAML before fitting and no validation or early stopping. The user approved
+  these separate refit shares on 2026-09-22; ordinary production shares stay unchanged.
 - Paired lanes: `0.80/1.0 0.15/1.0 0.05`, the existing lane protocol, paired within split salt.
 
 Do not silently substitute other shares. A change of shares requires the user's agreement.
@@ -238,6 +242,11 @@ A candidate's individual score, replacement effect and contribution when ADDED t
 ensemble are different measurements. Report the baseline, candidate and augmented ensemble on the
 same unseen shots with explicit artifact weights. A cross-salt ensemble requires a common holdout
 excluded before every fit; the ordinary per-salt tail is not enough.
+
+When a replacement member comes from another artifact, keep the unchanged members fixed and score
+both the original-member control and the replacement through the same decoded-map averaging path.
+Different target scalers make coefficient-space mixing invalid. Preserve the native ensemble score
+as a separate anchor, and measure any numerical difference between it and the decoded control.
 
 ## Every function is annotated
 

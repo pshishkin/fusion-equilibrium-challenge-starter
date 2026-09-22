@@ -1,0 +1,78 @@
+{
+  "arm": "two-model-fixed_s0",
+  "artifact": {
+    "path": "runs/refit-smoke-da16cac19c60b796/two-model-fixed_s0/baseline.joblib",
+    "sha256": "cace9085293f7fcdd70952face2583d8c74f59be798cf1d0a765348156b5fd02",
+    "train_count": 70,
+    "train_files_sha256": "42121b7bc1e4d90dd2ac059b2e6419a60e29947161f1f82817a8f971849218d1",
+    "val_count": 0,
+    "val_files": []
+  },
+  "campaign": "runs/refit-smoke-da16cac19c60b796",
+  "command": "MPLCONFIGDIR=/tmp/refit_matplotlib .venv/bin/python -m my_experiments.run execute runs/refit-smoke-da16cac19c60b796",
+  "completion": {
+    "path": "runs/refit-smoke-da16cac19c60b796/two-model-fixed_s0/complete.json",
+    "sha256": "eff540805d8d433f5c81b85cd69ef4365bcbb02063c1f1020a30ec3f4f6b510c",
+    "verified": true
+  },
+  "date": "2026-09-22",
+  "models": {
+    "mlp": {
+      "head_frozen": false,
+      "head_weight": 0.1,
+      "steps": 5
+    },
+    "seq": {
+      "steps": 5
+    }
+  },
+  "protocol": {
+    "fit_mode": "fixed_steps",
+    "jobs": 4,
+    "salt": 0,
+    "score": 0.002,
+    "train": "0.01/1.0",
+    "validation": "0/1.0"
+  },
+  "purpose": "CPU fixed-step pipeline correctness; five updates cannot assess model quality",
+  "scorer": {
+    "file_overlap_count": 0,
+    "files": [
+      "d3d_shot_6a8ef5c077.parquet",
+      "d3d_shot_808aa63d41.parquet",
+      "d3d_shot_2d646a8073.parquet",
+      "d3d_shot_2907641101.parquet",
+      "d3d_shot_4212a7acef.parquet",
+      "d3d_shot_9ba43e6ea9.parquet",
+      "d3d_shot_b61f1cec26.parquet",
+      "d3d_shot_ca1a40ca3f.parquet",
+      "d3d_shot_8bec8ffa1c.parquet",
+      "d3d_shot_3fd9ee579b.parquet",
+      "d3d_shot_c97c0671ff.parquet",
+      "d3d_shot_b299845d11.parquet",
+      "d3d_shot_27b661cf0d.parquet",
+      "d3d_shot_e7535f2983.parquet"
+    ],
+    "n_shots": 14,
+    "path": "runs/refit-smoke-da16cac19c60b796/two-model-fixed_s0/metrics.json",
+    "results": {
+      "ensemble": {
+        "S": 0.288157
+      },
+      "mlp": {
+        "S": 0.302013
+      },
+      "seq": {
+        "S": 0.264338
+      }
+    },
+    "scoring_version": "3.1.0",
+    "sha256": "fc7bd5986abd2b789ea8ae1415fe8d547c6c20df6ac7cd924d987dddf1db82cf",
+    "timing_seconds": {
+      "score": 39.22332126600668,
+      "train": 100.94348983898817,
+      "train_and_score": 140.16681110499485
+    }
+  },
+  "source_hash": "49add25c12d720d604a0e98cf14666f69711be7f9cda02444fe77d341616cf9b"
+}

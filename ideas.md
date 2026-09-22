@@ -1,5 +1,41 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
+## 2026-09-22 compact geometry loss screen, registered before fitting
+
+The frozen control is `experiments/compact-production.json` at production shares
+`0.80/1.0`, `0.19/1.0`, `0.01`, salt 0, with one seed-0 MLP and one seed-0 sequence model at
+equal weights. Its artifact SHA-256 is
+`ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8`.
+`experiments/geometry-loss-screen.json` registers four single-change MLP arms:
+`loss.cons_gain=2.0`, `loss.cons_gain=4.0`, `loss.env_weight=1.0` (with the existing
+`env_inside=4.0`), and `loss.field_weight=0.3`. All other effective parameters and the data
+shares remain fixed. The sequence model is reused from the control without retraining.
+
+For each arm, score the candidate MLP alone and the replacement mixture consisting of half that
+MLP and half the original sequence model. The selection quantity is the replacement mixture's
+native `S` minus the matched decoded average of the original MLP and original sequence model on
+the identical 70 unseen shots. The original compact ensemble is also scored as an exact historical
+anchor. The arithmetic-path identity measurement is in `experiments_history.md`; replacement
+deltas use the matched decoded control.
+Record all native terms, the exact files, artifact hashes, and fit/score wall times. A single salt
+screens a hypothesis; it does not establish a production improvement. See the historical
+`field-and-envelope` and `cons_gain` entries in `backlog.md` for the motivation and caveats.
+
+The separate `experiments/sequence-cosine-screen.json` registers a sequence-only production
+screen with `models.seq.lr_schedule=cosine` and the previously tested
+`models.seq.lr_t_max_steps=80000`, before viewing the geometry screen scores. Its selection
+quantity is the native score of a decoded 50/50 mixture of the original MLP and candidate sequence
+model minus the matched decoded 50/50 original MLP and original sequence control. It is a separate
+hypothesis, not another arm of the geometry loss comparison.
+
+The separate `experiments/refit-production.json` registers a fixed-step refit on the union of the
+original train and validation windows: 6971 shots at full frames, with the identical 70-shot tail
+excluded. Its optimizer budgets were fixed before measurement from the original best stops and
+the actual batches per pass: MLP `round(33000 * 378 / 305) = 40898` steps and sequence
+`round(30000 * 217 / 176) = 36989` steps. Each model saves its last weights; there is no
+validation or early stopping in this protocol. This tests additional training data with the
+original model settings and does not mix a geometry-loss change into the refit.
+
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 

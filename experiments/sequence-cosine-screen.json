@@ -1,0 +1,15 @@
+{
+  "name": "sequence-cosine-screen",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "production",
+  "salts": [0],
+  "jobs": 24,
+  "arms": [
+    {
+      "name": "seq-cosine",
+      "only": ["seq"],
+      "set": ["models.seq.lr_schedule=cosine", "models.seq.lr_t_max_steps=80000"],
+      "score_models": ["seq"]
+    }
+  ]
+}

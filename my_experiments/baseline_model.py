@@ -59,9 +59,11 @@ from my_experiments.models import (
     FloatArray,
     Params,
     TargetScaler,
+    TorchMLPModel,
     load_params,
 )
 from my_experiments.monitor import build_monitor
+from my_experiments.seq_model import TorchSeqModel
 from my_experiments.shaped_basis import build_target_pca
 from my_experiments.target_metric import (
     CONS_SCALARS,
@@ -162,7 +164,7 @@ def sorted_shots(local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR,
     return files
 
 
-def parse_share(token: str) -> tuple[float, float]:
+def parse_share(token: str, allow_zero_shots: bool = False) -> tuple[float, float]:
     """`"0.05"` -> (0.05, 1.0); `"0.05/0.1"` -> 5% of the shots, 10% of each shot's frames.
 
     Frames inside one shot are near-duplicates — the equilibrium moves on the current-diffusion
@@ -178,9 +180,11 @@ def parse_share(token: str) -> tuple[float, float]:
         frames = float(parts[1]) if len(parts) == 2 else 1.0
     except ValueError as exc:
         raise SystemExit(f"share {token!r}: {exc}") from exc
-    for name, v in (("shot share", shots), ("frame share", frames)):
-        if not 0 < v <= 1:
-            raise SystemExit(f"{name} in {token!r} must be in (0, 1], got {v}")
+    if not (0 <= shots <= 1 if allow_zero_shots else 0 < shots <= 1):
+        bound = "[0, 1]" if allow_zero_shots else "(0, 1]"
+        raise SystemExit(f"shot share in {token!r} must be in {bound}, got {shots}")
+    if not 0 < frames <= 1:
+        raise SystemExit(f"frame share in {token!r} must be in (0, 1], got {frames}")
     return shots, frames
 
 
@@ -228,7 +232,8 @@ def take_share(files: list[Path], share: float, side: str) -> list[Path]:
 
 
 def split_train_val(files: list[Path], train_share: float,
-                    val_share: float) -> tuple[list[Path], list[Path]]:
+                    val_share: float,
+                    allow_empty_validation: bool = False) -> tuple[list[Path], list[Path]]:
     """The training window and, immediately after it, the validation window.
 
     Three windows now share one sha1-ordered list: training from the head, validation right behind
@@ -236,11 +241,13 @@ def split_train_val(files: list[Path], train_share: float,
     (early stopping reads it every iteration), so a model that stopped on it has seen it, and only
     the untouched tail can still measure generalization.
     """
+    if val_share == 0 and not allow_empty_validation:
+        raise SystemExit("validation share is 0; fixed-step refit must be explicitly selected")
     if not 0 < train_share + val_share < 1:
         raise SystemExit(f"train share {train_share} + validation share {val_share} = "
                          f"{train_share + val_share}, which leaves no tail to score on")
     n_train = max(1, round(len(files) * train_share))
-    n_val = max(1, round(len(files) * val_share))
+    n_val = 0 if val_share == 0 else max(1, round(len(files) * val_share))
     return files[:n_train], files[n_train:n_train + n_val]
 
 
@@ -1084,41 +1091,77 @@ def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
 
 def train(share: str, val_share: str, local_data_dir: Path, config: str,
           params_path: Path = DEFAULT_PARAMS_PATH, jobs: int = 0, salt: int | None = None,
-          only: list[str] | None = None, sets: list[str] | None = None) -> Artifact:
+          only: list[str] | None = None, sets: list[str] | None = None,
+          fit_mode: str = "validation") -> Artifact:
     """Fit every enabled model of params.yaml on the head of the split, and save them together.
 
     Both shares are `"shots"` or `"shots/frames"` (see parse_share). `val_share` is the window
-    right behind the training one; it never enters a fit as data, it is what CatBoost and the MLP
-    stop on and pick their best iteration by.
+    right behind the training one and selects the checkpoint in validation mode. Fixed-step mode
+    explicitly uses no validation block and retains the last update on the enlarged training set.
     """
     # Refuse the shared default BEFORE reading a single shot: a fit that discovers this after
     # forty minutes of training has already wasted the forty minutes, and the failure mode it
     # prevents — two lanes overwriting one another's artifact between fit and score — is silent
     # whenever the two happen to fit models of the same name.
     out = require_artifact_path()
+    if fit_mode not in ("validation", "fixed_steps"):
+        raise ValueError(f"fit_mode is {fit_mode!r}; expected 'validation' or 'fixed_steps'")
+    fixed_steps = fit_mode == "fixed_steps"
     from my_experiments.data_check import check_dataset
     dataset_identity = check_dataset(local_data_dir, config)
     params: Params = load_params(params_path, salt, only, sets)
+    if fixed_steps:
+        for name, model in params.models.items():
+            if not isinstance(model, (TorchMLPModel, TorchSeqModel)):
+                raise ValueError(f"{params.path}: fixed_steps model {name!r} has type "
+                                 f"{model.kind!r}; only torch_mlp and torch_seq are supported")
+            if model.patience_steps != 0:
+                raise ValueError(f"{params.path}: fixed_steps model {name!r} has patience_steps "
+                                 f"{model.patience_steps}, expected 0")
+            if model.ema_decay != 0:
+                raise ValueError(f"{params.path}: fixed_steps model {name!r} has ema_decay "
+                                 f"{model.ema_decay}, expected 0")
+            if isinstance(model, TorchMLPModel):
+                if model.lr_schedule == "plateau" or model.stop_on != "loss":
+                    raise ValueError(f"{params.path}: fixed_steps model {name!r} has "
+                                     f"lr_schedule={model.lr_schedule!r}, "
+                                     f"stop_on={model.stop_on!r}; "
+                                     f"neither may depend on validation")
+                if model.head_weight and model.head_cons_weights == "adaptive":
+                    raise ValueError(f"{params.path}: fixed_steps model {name!r} has "
+                                     f"head_cons_weights='adaptive'; it needs validation")
     shot_share, frame_share = parse_share(share)
-    val_shot_share, val_frame_share = parse_share(val_share)
+    val_shot_share, val_frame_share = parse_share(val_share, allow_zero_shots=fixed_steps)
+    if fixed_steps and val_shot_share != 0:
+        raise ValueError(f"fixed_steps requires zero validation shot share, got {val_share!r}")
     ordered = sorted_shots(local_data_dir, config, params.split_salt)
     holdout, all_files = reserve_holdout(ordered, params.holdout_share)
     if holdout:
         print(f"Holdout: {len(holdout)} shots ({params.holdout_share:.1%}) reserved from the "
               f"SALT-0 order and excluded from this fit, so models fitted under different salts "
               f"can be scored on the same untouched shots")
-    files, val_files = split_train_val(all_files, shot_share, val_shot_share)
-    print(f"Training on {len(files)} shots ({shot_share:.1%} of {len(all_files)}, "
-          f"{frame_share:.0%} of their frames), validating on {len(val_files)} "
-          f"({val_shot_share:.1%}, {val_frame_share:.0%} of frames), head of the list, "
-          f"ordered by sha1")
+    files, val_files = split_train_val(all_files, shot_share, val_shot_share,
+                                       allow_empty_validation=fixed_steps)
+    if not files:
+        raise ValueError(f"training split has {len(files)} files, expected at least 1")
+    if not fixed_steps and not val_files:
+        raise ValueError(f"validation split has {len(val_files)} files, expected at least 1")
+    if fixed_steps:
+        print(f"Fixed-step refit on {len(files)} shots ({shot_share:.1%} of {len(all_files)}, "
+              f"{frame_share:.0%} of their frames), with no validation block, head of the "
+              f"sha1-ordered list")
+    else:
+        print(f"Training on {len(files)} shots ({shot_share:.1%} of {len(all_files)}, "
+              f"{frame_share:.0%} of their frames), validating on {len(val_files)} "
+              f"({val_shot_share:.1%}, {val_frame_share:.0%} of frames), head of the list, "
+              f"ordered by sha1")
     # A model whose unit is the shot is fitted on a TIME SERIES, and thinning the frames changes
     # the spacing of that series without changing anything it can see: at 0.2 the steps are ~100 ms
     # apart while inference feeds it every frame at 20 ms, so it would learn the dynamics at one
     # spacing and be asked for them at another. It cannot detect this for itself — all it receives
     # is frame counts — so the check belongs here, where the shares are known.
     sequential = [n for n, m in params.models.items() if m.kind == "torch_seq"]
-    if sequential and (frame_share < 1.0 or val_frame_share < 1.0):
+    if sequential and (frame_share < 1.0 or (not fixed_steps and val_frame_share < 1.0)):
         raise SystemExit(
             f"model(s) {sequential} read the shot as a sequence and need every frame, but the "
             f"shares thin them to {frame_share:.0%} of training and {val_frame_share:.0%} of "
@@ -1129,11 +1172,21 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
 
     if params.aux_names or any(getattr(m, "head_weight", 0.0) for m in params.models.values()):
         from my_experiments import aux_targets
-        aux_targets.ensure([("train", files), ("validation", val_files)], jobs)
+        blocks_to_cache = [("train", files)]
+        if not fixed_steps:
+            blocks_to_cache.append(("validation", val_files))
+        aux_targets.ensure(blocks_to_cache, jobs)
     X, Y, S, shots = _read_shots(files, "reading train shots", frame_share, jobs)
     print(f"  train: X {X.shape}  Y {Y.shape}  S {S.shape}, flux {Y.nbytes / 2 ** 30:.2f} GiB")
-    Xv, Yv, Sv, shots_val = _read_shots(val_files, "reading val shots", val_frame_share, jobs)
-    print(f"  val:   X {Xv.shape}  Y {Yv.shape}, flux {Yv.nbytes / 2 ** 30:.2f} GiB")
+    if fixed_steps:
+        Xv = np.empty((0, *X.shape[1:]), dtype=X.dtype)
+        Yv = np.empty((0, *Y.shape[1:]), dtype=Y.dtype)
+        Sv = np.empty((0, *S.shape[1:]), dtype=S.dtype)
+        shots_val = np.empty(0, dtype=np.int64)
+    else:
+        Xv, Yv, Sv, shots_val = _read_shots(val_files, "reading val shots", val_frame_share,
+                                            jobs)
+        print(f"  val:   X {Xv.shape}  Y {Yv.shape}, flux {Yv.nbytes / 2 ** 30:.2f} GiB")
 
     # The metric's own denominator, per frame: sum over pixels of (psi - m)^2 with m the single
     # FLAT mean of the training flux — not the mean image. Computed here, on the flux as stored,
@@ -1161,7 +1214,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # Every preprocessing step is fitted on the training frames alone and merely applied to the
     # validation ones: a scaler or a PCA that had seen the validation set would make early stopping
     # stop on a number that is partly its own reflection.
-    F, Fv = build_inputs(plan, X), build_inputs(plan, Xv)
+    F = build_inputs(plan, X)
+    Fv = build_inputs(plan, Xv) if not fixed_steps else np.empty((0, F.shape[1]), dtype=F.dtype)
     print(f"  inputs: {F.shape[1]} features per frame ({plan['inputs']}, "
           f"derivatives={plan['derivatives']}/{plan['derivative_signals']}, "
           f"thomson={plan['thomson'] or 'off'}, "
@@ -1176,7 +1230,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
               f"{'' if dead == 0 else f', {dead:.1%} are flagged missing'}")
     scaler = StandardScaler().fit(F)
     Xs = scaler.transform(F)
-    Xvs = scaler.transform(Fv)
+    Xvs = scaler.transform(Fv) if not fixed_steps else np.empty((0, Xs.shape[1]), dtype=Xs.dtype)
 
     if params.n_pca > min(len(Xs), EFIT_GRID_SIZE ** 2):
         raise ValueError(f"n_pca {params.n_pca} exceeds what the data supplies: {len(Xs)} frames, "
@@ -1213,7 +1267,9 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # One target matrix for every model: [PCA coefficients | q95 | betaN]. Fitting the flux map
     # and the two scalars jointly is what makes the models interchangeable and averageable.
     Tgt = np.hstack([np.asarray(pca.transform(Y), dtype=np.float64), S])
-    Tgt_val = np.hstack([np.asarray(pca.transform(Yv), dtype=np.float64), Sv])
+    Tgt_val = (np.hstack([np.asarray(pca.transform(Yv), dtype=np.float64), Sv])
+               if not fixed_steps else np.empty((0, params.n_pca + S.shape[1]),
+                                                  dtype=np.float64))
     # A9: the seven scored functionals as EXTRA columns. `predict_row` reads only the first
     # n_pca + 2, so these never reach a submission — they exist to put a gradient on the quantities
     # C1 found the cost in. Precomputed by aux_targets.py; a missing cache is an error rather than
@@ -1226,8 +1282,10 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     if any(getattr(m, "head_weight", 0.0) for m in params.models.values()):
         from my_experiments import aux_targets
         blocks = []
-        for block_files, n_rows, label in ((files, len(Tgt), "training"),
-                                           (val_files, len(Tgt_val), "validation")):
+        cache_blocks = [(files, len(Tgt), "training")]
+        if not fixed_steps:
+            cache_blocks.append((val_files, len(Tgt_val), "validation"))
+        for block_files, n_rows, label in cache_blocks:
             c = aux_targets.load(block_files,
                                  frame_share if label == "training" else val_frame_share)
             if c is None:
@@ -1243,7 +1301,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
                 if bad.any():
                     a[bad, j] = np.nanmean(a[:, j])
             blocks.append(a)
-        head_cons, head_cons_val = blocks
+        head_cons = blocks[0]
+        head_cons_val = blocks[1] if not fixed_steps else None
         print(f"  head targets: all {head_cons.shape[1]} functionals over "
               f"{len(head_cons)} training frames")
 
@@ -1255,8 +1314,10 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         from my_experiments import aux_targets
         cols = [CONS_SCALARS.index(n) for n in aux_names]
         blocks = []
-        for block_files, n_rows, label in ((files, len(Tgt), "training"),
-                                           (val_files, len(Tgt_val), "validation")):
+        cache_blocks = [(files, len(Tgt), "training")]
+        if not fixed_steps:
+            cache_blocks.append((val_files, len(Tgt_val), "validation"))
+        for block_files, n_rows, label in cache_blocks:
             cons = aux_targets.load(block_files,
                                     frame_share if label == "training" else val_frame_share)
             if cons is None:
@@ -1280,7 +1341,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         print(f"  A9: {len(aux_names)} auxiliary outputs ({', '.join(aux_names)}) at weight "
               f"{params.aux_weight}, discarded at inference")
         Tgt = np.hstack([Tgt, blocks[0]])
-        Tgt_val = np.hstack([Tgt_val, blocks[1]])
+        Tgt_val = (np.hstack([Tgt_val, blocks[1]]) if not fixed_steps
+                   else np.empty((0, params.n_targets), dtype=np.float64))
     if Tgt.shape != (len(Xs), params.n_targets):
         raise ValueError(f"targets {Tgt.shape}, expected {(len(Xs), params.n_targets)}")
     if Tgt_val.shape != (len(Xvs), params.n_targets):
@@ -1348,6 +1410,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # ten lines below and the monitor needs them to build its reference.
     monitor = monitor_idx = None
     if any(getattr(m, "stop_on", "loss") == "composite" for m in params.models.values()):
+        if fixed_steps:
+            raise ValueError("fixed_steps cannot use stop_on='composite' without validation")
         monitor_idx = thin_frames(len(Yv), min(1.0, params.monitor_frames / len(Yv)))
         total_v = Yv[monitor_idx].astype(np.float64)
         if plan["subtract"]:
@@ -1374,17 +1438,24 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     print("  released, reader pool shut down; the fit sees inputs and targets only")
 
     for name, model in params.models.items():
+        mode_desc = (f"for {getattr(model, 'max_steps', 'configured')} fixed steps"
+                     if fixed_steps else f"stopping on {Xvs.shape[0]} validation frames")
         print(f"\n  fitting {name} ({model.kind}) on {Xs.shape[0]} frames "
-              f"-> {params.n_targets} targets, stopping on {Xvs.shape[0]} validation frames")
+              f"-> {params.n_targets} targets, {mode_desc}")
         t0 = time.perf_counter()
-        model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val, monitor, monitor_idx,
-                  head_cons, head_cons_val, params.n_pca)
+        if fixed_steps:
+            model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val, monitor, monitor_idx,
+                      head_cons, head_cons_val, params.n_pca, fixed_steps=True)
+        else:
+            model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val, monitor, monitor_idx,
+                      head_cons, head_cons_val, params.n_pca)
         print(f"  {name}: fitted in {time.perf_counter() - t0:.1f} s{model.fit_report()}")
 
     artifact: Artifact = {
         "dataset_identity": dataset_identity,
         "run_id": os.environ.get("FUSION_RUN_ID"),
         "source_sha256": os.environ.get("FUSION_SOURCE_SHA256"),
+        "fit_mode": fit_mode,
         "scaler": scaler, "pca": pca, "target_scaler": target_scaler,
         "models": params.models, "ensemble": params.ensemble,
         "n_pca": params.n_pca, "coil": plan,

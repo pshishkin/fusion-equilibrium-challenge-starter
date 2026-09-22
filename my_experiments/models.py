@@ -189,12 +189,12 @@ class TargetModel(abc.ABC):
             monitor_idx: npt.NDArray[np.intp] | None = None,
             head_y: FloatArray | None = None,
             head_y_val: FloatArray | None = None,
-            head_n_pca: int = 0) -> None:
+            head_n_pca: int = 0,
+            fixed_steps: bool = False) -> None:
         """Fit on the training frames, stopping on the validation ones.
 
-        The validation set is mandatory, not optional: a model that quietly trains to its full
-        iteration count because nobody passed one is exactly the silent failure AGENTS.md bans.
-        A model with nothing to stop on (ridge) says so in its docstring and ignores it.
+        Validation is mandatory unless the caller explicitly selects fixed-step refit. In that
+        mode X_val and Y_val are empty and iterative models retain their last update.
 
         `shots` and `shots_val` are the per-shot frame COUNTS of the two blocks, in the order the
         frames are concatenated in — the only thing the flat arrays cannot say. Every model that
@@ -270,7 +270,13 @@ class RidgeModel(TargetModel):
             monitor_idx: npt.NDArray[np.intp] | None = None,
             head_y: FloatArray | None = None,
             head_y_val: FloatArray | None = None,
-            head_n_pca: int = 0) -> None:
+            head_n_pca: int = 0,
+            fixed_steps: bool = False) -> None:
+        if fixed_steps:
+            raise NotImplementedError(
+                "ridge: fixed-step refit supports only torch_mlp and torch_seq")
+        if not len(X_val):
+            raise ValueError("ridge: validation mode requires at least 1 validation row, got 0")
         self._check_fit_input(X, Y, X_val, Y_val)
         self._est = Ridge(alpha=self.alpha).fit(X, Y)
 
@@ -319,7 +325,13 @@ class CatBoostModel(TargetModel):
             monitor_idx: npt.NDArray[np.intp] | None = None,
             head_y: FloatArray | None = None,
             head_y_val: FloatArray | None = None,
-            head_n_pca: int = 0) -> None:
+            head_n_pca: int = 0,
+            fixed_steps: bool = False) -> None:
+        if fixed_steps:
+            raise NotImplementedError(
+                "catboost: fixed-step refit supports only torch_mlp and torch_seq")
+        if not len(X_val):
+            raise ValueError("catboost: validation mode requires at least 1 validation row, got 0")
         self._check_fit_input(X, Y, X_val, Y_val)
         if self.task_type not in CATBOOST_DEVICES:
             raise ValueError(f"catboost: unknown task_type {self.task_type!r}; known "
@@ -679,6 +691,7 @@ class TorchMLPModel(TargetModel):
     _clipped: float = field(default=float("nan"), init=False, repr=False)
     _norm_median: float = field(default=float("nan"), init=False, repr=False)
     _norm_max: float = field(default=float("nan"), init=False, repr=False)
+    _fixed_steps: bool = field(default=False, init=False, repr=False)
 
     @property
     def kind(self) -> str:
@@ -718,7 +731,31 @@ class TorchMLPModel(TargetModel):
             monitor_idx: npt.NDArray[np.intp] | None = None,
             head_y: FloatArray | None = None,
             head_y_val: FloatArray | None = None,
-            head_n_pca: int = 0) -> None:
+            head_n_pca: int = 0,
+            fixed_steps: bool = False) -> None:
+        self._fixed_steps = fixed_steps
+        if fixed_steps:
+            if len(X_val) or len(Y_val):
+                raise ValueError(f"torch_mlp: fixed_steps requires 0 validation rows, got "
+                                 f"{len(X_val)} feature and {len(Y_val)} target rows")
+            if self.patience_steps != 0:
+                raise ValueError(f"torch_mlp: fixed_steps requires patience_steps=0, got "
+                                 f"{self.patience_steps}")
+            if self.lr_schedule == "plateau" or self.stop_on != "loss":
+                raise ValueError(f"torch_mlp: fixed_steps needs a validation-independent schedule "
+                                 f"and stop_on='loss', got {self.lr_schedule!r} "
+                                 f"and {self.stop_on!r}")
+            if self.ema_decay:
+                raise ValueError(f"torch_mlp: fixed_steps cannot select EMA checkpoints; "
+                                 f"ema_decay is {self.ema_decay}, expected 0")
+            if self.head_weight and self.head_cons_weights == "adaptive":
+                raise ValueError("torch_mlp: fixed_steps cannot adapt head_cons_weights on "
+                                 "validation; got 'adaptive'")
+            if monitor is not None or monitor_idx is not None or head_y_val is not None:
+                raise ValueError("torch_mlp: fixed_steps requires no validation monitor or "
+                                 "head targets")
+        elif not len(X_val):
+            raise ValueError("torch_mlp: validation mode requires at least 1 validation row, got 0")
         self._check_fit_input(X, Y, X_val, Y_val)
         import torch
 
@@ -848,17 +885,20 @@ class TorchMLPModel(TargetModel):
             # Standardised by the TRAINING mean and spread, not its own: the head's validation
             # number has to be comparable to its training one, and a block rescaled by its own
             # statistics would be measured against a different zero.
-            if head_y_val is None:
+            if head_y_val is None and not fixed_steps:
                 raise ValueError(
                     f"torch_mlp(seed={self.seed}): head_weight is {self.head_weight} and training "
                     f"head targets were passed, but validation ones were not. The head's own loss "
                     f"is the pre-registered diagnostic for this arm, and it is read on validation "
                     f"data — training it blind would leave the arm unreadable.")
-            if len(head_y_val) != len(X_val):
-                raise ValueError(f"validation head targets hold {len(head_y_val)} frames against "
-                                 f"{len(X_val)} rows")
-            Hvt = torch.from_numpy(
-                ((head_y_val - head_ym) / head_ys).astype(np.float32)).to(dev)
+            if not fixed_steps:
+                assert head_y_val is not None
+                if len(head_y_val) != len(X_val):
+                    raise ValueError(f"validation head targets hold {len(head_y_val)} "
+                                     f"frames against "
+                                     f"{len(X_val)} rows")
+                Hvt = torch.from_numpy(
+                    ((head_y_val - head_ym) / head_ys).astype(np.float32)).to(dev)
             aux_head = build_mlp(head_n_pca, [self.head_hidden, self.head_hidden], head_y.shape[1],
                              self.activation).to(dev)
             # PRE-FITTED IN BOTH ARMS, on the TRUE scaled coefficients, so `frozen` and `trained`
@@ -1037,6 +1077,20 @@ class TorchMLPModel(TargetModel):
                 last = step >= self.max_steps
                 if step % self.eval_every_steps and not last:
                     continue
+                if fixed_steps:
+                    train_loss = float(total_t) / n
+                    total_t, n = torch.zeros((), device=dev), 0
+                    bar.update(step - bar.n)
+                    bar.set_postfix(mse=f"{train_loss:.4f}", refresh=False)
+                    if step % MLP_LOG_EVERY_STEPS < self.eval_every_steps or last:
+                        bar.write(f"    mlp step {step:7d}: train {train_loss:.6f}")
+                    if last:
+                        self._best_step = step
+                        best_state = {k: v.detach().cpu().numpy().copy()
+                                      for k, v in net.state_dict().items()}
+                        stop = True
+                        break
+                    continue
 
                 # The composite runs on its own coarse grid, and always on the last step so the
                 # fit cannot end on a measurement it never took. `judged` is what the best weights
@@ -1208,6 +1262,8 @@ class TorchMLPModel(TargetModel):
     def fit_report(self) -> str:
         if self._best_step < 0:
             return ""
+        if self._fixed_steps:
+            return f", fixed-step refit, kept last step {self._best_step}"
         if not self.patience_steps:
             return f", early stopping off, kept step {self._best_step}"
         clip = ("" if not self.grad_clip else

@@ -1,0 +1,22 @@
+{
+  "name": "refit-smoke",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "smoke-refit",
+  "salts": [0],
+  "jobs": 4,
+  "arms": [
+    {
+      "name": "two-model-fixed",
+      "only": ["mlp", "seq"],
+      "set": [
+        "models.mlp.device=cpu",
+        "models.mlp.max_steps=5",
+        "models.mlp.patience_steps=0",
+        "models.seq.device=cpu",
+        "models.seq.max_steps=5",
+        "models.seq.patience_steps=0"
+      ],
+      "score_models": ["mlp", "seq", "ensemble"]
+    }
+  ]
+}
