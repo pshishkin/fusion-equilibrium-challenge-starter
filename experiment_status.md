@@ -12,7 +12,7 @@ Historical explanations and negative results remain in `experiments_history.md`,
   per salt (78 total). Original artifact hashes and the submitted code revision are unavailable;
   the current configuration is not proof of the submitted recipe.
 - **Iteration control:** `baselines/iteration.params.yaml`, frozen from the checkout on 2026-09-22.
-  No fresh score is claimed. It retains the accepted configuration including the static auxiliary
+  Its full enabled ensemble has no fresh score. It retains the accepted configuration including the static auxiliary
   head and `cons_split`. Its sequence learning-rate schedule is `none`. The historical cosine
   result below is a candidate to verify against this control, not silently reapply.
 
@@ -20,9 +20,15 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 The user approved a compact production baseline on 2026-09-22: `mlp` and `seq` only, seed 0 each,
 salt 0, equal weights, unchanged production shares. Spec: `experiments/compact-production.json`.
-Frozen campaign: `runs/compact-production-9301af36275620f7`; inspect it with `run status` for live
-execution state. Scores and iteration timings are pending; the first run builds full auxiliary
-targets. This campaign does not measure the full enabled ensemble or reproduce the submission.
+Completed campaign: `runs/compact-production-9301af36275620f7`; `run status` verified completion
+hashes. On the same 70 held-out shots, MLP scored 0.992149, sequence 0.990514, and their equal-weight
+ensemble **0.993385**. Command: `make experiment SPEC=experiments/compact-production.json`.
+The cold run took 3511.48 s; MLP fitting took 151.1 s and sequence fitting 817.4 s. Warm full-frame
+loading was separately measured at 29.50 s; the estimated repeated iteration is about 20 minutes,
+not a second measured complete fit. Native metrics, scored filenames, effective-config hash,
+source identity and timing evidence: `results/compact_production_20260922.json`.
+This is a one-split working control, not an uncertainty estimate, a measurement of the full
+enabled ensemble, or a reproduction of the historical submission.
 
 Numbers below are paired within salt, recomputed from the named CSVs; they are historical
 experiments, not measurements of the newly frozen control. SE is the sample standard deviation

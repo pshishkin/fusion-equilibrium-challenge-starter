@@ -3,6 +3,23 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-22 — compact production control and iteration cost:**
+`make experiment SPEC=experiments/compact-production.json`, production shares
+`0.80/1.0 0.19/1.0 0.01`, salt 0, seed 0 for `mlp` and `seq`, frozen iteration configuration
+restricted to these two models, RTX 3090 and 24 reader/scorer workers. On the same 70 unseen
+shots: MLP **0.992149**, sequence **0.990514**, equal-weight ensemble **0.993385**;
+the blend adds **0.001236** over MLP. Verdict: a measured compact working control; sequence earns
+its ensemble place on this split despite a lower individual score. No uncertainty claim or
+comparison to the historical leaderboard fold is licensed. The child took **3511.48 s** cold:
+approximately 18 minutes building auxiliary targets, 21 minutes reading/caching frames,
+104.8 s further preprocessing, **151.1 s MLP fit**, **817.4 s sequence fit**, and **84.26 s scoring**.
+MLP kept step 33000 after 51400 steps; sequence kept 30000 after 40000. A separate warm read of
+the same full-frame train/validation windows took **25.52 / 3.98 s**, with auxiliary cache check
+0.03 s. Combining those timings gives **19.8 minutes estimated per warm iteration** at the same
+fit durations; no second full fit was run. Campaign `runs/compact-production-9301af36275620f7`,
+completion hashes verified. Native scores, all scored filenames and provenance:
+[results/compact_production_20260922.json](results/compact_production_20260922.json).
+
 **2026-09-22 — iteration workflow validation:** `make test`, smoke protocol
 `0.01/0.2 0.01/0.2 0.002`, salt 0, frozen iteration recipe, RTX 3090: S = 0.721159
 on 14 held-out shots, identical in the cold and warm runs. Child process wall time was 144.46 s

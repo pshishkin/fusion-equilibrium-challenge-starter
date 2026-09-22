@@ -39,7 +39,9 @@ that today's `params.yaml` reproduces that submission.
 
 **The iteration control is frozen separately** in
 [`baselines/iteration.params.yaml`](baselines/iteration.params.yaml). It has no newly measured
-score yet. Current decisions, historical evidence and unresolved candidates are indexed in
+score yet for its full ensemble. A compact two-model control has now been measured; see the
+2026-09-22 compact production entry in `experiments_history.md`. Current decisions, historical
+evidence and unresolved candidates are indexed in
 [`experiment_status.md`](experiment_status.md); old "running" labels in the historical notes are
 not a live queue. See [the iteration workflow](#reproducible-diii-d-iterations) below.
 
@@ -164,6 +166,8 @@ The compact iteration baseline uses one seed-0 MLP and one seed-0 GRU sequence m
 with equal weights, at split salt 0 and the unchanged production data shares. Run
 `make experiment SPEC=experiments/compact-production.json` to prepare and execute it. This is a
 separate baseline from the historical submitted collection; see `experiment_status.md` for results.
+The completed first run, native scores, frozen provenance and timing breakdown are recorded in
+[`results/compact_production_20260922.json`](results/compact_production_20260922.json).
 The first full run may build auxiliary-target and decoded-shot caches; distinguish that cost from
 model fitting when estimating subsequent iteration time.
 
