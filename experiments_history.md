@@ -3,6 +3,30 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-22 — four geometry-loss MLP screens against the compact ensemble:**
+`python -m my_experiments.run prepare experiments/geometry-loss-screen.json`, then `run execute`
+on the frozen campaign, production `0.80/1.0 0.19/1.0 0.01`, salt 0 and seed 0. Each arm changed
+one loss value and fitted only MLP; the sequence model remained the original artifact. All scores
+below use the identical 70 unseen filenames. The replacement mixtures average decoded maps with
+weights 0.5 candidate MLP / 0.5 original sequence; the matched original-member decoded control
+is **S 0.993386**. The historical native compact ensemble is separately **0.993385** because
+decoded averaging changes numerical order.
+
+| Single change | Candidate MLP S | Replacement S | ΔS vs decoded control | R²ψ / R²qb / D_LCFS / Consistency of replacement |
+|---|---:|---:|---:|---|
+| `cons_gain=2` | 0.992381 | 0.993439 | +0.000053 | 0.999753 / 0.995553 / 0.011110 / 0.976764 |
+| `cons_gain=4` | 0.991828 | 0.993123 | −0.000263 | 0.999747 / 0.995347 / 0.011008 / 0.975304 |
+| `env_weight=1` | 0.992519 | **0.993530** | **+0.000144** | 0.999781 / 0.996094 / 0.011248 / 0.976805 |
+| `field_weight=0.3` | 0.991210 | 0.993204 | −0.000182 | 0.999742 / 0.995706 / 0.011166 / 0.975533 |
+
+Fit-only times were 289.4 / 300.6 / 349.7 / 218.1 s in table order. The complete child
+train-and-score runs took 490.83 / 486.99 / 530.41 / 395.53 s; each replacement comparison took
+about 105–106 s. Verdict: `env_weight=1` is the best single-salt screen, but its +0.000144
+replacement effect has no paired variance estimate and is not promoted to the baseline. More
+`cons_gain` and the field form did not improve this compact mixture on these shots. Native scorer
+fields, exact YAML, weights, files, artifact/comparison hashes and all timings:
+[results/geometry_loss_screen_20260922.json](results/geometry_loss_screen_20260922.json).
+
 **2026-09-22 — replacement comparator identity:**
 `python -m my_experiments.run compare-replacement` with the compact artifact as both baseline and
 candidate, original `mlp` and `seq` each at weight 0.5, production tail of 70 unseen shots.

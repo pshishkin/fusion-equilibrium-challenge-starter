@@ -1,22 +1,9 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
-## 2026-09-22 compact geometry loss screen, registered before fitting
+## 2026-09-22 remaining compact screens, registered before fitting
 
-The frozen control is `experiments/compact-production.json` at production shares
-`0.80/1.0`, `0.19/1.0`, `0.01`, salt 0, with one seed-0 MLP and one seed-0 sequence model at
-equal weights. Its artifact SHA-256 is
-`ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8`.
-`experiments/geometry-loss-screen.json` registers four single-change MLP arms:
-`loss.cons_gain=2.0`, `loss.cons_gain=4.0`, `loss.env_weight=1.0` (with the existing
-`env_inside=4.0`), and `loss.field_weight=0.3`. All other effective parameters and the data
-shares remain fixed. The sequence model is reused from the control without retraining.
-
-For each arm, score the candidate MLP alone and the replacement mixture consisting of half that
-MLP and half the original sequence model. The selection quantity is the replacement mixture's
-native `S` minus the matched decoded average of the original MLP and original sequence model on
-the identical 70 unseen shots. The original compact ensemble is also scored as an exact historical
-anchor. The arithmetic-path identity measurement is in `experiments_history.md`; replacement
-deltas use the matched decoded control.
+The four geometry-loss arms have been measured; their frozen spec, results and verdict are in
+`experiments_history.md`. They remain separate from the unmeasured screens below.
 Record all native terms, the exact files, artifact hashes, and fit/score wall times. A single salt
 screens a hypothesis; it does not establish a production improvement. See the historical
 `field-and-envelope` and `cons_gain` entries in `backlog.md` for the motivation and caveats.

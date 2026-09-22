@@ -697,7 +697,12 @@ this.
 trunk**, so the coefficients it receives are the ones it was fitted for — which is the expensive
 version this entry always described, and now it has a measured reason rather than an aesthetic one.
 
-### 1s. `field-and-envelope` — two metric terms, CODE READY 2026-08-31, not yet run
+### 1s. `field-and-envelope` — two metric terms; partial compact screen 2026-09-22
+
+The first production-share compact screen tested `field_weight=0.3` and `env_weight=1.0` as
+separate MLP replacements in a fixed two-member ensemble. The paired replacement verdict and
+native terms are in [experiments_history.md](experiments_history.md) under the 2026-09-22 geometry
+screen. This does not settle the originally proposed `field_weight=1.0` or `env_weight=0.3` arms.
 
 > **`shaped-basis` is the same two terms one level down, and the two entries have to be read
 > together from now on.** `1s` reweights where the MODEL's error is penalised inside a fixed
@@ -746,7 +751,7 @@ before: `envelope_form` reproduces the pixel-weighted sum to a relative error of
 the same quantity, not a proxy; weight 0 reproduces the previous matrix bit for bit; weight 1 adds
 exactly the identity's own trace; and a degenerate form raises rather than dividing by zero.
 
-**Not yet run — the user's call to finish the encoder-decoder first.** When it runs: `field_weight`
+**Original unrun proposal (partly superseded by the compact screen above):** `field_weight`
 in {0.3, 1.0} and `env_weight` in {0.3, 1.0} against the canonised baseline, and read `R2_psi`
 beside Consistency, since both terms deliberately spend flux accuracy to buy geometry.
 
@@ -1509,6 +1514,11 @@ each in the map-derived block — the same rule as `aux`, for the same reason: t
 move the scalar it names.
 
 ### 1i. `cons-gain` — raise Consistency AGAINST psi in the training metric
+
+The production-share compact salt-0 screen tested gains 2 and 4 as single MLP replacements;
+both mixture results and the exact control are in [experiments_history.md](experiments_history.md)
+under 2026-09-22. The six-pair confirmation proposed below was not run, so its gate and
+uncertainty are still unmeasured.
 **User's proposal, 2026-08-27, and it is a better target than the one I named an hour earlier.** I
 had written that the machinery should be aimed at `R2_psi`, "weight 0.55, no averaging
 denominator". That reasoning counted the weight and forgot to check the HEADROOM, and the headroom

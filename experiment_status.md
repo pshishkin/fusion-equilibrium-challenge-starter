@@ -30,6 +30,13 @@ source identity and timing evidence: `results/compact_production_20260922.json`.
 This is a one-split working control, not an uncertainty estimate, a measurement of the full
 enabled ensemble, or a reproduction of the historical submission.
 
+The four 2026-09-22 geometry-loss screens have completed on this same salt-0 tail. The best
+matched replacement was `env_weight=1` at ΔS +0.000144 against the decoded two-member control;
+`cons_gain=2` was +0.000053, while `cons_gain=4` and `field_weight=0.3` decreased S. This is
+single-salt screening with no measured paired variance, so the compact control remains unchanged.
+Full native terms and the distinct candidate-alone scores are in
+`results/geometry_loss_screen_20260922.json`; interpretation is in `experiments_history.md`.
+
 Numbers below are paired within salt, recomputed from the named CSVs; they are historical
 experiments, not measurements of the newly frozen control. SE is the sample standard deviation
 of paired deltas divided by sqrt(n), not an independent-shot confidence guarantee.

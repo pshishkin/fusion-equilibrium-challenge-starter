@@ -179,9 +179,12 @@ original MLP beside the original sequence model. The comparison command records 
 provenance and verifies the unchanged native baseline and the matched decoded control on the exact
 same 70 shot filenames. Decoded averaging has a measured rounding difference, recorded in
 [`results/geometry_identity_20260922.json`](results/geometry_identity_20260922.json); compare
-replacements against the decoded control. The
-registered question and selection rule are in
-[`ideas.md`](ideas.md); results belong in `experiments_history.md` after measurement.
+replacements against the decoded control.
+The completed four-arm screen and its scorer-native results are in
+[`results/geometry_loss_screen_20260922.json`](results/geometry_loss_screen_20260922.json),
+with the selection rule and verdict in [`experiments_history.md`](experiments_history.md). The
+original compact control remains the working baseline while the small single-salt effects are
+assessed.
 
 For a candidate fitted on the same production split, freeze the evaluator to the candidate's
 campaign and pass the baseline artifact hash and the measured decoded control:
