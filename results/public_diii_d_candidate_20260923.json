@@ -1,0 +1,148 @@
+{
+  "artifact_not_uploaded": true,
+  "dataset": {
+    "config": "diii_d_public_test",
+    "download_sha256_verified": true,
+    "first_file": "d3d_shot_0047b7837b.parquet",
+    "frames": 193359,
+    "last_file": "d3d_shot_ff6af6ea51.parquet",
+    "local_input_manifest_sha256": "e1f923fd21e559fa63b5e91d4c51a6bd9cb64843fc468d39aa3cbfb6d2616dbb",
+    "ordered_filenames_sha256": "60044953b7f9828935e412dec7e79d8469dd4844f69611243be87e06ff540470",
+    "pinned_input_manifest_sha256": "b09f733fe4ac9cbfdee582ab5961ff55e8178e2484cdae7d6e6e11ae5e56fea4",
+    "repo_id": "Sophelio/fusion-equilibrium-challenge",
+    "revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+    "shots": 874,
+    "target_columns_absent_in_all_files": true
+  },
+  "date_utc": "2026-09-22",
+  "field_weights": {
+    "psirz": [
+      5,
+      1,
+      1,
+      1,
+      2,
+      1
+    ],
+    "q95_betaN": [
+      5,
+      1,
+      1,
+      1
+    ],
+    "q95_betaN_source_indices": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "final_npz": {
+    "arrays": 2622,
+    "bytes": 2967287097,
+    "dtype": "float32 for psirz, q95 and betaN",
+    "frames": 193359,
+    "path": "runs/public-diii-d-eleven-eight-20260923/submission/diii_d_public_test.npz",
+    "sha256": "7b39cdc94ec8b95b2c89dfbee4c0fcd3db4898e2671ac3e0ac136efed5b5d704",
+    "shots": 874
+  },
+  "grid": "grids/public-diii-d-eleven-eight.json",
+  "grid_sha256": "c885194d20ad7c3da29d47365a78033b5fa3739976580e172ccd4e8e93a1e10e",
+  "held70_recipe_parity": {
+    "exact_float32_arrays": 210,
+    "parity_record_sha256": "c7994c53792f502c8cdff0671d5b4da298c47255f6f16b72245ce05848326342",
+    "previously_scored_S": 0.99508,
+    "previously_scored_npz_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+    "streamed_npz_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef"
+  },
+  "historical_git_commit": "eb70e25",
+  "historical_git_tree": "98daa9c9e9ebdfd324c2549b147e7a42124756cc",
+  "mast_predictions_not_built_or_replaced": true,
+  "purpose": "Fully local public DIII-D candidate, fixed 11-member map and prior-eight scalar block; no public labels, score, upload, MAST or ZIP",
+  "sources": [
+    {
+      "artifact_sha256": "8dc3af11401b1024e6dafdcb76c7c50f110cdaa0a415e547d2877c709e2c2656",
+      "dataset_revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+      "input_config": "diii_d_public_test",
+      "members": 5,
+      "name": "historical_ensemble",
+      "prediction_bytes": 2962629466,
+      "prediction_seconds": 200.51593420999416,
+      "prediction_sha256": "564e31a83b88e1963c94e5fc2f03cdeab53d71f70287d8dfe827c4c0d15248f0",
+      "source_hash": null,
+      "source_root": "runs/public-diii-d-eleven-eight-20260923/source_eb70e25"
+    },
+    {
+      "artifact_sha256": "1e9f28aacf8eb10b2883ce7e68ede31073a483423192fe1be41ce98e30c737bb",
+      "dataset_revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+      "input_config": "diii_d_public_test",
+      "members": 1,
+      "name": "cons-2",
+      "prediction_bytes": 2962668549,
+      "prediction_seconds": 217.89236593300302,
+      "prediction_sha256": "00025f65b981cd1dad7a99806ce33028bf091f0e5076844729a54880d6482b1b",
+      "source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+      "source_root": "runs/geometry-loss-screen-4a5516b9b1684353/source"
+    },
+    {
+      "artifact_sha256": "251c101c09a42313e6c58057b50b38d5410f538bfc40dad69cc9f2560e1c147f",
+      "dataset_revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+      "input_config": "diii_d_public_test",
+      "members": 1,
+      "name": "env-1",
+      "prediction_bytes": 2962586657,
+      "prediction_seconds": 220.4805743600009,
+      "prediction_sha256": "8e83e9e4806516ed7cf135caa445a7d74712018485c290b1c4d872df4d02add3",
+      "source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+      "source_root": "runs/geometry-loss-screen-4a5516b9b1684353/source"
+    },
+    {
+      "artifact_sha256": "da46cdc5c5eaacc97f5968f9458f8ca00454072db1f01b89226df266a93da641",
+      "dataset_revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+      "input_config": "diii_d_public_test",
+      "members": 1,
+      "name": "cosine_seq",
+      "prediction_bytes": 2962675454,
+      "prediction_seconds": 262.1613817840116,
+      "prediction_sha256": "f7beb90d85a5c0faa323e13884bb3521cec09a1edabbf75ec6252b3b936b0a3d",
+      "source_hash": "49add25c12d720d604a0e98cf14666f69711be7f9cda02444fe77d341616cf9b",
+      "source_root": "runs/sequence-cosine-screen-9007ddb3f714c95d/source"
+    },
+    {
+      "artifact_sha256": "70a90d36fd0c989d85264c896bf566af39bc97ce97e3b3f01d51aa72af62019d",
+      "dataset_revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+      "input_config": "diii_d_public_test",
+      "members": 2,
+      "name": "refit_two",
+      "prediction_bytes": 2962642519,
+      "prediction_seconds": 220.75205333798658,
+      "prediction_sha256": "ef08bbe0baa64b274a3267ab4008023ed690288237e044c034a4bdf8943f9227",
+      "source_hash": "fe84df2c5ccc5cc63f6326e1db0a494c475c258f61528b1d5024df63661b75cf",
+      "source_root": "runs/refit-production-a5034fff0c4b4f22/source"
+    },
+    {
+      "artifact_sha256": "948670ba75ce4f6f2d36df6ea828030c9e13efb6a67d7ade14f5a0ff9b4e041a",
+      "dataset_revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+      "input_config": "diii_d_public_test",
+      "members": 1,
+      "name": "cosine_refit_seq",
+      "prediction_bytes": 2962636526,
+      "prediction_seconds": 228.02617910399567,
+      "prediction_sha256": "a8e37822a67be9c1e2d991affe250e5076e6ab656564f31d7001bd0e48a8ea2c",
+      "source_hash": "fe84df2c5ccc5cc63f6326e1db0a494c475c258f61528b1d5024df63661b75cf",
+      "source_root": "runs/seq-cosine-refit-757e4ad0d5f1b10f/source"
+    }
+  ],
+  "timing_note": "Shared host with concurrent B11 GPU fit/CPU preparation; these wall times are not isolated benchmarks",
+  "timing_seconds": {
+    "assemble_final": 158.5486656879948,
+    "predict_sources": 1354.6882556359924,
+    "total": 1579.5700924259872,
+    "validate_final": 57.45494801799941
+  },
+  "validation": {
+    "all_874_passed": true,
+    "build_record_sha256": "ab1614e5a8272bae790613f286d31d09a35a65300312b99f5783dede0f12389b",
+    "method": "validate_submission.validate(..., source=local, max_shots=0)"
+  }
+}

@@ -87,7 +87,8 @@ def _meta(path: Path) -> dict[str, Any]:
 
 
 def predict(source_root: Path, artifact: Path, files_json: Path, data_dir: Path,
-            model: str, output: Path, jobs: int, artifact_sha256: str) -> None:
+            model: str, output: Path, jobs: int, artifact_sha256: str,
+            input_config: str | None = None) -> None:
     started = time.perf_counter()
     source_root, artifact, data_dir = (p.resolve() for p in (source_root, artifact, data_dir))
     if jobs < 1:
@@ -96,6 +97,7 @@ def predict(source_root: Path, artifact: Path, files_json: Path, data_dir: Path,
     if actual_hash != artifact_sha256:
         raise ValueError(f"{artifact}: SHA-256 {actual_hash}, expected {artifact_sha256}")
     names = _files(files_json)
+    file_manifest = json.loads(files_json.read_text())
     source_files = [source_root / name for name in (
         "my_experiments/baseline_model.py", "my_experiments/models.py",
         "my_experiments/seq_model.py", "experiments.py",
@@ -104,6 +106,11 @@ def predict(source_root: Path, artifact: Path, files_json: Path, data_dir: Path,
         if not path.is_file():
             raise FileNotFoundError(f"{path}: predictor source is missing")
     art = joblib.load(artifact)
+    config = input_config if input_config is not None else art["config"]
+    if file_manifest.get("config") is not None and file_manifest["config"] != config:
+        raise ValueError(f"{files_json}: config {file_manifest['config']!r}, expected {config!r}")
+    if config != art["config"] and not file_manifest.get("dataset_revision"):
+        raise ValueError(f"{files_json}: cross-config inference needs a pinned dataset_revision")
     available = set(art["models"]) | {"ensemble"}
     parts = model.split("+")
     if model not in available and (len(parts) < 2 or set(parts) - set(art["models"])):
@@ -113,7 +120,7 @@ def predict(source_root: Path, artifact: Path, files_json: Path, data_dir: Path,
     if overlap:
         raise ValueError(f"{artifact}: {len(overlap)} scored files overlap fit/validation: "
                          f"{sorted(overlap)[:3]}")
-    paths = [data_dir / "data" / art["config"] / name for name in names]
+    paths = [data_dir / "data" / config / name for name in names]
     for path in paths:
         if not path.is_file():
             raise FileNotFoundError(f"{path}: scored parquet file is missing")
@@ -135,6 +142,8 @@ def predict(source_root: Path, artifact: Path, files_json: Path, data_dir: Path,
         "model": model,
         "artifact": str(artifact),
         "artifact_sha256": actual_hash,
+        "input_config": config,
+        "dataset_revision": file_manifest.get("dataset_revision"),
         "source_root": str(source_root),
         "source_sha256": {str(path.relative_to(source_root)): file_hash(path)
                           for path in source_files},
@@ -352,6 +361,7 @@ def main() -> int:
     p.add_argument("--source-root", type=Path, required=True)
     p.add_argument("--artifact", type=Path, required=True)
     p.add_argument("--artifact-sha256", required=True)
+    p.add_argument("--input-config")
     p.add_argument("--files-json", type=Path, required=True)
     p.add_argument("--data-dir", type=Path, required=True)
     p.add_argument("--model", required=True)
@@ -381,7 +391,7 @@ def main() -> int:
     args = parser.parse_args()
     if args.command == "predict":
         predict(args.source_root, args.artifact, args.files_json, args.data_dir,
-                args.model, args.output, args.jobs, args.artifact_sha256)
+                args.model, args.output, args.jobs, args.artifact_sha256, args.input_config)
     elif args.command == "blend":
         blend(args.base, args.candidate, args.output,
               args.base_members, args.candidate_members)

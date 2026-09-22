@@ -44,16 +44,23 @@ score yet for its full ensemble. A compact two-model control has now been measur
 evidence and unresolved candidates are indexed in
 [`experiment_status.md`](experiment_status.md); old "running" labels in the historical notes are
 not a live queue. See [the iteration workflow](#reproducible-diii-d-iterations) below.
+For the measured same-shot candidate/member scores, observed stage times, export precision and
+the locally validated DIII-D public artifact, see the
+[`overnight experiment summary`](results/overnight_summary_20260923.md).
 
 The D8/S6 whole-shot linear aggregate diagnostic, including Thomson inputs, failed its
 predeclared rule-out gate. It did not produce a new competition score or context model; the
 scope and measurement are in [`experiments_history.md`](experiments_history.md).
 The B11 Jacobian-direction premise survived a controlled shared-denominator diagnostic, but no
 position-dependent loss or score gain has been measured; its record is in the same history.
-The one-control/one-candidate training screen is preregistered in
+The one-control/one-candidate training screen was preregistered in
 [`experiments/position-metric-screen.json`](experiments/position-metric-screen.json): both arms
 share global target coordinates and stopping, with only the candidate's training metric varying
-by frame position. No production score is available yet.
+by frame position. Its native same-shot results and separate old-five addition effects are in
+[`results/position_metric_screen_20260922.json`](results/position_metric_screen_20260922.json)
+and [`results/historical_five_position_metric_20260922.json`](results/historical_five_position_metric_20260922.json).
+The conditioned member improves alone but reduces both tested ensembles against its matched
+pooled control; it is not promoted.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
@@ -208,6 +215,10 @@ The expanded fixed-weight ensemble and its scalar-block diagnostic are indexed i
 [`experiments_history.md`](experiments_history.md), with full native evidence in
 [`results/historical_eleven_blocks_20260922.json`](results/historical_eleven_blocks_20260922.json).
 They reuse the same development tail and are not an independently confirmed submission.
+The fixed map/scalar recipe has been assembled as a locally validated DIII-D public-input NPZ;
+the artifact, full input identity, float32 format, held-70 recipe parity and build timing are in
+[`results/public_diii_d_candidate_20260923.json`](results/public_diii_d_candidate_20260923.json).
+It has no public leaderboard score and no MAST component, ZIP or upload was produced.
 
 The completed fast magnetics screen is documented in
 [`experiments/fast-signal-diagnostic.md`](experiments/fast-signal-diagnostic.md) and

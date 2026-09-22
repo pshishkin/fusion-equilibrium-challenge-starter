@@ -1,27 +1,5 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
-## 2026-09-23 B11 position-conditioned loss screen, registered before fitting
-
-The controlled 100-shot Jacobian diagnostic in `experiments_history.md` passed its directional
-mechanism gate. `experiments/position-metric-screen.json` now fixes one production-share salt-0
-seed-0 MLP comparison: `pooled-control` rebuilds one shared form from 100 complete training-only
-shot triplets, while `position-conditioned` changes only
-`loss.position_metric.mode=conditioned`. Both use the same global TargetScaler and pooled scalar
-variance. The candidate mixes 0.5 of its position-specific form with 0.5 of that global form;
-the strength, anchor positions 0.1/0.5/0.9, 0.3/0.7 boundaries and all feature/model settings
-are explicit in the frozen effective YAML. Validation stopping remains the same global MSE and
-neither arm reads the scored tail to construct its loss.
-
-Score the two MLPs alone and as separate 50/50 replacements for the compact MLP beside the
-unchanged compact sequence. The primary paired treatment effect is conditioned MLP + original
-sequence minus pooled-control MLP + the same sequence on the identical 70 unseen shots; the
-original compact ensemble is a separate native/decoded anchor. Then score each independently
-as one additional member at fixed old-five:candidate weight 5:1 under
-`grids/historical-five-position-metric.json`; addition and replacement are different measurements.
-This is one λ=0.5 hypothesis and one
-pooled control, with no parameter or weight search. The prior direction diagnostic establishes
-neither a training benefit nor a score gain; both remain unmeasured here.
-
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the
 working compact ensemble.
@@ -1477,7 +1455,13 @@ the shrinkage sweep's optimum is λ = 0.
 
 **ΔS ≈ +0.0005…+0.0015, confidence 0.45.**
 
-## B11. A loss metric that changes with frame position — **controlled direction gate passed 2026-09-22; loss unbuilt**
+## B11. A loss metric that changes with frame position — **λ=0.5 production screen measured 2026-09-22 UTC**
+
+The two-arm production screen built the loss proposed below after the shared-denominator
+direction gate passed. The conditioned MLP improved alone but lost to its matched pooled control
+in both compact replacement and fixed old-five addition on the same 70-shot tail. No strength
+sweep or independent confirmation was run. Exact numbers and verdict are in
+`experiments_history.md`; the original reasoning below remains as historical preregistration.
 
 The 2026-08-16 free diagnostic found different forms, but `diagnose_regime.py` divided each
 position group's Jacobian by that group's OWN seven scalar variances. That mixed a direction

@@ -3,6 +3,61 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-22 UTC — every member of the recovered older five, scored individually:**
+`tools/historical_compare.py` used the archived original inference revision `eb70e25` for the
+already fitted `artefacts/20260815-prod-4seeds-seq.joblib`, then the pinned native scorer on the
+same 70-shot tail. No member was retrained or selected. Native solo S: `mlp` **0.993140**,
+`mlp1` **0.991943**, `mlp2` **0.990809**, `mlp3` **0.991653**, `seq` **0.992175**; their original
+equal-weight five-member ensemble scored **0.994478**. Four MLPs and sequence are ensemble
+members; the artifact's fitted ridge has zero ensemble weight. Prediction walls totalled
+**82.25 s** and five separate CPU4 native scorer walls **492.39 s**. Verdict: the ensemble's
+gain over every member is directly measured on these shots; these are descriptive scores on a
+reused tail, not a new fit or independent confirmation. Full native fields, exact filenames,
+source/artifact hashes and phase times: [results/historical_five_members_20260922.json](results/historical_five_members_20260922.json).
+
+**2026-09-22 UTC — B11 pooled versus position-conditioned MLP loss, production screen:**
+`run prepare experiments/position-metric-screen.json` froze the 0.80/1.0 train, 0.19/1.0
+validation, 0.01 scored salt-0 control and one fixed-strength candidate. Both arms used the same
+100 complete training-shot Jacobian triplets, probe step 0.060919 Wb/rad, three group counts
+375402/497118/375937, pooled scalar variance, global target scaler, PCA/input transforms and
+global-MSE stopping. Every artifact probe/form metadata field was hash-identical except
+`position_metric.mode`; the candidate alone rotated only its training quadratic by λ=0.5. All
+scores below use the same 70 unseen shots. The original compact decoded MLP+sequence anchor is
+S 0.993386, but **the paired B11 comparison is candidate versus its own pooled control**:
+
+| B11 arm | MLP alone S | 50/50 arm MLP + original sequence S | Fixed old-five + arm 5:1 S |
+|---|---:|---:|---:|
+| pooled control | 0.991412 | **0.993584** | **0.994586** |
+| position-conditioned | **0.992075** | 0.993294 | 0.994523 |
+
+Thus conditioning improves MLP alone by **+0.000663** but reduces the paired compact mixture by
+**−0.000290** and the fixed old-five addition by **−0.000063** versus pooled control. Compact
+replacement terms pooled/conditioned were R²ψ 0.999766/0.999778, R²qb 0.995809/0.995703,
+raw D_LCFS 0.011007/0.011277 and Consistency 0.977213/0.975943. Fit-only times were
+503.9/395.8 s; child walls 741.24/649.32 s, with concurrent public874 CPU4 preparation. The
+two compact scorer comparisons took 105.15/110.15 s. Separate old-five additions at fixed 5:1
+both beat old-five S 0.994478 slightly (+0.000108/+0.000045), but on the reused tail neither is
+accepted and the conditioned arm adds less. Verdict: the direction mechanism survives its input
+diagnostic, yet this λ=0.5 row-dependent loss does not improve either tested ensemble comparison;
+no extra strength/grid is inferred. Full scorer fields, exact YAML, shared probe hashes and
+filenames: [production screen](results/position_metric_screen_20260922.json),
+[old-five additions](results/historical_five_position_metric_20260922.json).
+
+**2026-09-23 local preparation — fixed eleven-map/eight-scalar DIII-D public candidate:**
+`tools/public_blend.py` decoded six frozen predictors on all **874** pinned, SHA-verified
+`diii_d_public_test` input shots, with no target columns, and assembled the preregistered map
+weights **5:1:1:1:2:1** and earlier eight-member q95/βN weights **5:1:1:1**. The local float32
+NPZ contains **2622** arrays over **193359** frames, 2,967,287,097 bytes, SHA-256
+`7b39cdc94ec8b95b2c89dfbee4c0fcd3db4898e2671ac3e0ac136efed5b5d704`.
+`validate_submission.validate` passed all 874 DIII-D shots. A held-70 dry run of the same
+streaming assembler reproduced all **210** float32 arrays bit for bit from the previously scored
+S 0.995080 diagnostic. Observed wall: source predictions **1354.69 s**, final assembly
+**158.55 s**, local validation **57.45 s**, total **1579.57 s**; the host concurrently ran B11
+GPU fitting, so these are not isolated throughput benchmarks. Verdict: the DIII-D public-input
+artifact is locally built and structurally validated, but has **no public score**. MAST was not
+built or replaced, and there was no ZIP, upload or push. Exact sources, ordered filenames, input
+manifest and output hashes: [results/public_diii_d_candidate_20260923.json](results/public_diii_d_candidate_20260923.json).
+
 **2026-09-22 UTC — fast magnetics A/B production screen with fresh unchanged control:**
 `run prepare experiments/fast-signal-screen.json` froze the new evaluator and the production
 `0.80/1.0 0.19/1.0 0.01` salt-0 three-arm campaign. The separately keyed auxiliary targets were

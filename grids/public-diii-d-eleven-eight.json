@@ -1,0 +1,83 @@
+{
+  "name": "public-diii-d-eleven-map-eight-scalars",
+  "date_utc": "2026-09-22",
+  "purpose": "Build one fully local public DIII-D prediction asset from the best fixed, already measured 70-shot blend",
+  "status": "Public inputs only; no public targets, leaderboard submission, MAST replacement or upload",
+  "dataset": {
+    "repo_id": "Sophelio/fusion-equilibrium-challenge",
+    "revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+    "config": "diii_d_public_test",
+    "shots": 874,
+    "frames": 193359,
+    "ordered_filenames_sha256": "60044953b7f9828935e412dec7e79d8469dd4844f69611243be87e06ff540470",
+    "local_dataset_manifest": "logs/dataset-manifest.json",
+    "local_dataset_manifest_sha256": "b09f733fe4ac9cbfdee582ab5961ff55e8178e2484cdae7d6e6e11ae5e56fea4",
+    "local_download_record": "logs/dataset-download-complete.json",
+    "local_download_record_sha256": "cafc4599ec8ce6f06fb22b7a4018f1aed34c375ca34c180381d00554d2383090"
+  },
+  "historical_git_commit": "eb70e25",
+  "historical_git_tree": "98daa9c9e9ebdfd324c2549b147e7a42124756cc",
+  "sources": [
+    {
+      "name": "historical_ensemble",
+      "source_root": "runs/public-diii-d-eleven-eight-20260923/source_eb70e25",
+      "artifact": "artefacts/20260815-prod-4seeds-seq.joblib",
+      "artifact_sha256": "8dc3af11401b1024e6dafdcb76c7c50f110cdaa0a415e547d2877c709e2c2656",
+      "model": "ensemble",
+      "members": 5
+    },
+    {
+      "name": "cons-2",
+      "source_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+      "source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+      "artifact": "runs/geometry-loss-screen-4a5516b9b1684353/cons-2_s0/baseline.joblib",
+      "artifact_sha256": "1e9f28aacf8eb10b2883ce7e68ede31073a483423192fe1be41ce98e30c737bb",
+      "model": "mlp",
+      "members": 1
+    },
+    {
+      "name": "env-1",
+      "source_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+      "source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+      "artifact": "runs/geometry-loss-screen-4a5516b9b1684353/env-1_s0/baseline.joblib",
+      "artifact_sha256": "251c101c09a42313e6c58057b50b38d5410f538bfc40dad69cc9f2560e1c147f",
+      "model": "mlp",
+      "members": 1
+    },
+    {
+      "name": "cosine_seq",
+      "source_root": "runs/sequence-cosine-screen-9007ddb3f714c95d/source",
+      "source_hash": "49add25c12d720d604a0e98cf14666f69711be7f9cda02444fe77d341616cf9b",
+      "artifact": "runs/sequence-cosine-screen-9007ddb3f714c95d/seq-cosine_s0/baseline.joblib",
+      "artifact_sha256": "da46cdc5c5eaacc97f5968f9458f8ca00454072db1f01b89226df266a93da641",
+      "model": "seq",
+      "members": 1
+    },
+    {
+      "name": "refit_two",
+      "source_root": "runs/refit-production-a5034fff0c4b4f22/source",
+      "source_hash": "fe84df2c5ccc5cc63f6326e1db0a494c475c258f61528b1d5024df63661b75cf",
+      "artifact": "runs/refit-production-a5034fff0c4b4f22/base-refit_s0/baseline.joblib",
+      "artifact_sha256": "70a90d36fd0c989d85264c896bf566af39bc97ce97e3b3f01d51aa72af62019d",
+      "model": "ensemble",
+      "members": 2
+    },
+    {
+      "name": "cosine_refit_seq",
+      "source_root": "runs/seq-cosine-refit-757e4ad0d5f1b10f/source",
+      "source_hash": "fe84df2c5ccc5cc63f6326e1db0a494c475c258f61528b1d5024df63661b75cf",
+      "artifact": "runs/seq-cosine-refit-757e4ad0d5f1b10f/seq-cosine-refit_s0/baseline.joblib",
+      "artifact_sha256": "948670ba75ce4f6f2d36df6ea828030c9e13efb6a67d7ade14f5a0ff9b4e041a",
+      "model": "seq",
+      "members": 1
+    }
+  ],
+  "psi_member_weights": [5, 1, 1, 1, 2, 1],
+  "q95_betaN_source_indices": [0, 1, 2, 3],
+  "q95_betaN_member_weights": [5, 1, 1, 1],
+  "blend_arithmetic": "Single float64 weighted sum per output array, divide by member count, one float32 cast",
+  "output": "runs/public-diii-d-eleven-eight-20260923/submission/diii_d_public_test.npz",
+  "validation": "validate_submission.py full local 874-shot shape/dtype/finiteness check",
+  "jobs": 4,
+  "uploads": false
+}

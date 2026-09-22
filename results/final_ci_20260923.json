@@ -1,0 +1,159 @@
+{
+  "command": "setsid --wait env UV_CACHE_DIR=/tmp/uv-cache make ci",
+  "date_utc": "2026-09-22",
+  "exit_code": 0,
+  "git_head_at_prepare": "ed328a0c989946f1b85b19c5505ff1c4b797a64e",
+  "mypy": {
+    "passed": true,
+    "source_files": 83
+  },
+  "note": "The later frozen B11 production source differed from this CI smoke source only in unrelated tools/public_blend.py; model, position metric, scorer and export helper hashes matched.",
+  "post_public_builder_checks": {
+    "command": "UV_CACHE_DIR=/tmp/uv-cache make lint typecheck check-workflow",
+    "exit_code": 0,
+    "frozen_CI_source_files_still_byte_identical_to_working_tree": true,
+    "frozen_source_files_checked": 114,
+    "mypy_source_files": 83,
+    "reason_no_second_CUDA_smoke": "No frozen CI source file changed after the passed CUDA smoke; only tests, grids, results and repository documents were added or edited.",
+    "ruff": "passed",
+    "unittest_elapsed_seconds": 6.451,
+    "unittest_tests": 41
+  },
+  "purpose": "Final repository CI gate after float32 export, fast features, historical helper and B11 position metric source were stable; smoke score is correctness only",
+  "ruff": "passed",
+  "smoke_campaign": "runs/smoke-1d21f3b4e2c05870",
+  "smoke_child_wall_seconds": 89.36849689483643,
+  "smoke_completion_record_sha256": "d7409efe3cf439f2ef215f36dac4a8f4689b7a4309e0bffc2b0ff1532d043fa1",
+  "smoke_completion_sha256": {
+    "baseline.joblib": "2481a3aaa58c1287e13a6f2b47720b81ad42ff55132e55b283a5aec3f61fd4ad",
+    "metrics.json": "934077d465addc5f9844905bd7bd39ba367ed90b41a0e85e1c469d13788aef84",
+    "params.yaml": "8faa1cefa33e03e8452eb5005e6a50bb3fbeb290573d5f008a71c3d9762ae8a0"
+  },
+  "smoke_protocol": {
+    "purpose": "Pipeline correctness; never a model selection result",
+    "score": 0.002,
+    "train": "0.01/0.2",
+    "validation": "0.01/0.2"
+  },
+  "smoke_results": {
+    "ensemble": {
+      "S": 0.721159,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 0.0,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 0.0,
+      "consistency": 0.276242,
+      "dlcfs": 0.059247,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 14,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.271483,
+        "Z_axis": -1.38761,
+        "kappa": -0.184451,
+        "li": 0.328817,
+        "tri_bot": 0.567717,
+        "tri_top": 0.765677,
+        "volume": -0.163795
+      },
+      "r2_each": {
+        "betaN": 0.886923,
+        "q95": 0.807426
+      },
+      "r2_psi": 0.808653,
+      "r2_psi_per_shot_mean": 0.832582,
+      "r2_psi_unflipped": 0.808653,
+      "r2_qb": 0.847174,
+      "ref_lcfs_dropped": 0
+    },
+    "mlp": {
+      "S": 0.721159,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 0.0,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 0.0,
+      "consistency": 0.276242,
+      "dlcfs": 0.059247,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 14,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.271483,
+        "Z_axis": -1.38761,
+        "kappa": -0.184451,
+        "li": 0.328817,
+        "tri_bot": 0.567717,
+        "tri_top": 0.765677,
+        "volume": -0.163795
+      },
+      "r2_each": {
+        "betaN": 0.886923,
+        "q95": 0.807426
+      },
+      "r2_psi": 0.808653,
+      "r2_psi_per_shot_mean": 0.832582,
+      "r2_psi_unflipped": 0.808653,
+      "r2_qb": 0.847174,
+      "ref_lcfs_dropped": 0
+    }
+  },
+  "smoke_scored_files": [
+    "d3d_shot_6a8ef5c077.parquet",
+    "d3d_shot_808aa63d41.parquet",
+    "d3d_shot_2d646a8073.parquet",
+    "d3d_shot_2907641101.parquet",
+    "d3d_shot_4212a7acef.parquet",
+    "d3d_shot_9ba43e6ea9.parquet",
+    "d3d_shot_b61f1cec26.parquet",
+    "d3d_shot_ca1a40ca3f.parquet",
+    "d3d_shot_8bec8ffa1c.parquet",
+    "d3d_shot_3fd9ee579b.parquet",
+    "d3d_shot_c97c0671ff.parquet",
+    "d3d_shot_b299845d11.parquet",
+    "d3d_shot_27b661cf0d.parquet",
+    "d3d_shot_e7535f2983.parquet"
+  ],
+  "smoke_scored_names_sha256": "6fa3afe0a50682426bbf3c6dc663cca63d1b733f7829a88751d5c28d7d263194",
+  "smoke_scoring_version": "3.1.0",
+  "smoke_timing_seconds": {
+    "score": 17.223712135993992,
+    "train": 69.50692745701235,
+    "train_and_score": 86.73063959300634
+  },
+  "snapshot_import_test": "submission_skeleton and tools.submission_format resolved inside a Python -I frozen source with PYTHONPATH removed",
+  "snapshot_training_source_sha256": {
+    "local_score.py": "2154f23ffab4bccea504ff0da6276121d72d61c5c6a96a9adf25b71b7e3502e4",
+    "my_experiments/baseline_model.py": "95cc2ea754a8326d4d40588a7301b3e87df4d1e79e39eacea1df698d1551f14a",
+    "my_experiments/models.py": "3b7c2ab91694f08adbab5b717c0db76f254b7412bc25aaff76c82b3e0c41fff4",
+    "my_experiments/position_metric.py": "5bec7df1ac42d544bb898cb501386e8015a09f7aed6870ae2402e3bcff7ba037",
+    "my_experiments/target_metric.py": "0b00c39a5fc4bfe22bd449b4202ded1c689a0652e052d3f993a8b969320e3c8a",
+    "submission_skeleton.py": "4038d4b3d740d00ee84195ac8b8d5bca89ad0dc3ba7249efa052db7c03bbad28",
+    "tools/submission_format.py": "feefcbf11b42738ca34370949f560cca5873ecb104de854c7a9a5156a2dedaf1"
+  },
+  "source_hash": "8227256bdd98f4d4afa97d4041ca351f0c33f5b2ef5f9d39499b7ce07f4fcb95",
+  "unittest": {
+    "elapsed_seconds": 6.624,
+    "passed": true,
+    "tests": 39
+  }
+}

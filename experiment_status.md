@@ -37,12 +37,23 @@ eight-member stack S 0.994872. This is an adaptive diagnostic on reused shots, n
 production replacement or evidence that the recovered August artifact is the September submission.
 All fixed grids, member weights and native terms are in the four `results/historical_five_*.json`
 records indexed by `experiments_history.md`.
+Every fitted member of that five-member collection has also been scored individually with the old
+inference code and the pinned current native scorer. The table and exact same-shot provenance are
+in `results/historical_five_members_20260922.json`; the concise cross-experiment score and
+timing index is `results/overnight_summary_20260923.md`.
 
 An expanded eleven-member fixed blend and a separate scalar-block control were then measured on
 the same repeatedly used 70-shot tail. The best observed diagnostic takes the expanded map and
 the prior eight-member q95/βN block at S 0.995080, but its selection and evaluation share shots.
 It is neither independent confirmation nor an accepted/submitted collection. Full fixed weights,
 block identity checks and native terms: `results/historical_eleven_blocks_20260922.json`.
+
+The fixed eleven-map/eight-scalar recipe has now been assembled locally for all 874 pinned
+DIII-D public-test input shots as a float32 NPZ. The existing local validator passed every shot,
+and a held-70 dry run of the builder matched the previously scored recipe bit for bit. This is a
+reviewable local DIII-D candidate, not a leaderboard score or full two-machine submission; no
+MAST build, ZIP, upload or push occurred. Output path, hash, per-stage wall time and source/input
+identities: `results/public_diii_d_candidate_20260923.json`.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
@@ -102,11 +113,13 @@ gave 0.5653. This supports a position-dependent orientation mechanism, not a com
 gain; no per-row loss has been implemented or fitted. See `experiments_history.md` and
 `results/b11_shared_variance_20260922.json`.
 
-The follow-up B11 MLP training screen is preregistered in
-`experiments/position-metric-screen.json`: a pooled form control against one fixed-strength
-position-conditioned loss, with identical production data shares/salt/seed and the same global
-validation loss. Compact replacement and old-five addition effects are separately specified in
-`ideas.md`; neither arm has a production score yet.
+The follow-up B11 MLP training screen has completed. With identical probes/global scaler and one
+fixed λ=0.5, the conditioned MLP improved alone by +0.000663 but lost to its matched pooled
+control when blended with the unchanged compact sequence (ΔS −0.000290) or added to old-five at
+fixed 5:1 (ΔS −0.000063 between additions). The mechanism gate therefore did not yield an
+ensemble gain, and no position-conditioned arm is accepted. Native fields and probe identities:
+`results/position_metric_screen_20260922.json` and
+`results/historical_five_position_metric_20260922.json`.
 
 The single-configuration temporal-convolution sequence member also completed. Its individual S
 was 0.990636, but the matched compact MLP-plus-convolution replacement was ΔS −0.000107 against

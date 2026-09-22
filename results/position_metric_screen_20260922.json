@@ -1,0 +1,3812 @@
+{
+  "arms": {
+    "pooled-control": {
+      "compact_comparison": {
+        "baseline_native": {
+          "S": 0.993385,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.976461,
+          "dlcfs": 0.011106,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.976517,
+            "Z_axis": 0.979124,
+            "kappa": 0.961865,
+            "li": 0.968654,
+            "tri_bot": 0.9892,
+            "tri_top": 0.990586,
+            "volume": 0.969281
+          },
+          "r2_each": {
+            "betaN": 0.996117,
+            "q95": 0.99508
+          },
+          "r2_psi": 0.999753,
+          "r2_psi_per_shot_mean": 0.999661,
+          "r2_psi_unflipped": 0.999753,
+          "r2_qb": 0.995598,
+          "ref_lcfs_dropped": 0
+        },
+        "candidate": {
+          "S": 0.991412,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.967033,
+          "dlcfs": 0.011569,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.971745,
+            "Z_axis": 0.976994,
+            "kappa": 0.932293,
+            "li": 0.954714,
+            "tri_bot": 0.986374,
+            "tri_top": 0.98691,
+            "volume": 0.960201
+          },
+          "r2_each": {
+            "betaN": 0.995451,
+            "q95": 0.995395
+          },
+          "r2_psi": 0.999725,
+          "r2_psi_per_shot_mean": 0.999583,
+          "r2_psi_unflipped": 0.999725,
+          "r2_qb": 0.995423,
+          "ref_lcfs_dropped": 0
+        },
+        "comparison_sha256": "85d18f6b7171a697ded8a686f7c0aea8647a8cd337a2af3d68a56f02e683ffc5",
+        "control_decoded": {
+          "S": 0.993386,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.976462,
+          "dlcfs": 0.011106,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.976516,
+            "Z_axis": 0.979124,
+            "kappa": 0.961868,
+            "li": 0.968656,
+            "tri_bot": 0.989204,
+            "tri_top": 0.990586,
+            "volume": 0.969281
+          },
+          "r2_each": {
+            "betaN": 0.996117,
+            "q95": 0.99508
+          },
+          "r2_psi": 0.999753,
+          "r2_psi_per_shot_mean": 0.999661,
+          "r2_psi_unflipped": 0.999753,
+          "r2_qb": 0.995598,
+          "ref_lcfs_dropped": 0
+        },
+        "controller_run_sha256": "a6800cddb6423fe2565070cae25b7d9d4cc6de52df936923d9b60bc47695a0ab",
+        "directory": "runs/replace-1790113936648128358",
+        "evaluator_source_hash": "a1f5baa4f58b17c4411944e80d72a1da07f2795cfb6675a222befafd66b0dbd3",
+        "input_artifacts": [
+          {
+            "alias": "m0",
+            "projection_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+            "selected_member": "original_ensemble",
+            "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+            "source_fit_sha256": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+            "source_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8"
+          },
+          {
+            "alias": "m1",
+            "projection_sha256": "37bf8292ab7755f1a9332b9f7315465bf3c9d9f84644b484e739b172cf9eb8d4",
+            "selected_member": "mlp",
+            "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/position-metric-screen-213184dc591c904b/pooled-control_s0/baseline.joblib",
+            "source_fit_sha256": "a1f5baa4f58b17c4411944e80d72a1da07f2795cfb6675a222befafd66b0dbd3",
+            "source_sha256": "4a7f004801c6afd1945ed04dd3a317acd9521f5aa190162532df97af44fd8815"
+          },
+          {
+            "alias": "m2",
+            "projection_sha256": "0e57057770464424e3f958d15416d98adc4411205a62c99c5079ac2b26369f54",
+            "selected_member": "seq",
+            "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+            "source_fit_sha256": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+            "source_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8"
+          },
+          {
+            "alias": "m3",
+            "projection_sha256": "4aa282bfa8f272bb662dbcc6b2a7db9a6273f91303af8e4ea41037719dc5a5b2",
+            "selected_member": "mlp",
+            "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+            "source_fit_sha256": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+            "source_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8"
+          }
+        ],
+        "member_weights": {
+          "baseline_native": {
+            "mlp": 0.5,
+            "seq": 0.5
+          },
+          "candidate": {
+            "mlp": 1.0
+          },
+          "control_decoded": {
+            "mlp": 0.5,
+            "seq": 0.5
+          },
+          "replacement": {
+            "mlp<-mlp": 0.5,
+            "seq": 0.5
+          }
+        },
+        "metrics_sha256": "453ffbd8f7b20d70058b1197b9aa743cbd182e0dd42210d5f96ba49acd6c1bc7",
+        "replacement": {
+          "S": 0.993584,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.977213,
+          "dlcfs": 0.011007,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.975387,
+            "Z_axis": 0.982277,
+            "kappa": 0.96018,
+            "li": 0.973156,
+            "tri_bot": 0.989682,
+            "tri_top": 0.991451,
+            "volume": 0.968356
+          },
+          "r2_each": {
+            "betaN": 0.995977,
+            "q95": 0.99564
+          },
+          "r2_psi": 0.999766,
+          "r2_psi_per_shot_mean": 0.999666,
+          "r2_psi_unflipped": 0.999766,
+          "r2_qb": 0.995809,
+          "ref_lcfs_dropped": 0
+        },
+        "replacement_minus_original_decoded_control": 0.00019800000000003148,
+        "request_sha256": "fcd356bb5c3cbdef54aa3e5631f11d1a84dd5c6bab3470d12b4c2ebca3a1b9ce",
+        "scorer_wall_seconds": 105.15111207962036
+      },
+      "effective_params_yaml": "features:\n  n_pca: 50\n  pca_seed: 0\n  pca_frame_share: 0.2\n  basis_envelope: 1.0\n  basis_sobolev: 0.0\n  subtract_coil_field: true\n  inputs: currents\n  derivatives: both\n  derivative_signals: poloidal\n  thomson: te,ne,p,pos\n  n_coil_pca: 19\n  frame_gaps: false\n  vessel: none\nsplit:\n  salt: 0\n  holdout_share: 0.0\nloss:\n  metric: jacobian\n  position_metric:\n    mode: pooled\n    strength: 0.5\n    probe_shots: 100\n    minimum_kept_frames: 10\n    minimum_complete_triplets: 90\n    anchors:\n    - 0.1\n    - 0.5\n    - 0.9\n    boundaries:\n    - 0.3\n    - 0.7\n  calibrate_scalars: false\n  li_form: jacobian\n  jacobian_frames: 300\n  monitor_frames: 150\n  aux_scalars: none\n  aux_weight: 0.1\n  cons_split: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n  cons_gain: 1.0\n  field_weight: 0.0\n  env_weight: 0.0\n  env_inside: 4.0\n  jacobian_delta: 0.0332\n  boundary: false\nmodels:\n  ridge:\n    type: ridge\n    enabled: false\n    alpha: 1.0\n  catboost:\n    type: catboost\n    enabled: false\n    iterations: 16000\n    depth: 8\n    learning_rate: 0.1\n    l2_leaf_reg: 3.0\n    early_stopping_rounds: 50\n    random_seed: 0\n    thread_count: 8\n    task_type: gpu\n  mlp:\n    type: torch_mlp\n    enabled: true\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 0\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp1:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 1\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp2:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 2\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp3:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 3\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp4:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 4\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp5:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 5\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp6:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 6\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp7:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 7\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  seq:\n    type: torch_seq\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    seq_hidden: 256\n    seq_layers: 1\n    seq_hidden2: 0\n    seq_skip: false\n    seq_conv_dilations: 1,2,4,8,16,32\n    seq_attn_heads: 8\n    seq_cell: gru\n    seq_head_hidden: 0\n    batch_shots: 32\n    max_steps: 200000\n    patience_steps: 10000\n    eval_every_steps: 500\n    learning_rate: 0.001\n    weight_decay: 0.0\n    seed: 0\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    lr_schedule: none\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    loss: mse\n    huber_delta: 2.0\n    ema_decay: 0.0\n  seq1:\n    type: torch_seq\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    seq_hidden: 256\n    seq_layers: 1\n    seq_cell: gru\n    seq_head_hidden: 0\n    seq_hidden2: 0\n    seq_skip: false\n    seq_conv_dilations: 1,2,4,8,16,32\n    seq_attn_heads: 8\n    batch_shots: 32\n    max_steps: 200000\n    patience_steps: 10000\n    eval_every_steps: 500\n    learning_rate: 0.001\n    weight_decay: 0.0\n    seed: 1\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    lr_schedule: none\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    loss: mse\n    huber_delta: 2.0\n    ema_decay: 0.0\n  seq2:\n    type: torch_seq\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    seq_hidden: 256\n    seq_layers: 1\n    seq_cell: gru\n    seq_head_hidden: 0\n    seq_hidden2: 0\n    seq_skip: false\n    seq_conv_dilations: 1,2,4,8,16,32\n    seq_attn_heads: 8\n    batch_shots: 32\n    max_steps: 200000\n    patience_steps: 10000\n    eval_every_steps: 500\n    learning_rate: 0.001\n    weight_decay: 0.0\n    seed: 2\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    lr_schedule: none\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    loss: mse\n    huber_delta: 2.0\n    ema_decay: 0.0\nensemble:\n  members:\n    mlp: 1.0\n",
+      "fit": {
+        "artifact_sha256": "4a7f004801c6afd1945ed04dd3a317acd9521f5aa190162532df97af44fd8815",
+        "child_wall_seconds": 741.2409925460815,
+        "completion_sha256": "38ee0bf2a3d8148fa1631d21e0b4a782a26d04659d6fcedd54ca1fde48177dba",
+        "executed_steps": 128850,
+        "fit_logged_seconds_rounded": 503.9,
+        "individual_native": {
+          "S": 0.991412,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.967033,
+          "dlcfs": 0.011569,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.971745,
+            "Z_axis": 0.976994,
+            "kappa": 0.932293,
+            "li": 0.954714,
+            "tri_bot": 0.986374,
+            "tri_top": 0.98691,
+            "volume": 0.960201
+          },
+          "r2_each": {
+            "betaN": 0.995451,
+            "q95": 0.995395
+          },
+          "r2_psi": 0.999725,
+          "r2_psi_per_shot_mean": 0.999583,
+          "r2_psi_unflipped": 0.999725,
+          "r2_qb": 0.995423,
+          "ref_lcfs_dropped": 0
+        },
+        "kept_step": 110450,
+        "log": "runs/position-metric-screen-213184dc591c904b/pooled-control_s0/1790112266536575591-run.log",
+        "log_sha256": "e5667f195f020a4e1db7c744ffee3d1ea9e2fc9e3380a861ac5dd2e71cded1d4",
+        "metrics_sha256": "3b74e669b3d0b86fab6b1e9031a7def9f75c3f4584e3b20553214d7ccf75588c",
+        "timing_seconds": {
+          "score": 58.34522140400077,
+          "train": 676.6917090619972,
+          "train_and_score": 735.036930465998
+        }
+      },
+      "position_diagnostic": {
+        "base_cache_code_key": "6b846fbf11e11c33",
+        "complete_triplets": 100,
+        "config": {
+          "anchors": [
+            0.1,
+            0.5,
+            0.9
+          ],
+          "boundaries": [
+            0.3,
+            0.7
+          ],
+          "minimum_complete_triplets": 90,
+          "minimum_kept_frames": 10,
+          "mode": "pooled",
+          "probe_shots": 100,
+          "strength": 0.5
+        },
+        "diagnostic_field_hashes": {
+          "base_cache_code_key": "146244d6381167e56fe72a9ea1ff2223",
+          "common_trace": "29add9670d0fa8858a923bc484e7704e",
+          "complete_triplets": "9ced2b490500d2371209af85c7c35c87",
+          "consistency_scalar_order": "f5ca4e3de29e70e4b16bf8081a51bfd4",
+          "consistency_split": "21b9a20aef119e5e8aa770162d8113aa",
+          "equalized_consistency_forms": "66ff42af55ea4fe1c60584e478aadd76",
+          "frame_share": "050d6d891f2c3258158030ec54d18618",
+          "global_factor": "133439c72e4eed5b5733307296687b7e",
+          "global_metric": "eb2faf451886393920ee4c6d5210c905",
+          "group_metrics": "3fa390fd7f702e7af8beb19560589a43",
+          "ineligible_before_selection": "d34b2ff3ebd47dff1d21eee2d69d4ffd",
+          "invalid_triplets": "d34b2ff3ebd47dff1d21eee2d69d4ffd",
+          "pooled_consistency_form": "642ced92365cef439794d403956f7563",
+          "pooled_scalar_variance": "4234e95f015910701f5f8e1b2f45f7a8",
+          "probe_delta_wb_per_rad": "13f87ea25c36355221741cf676bfb4b5",
+          "raw_consistency_forms": "b9fe6affa13a3994128cf7105403ee29",
+          "raw_traces": "0c9d18d990aa22fbd05545ebb23a9d61",
+          "scaled_group_metrics": "ad0fc3b56fe136f0379334ec954b4e8a",
+          "scaled_loss_factors": "b27d0c16440d8dc35b4799b2d38bbde6",
+          "selected_probes": "a8accaeb53c83e20e263b3562887e245",
+          "train_group_counts": "93e1576d9aba6c1d5619414d10ec7a44",
+          "train_group_fractions": "9b18ab2fc923a9f69be400fcf938f6dc"
+        },
+        "ineligible_before_selection": [],
+        "input_scaler_hash": "ddf158c6673f1b2ce0fcac3235c6a520",
+        "invalid_triplets": [],
+        "pca_hash": "3562547c58ec9a09d7ecdf66fe7c5b26",
+        "probe_delta_wb_per_rad": 0.060919219459571454,
+        "selected_probes": [
+          {
+            "file": "d3d_shot_67bea4ee86.parquet",
+            "full_frames": 263,
+            "full_indices": [
+              26,
+              131,
+              236
+            ],
+            "kept_frames": 263,
+            "kept_indices": [
+              26,
+              131,
+              236
+            ]
+          },
+          {
+            "file": "d3d_shot_1b9fc5705d.parquet",
+            "full_frames": 321,
+            "full_indices": [
+              32,
+              160,
+              288
+            ],
+            "kept_frames": 321,
+            "kept_indices": [
+              32,
+              160,
+              288
+            ]
+          },
+          {
+            "file": "d3d_shot_2b18735002.parquet",
+            "full_frames": 266,
+            "full_indices": [
+              26,
+              132,
+              238
+            ],
+            "kept_frames": 266,
+            "kept_indices": [
+              26,
+              132,
+              238
+            ]
+          },
+          {
+            "file": "d3d_shot_c999240565.parquet",
+            "full_frames": 183,
+            "full_indices": [
+              18,
+              91,
+              164
+            ],
+            "kept_frames": 183,
+            "kept_indices": [
+              18,
+              91,
+              164
+            ]
+          },
+          {
+            "file": "d3d_shot_4a9a11e99b.parquet",
+            "full_frames": 212,
+            "full_indices": [
+              21,
+              106,
+              190
+            ],
+            "kept_frames": 212,
+            "kept_indices": [
+              21,
+              106,
+              190
+            ]
+          },
+          {
+            "file": "d3d_shot_901723d68a.parquet",
+            "full_frames": 294,
+            "full_indices": [
+              29,
+              146,
+              264
+            ],
+            "kept_frames": 294,
+            "kept_indices": [
+              29,
+              146,
+              264
+            ]
+          },
+          {
+            "file": "d3d_shot_53752cc4a3.parquet",
+            "full_frames": 197,
+            "full_indices": [
+              20,
+              98,
+              176
+            ],
+            "kept_frames": 197,
+            "kept_indices": [
+              20,
+              98,
+              176
+            ]
+          },
+          {
+            "file": "d3d_shot_8db7348835.parquet",
+            "full_frames": 319,
+            "full_indices": [
+              32,
+              159,
+              286
+            ],
+            "kept_frames": 319,
+            "kept_indices": [
+              32,
+              159,
+              286
+            ]
+          },
+          {
+            "file": "d3d_shot_e03594001b.parquet",
+            "full_frames": 126,
+            "full_indices": [
+              12,
+              62,
+              112
+            ],
+            "kept_frames": 126,
+            "kept_indices": [
+              12,
+              62,
+              112
+            ]
+          },
+          {
+            "file": "d3d_shot_2d0f8214d1.parquet",
+            "full_frames": 239,
+            "full_indices": [
+              24,
+              119,
+              214
+            ],
+            "kept_frames": 239,
+            "kept_indices": [
+              24,
+              119,
+              214
+            ]
+          },
+          {
+            "file": "d3d_shot_2e7f9bc07c.parquet",
+            "full_frames": 260,
+            "full_indices": [
+              26,
+              130,
+              233
+            ],
+            "kept_frames": 260,
+            "kept_indices": [
+              26,
+              130,
+              233
+            ]
+          },
+          {
+            "file": "d3d_shot_2907a0e984.parquet",
+            "full_frames": 274,
+            "full_indices": [
+              27,
+              136,
+              246
+            ],
+            "kept_frames": 274,
+            "kept_indices": [
+              27,
+              136,
+              246
+            ]
+          },
+          {
+            "file": "d3d_shot_a7b8a3597f.parquet",
+            "full_frames": 291,
+            "full_indices": [
+              29,
+              145,
+              261
+            ],
+            "kept_frames": 291,
+            "kept_indices": [
+              29,
+              145,
+              261
+            ]
+          },
+          {
+            "file": "d3d_shot_2f650afe38.parquet",
+            "full_frames": 214,
+            "full_indices": [
+              21,
+              106,
+              192
+            ],
+            "kept_frames": 214,
+            "kept_indices": [
+              21,
+              106,
+              192
+            ]
+          },
+          {
+            "file": "d3d_shot_e8d670db78.parquet",
+            "full_frames": 247,
+            "full_indices": [
+              25,
+              123,
+              221
+            ],
+            "kept_frames": 247,
+            "kept_indices": [
+              25,
+              123,
+              221
+            ]
+          },
+          {
+            "file": "d3d_shot_307552f346.parquet",
+            "full_frames": 90,
+            "full_indices": [
+              9,
+              44,
+              80
+            ],
+            "kept_frames": 90,
+            "kept_indices": [
+              9,
+              44,
+              80
+            ]
+          },
+          {
+            "file": "d3d_shot_776b72f734.parquet",
+            "full_frames": 197,
+            "full_indices": [
+              20,
+              98,
+              176
+            ],
+            "kept_frames": 197,
+            "kept_indices": [
+              20,
+              98,
+              176
+            ]
+          },
+          {
+            "file": "d3d_shot_2ca8c33d33.parquet",
+            "full_frames": 183,
+            "full_indices": [
+              18,
+              91,
+              164
+            ],
+            "kept_frames": 183,
+            "kept_indices": [
+              18,
+              91,
+              164
+            ]
+          },
+          {
+            "file": "d3d_shot_0bb4ea7bb0.parquet",
+            "full_frames": 248,
+            "full_indices": [
+              25,
+              124,
+              222
+            ],
+            "kept_frames": 248,
+            "kept_indices": [
+              25,
+              124,
+              222
+            ]
+          },
+          {
+            "file": "d3d_shot_ace21a9318.parquet",
+            "full_frames": 231,
+            "full_indices": [
+              23,
+              115,
+              207
+            ],
+            "kept_frames": 231,
+            "kept_indices": [
+              23,
+              115,
+              207
+            ]
+          },
+          {
+            "file": "d3d_shot_51a4dcbab2.parquet",
+            "full_frames": 176,
+            "full_indices": [
+              18,
+              88,
+              158
+            ],
+            "kept_frames": 176,
+            "kept_indices": [
+              18,
+              88,
+              158
+            ]
+          },
+          {
+            "file": "d3d_shot_86a02e61b4.parquet",
+            "full_frames": 258,
+            "full_indices": [
+              26,
+              128,
+              231
+            ],
+            "kept_frames": 258,
+            "kept_indices": [
+              26,
+              128,
+              231
+            ]
+          },
+          {
+            "file": "d3d_shot_a9ae512bc5.parquet",
+            "full_frames": 124,
+            "full_indices": [
+              12,
+              62,
+              111
+            ],
+            "kept_frames": 124,
+            "kept_indices": [
+              12,
+              62,
+              111
+            ]
+          },
+          {
+            "file": "d3d_shot_624413af82.parquet",
+            "full_frames": 206,
+            "full_indices": [
+              20,
+              102,
+              184
+            ],
+            "kept_frames": 206,
+            "kept_indices": [
+              20,
+              102,
+              184
+            ]
+          },
+          {
+            "file": "d3d_shot_cc9a416d3a.parquet",
+            "full_frames": 224,
+            "full_indices": [
+              22,
+              112,
+              201
+            ],
+            "kept_frames": 224,
+            "kept_indices": [
+              22,
+              112,
+              201
+            ]
+          },
+          {
+            "file": "d3d_shot_f738a3a70a.parquet",
+            "full_frames": 107,
+            "full_indices": [
+              11,
+              53,
+              95
+            ],
+            "kept_frames": 107,
+            "kept_indices": [
+              11,
+              53,
+              95
+            ]
+          },
+          {
+            "file": "d3d_shot_847ea9092f.parquet",
+            "full_frames": 246,
+            "full_indices": [
+              24,
+              122,
+              220
+            ],
+            "kept_frames": 246,
+            "kept_indices": [
+              24,
+              122,
+              220
+            ]
+          },
+          {
+            "file": "d3d_shot_9fc5d2b15a.parquet",
+            "full_frames": 369,
+            "full_indices": [
+              37,
+              184,
+              331
+            ],
+            "kept_frames": 369,
+            "kept_indices": [
+              37,
+              184,
+              331
+            ]
+          },
+          {
+            "file": "d3d_shot_4fa34c1598.parquet",
+            "full_frames": 63,
+            "full_indices": [
+              6,
+              31,
+              56
+            ],
+            "kept_frames": 63,
+            "kept_indices": [
+              6,
+              31,
+              56
+            ]
+          },
+          {
+            "file": "d3d_shot_0f1411c04f.parquet",
+            "full_frames": 235,
+            "full_indices": [
+              23,
+              117,
+              211
+            ],
+            "kept_frames": 235,
+            "kept_indices": [
+              23,
+              117,
+              211
+            ]
+          },
+          {
+            "file": "d3d_shot_d217dabb63.parquet",
+            "full_frames": 73,
+            "full_indices": [
+              7,
+              36,
+              65
+            ],
+            "kept_frames": 73,
+            "kept_indices": [
+              7,
+              36,
+              65
+            ]
+          },
+          {
+            "file": "d3d_shot_7b5149d989.parquet",
+            "full_frames": 241,
+            "full_indices": [
+              24,
+              120,
+              216
+            ],
+            "kept_frames": 241,
+            "kept_indices": [
+              24,
+              120,
+              216
+            ]
+          },
+          {
+            "file": "d3d_shot_854b2487e1.parquet",
+            "full_frames": 262,
+            "full_indices": [
+              26,
+              130,
+              235
+            ],
+            "kept_frames": 262,
+            "kept_indices": [
+              26,
+              130,
+              235
+            ]
+          },
+          {
+            "file": "d3d_shot_03a2088dca.parquet",
+            "full_frames": 213,
+            "full_indices": [
+              21,
+              106,
+              191
+            ],
+            "kept_frames": 213,
+            "kept_indices": [
+              21,
+              106,
+              191
+            ]
+          },
+          {
+            "file": "d3d_shot_fa18a25950.parquet",
+            "full_frames": 289,
+            "full_indices": [
+              29,
+              144,
+              259
+            ],
+            "kept_frames": 289,
+            "kept_indices": [
+              29,
+              144,
+              259
+            ]
+          },
+          {
+            "file": "d3d_shot_1467ccf31a.parquet",
+            "full_frames": 231,
+            "full_indices": [
+              23,
+              115,
+              207
+            ],
+            "kept_frames": 231,
+            "kept_indices": [
+              23,
+              115,
+              207
+            ]
+          },
+          {
+            "file": "d3d_shot_bf050e4ad5.parquet",
+            "full_frames": 308,
+            "full_indices": [
+              31,
+              154,
+              276
+            ],
+            "kept_frames": 308,
+            "kept_indices": [
+              31,
+              154,
+              276
+            ]
+          },
+          {
+            "file": "d3d_shot_816d379f9a.parquet",
+            "full_frames": 343,
+            "full_indices": [
+              34,
+              171,
+              308
+            ],
+            "kept_frames": 343,
+            "kept_indices": [
+              34,
+              171,
+              308
+            ]
+          },
+          {
+            "file": "d3d_shot_aa5b689a6b.parquet",
+            "full_frames": 354,
+            "full_indices": [
+              35,
+              176,
+              318
+            ],
+            "kept_frames": 354,
+            "kept_indices": [
+              35,
+              176,
+              318
+            ]
+          },
+          {
+            "file": "d3d_shot_727d102695.parquet",
+            "full_frames": 102,
+            "full_indices": [
+              10,
+              50,
+              91
+            ],
+            "kept_frames": 102,
+            "kept_indices": [
+              10,
+              50,
+              91
+            ]
+          },
+          {
+            "file": "d3d_shot_015dff07b3.parquet",
+            "full_frames": 371,
+            "full_indices": [
+              37,
+              185,
+              333
+            ],
+            "kept_frames": 371,
+            "kept_indices": [
+              37,
+              185,
+              333
+            ]
+          },
+          {
+            "file": "d3d_shot_41cda6bf77.parquet",
+            "full_frames": 365,
+            "full_indices": [
+              36,
+              182,
+              328
+            ],
+            "kept_frames": 365,
+            "kept_indices": [
+              36,
+              182,
+              328
+            ]
+          },
+          {
+            "file": "d3d_shot_277a0ec42d.parquet",
+            "full_frames": 309,
+            "full_indices": [
+              31,
+              154,
+              277
+            ],
+            "kept_frames": 309,
+            "kept_indices": [
+              31,
+              154,
+              277
+            ]
+          },
+          {
+            "file": "d3d_shot_d55ff69eaf.parquet",
+            "full_frames": 291,
+            "full_indices": [
+              29,
+              145,
+              261
+            ],
+            "kept_frames": 291,
+            "kept_indices": [
+              29,
+              145,
+              261
+            ]
+          },
+          {
+            "file": "d3d_shot_d0bd051d59.parquet",
+            "full_frames": 212,
+            "full_indices": [
+              21,
+              106,
+              190
+            ],
+            "kept_frames": 212,
+            "kept_indices": [
+              21,
+              106,
+              190
+            ]
+          },
+          {
+            "file": "d3d_shot_0d0e617496.parquet",
+            "full_frames": 232,
+            "full_indices": [
+              23,
+              116,
+              208
+            ],
+            "kept_frames": 232,
+            "kept_indices": [
+              23,
+              116,
+              208
+            ]
+          },
+          {
+            "file": "d3d_shot_27764e3138.parquet",
+            "full_frames": 269,
+            "full_indices": [
+              27,
+              134,
+              241
+            ],
+            "kept_frames": 269,
+            "kept_indices": [
+              27,
+              134,
+              241
+            ]
+          },
+          {
+            "file": "d3d_shot_d415ca017c.parquet",
+            "full_frames": 183,
+            "full_indices": [
+              18,
+              91,
+              164
+            ],
+            "kept_frames": 183,
+            "kept_indices": [
+              18,
+              91,
+              164
+            ]
+          },
+          {
+            "file": "d3d_shot_a1e6f879e2.parquet",
+            "full_frames": 263,
+            "full_indices": [
+              26,
+              131,
+              236
+            ],
+            "kept_frames": 263,
+            "kept_indices": [
+              26,
+              131,
+              236
+            ]
+          },
+          {
+            "file": "d3d_shot_4c43c5bc52.parquet",
+            "full_frames": 68,
+            "full_indices": [
+              7,
+              34,
+              60
+            ],
+            "kept_frames": 68,
+            "kept_indices": [
+              7,
+              34,
+              60
+            ]
+          },
+          {
+            "file": "d3d_shot_fd2ad037f6.parquet",
+            "full_frames": 249,
+            "full_indices": [
+              25,
+              124,
+              223
+            ],
+            "kept_frames": 249,
+            "kept_indices": [
+              25,
+              124,
+              223
+            ]
+          },
+          {
+            "file": "d3d_shot_2d4e942712.parquet",
+            "full_frames": 253,
+            "full_indices": [
+              25,
+              126,
+              227
+            ],
+            "kept_frames": 253,
+            "kept_indices": [
+              25,
+              126,
+              227
+            ]
+          },
+          {
+            "file": "d3d_shot_89f899c644.parquet",
+            "full_frames": 286,
+            "full_indices": [
+              28,
+              142,
+              256
+            ],
+            "kept_frames": 286,
+            "kept_indices": [
+              28,
+              142,
+              256
+            ]
+          },
+          {
+            "file": "d3d_shot_5b4f2f490c.parquet",
+            "full_frames": 221,
+            "full_indices": [
+              22,
+              110,
+              198
+            ],
+            "kept_frames": 221,
+            "kept_indices": [
+              22,
+              110,
+              198
+            ]
+          },
+          {
+            "file": "d3d_shot_58789d7380.parquet",
+            "full_frames": 306,
+            "full_indices": [
+              30,
+              152,
+              274
+            ],
+            "kept_frames": 306,
+            "kept_indices": [
+              30,
+              152,
+              274
+            ]
+          },
+          {
+            "file": "d3d_shot_5981d962b9.parquet",
+            "full_frames": 325,
+            "full_indices": [
+              32,
+              162,
+              292
+            ],
+            "kept_frames": 325,
+            "kept_indices": [
+              32,
+              162,
+              292
+            ]
+          },
+          {
+            "file": "d3d_shot_3a8449a2ae.parquet",
+            "full_frames": 182,
+            "full_indices": [
+              18,
+              90,
+              163
+            ],
+            "kept_frames": 182,
+            "kept_indices": [
+              18,
+              90,
+              163
+            ]
+          },
+          {
+            "file": "d3d_shot_0679809c2a.parquet",
+            "full_frames": 167,
+            "full_indices": [
+              17,
+              83,
+              149
+            ],
+            "kept_frames": 167,
+            "kept_indices": [
+              17,
+              83,
+              149
+            ]
+          },
+          {
+            "file": "d3d_shot_11b421d69c.parquet",
+            "full_frames": 267,
+            "full_indices": [
+              27,
+              133,
+              239
+            ],
+            "kept_frames": 267,
+            "kept_indices": [
+              27,
+              133,
+              239
+            ]
+          },
+          {
+            "file": "d3d_shot_04d8e5c5b9.parquet",
+            "full_frames": 227,
+            "full_indices": [
+              23,
+              113,
+              203
+            ],
+            "kept_frames": 227,
+            "kept_indices": [
+              23,
+              113,
+              203
+            ]
+          },
+          {
+            "file": "d3d_shot_4997bf8d9c.parquet",
+            "full_frames": 260,
+            "full_indices": [
+              26,
+              130,
+              233
+            ],
+            "kept_frames": 260,
+            "kept_indices": [
+              26,
+              130,
+              233
+            ]
+          },
+          {
+            "file": "d3d_shot_74ae4d6b2d.parquet",
+            "full_frames": 247,
+            "full_indices": [
+              25,
+              123,
+              221
+            ],
+            "kept_frames": 247,
+            "kept_indices": [
+              25,
+              123,
+              221
+            ]
+          },
+          {
+            "file": "d3d_shot_4bdded0e1e.parquet",
+            "full_frames": 219,
+            "full_indices": [
+              22,
+              109,
+              196
+            ],
+            "kept_frames": 219,
+            "kept_indices": [
+              22,
+              109,
+              196
+            ]
+          },
+          {
+            "file": "d3d_shot_8b5c2878e6.parquet",
+            "full_frames": 137,
+            "full_indices": [
+              14,
+              68,
+              122
+            ],
+            "kept_frames": 137,
+            "kept_indices": [
+              14,
+              68,
+              122
+            ]
+          },
+          {
+            "file": "d3d_shot_9ca1fae2f6.parquet",
+            "full_frames": 182,
+            "full_indices": [
+              18,
+              90,
+              163
+            ],
+            "kept_frames": 182,
+            "kept_indices": [
+              18,
+              90,
+              163
+            ]
+          },
+          {
+            "file": "d3d_shot_6d9cccbcc1.parquet",
+            "full_frames": 288,
+            "full_indices": [
+              29,
+              144,
+              258
+            ],
+            "kept_frames": 288,
+            "kept_indices": [
+              29,
+              144,
+              258
+            ]
+          },
+          {
+            "file": "d3d_shot_89c50bf966.parquet",
+            "full_frames": 268,
+            "full_indices": [
+              27,
+              134,
+              240
+            ],
+            "kept_frames": 268,
+            "kept_indices": [
+              27,
+              134,
+              240
+            ]
+          },
+          {
+            "file": "d3d_shot_9d2aa05a1d.parquet",
+            "full_frames": 216,
+            "full_indices": [
+              22,
+              108,
+              194
+            ],
+            "kept_frames": 216,
+            "kept_indices": [
+              22,
+              108,
+              194
+            ]
+          },
+          {
+            "file": "d3d_shot_a170790e9e.parquet",
+            "full_frames": 190,
+            "full_indices": [
+              19,
+              94,
+              170
+            ],
+            "kept_frames": 190,
+            "kept_indices": [
+              19,
+              94,
+              170
+            ]
+          },
+          {
+            "file": "d3d_shot_7c2d0643fe.parquet",
+            "full_frames": 231,
+            "full_indices": [
+              23,
+              115,
+              207
+            ],
+            "kept_frames": 231,
+            "kept_indices": [
+              23,
+              115,
+              207
+            ]
+          },
+          {
+            "file": "d3d_shot_dfdea15fc9.parquet",
+            "full_frames": 290,
+            "full_indices": [
+              29,
+              144,
+              260
+            ],
+            "kept_frames": 290,
+            "kept_indices": [
+              29,
+              144,
+              260
+            ]
+          },
+          {
+            "file": "d3d_shot_1f7c1346c9.parquet",
+            "full_frames": 143,
+            "full_indices": [
+              14,
+              71,
+              128
+            ],
+            "kept_frames": 143,
+            "kept_indices": [
+              14,
+              71,
+              128
+            ]
+          },
+          {
+            "file": "d3d_shot_c75128000e.parquet",
+            "full_frames": 174,
+            "full_indices": [
+              17,
+              86,
+              156
+            ],
+            "kept_frames": 174,
+            "kept_indices": [
+              17,
+              86,
+              156
+            ]
+          },
+          {
+            "file": "d3d_shot_1ec9bfdc1b.parquet",
+            "full_frames": 183,
+            "full_indices": [
+              18,
+              91,
+              164
+            ],
+            "kept_frames": 183,
+            "kept_indices": [
+              18,
+              91,
+              164
+            ]
+          },
+          {
+            "file": "d3d_shot_abbfbf7c57.parquet",
+            "full_frames": 127,
+            "full_indices": [
+              13,
+              63,
+              113
+            ],
+            "kept_frames": 127,
+            "kept_indices": [
+              13,
+              63,
+              113
+            ]
+          },
+          {
+            "file": "d3d_shot_6b3271db56.parquet",
+            "full_frames": 226,
+            "full_indices": [
+              22,
+              112,
+              202
+            ],
+            "kept_frames": 226,
+            "kept_indices": [
+              22,
+              112,
+              202
+            ]
+          },
+          {
+            "file": "d3d_shot_a55059d386.parquet",
+            "full_frames": 241,
+            "full_indices": [
+              24,
+              120,
+              216
+            ],
+            "kept_frames": 241,
+            "kept_indices": [
+              24,
+              120,
+              216
+            ]
+          },
+          {
+            "file": "d3d_shot_eedfeefe3b.parquet",
+            "full_frames": 240,
+            "full_indices": [
+              24,
+              120,
+              215
+            ],
+            "kept_frames": 240,
+            "kept_indices": [
+              24,
+              120,
+              215
+            ]
+          },
+          {
+            "file": "d3d_shot_fac1987902.parquet",
+            "full_frames": 264,
+            "full_indices": [
+              26,
+              132,
+              237
+            ],
+            "kept_frames": 264,
+            "kept_indices": [
+              26,
+              132,
+              237
+            ]
+          },
+          {
+            "file": "d3d_shot_b22be61898.parquet",
+            "full_frames": 85,
+            "full_indices": [
+              8,
+              42,
+              76
+            ],
+            "kept_frames": 85,
+            "kept_indices": [
+              8,
+              42,
+              76
+            ]
+          },
+          {
+            "file": "d3d_shot_652fea31cd.parquet",
+            "full_frames": 290,
+            "full_indices": [
+              29,
+              144,
+              260
+            ],
+            "kept_frames": 290,
+            "kept_indices": [
+              29,
+              144,
+              260
+            ]
+          },
+          {
+            "file": "d3d_shot_98f8db0bb5.parquet",
+            "full_frames": 329,
+            "full_indices": [
+              33,
+              164,
+              295
+            ],
+            "kept_frames": 329,
+            "kept_indices": [
+              33,
+              164,
+              295
+            ]
+          },
+          {
+            "file": "d3d_shot_8087757a73.parquet",
+            "full_frames": 265,
+            "full_indices": [
+              26,
+              132,
+              238
+            ],
+            "kept_frames": 265,
+            "kept_indices": [
+              26,
+              132,
+              238
+            ]
+          },
+          {
+            "file": "d3d_shot_1294f3152c.parquet",
+            "full_frames": 294,
+            "full_indices": [
+              29,
+              146,
+              264
+            ],
+            "kept_frames": 294,
+            "kept_indices": [
+              29,
+              146,
+              264
+            ]
+          },
+          {
+            "file": "d3d_shot_da8d9fd3c4.parquet",
+            "full_frames": 178,
+            "full_indices": [
+              18,
+              88,
+              159
+            ],
+            "kept_frames": 178,
+            "kept_indices": [
+              18,
+              88,
+              159
+            ]
+          },
+          {
+            "file": "d3d_shot_ac9573e5c4.parquet",
+            "full_frames": 178,
+            "full_indices": [
+              18,
+              88,
+              159
+            ],
+            "kept_frames": 178,
+            "kept_indices": [
+              18,
+              88,
+              159
+            ]
+          },
+          {
+            "file": "d3d_shot_bee48923e3.parquet",
+            "full_frames": 114,
+            "full_indices": [
+              11,
+              56,
+              102
+            ],
+            "kept_frames": 114,
+            "kept_indices": [
+              11,
+              56,
+              102
+            ]
+          },
+          {
+            "file": "d3d_shot_7d58852d8b.parquet",
+            "full_frames": 273,
+            "full_indices": [
+              27,
+              136,
+              245
+            ],
+            "kept_frames": 273,
+            "kept_indices": [
+              27,
+              136,
+              245
+            ]
+          },
+          {
+            "file": "d3d_shot_6f3f8e2916.parquet",
+            "full_frames": 89,
+            "full_indices": [
+              9,
+              44,
+              79
+            ],
+            "kept_frames": 89,
+            "kept_indices": [
+              9,
+              44,
+              79
+            ]
+          },
+          {
+            "file": "d3d_shot_c87c1c5977.parquet",
+            "full_frames": 282,
+            "full_indices": [
+              28,
+              140,
+              253
+            ],
+            "kept_frames": 282,
+            "kept_indices": [
+              28,
+              140,
+              253
+            ]
+          },
+          {
+            "file": "d3d_shot_91dc8a59a2.parquet",
+            "full_frames": 214,
+            "full_indices": [
+              21,
+              106,
+              192
+            ],
+            "kept_frames": 214,
+            "kept_indices": [
+              21,
+              106,
+              192
+            ]
+          },
+          {
+            "file": "d3d_shot_e938810a11.parquet",
+            "full_frames": 241,
+            "full_indices": [
+              24,
+              120,
+              216
+            ],
+            "kept_frames": 241,
+            "kept_indices": [
+              24,
+              120,
+              216
+            ]
+          },
+          {
+            "file": "d3d_shot_71fe5656a3.parquet",
+            "full_frames": 214,
+            "full_indices": [
+              21,
+              106,
+              192
+            ],
+            "kept_frames": 214,
+            "kept_indices": [
+              21,
+              106,
+              192
+            ]
+          },
+          {
+            "file": "d3d_shot_fb503f01e8.parquet",
+            "full_frames": 315,
+            "full_indices": [
+              31,
+              157,
+              283
+            ],
+            "kept_frames": 315,
+            "kept_indices": [
+              31,
+              157,
+              283
+            ]
+          },
+          {
+            "file": "d3d_shot_271c4c29c0.parquet",
+            "full_frames": 218,
+            "full_indices": [
+              22,
+              108,
+              195
+            ],
+            "kept_frames": 218,
+            "kept_indices": [
+              22,
+              108,
+              195
+            ]
+          },
+          {
+            "file": "d3d_shot_6097c06245.parquet",
+            "full_frames": 259,
+            "full_indices": [
+              26,
+              129,
+              232
+            ],
+            "kept_frames": 259,
+            "kept_indices": [
+              26,
+              129,
+              232
+            ]
+          },
+          {
+            "file": "d3d_shot_bc6131ce8e.parquet",
+            "full_frames": 268,
+            "full_indices": [
+              27,
+              134,
+              240
+            ],
+            "kept_frames": 268,
+            "kept_indices": [
+              27,
+              134,
+              240
+            ]
+          },
+          {
+            "file": "d3d_shot_e9e27a15bf.parquet",
+            "full_frames": 243,
+            "full_indices": [
+              24,
+              121,
+              218
+            ],
+            "kept_frames": 243,
+            "kept_indices": [
+              24,
+              121,
+              218
+            ]
+          },
+          {
+            "file": "d3d_shot_9ae4f52ec3.parquet",
+            "full_frames": 245,
+            "full_indices": [
+              24,
+              122,
+              220
+            ],
+            "kept_frames": 245,
+            "kept_indices": [
+              24,
+              122,
+              220
+            ]
+          },
+          {
+            "file": "d3d_shot_a3113f1655.parquet",
+            "full_frames": 242,
+            "full_indices": [
+              24,
+              120,
+              217
+            ],
+            "kept_frames": 242,
+            "kept_indices": [
+              24,
+              120,
+              217
+            ]
+          }
+        ],
+        "target_scaler_hash": "e431557ae402716e2d5aa406283231d7",
+        "train_group_counts": [
+          375402,
+          497118,
+          375937
+        ]
+      },
+      "requested_set": []
+    },
+    "position-conditioned": {
+      "compact_comparison": {
+        "baseline_native": {
+          "S": 0.993385,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.976461,
+          "dlcfs": 0.011106,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.976517,
+            "Z_axis": 0.979124,
+            "kappa": 0.961865,
+            "li": 0.968654,
+            "tri_bot": 0.9892,
+            "tri_top": 0.990586,
+            "volume": 0.969281
+          },
+          "r2_each": {
+            "betaN": 0.996117,
+            "q95": 0.99508
+          },
+          "r2_psi": 0.999753,
+          "r2_psi_per_shot_mean": 0.999661,
+          "r2_psi_unflipped": 0.999753,
+          "r2_qb": 0.995598,
+          "ref_lcfs_dropped": 0
+        },
+        "candidate": {
+          "S": 0.992075,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.970264,
+          "dlcfs": 0.011557,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.973299,
+            "Z_axis": 0.970112,
+            "kappa": 0.947004,
+            "li": 0.962647,
+            "tri_bot": 0.987815,
+            "tri_top": 0.990405,
+            "volume": 0.960567
+          },
+          "r2_each": {
+            "betaN": 0.995129,
+            "q95": 0.995832
+          },
+          "r2_psi": 0.999738,
+          "r2_psi_per_shot_mean": 0.999593,
+          "r2_psi_unflipped": 0.999738,
+          "r2_qb": 0.995481,
+          "ref_lcfs_dropped": 0
+        },
+        "comparison_sha256": "b217a0d8c8e2101dae6585f3106319002f2ba630d95ac773abb54033c43071ae",
+        "control_decoded": {
+          "S": 0.993386,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.976462,
+          "dlcfs": 0.011106,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.976516,
+            "Z_axis": 0.979124,
+            "kappa": 0.961868,
+            "li": 0.968656,
+            "tri_bot": 0.989204,
+            "tri_top": 0.990586,
+            "volume": 0.969281
+          },
+          "r2_each": {
+            "betaN": 0.996117,
+            "q95": 0.99508
+          },
+          "r2_psi": 0.999753,
+          "r2_psi_per_shot_mean": 0.999661,
+          "r2_psi_unflipped": 0.999753,
+          "r2_qb": 0.995598,
+          "ref_lcfs_dropped": 0
+        },
+        "controller_run_sha256": "a6800cddb6423fe2565070cae25b7d9d4cc6de52df936923d9b60bc47695a0ab",
+        "directory": "runs/replace-1790114085770839625",
+        "evaluator_source_hash": "a1f5baa4f58b17c4411944e80d72a1da07f2795cfb6675a222befafd66b0dbd3",
+        "input_artifacts": [
+          {
+            "alias": "m0",
+            "projection_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+            "selected_member": "original_ensemble",
+            "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+            "source_fit_sha256": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+            "source_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8"
+          },
+          {
+            "alias": "m1",
+            "projection_sha256": "bae949abe10e69d4f0ea6b1ad5a8a84e938bc75f9339577e76c8989f73c48dcd",
+            "selected_member": "mlp",
+            "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/position-metric-screen-213184dc591c904b/position-conditioned_s0/baseline.joblib",
+            "source_fit_sha256": "a1f5baa4f58b17c4411944e80d72a1da07f2795cfb6675a222befafd66b0dbd3",
+            "source_sha256": "98207fcc34dccd2b3f3a137925821be66cf824a8f918b467ad8d90732d49c640"
+          },
+          {
+            "alias": "m2",
+            "projection_sha256": "0e57057770464424e3f958d15416d98adc4411205a62c99c5079ac2b26369f54",
+            "selected_member": "seq",
+            "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+            "source_fit_sha256": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+            "source_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8"
+          },
+          {
+            "alias": "m3",
+            "projection_sha256": "4aa282bfa8f272bb662dbcc6b2a7db9a6273f91303af8e4ea41037719dc5a5b2",
+            "selected_member": "mlp",
+            "source": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+            "source_fit_sha256": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+            "source_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8"
+          }
+        ],
+        "member_weights": {
+          "baseline_native": {
+            "mlp": 0.5,
+            "seq": 0.5
+          },
+          "candidate": {
+            "mlp": 1.0
+          },
+          "control_decoded": {
+            "mlp": 0.5,
+            "seq": 0.5
+          },
+          "replacement": {
+            "mlp<-mlp": 0.5,
+            "seq": 0.5
+          }
+        },
+        "metrics_sha256": "ff91b0f4ded89d0a0b96aa1b106024efd12dd6658f7f4a32aad54568d00ad89a",
+        "replacement": {
+          "S": 0.993294,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.975943,
+          "dlcfs": 0.011277,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.97587,
+            "Z_axis": 0.981344,
+            "kappa": 0.958316,
+            "li": 0.970359,
+            "tri_bot": 0.988773,
+            "tri_top": 0.99181,
+            "volume": 0.96513
+          },
+          "r2_each": {
+            "betaN": 0.995673,
+            "q95": 0.995734
+          },
+          "r2_psi": 0.999778,
+          "r2_psi_per_shot_mean": 0.999671,
+          "r2_psi_unflipped": 0.999778,
+          "r2_qb": 0.995703,
+          "ref_lcfs_dropped": 0
+        },
+        "replacement_minus_original_decoded_control": -9.199999999998099e-05,
+        "request_sha256": "fdbb990ba955f0fa52d0906b41929febe748b146777c42d0d4f54e9b2f2b0214",
+        "scorer_wall_seconds": 110.15451216697693
+      },
+      "effective_params_yaml": "features:\n  n_pca: 50\n  pca_seed: 0\n  pca_frame_share: 0.2\n  basis_envelope: 1.0\n  basis_sobolev: 0.0\n  subtract_coil_field: true\n  inputs: currents\n  derivatives: both\n  derivative_signals: poloidal\n  thomson: te,ne,p,pos\n  n_coil_pca: 19\n  frame_gaps: false\n  vessel: none\nsplit:\n  salt: 0\n  holdout_share: 0.0\nloss:\n  metric: jacobian\n  position_metric:\n    mode: conditioned\n    strength: 0.5\n    probe_shots: 100\n    minimum_kept_frames: 10\n    minimum_complete_triplets: 90\n    anchors:\n    - 0.1\n    - 0.5\n    - 0.9\n    boundaries:\n    - 0.3\n    - 0.7\n  calibrate_scalars: false\n  li_form: jacobian\n  jacobian_frames: 300\n  monitor_frames: 150\n  aux_scalars: none\n  aux_weight: 0.1\n  cons_split: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n  cons_gain: 1.0\n  field_weight: 0.0\n  env_weight: 0.0\n  env_inside: 4.0\n  jacobian_delta: 0.0332\n  boundary: false\nmodels:\n  ridge:\n    type: ridge\n    enabled: false\n    alpha: 1.0\n  catboost:\n    type: catboost\n    enabled: false\n    iterations: 16000\n    depth: 8\n    learning_rate: 0.1\n    l2_leaf_reg: 3.0\n    early_stopping_rounds: 50\n    random_seed: 0\n    thread_count: 8\n    task_type: gpu\n  mlp:\n    type: torch_mlp\n    enabled: true\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 0\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp1:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 1\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp2:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 2\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp3:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 3\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp4:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 4\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp5:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 5\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp6:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 6\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  mlp7:\n    type: torch_mlp\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    max_steps: 368000\n    patience_steps: 18400\n    eval_every_steps: 50\n    batch_size: 4096\n    learning_rate: 0.0028\n    weight_decay: 0.0\n    seed: 7\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    norm: none\n    residual: false\n    split_heads: false\n    loss: mse\n    huber_delta: 2.0\n    frame_ends_strength: 0.0\n    frame_ends_edge: 0.1\n    head_weight: 0.1\n    head_hidden: 128\n    head_frozen: false\n    head_prefit_jitter: 0.0\n    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1\n    grad_clip: 1.0\n    lr_schedule: none\n    warmup_steps: 0\n    plateau_patience_evals: 3\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    ema_decay: 0.0\n    stop_on: loss\n    composite_every_steps: 2000\n    composite_after_steps: 10000\n  seq:\n    type: torch_seq\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    seq_hidden: 256\n    seq_layers: 1\n    seq_hidden2: 0\n    seq_skip: false\n    seq_conv_dilations: 1,2,4,8,16,32\n    seq_attn_heads: 8\n    seq_cell: gru\n    seq_head_hidden: 0\n    batch_shots: 32\n    max_steps: 200000\n    patience_steps: 10000\n    eval_every_steps: 500\n    learning_rate: 0.001\n    weight_decay: 0.0\n    seed: 0\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    lr_schedule: none\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    loss: mse\n    huber_delta: 2.0\n    ema_decay: 0.0\n  seq1:\n    type: torch_seq\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    seq_hidden: 256\n    seq_layers: 1\n    seq_cell: gru\n    seq_head_hidden: 0\n    seq_hidden2: 0\n    seq_skip: false\n    seq_conv_dilations: 1,2,4,8,16,32\n    seq_attn_heads: 8\n    batch_shots: 32\n    max_steps: 200000\n    patience_steps: 10000\n    eval_every_steps: 500\n    learning_rate: 0.001\n    weight_decay: 0.0\n    seed: 1\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    lr_schedule: none\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    loss: mse\n    huber_delta: 2.0\n    ema_decay: 0.0\n  seq2:\n    type: torch_seq\n    enabled: false\n    hidden_sizes:\n    - 512\n    - 512\n    seq_hidden: 256\n    seq_layers: 1\n    seq_cell: gru\n    seq_head_hidden: 0\n    seq_hidden2: 0\n    seq_skip: false\n    seq_conv_dilations: 1,2,4,8,16,32\n    seq_attn_heads: 8\n    batch_shots: 32\n    max_steps: 200000\n    patience_steps: 10000\n    eval_every_steps: 500\n    learning_rate: 0.001\n    weight_decay: 0.0\n    seed: 2\n    threads: 4\n    device: cuda\n    activation: gelu\n    dropout: 0.0\n    lr_schedule: none\n    lr_final_factor: 0.01\n    lr_t_max_steps: 0\n    loss: mse\n    huber_delta: 2.0\n    ema_decay: 0.0\nensemble:\n  members:\n    mlp: 1.0\n",
+      "fit": {
+        "artifact_sha256": "98207fcc34dccd2b3f3a137925821be66cf824a8f918b467ad8d90732d49c640",
+        "child_wall_seconds": 649.3220474720001,
+        "completion_sha256": "188e6fb9c993a46b16550e0c05577cfc163a2f88bb54d4173ba8fdf66994a24f",
+        "executed_steps": 83150,
+        "fit_logged_seconds_rounded": 395.8,
+        "individual_native": {
+          "S": 0.992075,
+          "cons_fail_each": {
+            "R_axis": 0.0,
+            "Z_axis": 0.0,
+            "kappa": 0.0,
+            "li": 0.0,
+            "tri_bot": 0.0,
+            "tri_top": 0.0,
+            "volume": 0.0
+          },
+          "cons_fail_frac": 0.0,
+          "consistency": 0.970264,
+          "dlcfs": 0.011557,
+          "lcfs_fail_frac": 0.0,
+          "n_shots": 70,
+          "n_shots_missing": 0,
+          "psi_nonfinite_frac": 0.0,
+          "psi_sign": 1,
+          "psi_sign_flipped": false,
+          "psi_sign_probe_disagrees": false,
+          "r2_cons_each": {
+            "R_axis": 0.973299,
+            "Z_axis": 0.970112,
+            "kappa": 0.947004,
+            "li": 0.962647,
+            "tri_bot": 0.987815,
+            "tri_top": 0.990405,
+            "volume": 0.960567
+          },
+          "r2_each": {
+            "betaN": 0.995129,
+            "q95": 0.995832
+          },
+          "r2_psi": 0.999738,
+          "r2_psi_per_shot_mean": 0.999593,
+          "r2_psi_unflipped": 0.999738,
+          "r2_qb": 0.995481,
+          "ref_lcfs_dropped": 0
+        },
+        "kept_step": 64750,
+        "log": "runs/position-metric-screen-213184dc591c904b/position-conditioned_s0/1790113007807342882-run.log",
+        "log_sha256": "7fc1fce2c2b384a6627c625d9bd73a12c368ca914f5c9419f283e25e567f4e73",
+        "metrics_sha256": "2669edf59aee05cff6edf35284b97a1a007f3f6eeda034121c1326b5d7ed5845",
+        "timing_seconds": {
+          "score": 53.43604599700484,
+          "train": 590.9020454099955,
+          "train_and_score": 644.3380914070003
+        }
+      },
+      "position_diagnostic": {
+        "base_cache_code_key": "6b846fbf11e11c33",
+        "complete_triplets": 100,
+        "config": {
+          "anchors": [
+            0.1,
+            0.5,
+            0.9
+          ],
+          "boundaries": [
+            0.3,
+            0.7
+          ],
+          "minimum_complete_triplets": 90,
+          "minimum_kept_frames": 10,
+          "mode": "conditioned",
+          "probe_shots": 100,
+          "strength": 0.5
+        },
+        "diagnostic_field_hashes": {
+          "base_cache_code_key": "146244d6381167e56fe72a9ea1ff2223",
+          "common_trace": "29add9670d0fa8858a923bc484e7704e",
+          "complete_triplets": "9ced2b490500d2371209af85c7c35c87",
+          "consistency_scalar_order": "f5ca4e3de29e70e4b16bf8081a51bfd4",
+          "consistency_split": "21b9a20aef119e5e8aa770162d8113aa",
+          "equalized_consistency_forms": "66ff42af55ea4fe1c60584e478aadd76",
+          "frame_share": "050d6d891f2c3258158030ec54d18618",
+          "global_factor": "133439c72e4eed5b5733307296687b7e",
+          "global_metric": "eb2faf451886393920ee4c6d5210c905",
+          "group_metrics": "3fa390fd7f702e7af8beb19560589a43",
+          "ineligible_before_selection": "d34b2ff3ebd47dff1d21eee2d69d4ffd",
+          "invalid_triplets": "d34b2ff3ebd47dff1d21eee2d69d4ffd",
+          "pooled_consistency_form": "642ced92365cef439794d403956f7563",
+          "pooled_scalar_variance": "4234e95f015910701f5f8e1b2f45f7a8",
+          "probe_delta_wb_per_rad": "13f87ea25c36355221741cf676bfb4b5",
+          "raw_consistency_forms": "b9fe6affa13a3994128cf7105403ee29",
+          "raw_traces": "0c9d18d990aa22fbd05545ebb23a9d61",
+          "scaled_group_metrics": "ad0fc3b56fe136f0379334ec954b4e8a",
+          "scaled_loss_factors": "b27d0c16440d8dc35b4799b2d38bbde6",
+          "selected_probes": "a8accaeb53c83e20e263b3562887e245",
+          "train_group_counts": "93e1576d9aba6c1d5619414d10ec7a44",
+          "train_group_fractions": "9b18ab2fc923a9f69be400fcf938f6dc"
+        },
+        "ineligible_before_selection": [],
+        "input_scaler_hash": "ddf158c6673f1b2ce0fcac3235c6a520",
+        "invalid_triplets": [],
+        "pca_hash": "3562547c58ec9a09d7ecdf66fe7c5b26",
+        "probe_delta_wb_per_rad": 0.060919219459571454,
+        "selected_probes": [
+          {
+            "file": "d3d_shot_67bea4ee86.parquet",
+            "full_frames": 263,
+            "full_indices": [
+              26,
+              131,
+              236
+            ],
+            "kept_frames": 263,
+            "kept_indices": [
+              26,
+              131,
+              236
+            ]
+          },
+          {
+            "file": "d3d_shot_1b9fc5705d.parquet",
+            "full_frames": 321,
+            "full_indices": [
+              32,
+              160,
+              288
+            ],
+            "kept_frames": 321,
+            "kept_indices": [
+              32,
+              160,
+              288
+            ]
+          },
+          {
+            "file": "d3d_shot_2b18735002.parquet",
+            "full_frames": 266,
+            "full_indices": [
+              26,
+              132,
+              238
+            ],
+            "kept_frames": 266,
+            "kept_indices": [
+              26,
+              132,
+              238
+            ]
+          },
+          {
+            "file": "d3d_shot_c999240565.parquet",
+            "full_frames": 183,
+            "full_indices": [
+              18,
+              91,
+              164
+            ],
+            "kept_frames": 183,
+            "kept_indices": [
+              18,
+              91,
+              164
+            ]
+          },
+          {
+            "file": "d3d_shot_4a9a11e99b.parquet",
+            "full_frames": 212,
+            "full_indices": [
+              21,
+              106,
+              190
+            ],
+            "kept_frames": 212,
+            "kept_indices": [
+              21,
+              106,
+              190
+            ]
+          },
+          {
+            "file": "d3d_shot_901723d68a.parquet",
+            "full_frames": 294,
+            "full_indices": [
+              29,
+              146,
+              264
+            ],
+            "kept_frames": 294,
+            "kept_indices": [
+              29,
+              146,
+              264
+            ]
+          },
+          {
+            "file": "d3d_shot_53752cc4a3.parquet",
+            "full_frames": 197,
+            "full_indices": [
+              20,
+              98,
+              176
+            ],
+            "kept_frames": 197,
+            "kept_indices": [
+              20,
+              98,
+              176
+            ]
+          },
+          {
+            "file": "d3d_shot_8db7348835.parquet",
+            "full_frames": 319,
+            "full_indices": [
+              32,
+              159,
+              286
+            ],
+            "kept_frames": 319,
+            "kept_indices": [
+              32,
+              159,
+              286
+            ]
+          },
+          {
+            "file": "d3d_shot_e03594001b.parquet",
+            "full_frames": 126,
+            "full_indices": [
+              12,
+              62,
+              112
+            ],
+            "kept_frames": 126,
+            "kept_indices": [
+              12,
+              62,
+              112
+            ]
+          },
+          {
+            "file": "d3d_shot_2d0f8214d1.parquet",
+            "full_frames": 239,
+            "full_indices": [
+              24,
+              119,
+              214
+            ],
+            "kept_frames": 239,
+            "kept_indices": [
+              24,
+              119,
+              214
+            ]
+          },
+          {
+            "file": "d3d_shot_2e7f9bc07c.parquet",
+            "full_frames": 260,
+            "full_indices": [
+              26,
+              130,
+              233
+            ],
+            "kept_frames": 260,
+            "kept_indices": [
+              26,
+              130,
+              233
+            ]
+          },
+          {
+            "file": "d3d_shot_2907a0e984.parquet",
+            "full_frames": 274,
+            "full_indices": [
+              27,
+              136,
+              246
+            ],
+            "kept_frames": 274,
+            "kept_indices": [
+              27,
+              136,
+              246
+            ]
+          },
+          {
+            "file": "d3d_shot_a7b8a3597f.parquet",
+            "full_frames": 291,
+            "full_indices": [
+              29,
+              145,
+              261
+            ],
+            "kept_frames": 291,
+            "kept_indices": [
+              29,
+              145,
+              261
+            ]
+          },
+          {
+            "file": "d3d_shot_2f650afe38.parquet",
+            "full_frames": 214,
+            "full_indices": [
+              21,
+              106,
+              192
+            ],
+            "kept_frames": 214,
+            "kept_indices": [
+              21,
+              106,
+              192
+            ]
+          },
+          {
+            "file": "d3d_shot_e8d670db78.parquet",
+            "full_frames": 247,
+            "full_indices": [
+              25,
+              123,
+              221
+            ],
+            "kept_frames": 247,
+            "kept_indices": [
+              25,
+              123,
+              221
+            ]
+          },
+          {
+            "file": "d3d_shot_307552f346.parquet",
+            "full_frames": 90,
+            "full_indices": [
+              9,
+              44,
+              80
+            ],
+            "kept_frames": 90,
+            "kept_indices": [
+              9,
+              44,
+              80
+            ]
+          },
+          {
+            "file": "d3d_shot_776b72f734.parquet",
+            "full_frames": 197,
+            "full_indices": [
+              20,
+              98,
+              176
+            ],
+            "kept_frames": 197,
+            "kept_indices": [
+              20,
+              98,
+              176
+            ]
+          },
+          {
+            "file": "d3d_shot_2ca8c33d33.parquet",
+            "full_frames": 183,
+            "full_indices": [
+              18,
+              91,
+              164
+            ],
+            "kept_frames": 183,
+            "kept_indices": [
+              18,
+              91,
+              164
+            ]
+          },
+          {
+            "file": "d3d_shot_0bb4ea7bb0.parquet",
+            "full_frames": 248,
+            "full_indices": [
+              25,
+              124,
+              222
+            ],
+            "kept_frames": 248,
+            "kept_indices": [
+              25,
+              124,
+              222
+            ]
+          },
+          {
+            "file": "d3d_shot_ace21a9318.parquet",
+            "full_frames": 231,
+            "full_indices": [
+              23,
+              115,
+              207
+            ],
+            "kept_frames": 231,
+            "kept_indices": [
+              23,
+              115,
+              207
+            ]
+          },
+          {
+            "file": "d3d_shot_51a4dcbab2.parquet",
+            "full_frames": 176,
+            "full_indices": [
+              18,
+              88,
+              158
+            ],
+            "kept_frames": 176,
+            "kept_indices": [
+              18,
+              88,
+              158
+            ]
+          },
+          {
+            "file": "d3d_shot_86a02e61b4.parquet",
+            "full_frames": 258,
+            "full_indices": [
+              26,
+              128,
+              231
+            ],
+            "kept_frames": 258,
+            "kept_indices": [
+              26,
+              128,
+              231
+            ]
+          },
+          {
+            "file": "d3d_shot_a9ae512bc5.parquet",
+            "full_frames": 124,
+            "full_indices": [
+              12,
+              62,
+              111
+            ],
+            "kept_frames": 124,
+            "kept_indices": [
+              12,
+              62,
+              111
+            ]
+          },
+          {
+            "file": "d3d_shot_624413af82.parquet",
+            "full_frames": 206,
+            "full_indices": [
+              20,
+              102,
+              184
+            ],
+            "kept_frames": 206,
+            "kept_indices": [
+              20,
+              102,
+              184
+            ]
+          },
+          {
+            "file": "d3d_shot_cc9a416d3a.parquet",
+            "full_frames": 224,
+            "full_indices": [
+              22,
+              112,
+              201
+            ],
+            "kept_frames": 224,
+            "kept_indices": [
+              22,
+              112,
+              201
+            ]
+          },
+          {
+            "file": "d3d_shot_f738a3a70a.parquet",
+            "full_frames": 107,
+            "full_indices": [
+              11,
+              53,
+              95
+            ],
+            "kept_frames": 107,
+            "kept_indices": [
+              11,
+              53,
+              95
+            ]
+          },
+          {
+            "file": "d3d_shot_847ea9092f.parquet",
+            "full_frames": 246,
+            "full_indices": [
+              24,
+              122,
+              220
+            ],
+            "kept_frames": 246,
+            "kept_indices": [
+              24,
+              122,
+              220
+            ]
+          },
+          {
+            "file": "d3d_shot_9fc5d2b15a.parquet",
+            "full_frames": 369,
+            "full_indices": [
+              37,
+              184,
+              331
+            ],
+            "kept_frames": 369,
+            "kept_indices": [
+              37,
+              184,
+              331
+            ]
+          },
+          {
+            "file": "d3d_shot_4fa34c1598.parquet",
+            "full_frames": 63,
+            "full_indices": [
+              6,
+              31,
+              56
+            ],
+            "kept_frames": 63,
+            "kept_indices": [
+              6,
+              31,
+              56
+            ]
+          },
+          {
+            "file": "d3d_shot_0f1411c04f.parquet",
+            "full_frames": 235,
+            "full_indices": [
+              23,
+              117,
+              211
+            ],
+            "kept_frames": 235,
+            "kept_indices": [
+              23,
+              117,
+              211
+            ]
+          },
+          {
+            "file": "d3d_shot_d217dabb63.parquet",
+            "full_frames": 73,
+            "full_indices": [
+              7,
+              36,
+              65
+            ],
+            "kept_frames": 73,
+            "kept_indices": [
+              7,
+              36,
+              65
+            ]
+          },
+          {
+            "file": "d3d_shot_7b5149d989.parquet",
+            "full_frames": 241,
+            "full_indices": [
+              24,
+              120,
+              216
+            ],
+            "kept_frames": 241,
+            "kept_indices": [
+              24,
+              120,
+              216
+            ]
+          },
+          {
+            "file": "d3d_shot_854b2487e1.parquet",
+            "full_frames": 262,
+            "full_indices": [
+              26,
+              130,
+              235
+            ],
+            "kept_frames": 262,
+            "kept_indices": [
+              26,
+              130,
+              235
+            ]
+          },
+          {
+            "file": "d3d_shot_03a2088dca.parquet",
+            "full_frames": 213,
+            "full_indices": [
+              21,
+              106,
+              191
+            ],
+            "kept_frames": 213,
+            "kept_indices": [
+              21,
+              106,
+              191
+            ]
+          },
+          {
+            "file": "d3d_shot_fa18a25950.parquet",
+            "full_frames": 289,
+            "full_indices": [
+              29,
+              144,
+              259
+            ],
+            "kept_frames": 289,
+            "kept_indices": [
+              29,
+              144,
+              259
+            ]
+          },
+          {
+            "file": "d3d_shot_1467ccf31a.parquet",
+            "full_frames": 231,
+            "full_indices": [
+              23,
+              115,
+              207
+            ],
+            "kept_frames": 231,
+            "kept_indices": [
+              23,
+              115,
+              207
+            ]
+          },
+          {
+            "file": "d3d_shot_bf050e4ad5.parquet",
+            "full_frames": 308,
+            "full_indices": [
+              31,
+              154,
+              276
+            ],
+            "kept_frames": 308,
+            "kept_indices": [
+              31,
+              154,
+              276
+            ]
+          },
+          {
+            "file": "d3d_shot_816d379f9a.parquet",
+            "full_frames": 343,
+            "full_indices": [
+              34,
+              171,
+              308
+            ],
+            "kept_frames": 343,
+            "kept_indices": [
+              34,
+              171,
+              308
+            ]
+          },
+          {
+            "file": "d3d_shot_aa5b689a6b.parquet",
+            "full_frames": 354,
+            "full_indices": [
+              35,
+              176,
+              318
+            ],
+            "kept_frames": 354,
+            "kept_indices": [
+              35,
+              176,
+              318
+            ]
+          },
+          {
+            "file": "d3d_shot_727d102695.parquet",
+            "full_frames": 102,
+            "full_indices": [
+              10,
+              50,
+              91
+            ],
+            "kept_frames": 102,
+            "kept_indices": [
+              10,
+              50,
+              91
+            ]
+          },
+          {
+            "file": "d3d_shot_015dff07b3.parquet",
+            "full_frames": 371,
+            "full_indices": [
+              37,
+              185,
+              333
+            ],
+            "kept_frames": 371,
+            "kept_indices": [
+              37,
+              185,
+              333
+            ]
+          },
+          {
+            "file": "d3d_shot_41cda6bf77.parquet",
+            "full_frames": 365,
+            "full_indices": [
+              36,
+              182,
+              328
+            ],
+            "kept_frames": 365,
+            "kept_indices": [
+              36,
+              182,
+              328
+            ]
+          },
+          {
+            "file": "d3d_shot_277a0ec42d.parquet",
+            "full_frames": 309,
+            "full_indices": [
+              31,
+              154,
+              277
+            ],
+            "kept_frames": 309,
+            "kept_indices": [
+              31,
+              154,
+              277
+            ]
+          },
+          {
+            "file": "d3d_shot_d55ff69eaf.parquet",
+            "full_frames": 291,
+            "full_indices": [
+              29,
+              145,
+              261
+            ],
+            "kept_frames": 291,
+            "kept_indices": [
+              29,
+              145,
+              261
+            ]
+          },
+          {
+            "file": "d3d_shot_d0bd051d59.parquet",
+            "full_frames": 212,
+            "full_indices": [
+              21,
+              106,
+              190
+            ],
+            "kept_frames": 212,
+            "kept_indices": [
+              21,
+              106,
+              190
+            ]
+          },
+          {
+            "file": "d3d_shot_0d0e617496.parquet",
+            "full_frames": 232,
+            "full_indices": [
+              23,
+              116,
+              208
+            ],
+            "kept_frames": 232,
+            "kept_indices": [
+              23,
+              116,
+              208
+            ]
+          },
+          {
+            "file": "d3d_shot_27764e3138.parquet",
+            "full_frames": 269,
+            "full_indices": [
+              27,
+              134,
+              241
+            ],
+            "kept_frames": 269,
+            "kept_indices": [
+              27,
+              134,
+              241
+            ]
+          },
+          {
+            "file": "d3d_shot_d415ca017c.parquet",
+            "full_frames": 183,
+            "full_indices": [
+              18,
+              91,
+              164
+            ],
+            "kept_frames": 183,
+            "kept_indices": [
+              18,
+              91,
+              164
+            ]
+          },
+          {
+            "file": "d3d_shot_a1e6f879e2.parquet",
+            "full_frames": 263,
+            "full_indices": [
+              26,
+              131,
+              236
+            ],
+            "kept_frames": 263,
+            "kept_indices": [
+              26,
+              131,
+              236
+            ]
+          },
+          {
+            "file": "d3d_shot_4c43c5bc52.parquet",
+            "full_frames": 68,
+            "full_indices": [
+              7,
+              34,
+              60
+            ],
+            "kept_frames": 68,
+            "kept_indices": [
+              7,
+              34,
+              60
+            ]
+          },
+          {
+            "file": "d3d_shot_fd2ad037f6.parquet",
+            "full_frames": 249,
+            "full_indices": [
+              25,
+              124,
+              223
+            ],
+            "kept_frames": 249,
+            "kept_indices": [
+              25,
+              124,
+              223
+            ]
+          },
+          {
+            "file": "d3d_shot_2d4e942712.parquet",
+            "full_frames": 253,
+            "full_indices": [
+              25,
+              126,
+              227
+            ],
+            "kept_frames": 253,
+            "kept_indices": [
+              25,
+              126,
+              227
+            ]
+          },
+          {
+            "file": "d3d_shot_89f899c644.parquet",
+            "full_frames": 286,
+            "full_indices": [
+              28,
+              142,
+              256
+            ],
+            "kept_frames": 286,
+            "kept_indices": [
+              28,
+              142,
+              256
+            ]
+          },
+          {
+            "file": "d3d_shot_5b4f2f490c.parquet",
+            "full_frames": 221,
+            "full_indices": [
+              22,
+              110,
+              198
+            ],
+            "kept_frames": 221,
+            "kept_indices": [
+              22,
+              110,
+              198
+            ]
+          },
+          {
+            "file": "d3d_shot_58789d7380.parquet",
+            "full_frames": 306,
+            "full_indices": [
+              30,
+              152,
+              274
+            ],
+            "kept_frames": 306,
+            "kept_indices": [
+              30,
+              152,
+              274
+            ]
+          },
+          {
+            "file": "d3d_shot_5981d962b9.parquet",
+            "full_frames": 325,
+            "full_indices": [
+              32,
+              162,
+              292
+            ],
+            "kept_frames": 325,
+            "kept_indices": [
+              32,
+              162,
+              292
+            ]
+          },
+          {
+            "file": "d3d_shot_3a8449a2ae.parquet",
+            "full_frames": 182,
+            "full_indices": [
+              18,
+              90,
+              163
+            ],
+            "kept_frames": 182,
+            "kept_indices": [
+              18,
+              90,
+              163
+            ]
+          },
+          {
+            "file": "d3d_shot_0679809c2a.parquet",
+            "full_frames": 167,
+            "full_indices": [
+              17,
+              83,
+              149
+            ],
+            "kept_frames": 167,
+            "kept_indices": [
+              17,
+              83,
+              149
+            ]
+          },
+          {
+            "file": "d3d_shot_11b421d69c.parquet",
+            "full_frames": 267,
+            "full_indices": [
+              27,
+              133,
+              239
+            ],
+            "kept_frames": 267,
+            "kept_indices": [
+              27,
+              133,
+              239
+            ]
+          },
+          {
+            "file": "d3d_shot_04d8e5c5b9.parquet",
+            "full_frames": 227,
+            "full_indices": [
+              23,
+              113,
+              203
+            ],
+            "kept_frames": 227,
+            "kept_indices": [
+              23,
+              113,
+              203
+            ]
+          },
+          {
+            "file": "d3d_shot_4997bf8d9c.parquet",
+            "full_frames": 260,
+            "full_indices": [
+              26,
+              130,
+              233
+            ],
+            "kept_frames": 260,
+            "kept_indices": [
+              26,
+              130,
+              233
+            ]
+          },
+          {
+            "file": "d3d_shot_74ae4d6b2d.parquet",
+            "full_frames": 247,
+            "full_indices": [
+              25,
+              123,
+              221
+            ],
+            "kept_frames": 247,
+            "kept_indices": [
+              25,
+              123,
+              221
+            ]
+          },
+          {
+            "file": "d3d_shot_4bdded0e1e.parquet",
+            "full_frames": 219,
+            "full_indices": [
+              22,
+              109,
+              196
+            ],
+            "kept_frames": 219,
+            "kept_indices": [
+              22,
+              109,
+              196
+            ]
+          },
+          {
+            "file": "d3d_shot_8b5c2878e6.parquet",
+            "full_frames": 137,
+            "full_indices": [
+              14,
+              68,
+              122
+            ],
+            "kept_frames": 137,
+            "kept_indices": [
+              14,
+              68,
+              122
+            ]
+          },
+          {
+            "file": "d3d_shot_9ca1fae2f6.parquet",
+            "full_frames": 182,
+            "full_indices": [
+              18,
+              90,
+              163
+            ],
+            "kept_frames": 182,
+            "kept_indices": [
+              18,
+              90,
+              163
+            ]
+          },
+          {
+            "file": "d3d_shot_6d9cccbcc1.parquet",
+            "full_frames": 288,
+            "full_indices": [
+              29,
+              144,
+              258
+            ],
+            "kept_frames": 288,
+            "kept_indices": [
+              29,
+              144,
+              258
+            ]
+          },
+          {
+            "file": "d3d_shot_89c50bf966.parquet",
+            "full_frames": 268,
+            "full_indices": [
+              27,
+              134,
+              240
+            ],
+            "kept_frames": 268,
+            "kept_indices": [
+              27,
+              134,
+              240
+            ]
+          },
+          {
+            "file": "d3d_shot_9d2aa05a1d.parquet",
+            "full_frames": 216,
+            "full_indices": [
+              22,
+              108,
+              194
+            ],
+            "kept_frames": 216,
+            "kept_indices": [
+              22,
+              108,
+              194
+            ]
+          },
+          {
+            "file": "d3d_shot_a170790e9e.parquet",
+            "full_frames": 190,
+            "full_indices": [
+              19,
+              94,
+              170
+            ],
+            "kept_frames": 190,
+            "kept_indices": [
+              19,
+              94,
+              170
+            ]
+          },
+          {
+            "file": "d3d_shot_7c2d0643fe.parquet",
+            "full_frames": 231,
+            "full_indices": [
+              23,
+              115,
+              207
+            ],
+            "kept_frames": 231,
+            "kept_indices": [
+              23,
+              115,
+              207
+            ]
+          },
+          {
+            "file": "d3d_shot_dfdea15fc9.parquet",
+            "full_frames": 290,
+            "full_indices": [
+              29,
+              144,
+              260
+            ],
+            "kept_frames": 290,
+            "kept_indices": [
+              29,
+              144,
+              260
+            ]
+          },
+          {
+            "file": "d3d_shot_1f7c1346c9.parquet",
+            "full_frames": 143,
+            "full_indices": [
+              14,
+              71,
+              128
+            ],
+            "kept_frames": 143,
+            "kept_indices": [
+              14,
+              71,
+              128
+            ]
+          },
+          {
+            "file": "d3d_shot_c75128000e.parquet",
+            "full_frames": 174,
+            "full_indices": [
+              17,
+              86,
+              156
+            ],
+            "kept_frames": 174,
+            "kept_indices": [
+              17,
+              86,
+              156
+            ]
+          },
+          {
+            "file": "d3d_shot_1ec9bfdc1b.parquet",
+            "full_frames": 183,
+            "full_indices": [
+              18,
+              91,
+              164
+            ],
+            "kept_frames": 183,
+            "kept_indices": [
+              18,
+              91,
+              164
+            ]
+          },
+          {
+            "file": "d3d_shot_abbfbf7c57.parquet",
+            "full_frames": 127,
+            "full_indices": [
+              13,
+              63,
+              113
+            ],
+            "kept_frames": 127,
+            "kept_indices": [
+              13,
+              63,
+              113
+            ]
+          },
+          {
+            "file": "d3d_shot_6b3271db56.parquet",
+            "full_frames": 226,
+            "full_indices": [
+              22,
+              112,
+              202
+            ],
+            "kept_frames": 226,
+            "kept_indices": [
+              22,
+              112,
+              202
+            ]
+          },
+          {
+            "file": "d3d_shot_a55059d386.parquet",
+            "full_frames": 241,
+            "full_indices": [
+              24,
+              120,
+              216
+            ],
+            "kept_frames": 241,
+            "kept_indices": [
+              24,
+              120,
+              216
+            ]
+          },
+          {
+            "file": "d3d_shot_eedfeefe3b.parquet",
+            "full_frames": 240,
+            "full_indices": [
+              24,
+              120,
+              215
+            ],
+            "kept_frames": 240,
+            "kept_indices": [
+              24,
+              120,
+              215
+            ]
+          },
+          {
+            "file": "d3d_shot_fac1987902.parquet",
+            "full_frames": 264,
+            "full_indices": [
+              26,
+              132,
+              237
+            ],
+            "kept_frames": 264,
+            "kept_indices": [
+              26,
+              132,
+              237
+            ]
+          },
+          {
+            "file": "d3d_shot_b22be61898.parquet",
+            "full_frames": 85,
+            "full_indices": [
+              8,
+              42,
+              76
+            ],
+            "kept_frames": 85,
+            "kept_indices": [
+              8,
+              42,
+              76
+            ]
+          },
+          {
+            "file": "d3d_shot_652fea31cd.parquet",
+            "full_frames": 290,
+            "full_indices": [
+              29,
+              144,
+              260
+            ],
+            "kept_frames": 290,
+            "kept_indices": [
+              29,
+              144,
+              260
+            ]
+          },
+          {
+            "file": "d3d_shot_98f8db0bb5.parquet",
+            "full_frames": 329,
+            "full_indices": [
+              33,
+              164,
+              295
+            ],
+            "kept_frames": 329,
+            "kept_indices": [
+              33,
+              164,
+              295
+            ]
+          },
+          {
+            "file": "d3d_shot_8087757a73.parquet",
+            "full_frames": 265,
+            "full_indices": [
+              26,
+              132,
+              238
+            ],
+            "kept_frames": 265,
+            "kept_indices": [
+              26,
+              132,
+              238
+            ]
+          },
+          {
+            "file": "d3d_shot_1294f3152c.parquet",
+            "full_frames": 294,
+            "full_indices": [
+              29,
+              146,
+              264
+            ],
+            "kept_frames": 294,
+            "kept_indices": [
+              29,
+              146,
+              264
+            ]
+          },
+          {
+            "file": "d3d_shot_da8d9fd3c4.parquet",
+            "full_frames": 178,
+            "full_indices": [
+              18,
+              88,
+              159
+            ],
+            "kept_frames": 178,
+            "kept_indices": [
+              18,
+              88,
+              159
+            ]
+          },
+          {
+            "file": "d3d_shot_ac9573e5c4.parquet",
+            "full_frames": 178,
+            "full_indices": [
+              18,
+              88,
+              159
+            ],
+            "kept_frames": 178,
+            "kept_indices": [
+              18,
+              88,
+              159
+            ]
+          },
+          {
+            "file": "d3d_shot_bee48923e3.parquet",
+            "full_frames": 114,
+            "full_indices": [
+              11,
+              56,
+              102
+            ],
+            "kept_frames": 114,
+            "kept_indices": [
+              11,
+              56,
+              102
+            ]
+          },
+          {
+            "file": "d3d_shot_7d58852d8b.parquet",
+            "full_frames": 273,
+            "full_indices": [
+              27,
+              136,
+              245
+            ],
+            "kept_frames": 273,
+            "kept_indices": [
+              27,
+              136,
+              245
+            ]
+          },
+          {
+            "file": "d3d_shot_6f3f8e2916.parquet",
+            "full_frames": 89,
+            "full_indices": [
+              9,
+              44,
+              79
+            ],
+            "kept_frames": 89,
+            "kept_indices": [
+              9,
+              44,
+              79
+            ]
+          },
+          {
+            "file": "d3d_shot_c87c1c5977.parquet",
+            "full_frames": 282,
+            "full_indices": [
+              28,
+              140,
+              253
+            ],
+            "kept_frames": 282,
+            "kept_indices": [
+              28,
+              140,
+              253
+            ]
+          },
+          {
+            "file": "d3d_shot_91dc8a59a2.parquet",
+            "full_frames": 214,
+            "full_indices": [
+              21,
+              106,
+              192
+            ],
+            "kept_frames": 214,
+            "kept_indices": [
+              21,
+              106,
+              192
+            ]
+          },
+          {
+            "file": "d3d_shot_e938810a11.parquet",
+            "full_frames": 241,
+            "full_indices": [
+              24,
+              120,
+              216
+            ],
+            "kept_frames": 241,
+            "kept_indices": [
+              24,
+              120,
+              216
+            ]
+          },
+          {
+            "file": "d3d_shot_71fe5656a3.parquet",
+            "full_frames": 214,
+            "full_indices": [
+              21,
+              106,
+              192
+            ],
+            "kept_frames": 214,
+            "kept_indices": [
+              21,
+              106,
+              192
+            ]
+          },
+          {
+            "file": "d3d_shot_fb503f01e8.parquet",
+            "full_frames": 315,
+            "full_indices": [
+              31,
+              157,
+              283
+            ],
+            "kept_frames": 315,
+            "kept_indices": [
+              31,
+              157,
+              283
+            ]
+          },
+          {
+            "file": "d3d_shot_271c4c29c0.parquet",
+            "full_frames": 218,
+            "full_indices": [
+              22,
+              108,
+              195
+            ],
+            "kept_frames": 218,
+            "kept_indices": [
+              22,
+              108,
+              195
+            ]
+          },
+          {
+            "file": "d3d_shot_6097c06245.parquet",
+            "full_frames": 259,
+            "full_indices": [
+              26,
+              129,
+              232
+            ],
+            "kept_frames": 259,
+            "kept_indices": [
+              26,
+              129,
+              232
+            ]
+          },
+          {
+            "file": "d3d_shot_bc6131ce8e.parquet",
+            "full_frames": 268,
+            "full_indices": [
+              27,
+              134,
+              240
+            ],
+            "kept_frames": 268,
+            "kept_indices": [
+              27,
+              134,
+              240
+            ]
+          },
+          {
+            "file": "d3d_shot_e9e27a15bf.parquet",
+            "full_frames": 243,
+            "full_indices": [
+              24,
+              121,
+              218
+            ],
+            "kept_frames": 243,
+            "kept_indices": [
+              24,
+              121,
+              218
+            ]
+          },
+          {
+            "file": "d3d_shot_9ae4f52ec3.parquet",
+            "full_frames": 245,
+            "full_indices": [
+              24,
+              122,
+              220
+            ],
+            "kept_frames": 245,
+            "kept_indices": [
+              24,
+              122,
+              220
+            ]
+          },
+          {
+            "file": "d3d_shot_a3113f1655.parquet",
+            "full_frames": 242,
+            "full_indices": [
+              24,
+              120,
+              217
+            ],
+            "kept_frames": 242,
+            "kept_indices": [
+              24,
+              120,
+              217
+            ]
+          }
+        ],
+        "target_scaler_hash": "e431557ae402716e2d5aa406283231d7",
+        "train_group_counts": [
+          375402,
+          497118,
+          375937
+        ]
+      },
+      "requested_set": [
+        "loss.position_metric.mode=conditioned"
+      ]
+    }
+  },
+  "campaign": "runs/position-metric-screen-213184dc591c904b",
+  "command_execute": "setsid --wait .venv/bin/python -m my_experiments.run execute runs/position-metric-screen-213184dc591c904b",
+  "command_prepare": ".venv/bin/python -m my_experiments.run prepare experiments/position-metric-screen.json",
+  "concurrency_note": "Independent public874 CPU4 builder/validator overlapped parts of GPU fits; elapsed times are not isolated throughput benchmarks.",
+  "date_utc": "2026-09-22",
+  "n_shots": 70,
+  "old_five_addition_grid": "grids/historical-five-position-metric.json",
+  "paired_checks": {
+    "all_probe_diagnostics_except_mode_identical": {
+      "base_cache_code_key": true,
+      "common_trace": true,
+      "complete_triplets": true,
+      "consistency_scalar_order": true,
+      "consistency_split": true,
+      "equalized_consistency_forms": true,
+      "frame_share": true,
+      "global_factor": true,
+      "global_metric": true,
+      "group_metrics": true,
+      "ineligible_before_selection": true,
+      "invalid_triplets": true,
+      "pooled_consistency_form": true,
+      "pooled_scalar_variance": true,
+      "probe_delta_wb_per_rad": true,
+      "raw_consistency_forms": true,
+      "raw_traces": true,
+      "scaled_group_metrics": true,
+      "scaled_loss_factors": true,
+      "selected_probes": true,
+      "train_group_counts": true,
+      "train_group_fractions": true
+    },
+    "ci_smoke_campaign": "runs/smoke-1d21f3b4e2c05870",
+    "identical_train_and_validation_filenames": true,
+    "identical_transform_hashes": {
+      "coil": true,
+      "n_pca": true,
+      "pca": true,
+      "scaler": true,
+      "target_scaler": true
+    },
+    "same_CI_training_scorer_source_except_unrelated_public_tool": [
+      "tools/public_blend.py"
+    ]
+  },
+  "primary_paired_effects": {
+    "conditioned_minus_pooled_compact_replacement_S": -0.00029000000000001247,
+    "conditioned_minus_pooled_mlp_S": 0.0006630000000000802
+  },
+  "protocol": {
+    "purpose": "Current Makefile production data protocol",
+    "score": 0.01,
+    "train": "0.80/1.0",
+    "validation": "0.19/1.0"
+  },
+  "purpose": "Preregistered one-strength pooled-versus-position-conditioned MLP screen on production salt0, same70 reused development shots",
+  "scored_files": [
+    "d3d_shot_6f6a0f6402.parquet",
+    "d3d_shot_18269a24ec.parquet",
+    "d3d_shot_17b33ca9c3.parquet",
+    "d3d_shot_142a107c4c.parquet",
+    "d3d_shot_114f613ef7.parquet",
+    "d3d_shot_f64b5eb1a3.parquet",
+    "d3d_shot_f96e6d33d4.parquet",
+    "d3d_shot_1c5bbadb15.parquet",
+    "d3d_shot_5ff8a4355a.parquet",
+    "d3d_shot_4a91698251.parquet",
+    "d3d_shot_a858a12ee7.parquet",
+    "d3d_shot_371aa95fe9.parquet",
+    "d3d_shot_be4dace16b.parquet",
+    "d3d_shot_82ad35d229.parquet",
+    "d3d_shot_0348fb3d6d.parquet",
+    "d3d_shot_df7e350c4c.parquet",
+    "d3d_shot_38c0d084dd.parquet",
+    "d3d_shot_ac780074d8.parquet",
+    "d3d_shot_ef44fd4bc0.parquet",
+    "d3d_shot_7f2e032665.parquet",
+    "d3d_shot_44da465cae.parquet",
+    "d3d_shot_1558027fd7.parquet",
+    "d3d_shot_df00d1f3d7.parquet",
+    "d3d_shot_478e75f878.parquet",
+    "d3d_shot_13846ea62a.parquet",
+    "d3d_shot_4feb6ef4bc.parquet",
+    "d3d_shot_b6acd33cae.parquet",
+    "d3d_shot_d4d3e46dc0.parquet",
+    "d3d_shot_a39703d418.parquet",
+    "d3d_shot_f1b1b65798.parquet",
+    "d3d_shot_ea91470da2.parquet",
+    "d3d_shot_7435723ce1.parquet",
+    "d3d_shot_48924f7a76.parquet",
+    "d3d_shot_2f91d52895.parquet",
+    "d3d_shot_617037cb42.parquet",
+    "d3d_shot_e6ef7bb31f.parquet",
+    "d3d_shot_61d7ff3f78.parquet",
+    "d3d_shot_0b1f959de4.parquet",
+    "d3d_shot_823e788d64.parquet",
+    "d3d_shot_78742ced1d.parquet",
+    "d3d_shot_33abe119a8.parquet",
+    "d3d_shot_f5900fe0d7.parquet",
+    "d3d_shot_7191b23868.parquet",
+    "d3d_shot_92cf0fc54e.parquet",
+    "d3d_shot_bd6422ec5f.parquet",
+    "d3d_shot_d516afa29c.parquet",
+    "d3d_shot_e43a91bbcf.parquet",
+    "d3d_shot_49b9b2b895.parquet",
+    "d3d_shot_e99d2b47b2.parquet",
+    "d3d_shot_cf9ca0307c.parquet",
+    "d3d_shot_b6f6ca867d.parquet",
+    "d3d_shot_5dda5622e0.parquet",
+    "d3d_shot_420ae1f474.parquet",
+    "d3d_shot_fdad006277.parquet",
+    "d3d_shot_cfe9cae75b.parquet",
+    "d3d_shot_2f6baf99a7.parquet",
+    "d3d_shot_6a8ef5c077.parquet",
+    "d3d_shot_808aa63d41.parquet",
+    "d3d_shot_2d646a8073.parquet",
+    "d3d_shot_2907641101.parquet",
+    "d3d_shot_4212a7acef.parquet",
+    "d3d_shot_9ba43e6ea9.parquet",
+    "d3d_shot_b61f1cec26.parquet",
+    "d3d_shot_ca1a40ca3f.parquet",
+    "d3d_shot_8bec8ffa1c.parquet",
+    "d3d_shot_3fd9ee579b.parquet",
+    "d3d_shot_c97c0671ff.parquet",
+    "d3d_shot_b299845d11.parquet",
+    "d3d_shot_27b661cf0d.parquet",
+    "d3d_shot_e7535f2983.parquet"
+  ],
+  "scoring_version": "3.1.0",
+  "source_hash": "a1f5baa4f58b17c4411944e80d72a1da07f2795cfb6675a222befafd66b0dbd3"
+}

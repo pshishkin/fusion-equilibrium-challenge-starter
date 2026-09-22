@@ -1,0 +1,18 @@
+{
+  "name": "historical-five-member-scores",
+  "date_utc": "2026-09-22",
+  "purpose": "Report native individual scores of every already fitted member of the recovered five-member artifact on the existing identical 70-shot tail",
+  "status": "Descriptive same-tail scoring only; no new fit, member selection, ensemble weight search, or independent confirmation",
+  "artifact": "artefacts/20260815-prod-4seeds-seq.joblib",
+  "artifact_sha256": "8dc3af11401b1024e6dafdcb76c7c50f110cdaa0a415e547d2877c709e2c2656",
+  "inference_git_commit": "eb70e25",
+  "inference_source": "runs/public-diii-d-eleven-eight-20260923/source_eb70e25",
+  "members_in_artifact_order": ["mlp", "mlp1", "mlp2", "mlp3", "seq"],
+  "scored_files_source": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+  "scored_files_source_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+  "scorer_source": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "scorer_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+  "jobs": 4,
+  "outputs": "runs/historical-five-members-20260922/<member>.npz and <member>.metrics.json",
+  "weights_searched": false
+}
