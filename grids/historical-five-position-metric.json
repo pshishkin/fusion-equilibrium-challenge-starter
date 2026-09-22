@@ -1,0 +1,24 @@
+{
+  "name": "historical-five-position-metric",
+  "date_utc": "2026-09-22",
+  "purpose": "Measure each B11 pooled-control or conditioned MLP as a fixed one-member addition to the recovered five-member ensemble",
+  "status": "Preregistered same-70-shot diagnostic; not independent confirmation or a weight search",
+  "candidate_campaign": "runs/position-metric-screen-213184dc591c904b",
+  "candidate_source_hash": "a1f5baa4f58b17c4411944e80d72a1da07f2795cfb6675a222befafd66b0dbd3",
+  "candidate_arms": [
+    {"name": "pooled-control", "artifact": "runs/position-metric-screen-213184dc591c904b/pooled-control_s0/baseline.joblib", "member": "mlp"},
+    {"name": "position-conditioned", "artifact": "runs/position-metric-screen-213184dc591c904b/position-conditioned_s0/baseline.joblib", "member": "mlp"}
+  ],
+  "historical_artifact": "artefacts/20260815-prod-4seeds-seq.joblib",
+  "historical_artifact_sha256": "8dc3af11401b1024e6dafdcb76c7c50f110cdaa0a415e547d2877c709e2c2656",
+  "historical_member_weight": 5,
+  "candidate_member_weight": 1,
+  "blend_rule": "Average decoded maps and both submitted scalars at fixed 5:1 member weights, then cast once to float32",
+  "scored_files_source": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+  "scored_files_source_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+  "scorer_source": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "scorer_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+  "jobs": 4,
+  "comparisons": ["historical_five", "historical_plus_pooled_control", "historical_plus_position_conditioned"],
+  "weights_searched": false
+}

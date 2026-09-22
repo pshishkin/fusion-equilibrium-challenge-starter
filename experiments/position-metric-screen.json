@@ -1,0 +1,21 @@
+{
+  "name": "position-metric-screen",
+  "params": "../baselines/position-metric.params.yaml",
+  "profile": "production",
+  "salts": [0],
+  "jobs": 24,
+  "arms": [
+    {
+      "name": "pooled-control",
+      "only": ["mlp"],
+      "set": [],
+      "score_models": ["mlp"]
+    },
+    {
+      "name": "position-conditioned",
+      "only": ["mlp"],
+      "set": ["loss.position_metric.mode=conditioned"],
+      "score_models": ["mlp"]
+    }
+  ]
+}

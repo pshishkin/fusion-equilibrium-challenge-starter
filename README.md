@@ -50,6 +50,10 @@ predeclared rule-out gate. It did not produce a new competition score or context
 scope and measurement are in [`experiments_history.md`](experiments_history.md).
 The B11 Jacobian-direction premise survived a controlled shared-denominator diagnostic, but no
 position-dependent loss or score gain has been measured; its record is in the same history.
+The one-control/one-candidate training screen is preregistered in
+[`experiments/position-metric-screen.json`](experiments/position-metric-screen.json): both arms
+share global target coordinates and stopping, with only the candidate's training metric varying
+by frame position. No production score is available yet.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

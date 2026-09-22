@@ -102,6 +102,12 @@ gave 0.5653. This supports a position-dependent orientation mechanism, not a com
 gain; no per-row loss has been implemented or fitted. See `experiments_history.md` and
 `results/b11_shared_variance_20260922.json`.
 
+The follow-up B11 MLP training screen is preregistered in
+`experiments/position-metric-screen.json`: a pooled form control against one fixed-strength
+position-conditioned loss, with identical production data shares/salt/seed and the same global
+validation loss. Compact replacement and old-five addition effects are separately specified in
+`ideas.md`; neither arm has a production score yet.
+
 The single-configuration temporal-convolution sequence member also completed. Its individual S
 was 0.990636, but the matched compact MLP-plus-convolution replacement was ΔS −0.000107 against
 the decoded MLP-plus-GRU control on the same 70 shots. It is not promoted; the historical

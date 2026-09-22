@@ -1116,8 +1116,11 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         raise ValueError(f"fit_mode is {fit_mode!r}; expected 'validation' or 'fixed_steps'")
     fixed_steps = fit_mode == "fixed_steps"
     from my_experiments.data_check import check_dataset
-    dataset_identity = check_dataset(local_data_dir, config)
     params: Params = load_params(params_path, salt, only, sets)
+    if params.position_metric is not None:
+        from my_experiments.position_metric import validate_preflight
+        validate_preflight(params, fit_mode)
+    dataset_identity = check_dataset(local_data_dir, config)
     if fixed_steps:
         for name, model in params.models.items():
             if not isinstance(model, (TorchMLPModel, TorchSeqModel)):
@@ -1397,8 +1400,20 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # exactly R2_psi) unless loss.metric asks for the measured one. Built from the PCA basis, so it
     # exists only after the fit above, and folded into the target transform — no model sees it.
     psi_L = None
+    position_plan = None
     images = np.asarray(pca.pca.components_).reshape(params.n_pca, EFIT_GRID_SIZE, -1)
-    if params.loss_metric == "jacobian":
+    if params.position_metric is not None:
+        from my_experiments.position_metric import build as build_position_metric
+
+        position_plan = build_position_metric(files, shots, pca, params, plan, psi_ss_tot,
+                                              frame_share, jobs)
+        psi_L = position_plan.global_factor
+        print(f"  B11 matched pooled loss: {position_plan.diagnostics['complete_triplets']} "
+              f"complete training-shot triplets; "
+              f"mode={params.position_metric['mode']}, "
+              f"delta={position_plan.diagnostics['probe_delta_wb_per_rad']:.5g} Wb/rad, "
+              f"group counts={position_plan.diagnostics['train_group_counts'].tolist()}")
+    elif params.loss_metric == "jacobian":
         # The functionals read the TOTAL flux, so the probe has to be applied to it — with the
         # coil field subtracted, Y holds the plasma part alone and the coil part is a constant
         # offset that the perturbation does not touch but the LCFS extraction certainly does.
@@ -1486,6 +1501,13 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         if fixed_steps:
             model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val, monitor, monitor_idx,
                       head_cons, head_cons_val, params.n_pca, fixed_steps=True)
+        elif (position_plan is not None
+              and position_plan.diagnostics["config"]["mode"] == "conditioned"):
+            assert isinstance(model, TorchMLPModel)
+            model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val, monitor, monitor_idx,
+                      head_cons, head_cons_val, params.n_pca,
+                      position_factors=position_plan.loss_factors,
+                      position_groups=position_plan.train_groups)
         else:
             model.fit(Xs, Tgt, Xvs, Tgt_val, shots, shots_val, monitor, monitor_idx,
                       head_cons, head_cons_val, params.n_pca)
@@ -1517,6 +1539,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         "holdout_files": [p.name for p in holdout],
         "holdout_share": params.holdout_share,
     }
+    if position_plan is not None:
+        artifact["position_metric"] = position_plan.diagnostics
     out.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(artifact, out)
     print(f"\nSaved {out}: {', '.join(model_names(artifact))}")

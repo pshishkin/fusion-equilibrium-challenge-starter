@@ -1,5 +1,27 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
+## 2026-09-23 B11 position-conditioned loss screen, registered before fitting
+
+The controlled 100-shot Jacobian diagnostic in `experiments_history.md` passed its directional
+mechanism gate. `experiments/position-metric-screen.json` now fixes one production-share salt-0
+seed-0 MLP comparison: `pooled-control` rebuilds one shared form from 100 complete training-only
+shot triplets, while `position-conditioned` changes only
+`loss.position_metric.mode=conditioned`. Both use the same global TargetScaler and pooled scalar
+variance. The candidate mixes 0.5 of its position-specific form with 0.5 of that global form;
+the strength, anchor positions 0.1/0.5/0.9, 0.3/0.7 boundaries and all feature/model settings
+are explicit in the frozen effective YAML. Validation stopping remains the same global MSE and
+neither arm reads the scored tail to construct its loss.
+
+Score the two MLPs alone and as separate 50/50 replacements for the compact MLP beside the
+unchanged compact sequence. The primary paired treatment effect is conditioned MLP + original
+sequence minus pooled-control MLP + the same sequence on the identical 70 unseen shots; the
+original compact ensemble is a separate native/decoded anchor. Then score each independently
+as one additional member at fixed old-five:candidate weight 5:1 under
+`grids/historical-five-position-metric.json`; addition and replacement are different measurements.
+This is one λ=0.5 hypothesis and one
+pooled control, with no parameter or weight search. The prior direction diagnostic establishes
+neither a training benefit nor a score gain; both remain unmeasured here.
+
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the
 working compact ensemble.

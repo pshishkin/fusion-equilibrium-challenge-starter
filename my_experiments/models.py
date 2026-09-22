@@ -732,8 +732,35 @@ class TorchMLPModel(TargetModel):
             head_y: FloatArray | None = None,
             head_y_val: FloatArray | None = None,
             head_n_pca: int = 0,
-            fixed_steps: bool = False) -> None:
+            fixed_steps: bool = False,
+            position_factors: FloatArray | None = None,
+            position_groups: npt.NDArray[np.int64] | None = None) -> None:
         self._fixed_steps = fixed_steps
+        if (position_factors is None) != (position_groups is None):
+            raise ValueError("torch_mlp: position_factors and position_groups must be supplied "
+                             "together, or both omitted")
+        if position_factors is not None:
+            if fixed_steps:
+                raise ValueError("torch_mlp: position-conditioned loss needs validation mode")
+            if self.loss != "mse" or self.frame_ends_strength != 0:
+                raise ValueError("torch_mlp: position-conditioned loss needs loss=mse and "
+                                 f"frame_ends_strength=0, got {self.loss!r} and "
+                                 f"{self.frame_ends_strength}")
+            if not 0 < head_n_pca < Y.shape[1]:
+                raise ValueError(f"torch_mlp: position loss has coefficient width {head_n_pca} "
+                                 f"against {Y.shape[1]} target columns")
+            if (position_factors.shape != (3, head_n_pca, head_n_pca)
+                    or not np.isfinite(position_factors).all()):
+                raise ValueError(f"torch_mlp: position factors {position_factors.shape}, "
+                                 f"nonfinite={int((~np.isfinite(position_factors)).sum())}; "
+                                 f"expected finite (3,{head_n_pca},{head_n_pca})")
+            assert position_groups is not None
+            if (position_groups.shape != (len(X),)
+                    or not np.issubdtype(position_groups.dtype, np.integer)
+                    or np.any((position_groups < 0) | (position_groups > 2))):
+                raise ValueError(f"torch_mlp: position groups {position_groups.shape}/"
+                                 f"{position_groups.dtype} against {len(X)} rows, expected "
+                                 "integers 0, 1 or 2")
         if fixed_steps:
             if len(X_val) or len(Y_val):
                 raise ValueError(f"torch_mlp: fixed_steps requires 0 validation rows, got "
@@ -781,6 +808,12 @@ class TorchMLPModel(TargetModel):
         Xt_cpu = torch.from_numpy(np.ascontiguousarray(X, dtype=np.float32))
         Yt_cpu = torch.from_numpy(np.ascontiguousarray(Y, dtype=np.float32))
         Xt, Yt = Xt_cpu.to(dev), Yt_cpu.to(dev)
+        factors_t = (None if position_factors is None else torch.from_numpy(
+            np.ascontiguousarray(position_factors, dtype=np.float32)
+        ).to(dev))
+        groups_t = (None if position_groups is None else torch.from_numpy(
+            np.ascontiguousarray(position_groups, dtype=np.int64)
+        ).to(dev))
         loader = torch.utils.data.DataLoader(
             torch.utils.data.TensorDataset(Xt_cpu, Yt_cpu),
             batch_size=self.batch_size, shuffle=True,
@@ -1025,7 +1058,15 @@ class TorchMLPModel(TargetModel):
                 xb, yb = Xt[ib], Yt[ib]
                 opt.zero_grad()
                 out = net(xb)
-                per = loss_fn(out, yb).mean(dim=1)
+                if factors_t is None:
+                    per = loss_fn(out, yb).mean(dim=1)
+                else:
+                    assert groups_t is not None
+                    error = out - yb
+                    rotated = torch.bmm(error[:, :head_n_pca].unsqueeze(1),
+                                        factors_t[groups_t[ib]]).squeeze(1)
+                    per = (rotated.square().sum(dim=1)
+                           + error[:, head_n_pca:].square().sum(dim=1)) / self._n_out
                 loss = per.mean() if w_t is None else (per * w_t[ib]).mean()
                 if aux_head is not None:
                     # The head reads ONLY the coefficient block, so the sole way to lower this term
@@ -1366,6 +1407,9 @@ class Params:
     # identity. 1.0 is the scorer's own ratio. See `metric_form` for the headroom table that
     # motivates moving it and for the counter-hypothesis that more than one level tests.
     cons_gain: float
+    # B11: None preserves the historical global target loss. A configured pair builds one matched
+    # pooled target metric; only its conditioned arm changes per-frame training gradients.
+    position_metric: dict[str, Any] | None
     # Weight on the GRADIENT of the map error, as `poloidal_field_form` measures it: |grad dpsi|/R,
     # the poloidal-field error. Every scored functional reads a level set, whose position and shape
     # are set by the slope, and the Parseval term is blind to slope. 1.0 means "as much as the flux
@@ -1569,11 +1613,16 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     _require_keys(doc, {"features", "split", "loss", "models", "ensemble"},
                   "the top level", path)
     _require_keys(doc["split"], {"salt", "holdout_share"}, "split", path)
-    _require_keys(doc["loss"],
-                  {"metric", "calibrate_scalars", "li_form", "jacobian_frames", "jacobian_delta",
-                   "boundary", "monitor_frames", "aux_scalars", "aux_weight", "cons_split",
-                   "cons_gain", "field_weight", "env_weight", "env_inside"},
-                  "loss", path)
+    loss_keys = {"metric", "calibrate_scalars", "li_form", "jacobian_frames", "jacobian_delta",
+                 "boundary", "monitor_frames", "aux_scalars", "aux_weight", "cons_split",
+                 "cons_gain", "field_weight", "env_weight", "env_inside"}
+    _require_keys(doc["loss"], loss_keys | ({"position_metric"}
+                   if "position_metric" in doc["loss"] else set()), "loss", path)
+    position_metric = None
+    if "position_metric" in doc["loss"]:
+        from my_experiments.position_metric import normalize_config
+        position_metric = normalize_config(doc["loss"]["position_metric"],
+                                           f"{path}: loss.position_metric")
     loss_metric = str(doc["loss"]["metric"])
     if loss_metric not in LOSS_METRICS:
         raise ValueError(f"{path}: loss.metric is {loss_metric!r}, expected one of "
@@ -1668,6 +1717,7 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   aux_weight=float(doc["loss"]["aux_weight"]),
                   cons_split=str(doc["loss"]["cons_split"]),
                   cons_gain=float(doc["loss"]["cons_gain"]),
+                  position_metric=position_metric,
                   field_weight=float(doc["loss"]["field_weight"]),
                   env_weight=float(doc["loss"]["env_weight"]),
                   env_inside=float(doc["loss"]["env_inside"]),
