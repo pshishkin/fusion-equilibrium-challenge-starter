@@ -9,7 +9,7 @@
 # NOTHING IN FLIGHT IS WASTED. base_s5 is running and is a row this plan needs; p70_s5 follows it
 # and is also needed. So the lane is left alone until BOTH have landed, and cut before it reaches
 # p100_s5 — the only run in its queue that this plan does not want.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 OLD_PGID=$1
 until grep -q "^z_npca_p70_s5," results/z_npca.csv 2>/dev/null; do sleep 120; done
 echo "=== $(date -u +%H:%M) salt 5 pair complete; retiring the old lane before it reaches p100_s5 ==="

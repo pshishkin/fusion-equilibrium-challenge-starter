@@ -14,7 +14,7 @@
 # Alphabetical is arbitrary, which is the point — it includes the deliberately degraded ablation
 # arms (n_pca=30, head_weight=0, wider nets) at whatever position they fall, which is exactly the
 # question "does throwing everything in help".
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 ALL=$(ls artefacts/lanes/*_s0.joblib | sed 's|.*/baseline_||; s|\.joblib$||' | grep -v "^y_seq_" | sort)
 OUT=results/x_blend_curve.csv
 [ -f "$OUT" ] || echo "n_members,S,R2_psi,R2_qb,D_LCFS,Cons,members" > "$OUT"

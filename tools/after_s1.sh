@@ -4,7 +4,7 @@
 # Order matters and it is the user's: the AMP measurement runs before salts 2 and 3, on an idle box.
 # Run it beside a lane and it measures GPU contention instead of precision, which is the one thing
 # it exists to avoid.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 120; done; done
 echo "===== $(date -u +%F\ %H:%M) salt 1 done; AMP benchmark, alone ====="
 tools/amp_bench.sh

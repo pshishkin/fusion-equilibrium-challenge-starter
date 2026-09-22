@@ -123,7 +123,7 @@ Any claim about the data is backed by a measurement over a sample of shots, and 
 the number. "The current seems to always be positive" is not a conclusion; "reversed current in 21
 of 200 shots" is.
 
-**Where the record lives.** Three files, and putting a thing in the wrong one is how it gets lost:
+**Where the record lives.** Keep current state, conventions and historical evidence separate:
 
 | file | what belongs in it |
 |---|---|
@@ -131,19 +131,21 @@ of 200 shots" is.
 | [AGENTS.md](AGENTS.md) | what the rules **are** — conventions, and only conventions |
 | [experiments_history.md](experiments_history.md) | DIII-D: what we **learned** — one line per experiment, dated, with its number and a verdict |
 | [ideas.md](ideas.md) | DIII-D: what nobody has measured yet — dated, and explicitly not claims |
+| [experiment_status.md](experiment_status.md) | current DIII-D decisions and pointers to their evidence |
+| [experiments_mast.md](experiments_mast.md) | MAST: the same record, kept separate because the two machines share almost no result |
+| [ideas_mast.md](ideas_mast.md) | MAST: the same idea list, ranked against Challenge 2's own arithmetic |
 
 **Sweeps can run two at a time, and the docstring that says otherwise is only half right.**
 `sweep.py` refuses concurrency because "every run writes the same `my_experiments/baseline.joblib`"
 — true, and the way round it is one line: it passes `{**os.environ, **ENV_CAPS}` to the subprocess,
 so `FUSION_ARTIFACT=<some other path> make sweep ...` gives the second lane its own artifact. What
-actually bounds it is memory, and the number to read is the cgroup's, not `free`'s:
+actually bounds it is memory. Resolve the current cgroup from `/proc/self/cgroup` and its mount
+before reading limits: v2 uses `memory.max`/`memory.current`, v1 uses
+`memory.limit_in_bytes`/`memory.usage_in_bytes`. Usage includes page cache. Do not infer a
+container limit from `free`, or reuse an old machine's limit. The former training container had
+183 GB against a 251 GB host; those are historical measurements, not this checkout's resources.
 
-    cat /sys/fs/cgroup/memory/memory.limit_in_bytes   # 183 GB (cgroup v1 — the v2 path is absent)
-    cat /sys/fs/cgroup/memory/memory.usage_in_bytes   # includes parquet page cache, not just RSS
-
-`free` reports the HOST's 251 GB, shared with another tenant, so it cannot tell you your own usage.
-
-Two lanes fit comfortably. What does NOT fit is the wreckage of killed ones: `kill <lane script>`
+Two lanes fit on that former container; measure available resources again on a new host. What does NOT fit is the wreckage of killed ones: `kill <lane script>`
 leaves every worker pool its children spawned reparented to init, holding memory and pids for good.
 On 2026-08-20 eight queue restructures leaked **734 workers holding 145 GB and 7000 of the 7680
 pids**; nine runs died rc=137 and two live sweeps then wedged for 41 minutes on
@@ -151,11 +153,9 @@ pids**; nine runs died rc=137 and two live sweeps then wedged for 41 minutes on
 the cgroup from 150 GB to 2 GB.
 
 **Kill process groups, not scripts** — `setsid` at launch, `kill -- -<pgid>` to stop — and check
-`ps -eL --no-headers | wc -l` against `/sys/fs/cgroup/pids/pids.max` before blaming memory. Anything that edits the training
+`ps -eL --no-headers | wc -l` against the current cgroup's `pids.max` before blaming memory. Anything that edits the training
 path — `models.py`, `baseline_model.py` — must NOT be touched while a lane is queued: every sweep
 entry re-imports it, so a bad edit lands in every remaining arm.
-| [experiments_mast.md](experiments_mast.md) | MAST: the same record, kept separate because the two machines share almost no result |
-| [ideas_mast.md](ideas_mast.md) | MAST: the same idea list, ranked against Challenge 2's own arithmetic |
 
 An idea starts in `ideas.md`. When it is measured it moves to the history file with a number
 attached, whichever way the number went. **Hypotheses that did not survive stay recorded**, so they
@@ -191,92 +191,50 @@ nowhere else.
 Non-overlap is checked against the **filenames** stored in the artifact — both `train_files` and
 `val_files` — not by index arithmetic, so the check stays correct when the data directory grows.
 
-## How we test the metric
+## How we run and compare experiments
 
-Three commands, and which one is being quoted must always be said.
+`experiments/protocols.json` is the machine-readable source of data shares:
 
-```bash
-# 1. production — what a submission is built from, and what DECIDES anything. FOUR nets.
-make prod       # train_eval.py 0.60/0.1 0.15/0.1 0.01 --jobs 24
+- Smoke: `0.01/0.2 0.01/0.2 0.002`, one MLP, correctness only.
+- Production: `0.80/1.0 0.19/1.0 0.01`; `make quality` uses the same data with ridge and one MLP,
+  while `make prod` uses the enabled ensemble, including the sequence model.
+- Paired lanes: `0.80/1.0 0.15/1.0 0.05`, the existing lane protocol, paired within split salt.
 
-# 2. quality — a SCREEN at a quarter of the cost, on production's OWN data. ONE net.
-make quality    # train_eval.py 0.60/0.1 0.15/0.1 0.01 --only ridge mlp --jobs 24
+Do not silently substitute other shares. A change of shares requires the user's agreement.
+Identify the protocol, command, effective config and scored filenames when quoting a score.
+Quality is a screen; confirmation uses the intended production ensemble. New salts do not make
+reused shots an independent dataset. Selection and confirmation must be separated in advance.
 
-# 3. smoke — does it work at all, and how fast. ONE net.
-make test       # train_eval.py 0.01/0.2 0.01/0.2 0.002 --only mlp --jobs 24
-```
+Use `python -m my_experiments.run prepare` to freeze a campaign before executing it. Each campaign
+records source hashes, package versions, complete effective YAML and its data protocol. Do not edit
+its snapshot or configs; prepare a new campaign for a change. Editing the working tree while a
+FROZEN campaign runs is allowed because its workers import the snapshot. This exception does not
+apply to the old shell lanes, which re-import the working tree.
 
-**The screen and production now differ in ONE thing: one net against four. The data is
-identical.** That is deliberate, and it repairs the failure this section was written about. The
-reversal below — `n_pca = 30` beating 50 at quality on three salts, then losing at production — was
-caused by the screen's 352 shots, not by its ensemble: at that scale the tail PCA components are
-noise the model cannot predict, and at 4225 they are signal. A screen run on production's own data
-cannot make that class of mistake.
+Each arm/salt owns its artifact, log and scorer-native JSON. Resume requires a successful completion
+record with matching artifact/config/metrics hashes, never just a filename or CSV row. Preserve
+failed logs and terminate process groups together. New orchestration must not parse printed scores.
+Record the host boot and PID namespace with process IDs; a hidden worker is not a dead worker.
+The scorer's JSON `dlcfs` is the distance; legacy CSV `D_LCFS` contains `1-D_LCFS`.
 
-What the screen still costs is noise. The seed sigma is 0.0013 of S for one net against about half
-that for four, so a difference read at quality must clear twice the floor a production run's does —
-and a change that helps the ensemble by averaging away seed variance will not show here at all.
-**Quality numbers recorded before 2026-08-14 came from 352 shots and four nets, and compare to
-neither of these.**
+Auxiliary target caches record full-shot frame counts and use the same per-shot thinning as training.
+They may be shared by snapshots only when producer code, dependency lock and input identities match.
+Missing caches are built explicitly through `pimap`; incomplete files are never published as ready.
 
-`--only` and `--salt` override params.yaml for one run. That is not a second home for
-hyper-parameters — they have no defaults of their own, they are printed at the top of the run, and
-the artifact stores the EFFECTIVE configuration rather than the file's text, so a screening run
-still says exactly what produced it.
+The pinned DIII-D manifest must match the complete local corpus before a fit. Missing, unexpected,
+wrong-sized or invalid parquet files are errors. Full SHA-256 verification is available separately.
+An explicit CUDA configuration requires CUDA; never quietly switch to CPU. A sandbox may restrict
+GPU access, so distinguish process visibility from a host driver failure.
 
-**Quality screens; production decides. A change that measures well at quality is a candidate, not
-a result, and nothing reaches a submission without a production-scale confirmation.**
+`experiment_status.md` indexes current decisions and references historical evidence. Keep measured
+nulls, uncertainty and user acceptance decisions distinct. The submitted reference manifest and the
+iteration recipe are separate: without original artifacts and their hashes, do not claim that a
+current config reproduces a historical leaderboard submission.
 
-This is not caution, it is measured. `n_pca = 30` beat 50 at quality by +0.0043 on all three salts
-with t = 4.84 — as clean a result as anything here — and at production 50 beat 30. The reversal
-has an ordinary cause: with 352 shots the tail PCA components are noise the model cannot predict
-and the loss over-weights, and with 3168 shots they become signal, so truncating throws it away.
-The optimal capacity grows with the data, and every conclusion drawn at a tenth of the data
-silently assumed it does not.
-
-The corollary is uncomfortable and worth stating: several results in README were measured at
-quality scale and have NOT been confirmed at production. Where that is so, say so.
-
-`make prod`, `make quality` and `make test` (the last is what `make ci` runs). The production run
-is what the artifact behind a submission must come from: 4225 shots to fit, 1056 to stop on, 70
-scored, about 5 minutes with the shot cache warm. Measured there, with CatBoost disabled so the
-ensemble is the MLP alone, with the coil field subtracted and the Jacobian loss metric:
-
-```
-             model         S    R2_psi     R2_qb   1-D_LCFS      Cons
-               mlp    0.9875    0.9994    0.9905     0.9860    0.9530
-          ensemble    0.9914    0.9997    0.9937     0.9879    0.9685
-             ridge    0.7022    0.8076    0.5461     0.9513    0.4050
-```
-
-Salt 0; the same recipe gives 0.9889 on salt 1 and 0.9898 on salt 2. The fork sat at
-0.9677 before the coil-field decomposition and the Jacobian loss, 0.9769 on 1408 shots, and 0.9809 with a
-256x256 MLP and no Thomson features until 2026-08-13. Consistency carries essentially all of the
-movement.
-
-`loss.jacobian_delta` is SCALE-DEPENDENT and the one number here that has to be revisited: the
-probe has to sit at the error the model actually makes, so it is sqrt(1 - R2_psi) of the run it is
-used in — 0.05 at quality scale (R2_psi 0.997) and 0.033 at production (0.9989). Refitting it on
-the production model moved S by +0.0029. Against the paired sd of 0.0013 measured later that is
-about two sigma — a real gain, not the "unmeasured" it was first recorded as, because the floor it
-was read against at the time was five times too big.
-
-The MLP fits 62968 frames in 266 s and stops at epoch 767 of the 868 it ran. Note how far this is
-from the quality run (0.9319) on a fifth of the shots: at this scale shots are still buying score,
-so a submission is retrained at 0.2, never at 0.05. The smoke run is 70 shots
-thinned to a fifth of their frames against 14 scored shots, about 2.5 minutes; the quality run is
-352 shots and 70 scored. Any claim about a model scoring better than another comes from the
-quality run — the smoke one fits 3272 rows and exists to prove the chain works: shot ordering, the
-three-way split and its overlap check, feature building, frame thinning, every model in
-params.yaml with its early stopping, the artifact, inference, and the real metric.
-
-Do not silently substitute other shares. If a run at a different scale is wanted, ask first.
-Numbers from different shares are NOT comparable — the scored fold changes with the test share,
-and ridge alone moved 0.1157 -> 0.3693 across one such change.
-
-History, because the numbers in README carry it: `0.01 0.001` (two shares, no validation) ->
-`0.01 0.002 0.001` (validation added for early stopping) -> `0.01 0.01 0.002` (wider validation)
--> the pair above, once frame thinning showed that shots buy more than frames do.
+A candidate's individual score, replacement effect and contribution when ADDED to the baseline
+ensemble are different measurements. Report the baseline, candidate and augmented ensemble on the
+same unseen shots with explicit artifact weights. A cross-salt ensemble requires a common holdout
+excluded before every fit; the ordinary per-salt tail is not enough.
 
 ## Every function is annotated
 

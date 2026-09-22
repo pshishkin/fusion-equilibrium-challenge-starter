@@ -1,0 +1,11 @@
+{
+  "name": "paired-control",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "paired",
+  "salts": [0, 1, 2],
+  "jobs": 24,
+  "arms": [
+    {"name": "base", "only": null, "set": [], "score_models": ["ensemble"]},
+    {"name": "seq-cosine", "only": null, "set": ["models.seq.lr_schedule=cosine", "models.seq.lr_t_max_steps=80000"], "score_models": ["ensemble"]}
+  ]
+}

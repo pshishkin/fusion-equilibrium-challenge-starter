@@ -9,7 +9,7 @@
 # `salts:a+b+c` averages the DECODED predictions of whole artifacts. z_npca_base is itself a
 # five-member ensemble, so "base" here is production exactly, and each c_* artifact contributes the
 # one or two models it holds. Ladder rungs, so the shape is visible and not just the endpoint.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 OUT=results/x_blend_eval.csv
 [ -f "$OUT" ] || echo "salt,rung,n_artifacts,S,R2_psi,R2_qb,D_LCFS,Cons,members" > "$OUT"
 for SALT in ${SALTS:-1 2 3}; do

@@ -15,7 +15,7 @@
 # instrument that resolves 0.000088 at twelve pairs. These are baked as MEMBERS first, where the
 # bar is "errs elsewhere" rather than "beats the control" — a wide net at 100 components differs
 # from a narrow one at 50 along two axes at once, whatever its own score turns out to be.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 120; done; done
 WIDE="models.mlp.hidden_sizes=[1024,1024] models.mlp.dropout=0.02"
 for SALT in ${SALTS:-1 2 3}; do

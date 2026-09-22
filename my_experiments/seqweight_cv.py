@@ -2,16 +2,20 @@
 
 Every member ships at 1.0, so `seq` gets exactly 1/5. Those weights were fixed before `seq` gained
 its cosine schedule (+0.00010 in production, t = 5.1), and nothing has revisited them since. The
-mechanism for expecting a different answer is measured: `mlp` alone scores 0.9931, four seeds 0.9940,
+mechanism for expecting a different answer is measured: `mlp` alone scores 0.9931, four seeds
+0.9940,
 `mlp+seq` **0.9943** — one extra architecture beats three extra seeds, because seeds correlate at
 0.56 and a different architecture does not.
 
 **This is not A21, which is closed.** A21 FITTED all five weights and cross-validated at -0.00002,
-worse than equal: five free parameters on a handful of shots overfit. This sweeps ONE weight coarsely.
+worse than equal: five free parameters on a handful of shots overfit. This sweeps ONE weight
+coarsely.
 
-**The gate is two-column, and it is not optional.** The lambda sweep returned +0.000075 in-sample and
+**The gate is two-column, and it is not optional.** The lambda sweep returned +0.000075 in-sample
+and
 -0.00015 on shots it had not seen, because the best of eleven noise draws is positive by
-construction. So: choose the weight on one half of the clean tail, report what it earns on the other,
+construction. So: choose the weight on one half of the clean tail, report what it earns on the
+other,
 and swap. The number that counts is the mean of the two out-of-sample columns.
 """
 from __future__ import annotations
@@ -43,7 +47,8 @@ def spec(w: float) -> str:
     return mlps if w == 0.0 else f"{mlps}+seq*{w}"
 
 
-def score(files, w, art, jobs, data_dir, config):
+def score(files: list[Path], w: float, art: Path, jobs: int,
+          data_dir: Path, config: str) -> float:
     env = dict(os.environ, FUSION_ARTIFACT=str(art))
     out = subprocess.run(
         [sys.executable, "local_score.py", "--source", "local", "--local-data-dir", str(data_dir),
@@ -82,13 +87,14 @@ def main() -> int:
     halves = [tail[0::2], tail[1::2]]
     print(f"  {len(tail)} clean tail shots -> halves of {len(halves[0])} and {len(halves[1])}")
 
-    S = [{}, {}]
+    S: list[dict[float, float]] = [{}, {}]
     for h in (0, 1):
         for w in GRID:
             S[h][w] = score(halves[h], w, a.artifact, a.jobs, a.local_data_dir, a.config)
         print(f"  half {h}: " + "  ".join(f"{w}:{S[h][w]:.6f}" for w in GRID))
 
-    print(f"\n  {'fit on':>8}{'w*':>7}{'in-sample':>12}{'OUT-OF-SAMPLE':>15}   (vs w=1.0, what ships)")
+    print(f"\n  {'fit on':>8}{'w*':>7}{'in-sample':>12}{'OUT-OF-SAMPLE':>15}"
+          "   (vs w=1.0, what ships)")
     oos = []
     for h in (0, 1):
         o = 1 - h

@@ -8,7 +8,7 @@
 #
 # Waits for the shaped basis to exist on every requested salt before starting, because starting
 # without it would reproduce exactly the fault this exists to remove.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 SALTS="${SALTS:-1 2 3 4 5}"
 while :; do
   missing=""

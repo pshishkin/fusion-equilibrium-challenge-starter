@@ -1096,6 +1096,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # prevents — two lanes overwriting one another's artifact between fit and score — is silent
     # whenever the two happen to fit models of the same name.
     out = require_artifact_path()
+    from my_experiments.data_check import check_dataset
+    dataset_identity = check_dataset(local_data_dir, config)
     params: Params = load_params(params_path, salt, only, sets)
     shot_share, frame_share = parse_share(share)
     val_shot_share, val_frame_share = parse_share(val_share)
@@ -1125,6 +1127,9 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     print(f"Models from {params.path}: {', '.join(params.models)}  "
           f"(ensemble: {', '.join(f'{k} x {w:.2f}' for k, w in params.ensemble.items())})")
 
+    if params.aux_names or any(getattr(m, "head_weight", 0.0) for m in params.models.values()):
+        from my_experiments import aux_targets
+        aux_targets.ensure([("train", files), ("validation", val_files)], jobs)
     X, Y, S, shots = _read_shots(files, "reading train shots", frame_share, jobs)
     print(f"  train: X {X.shape}  Y {Y.shape}  S {S.shape}, flux {Y.nbytes / 2 ** 30:.2f} GiB")
     Xv, Yv, Sv, shots_val = _read_shots(val_files, "reading val shots", val_frame_share, jobs)
@@ -1223,7 +1228,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         blocks = []
         for block_files, n_rows, label in ((files, len(Tgt), "training"),
                                            (val_files, len(Tgt_val), "validation")):
-            c = aux_targets.load(block_files)
+            c = aux_targets.load(block_files,
+                                 frame_share if label == "training" else val_frame_share)
             if c is None:
                 raise SystemExit(
                     f"a model sets head_weight but the {label} functionals are not cached for this "
@@ -1251,7 +1257,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         blocks = []
         for block_files, n_rows, label in ((files, len(Tgt), "training"),
                                            (val_files, len(Tgt_val), "validation")):
-            cons = aux_targets.load(block_files)
+            cons = aux_targets.load(block_files,
+                                    frame_share if label == "training" else val_frame_share)
             if cons is None:
                 raise SystemExit(
                     f"loss.aux_scalars is {params.aux_scalars!r} but the {label} functionals are "
@@ -1375,6 +1382,9 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         print(f"  {name}: fitted in {time.perf_counter() - t0:.1f} s{model.fit_report()}")
 
     artifact: Artifact = {
+        "dataset_identity": dataset_identity,
+        "run_id": os.environ.get("FUSION_RUN_ID"),
+        "source_sha256": os.environ.get("FUSION_SOURCE_SHA256"),
         "scaler": scaler, "pca": pca, "target_scaler": target_scaler,
         "models": params.models, "ensemble": params.ensemble,
         "n_pca": params.n_pca, "coil": plan,
@@ -1568,17 +1578,18 @@ def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE,
         # it would re-predict that artifact once per repetition — five times the work for the same
         # number.
         spec = model[len(SALTS_PREFIX):].split("+")
-        if len(spec) < 2:
-            raise ValueError(f"{model!r} names one fit; use its own model name instead")
         names, weights = [], []
         for entry in spec:
             name, _, w = entry.partition(WEIGHT_SEP)
             names.append(name)
             weights.append(float(w) if w else 1.0)
-        if any(w <= 0 for w in weights):
-            raise ValueError(f"{model!r}: weights must be positive, got {weights}")
+        if any(not np.isfinite(w) or w <= 0 for w in weights):
+            raise ValueError(f"{model!r}: weights must be finite and positive, got {weights}")
         total = sum(weights)
         parts = [predict_row(row, source, ENSEMBLE, artifact_path(n)) for n in names]
+        # A single external artifact is useful when scoring a candidate beside a blend.
+        if len(parts) == 1:
+            return parts[0]
         averaged: dict[str, FloatArray] = {}
         for key in parts[0]:
             acc = sum((w / total) * p[key] for w, p in zip(weights, parts, strict=True))

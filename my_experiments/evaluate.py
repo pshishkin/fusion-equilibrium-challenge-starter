@@ -64,6 +64,8 @@ def main() -> int:
     ap.add_argument("--local-data-dir", type=Path, default=DEFAULT_LOCAL_DATA_DIR,
                     help="root of the downloaded dataset (the folder containing 'data/')")
     ap.add_argument("--config", default=HF_TRAIN_CONFIG)
+    ap.add_argument("--metrics-json", type=Path,
+                    help="write scorer-native precision metrics and the exact scored file list")
     ap.add_argument("--select-on-val", type=int, metavar="N",
                     help="score on N of the artifact's VALIDATION shots instead of the unseen "
                          "tail. Those shots are not clean — early stopping read them — so this is "
@@ -214,6 +216,7 @@ def main() -> int:
         "--config", args.config,
         "--mode", args.mode,
         "--jobs", str(args.jobs),
+        *(["--metrics-json", str(args.metrics_json)] if args.metrics_json else []),
         *extra,
         "--files", *[str(p) for p in files],
     ])

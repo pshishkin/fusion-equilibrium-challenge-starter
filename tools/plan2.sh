@@ -9,7 +9,7 @@
 # positive by any amount, the lane runs its full six salts.
 #
 # Usage: tools/plan2.sh <pid of the running z_sbasis lane.sh>
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 LANE=$1
 while kill -0 "$LANE" 2>/dev/null; do
   sleep 120

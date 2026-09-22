@@ -120,10 +120,10 @@ def main() -> int:
         d2 = second_differences(df, f"gt_{name}", args.tol)
         if np.isnan(kept):
             kept = len(d2) / max(1, len(df))
-        sigma = float(np.sqrt(max(0.0, (d2 ** 2).mean() / 6.0)))
+        sigma = float(np.sqrt(max(0.0, float((d2 ** 2).mean()) / 6.0)))
         lo, hi = np.percentile(d2, [100 * args.trim, 100 * (1 - args.trim)])
         core = d2[(d2 >= lo) & (d2 <= hi)]
-        sigma_t = float(np.sqrt(max(0.0, (core ** 2).mean() / 6.0)))
+        sigma_t = float(np.sqrt(max(0.0, float((core ** 2).mean()) / 6.0)))
 
         r2 = 1.0 - rms ** 2 / ss_tot
         ceiling_plain.append(1.0 - sigma ** 2 / ss_tot)
@@ -155,7 +155,9 @@ def main() -> int:
         sig = []
         for k in (1, 2, 3):
             d2 = second_differences(df, f"gt_{name}", args.tol, k)
-            sig.append(float(np.sqrt(max(0.0, (d2 ** 2).mean() / 6.0))) if len(d2) else np.nan)
+            sig.append(
+                float(np.sqrt(max(0.0, float((d2 ** 2).mean()) / 6.0))) if len(d2) else np.nan
+            )
         ceiling_corr.append(1.0 - sig[2] ** 2 / ss_tot)
         print(f"    {name:<9}" + "".join(f"{v:>10.5f}" for v in sig)
               + f"{sig[2] / max(sig[0], 1e-30):>9.2f}")

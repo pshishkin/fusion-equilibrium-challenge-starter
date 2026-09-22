@@ -54,3 +54,6 @@ artefacts/laneF/
 .mast_cache/
 submission_*/
 .blend_cache/
+
+# Immutable local experiment snapshots, fits, logs and per-run JSON metrics.
+runs/

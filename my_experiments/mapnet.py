@@ -38,6 +38,7 @@ The gap to A is one term: Consistency 0.9437 against 0.9740, which is 85% of the
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -67,13 +68,13 @@ def build_nets(n_in: int, latent: int, grid: int, upsample: str, coords: bool, d
     extra = 2 if coords else 0
 
     class Up(torch.nn.Module):
-        def __init__(self, cin, cout, mode):
+        def __init__(self, cin: int, cout: int, mode: str) -> None:
             super().__init__()
             self.mode = mode
             self.op = (torch.nn.ConvTranspose2d(cin, cout, 4, 2, 1) if mode == "convt"
                        else torch.nn.Conv2d(cin, cout, 3, 1, 1))
 
-        def forward(self, x):
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
             if self.mode == "bilinear":
                 x = torch.nn.functional.interpolate(x, scale_factor=2, mode="bilinear",
                                                     align_corners=False)
@@ -89,7 +90,7 @@ def build_nets(n_in: int, latent: int, grid: int, upsample: str, coords: bool, d
     return {"enc": enc, "lin": lin, "seed": seed_mod, "body": body, "qb": qb}
 
 
-def mapnet_predict(art: dict, Xs, grid: int):
+def mapnet_predict(art: dict, Xs: np.ndarray, grid: int) -> tuple[np.ndarray, np.ndarray]:
     """Decoded maps and scalars from a mapnet artifact. Runs on the CPU, like every other member.
 
     Mirrors `TorchMLPModel.predict`'s promise: a submission is scored on a machine this fork does
@@ -162,7 +163,7 @@ def main() -> int:
     ap.add_argument("--out", default="/tmp/encdec_pred.npz")
     a = ap.parse_args()
 
-    import baseline_model as B
+    from my_experiments import baseline_model as B
     files = B.sorted_shots(salt=a.salt)
     # The validation window is KEPT now, not discarded. mapnet does not early-stop, so it never
     # reads those shots — but a blend member has to declare what its split was, and `evaluate.py`
@@ -225,13 +226,13 @@ def main() -> int:
 
         `bilinear` resizes first and then convolves, which cannot produce that pattern.
         """
-        def __init__(self, cin, cout, mode):
+        def __init__(self, cin: int, cout: int, mode: str) -> None:
             super().__init__()
             self.mode = mode
             self.op = (torch.nn.ConvTranspose2d(cin, cout, 4, 2, 1) if mode == "convt"
                        else torch.nn.Conv2d(cin, cout, 3, 1, 1))
 
-        def forward(self, x):
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
             if self.mode == "bilinear":
                 x = torch.nn.functional.interpolate(x, scale_factor=2, mode="bilinear",
                                                     align_corners=False)
@@ -256,7 +257,7 @@ def main() -> int:
         torch.nn.Conv2d(16, 1, 3, 1, 1)).to(dev)
     dec = torch.nn.ModuleList([seed, body]).to(dev)
 
-    def decode(z):
+    def decode(z: torch.Tensor) -> torch.Tensor:
         h = seed(z)
         if a.coords:
             h = torch.cat([h, coord.expand(len(z), -1, -1, -1)], dim=1)
@@ -287,7 +288,7 @@ def main() -> int:
               f"{float(r1.min()**2):.3f}..{float(r1.max()**2):.3f}", flush=True)
     pw = None
     if a.mask_weight:
-        from target_metric import scorer_context
+        from my_experiments.target_metric import scorer_context
         _ctx = scorer_context(plan['grid_R'], plan['grid_Z'], plan['machine'])
         w = np.asarray(_ctx['mask_f'], dtype=np.float32).reshape(-1)
         w = 1.0 + (a.mask_weight - 1.0) * w
@@ -299,7 +300,7 @@ def main() -> int:
     Qg = torch.from_numpy(((qbt - qm) / qs).astype(np.float32)).to(dev)
     Yc = torch.from_numpy(Yt)                        # stays on the CPU: too large for the GPU
 
-    def fwd(x):
+    def fwd(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         z = enc(x)
         return lin(z) + decode(z)[:, 0, :G, :G].reshape(len(x), -1), qb(z)
 
@@ -336,7 +337,7 @@ def main() -> int:
     qb.eval()
 
     print("  predicting the scoring shots...", flush=True)
-    out = {}
+    out: dict[str, Any] = {}
     for i, f in enumerate(score_files):
         X, _psi, _, _ = B._read_shots([f], "", 1.0, 1)
         S = art['scaler'].transform(B.build_inputs(plan, X)).astype(np.float32)

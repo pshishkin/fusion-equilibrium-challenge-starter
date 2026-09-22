@@ -1,5 +1,8 @@
 # Single-model results — DIII-D / Challenge 1
 
+> Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
+> Historical dates, running labels and superseded verdicts below are retained as evidence.
+
 What the single-model screens returned. Hypotheses live in
 [single_model_hypotheses.md](single_model_hypotheses.md).
 

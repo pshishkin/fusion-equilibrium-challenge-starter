@@ -1,5 +1,8 @@
 # Single-model hypotheses — DIII-D / Challenge 1
 
+> Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
+> Historical dates, running labels and superseded verdicts below are retained as evidence.
+
 Changes measured on ONE model rather than on the ensemble. Results go to
 [single_model_results.md](single_model_results.md); the ensemble backlog stays in
 [backlog.md](backlog.md).

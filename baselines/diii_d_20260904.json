@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "name": "diii-d-public-2026-09-04",
+  "machine": "DIII-D",
+  "leaderboard": {
+    "score": 0.9941,
+    "reported_decimal_places": 4,
+    "submitted_on": "2026-09-04",
+    "source": "User confirmation in this conversation on 2026-09-21",
+    "submission_id": null
+  },
+  "composition_evidence": "tools/submit_3salts.sh and tools/blend_key.py; inferred recipe, original artifact hashes unavailable",
+  "salts": [1, 2, 3],
+  "members_per_salt": [
+    {"artifact": "z_npca_base", "weight": 5},
+    {"artifact": "z_npca_p70", "weight": 5},
+    {"artifact": "z_npca_p100", "weight": 5},
+    {"artifact": "z_sbasis_shaped", "weight": 5},
+    {"artifact": "c_wide", "weight": 1},
+    {"artifact": "c_widep70", "weight": 1},
+    {"artifact": "c_widep100", "weight": 1},
+    {"artifact": "c_lstm", "weight": 1},
+    {"artifact": "c_attn", "weight": 1},
+    {"artifact": "c_conv", "weight": 1}
+  ],
+  "artifact_count": 30,
+  "model_weight_per_salt": 26,
+  "model_weight_total": 78,
+  "training_protocol_evidence": "tools/bake_salt_full.sh: 0.80/1.0 train, 0.15/1.0 validation, 0.05 score",
+  "original_git_commit": null,
+  "original_artifact_sha256": null,
+  "local_score_for_complete_cross_salt_blend": null,
+  "reproducibility": "Historical reference, not certified reproducible from params.yaml. Recover original artifacts and their effective configs before claiming identity.",
+  "current_iteration_recipe": "baselines/iteration.params.yaml",
+  "current_iteration_recipe_status": "Frozen from the checkout on 2026-09-22; not claimed to reproduce the leaderboard submission"
+}

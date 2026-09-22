@@ -56,7 +56,8 @@ def score_block(files: list[Path], models: list[str], jobs: int, artifact: Path,
            "--local-data-dir", str(data_dir), "--config", config,
            "--mode", "model", "--jobs", str(jobs), "--models", *models,
            "--files", *[str(p) for p in files]]
-    out = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=Path(__file__).parent.parent)
+    out = subprocess.run(cmd, capture_output=True, text=True, env=env,
+                         cwd=Path(__file__).parent.parent)
     if out.returncode != 0:
         sys.stderr.write(out.stdout[-4000:] + out.stderr[-4000:])
         raise SystemExit(f"scorer failed on a block of {len(files)}")
@@ -128,16 +129,16 @@ def main() -> int:
         v = [p[m] for p in per]
         print(f"  {m:<8} sd {st.stdev(v):.5f}   -> at {len(tail)} shots: {st.stdev(v)/k**0.5:.5f}")
 
-    print(f"\n  === sd of a PAIRED difference between two members ===")
-    print(f"  (two seeds differ only in initialisation — the same structure as an arm comparison)")
+    print("\n  === sd of a PAIRED difference between two members ===")
+    print("  (two seeds differ only in initialisation — the same structure as an arm comparison)")
     if a.artifact_b:
         # Only A-vs-B of the SAME member is an arm comparison; A:mlp vs B:mlp1 mixes both changes.
         pairs = [(f"B:{m}", f"A:{m}") for m in a.models]
-        print(f"  (artifact B against artifact A, same member, same split — one setting changed)")
+        print("  (artifact B against artifact A, same member, same split — one setting changed)")
     else:
         pairs = [(x, y) for i, x in enumerate(a.models) for y in a.models[i + 1:]]
-        print(f"  WARNING: these are two SEEDS, not two arms. Measured to overstate the paired "
-              f"sample noise ~5x — read the module docstring before using these numbers.")
+        print("  WARNING: these are two SEEDS, not two arms. Measured to overstate the paired "
+              "sample noise ~5x — read the module docstring before using these numbers.")
     sds = []
     for x, y in pairs:
         d = [p[x] - p[y] for p in per]

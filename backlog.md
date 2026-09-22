@@ -1,5 +1,8 @@
 # Backlog — DIII-D / Challenge 1
 
+> Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
+> Historical dates, running labels and superseded verdicts below are retained as evidence.
+
 **One sorted list. Every entry has a slug, not a number.** Slugs are stable and mnemonic
 (`shot-tail-weight`, `huber`, `ema`); the old `A22 / B9 / Z3` numbering is dead and survives only in
 the closed table at the bottom, so old write-ups stay findable. `ideas.md` keeps the long reasoning

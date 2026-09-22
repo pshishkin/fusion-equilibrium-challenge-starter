@@ -1,0 +1,22 @@
+{
+  "name": "smoke",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "smoke",
+  "salts": [
+    0
+  ],
+  "jobs": 24,
+  "arms": [
+    {
+      "name": "base",
+      "only": [
+        "mlp"
+      ],
+      "set": [],
+      "score_models": [
+        "mlp",
+        "ensemble"
+      ]
+    }
+  ]
+}

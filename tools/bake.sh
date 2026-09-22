@@ -10,7 +10,7 @@
 # Already on disk at salt 1, and therefore absent from this list: mlp and seq-gru
 # (z_npca_base_s1), mlp/seq at 70 components (z_npca_p70_s1), at 100 (z_npca_p100_s1), and on the
 # shaped basis (z_sbasis_shaped_s1). Eight members for nothing.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 SALT=${SALT:-1}
 OUT=results/c_bake_s${SALT}.csv
 [ -f "$OUT" ] || echo "name,S,R2_psi,R2_qb,D_LCFS,Cons,wall_s" > "$OUT"

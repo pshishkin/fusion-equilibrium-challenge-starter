@@ -1,0 +1,1433 @@
+# Model zoo for my_experiments/train.py. Every hyper-parameter lives here and nowhere else —
+# the code has no defaults to fall back on, so a value read from this file is the value used.
+#
+# What is NOT here: how the targets are scaled. That one is fixed in code
+# (my_experiments/models.py::TargetScaler) because the metric fixes it — see README.
+#
+#   uv run python my_experiments/train_eval.py 0.01 0.01 0.002
+#
+# Unknown keys are an error, not a shrug: a mistyped hyper-parameter that is silently ignored
+# looks exactly like one that did not help. See AGENTS.md, "Fail fast, never quietly repair".
+
+features:
+  # PCA components of psi(R,Z). Every model regresses these plus q95 and betaN — 50 components
+  # reconstruct the flux map to ~100% of its variance, so the ceiling is the regression, not the
+  # compression.
+  n_pca: 50
+  # sklearn picks the randomized SVD solver for 50 components out of 4225 pixels, and
+  # experiments.TargetPCA leaves random_state at None. Unpinned, two runs on the same shots fit
+  # different components, so every model gets different targets and the score moves: the torch MLP
+  # scored 0.6769 and 0.6846 on the same 7 shots before this was pinned.
+  pca_seed: 0
+
+  # Frames the PCA is FITTED on, as a share of the training frames. It is only an estimate of 50
+  # directions in a 4225-dimensional space, and neighbouring EFIT frames are 20 ms apart and nearly
+  # duplicates, so the sample does not have to be every frame — while the randomized SVD's centred
+  # copy of the flux array is the memory peak of that stage. Everything is still TRANSFORMED with
+  # every frame; this only thins what the components are estimated from.
+  # Thinning is a stride, not a draw (see thin_frames): it covers ramp-up, flat-top and ramp-down.
+  #
+  # A share of the frames LOADED, so it moves with the frame share in the run's arguments: 0.2 here
+  # at `0.80/1.0` estimates the components from the same one-in-five stride that `pca_frame_share:
+  # 1.0` did at `0.80/0.2`. Holding that fixed is what made the frames measurement clean — grid G
+  # compared 0.1 against 1.0 and so moved the PCA's sample along with the effect it was measuring.
+  pca_frame_share: 0.2
+
+  # WHICH 50 directions, as opposed to how many. Plain PCA maximises explained pixel variance,
+  # counted equally over the whole 65x65 grid; the metric counts nothing that way. 42.2% of the
+  # grid is outside the scorer's plasma envelope, and every scored functional except R2_psi is read
+  # off a CONTOUR, whose position and shape are set by the flux GRADIENT rather than by its value.
+  #
+  # These two reweight the basis's own objective by exactly the loss `mapnet` v7 was measured
+  # under, where they were worth +0.0030 composite (0.982821 -> 0.985811): the envelope weighted
+  # `basis_envelope`x more than the outside, plus `basis_sobolev` times the error in one-pixel
+  # first differences. See my_experiments/shaped_basis.py for why the coordinates are rebuilt
+  # orthonormal afterwards, and what that deliberately leaves on the table.
+  #
+  # 1.0 / 0.0 is plain PCA and takes the untouched `TargetPCA` path, so the control arm is the old
+  # code rather than a re-derivation of it. This trades R2_psi, which carries weight 0.55 but only
+  # 1.7% of what is lost, against D_LCFS and Consistency, which carry 0.30 and 87.7% of it.
+  basis_envelope: 1.0
+  basis_sobolev: 0.0
+
+  # psi = psi_coil + psi_plasma, and the first term is a Green's function times a current rather
+  # than a modelling problem — see README, "The flux decomposition". With this on, the models are
+  # fitted on the plasma part alone and the coil part is added back, unchanged, at inference. The
+  # split is exact whatever the gains are, so this cannot lose accuracy by itself; what it changes
+  # is what the regression has to represent.
+  subtract_coil_field: true
+
+  # What the models see.
+  #   currents   the 21 shipped magnetics signals — the baseline
+  #   coil_pca   the flux the 19 coils with a rectangle produce, in its own principal directions,
+  #              plus the signals that have NO rectangle and so cannot appear in it
+  #              (plasma_current, and bcoil, which is toroidal and drives no poloidal flux)
+  #   both       the two concatenated
+  # `coil_pca` carries the same information as `currents` — the coil flux is linear in them — but
+  # in machine-independent coordinates, which is the form MAST will need, where DIII-D's 21 columns
+  # do not exist. On DIII-D the question it answers is only "does this cost anything".
+  inputs: currents
+
+  # Rates, not levels. The net sees one frame of 21 instantaneous numbers and cannot differentiate
+  # them, so every quantity whose physical role is a RATE is absent from its inputs however well
+  # the level is represented. dI_sol/dt is the loop voltage — the thing that actually drives the
+  # plasma current, where I_sol itself drives nothing — and it correlates -0.665 with dIp/dt
+  # against +0.515 for the level, so the derivative carries the relationship and the level dilutes
+  # it. dIp/dt separates ramp-up, flat-top and ramp-down, which have different current profiles.
+  #
+  #   none     the 21 levels alone — the baseline every number so far was measured on
+  #   raw      + d/dt of each signal on ITS OWN 0.05 ms time base, then interpolated to the frames
+  #   interp   + d/dt of the interpolated series, at the 20 ms frame spacing
+  #   both     + all 42 columns
+  #
+  # `raw` and `interp` are not a right and a wrong way, they are two physical timescales: one is
+  # the rate the coil supply actually produced, the other the rate the equilibrium had time to
+  # respond to. Both blocks are ALWAYS computed and cached, so switching arms costs a training run
+  # and not a rebuild of the 25 GB shot cache.
+  derivatives: both
+  # Which signals get one. `driving` is the two the physics names — ECOILA, whose dI/dt IS the loop
+  # voltage, and plasma_current, whose dIp/dt separates the ramp phases. `poloidal` is every signal
+  # that produces poloidal flux, i.e. all but `bcoil`, which is toroidal and cannot inform psi at
+  # all. Taking all twenty-one tests a weaker claim than the one that was argued for, so `driving`
+  # is the sharp arm and `poloidal` the broad one.
+  derivative_signals: poloidal
+
+  # Thomson scattering, as twelve numbers per frame. Pressure is one of the two free functions of
+  # Grad-Shafranov and the one quantity the magnetics cannot see. The geometry decides what is
+  # computable: the CORE system is a vertical chord (44 channels at R = 1.940, varying Z) and the
+  # EDGE one is a horizontal cut across the outboard edge (10 channels at Z ~ -0.06, R 1.68..2.06),
+  # so the radial derivative the equation actually asks for exists on the edge system — and lands
+  # on the pedestal. Six summaries per system: peak, where the peak is, the line integral of Te and
+  # Five summaries per system: peak, where the peak is, the line integrals of Te and of the
+  # pressure, and the least-squares slope along the chord.
+  #
+  # Missing samples are exact ZEROS in this dataset, not nan, so every reduction runs on a mask.
+  thomson: "te,ne,p,pos"
+  # At most 19: the coil flux spans one dimension per current column and no more.
+  n_coil_pca: 19
+
+  # Two columns: how far the previous frame is, and the next, in units of the 20 ms EFIT step.
+  # 97.86% of steps ARE 20 ms, so for a model that scores frames independently this is nearly a
+  # constant and should buy nothing. It exists for the sequence model, which reads the frames as a
+  # series and would otherwise treat the 2.14% of steps that are holes — 77% of shots have one —
+  # as ordinary neighbours.
+  frame_gaps: false
+
+  # A19/A22. Leaky integrals of each signal's dI/dt at 20, 100, 500 and 2500 ms — four columns
+  # per signal. The argument is one line of physics: a conducting loop around a changing coil current
+  # obeys L dIv/dt + R Iv = -M dIc/dt, so the induced vessel current IS an exponential moving
+  # average of dIc/dt with tau = L/R. A bank of them is a hand-built observer of the vessel state,
+  # which is the one quantity a model seeing 21 instantaneous levels provably cannot form.
+  #
+  # The constants are not the vessel bracket alone. C6 measured what the sequence model chose
+  # for ITSELF — a median time constant of 1.8 s forward and 2.4 s backward, an order above
+  # L/R and where current-profile diffusion lives — so the bank spans one EFIT frame to a
+  # third of a long shot, geometrically.
+  #
+  # It exists because of a measurement, not a hunch: the last decile of a shot carries 24.1% of the
+  # geometry cost with ORDINARY Jacobian sensitivity and 2.2x the coefficient error, and that is
+  # exactly where the vessel current is largest and most transient. The sequence model — the only
+  # member that carries state — takes 34% of everything it buys from that same decile.
+  #
+  #   none      off, and the setting every number before 08-15 was measured on
+  #   driving   ECOILA and plasma_current only, the sharp arm
+  #   poloidal  every signal that produces poloidal flux, the broad one
+  vessel: none
+
+split:
+  # Which shots land in the training, validation and scoring windows. The shares stay the same;
+  # the salt only reshuffles who is where, by hashing "<salt>:<shot id>" instead of the bare id.
+  #
+  # This is the replicate that matters. The MLP seed varies only the optimisation; the salt varies
+  # the DATA, and "does this change help" is a claim about new shots, not about these 352. Compare
+  # configurations PAIRED within a salt and read the spread across salts as the uncertainty of the
+  # effect — never compare absolute scores between salts, the scored shots differ.
+  #
+  # 0 hashes the bare filename and is therefore the split every number in README was measured on.
+  # Keep it for headline figures.
+  salt: 0
+
+  # Shots reserved from the SALT-0 order and excluded from every fit, whatever salt it uses. 0 is
+  # off, and off is right for ordinary work: it costs data for nothing when one salt is compared
+  # against itself.
+  #
+  # It exists for the one comparison the salt cannot express. Members fitted under DIFFERENT salts
+  # can be averaged for a submission — the competition's test set is unseen by all of them — but
+  # they cannot be SCORED locally, because each trains on 99% of the shots and so has seen almost
+  # every shot in the others' scoring tails. evaluate.py refuses that run, correctly. With a
+  # holdout, the same shots are untouched by every member and the cross-salt ensemble has a number.
+  holdout_share: 0.0
+
+loss:
+  # Which errors of the flux map the loss is allowed to care about — see
+  # my_experiments/target_metric.py. The models regress PCA coefficients and the decoder is
+  # affine, so any quadratic functional of the map error is a fixed matrix on those coefficients.
+  #
+  # Consistency and D_LCFS are 30% of the composite and where the score is actually lost, and
+  # neither reads the map's VALUES — they read its geometry. The magnetic axis sits where grad psi
+  # vanishes, so psi is flat there and an error R2_psi cannot see moves the axis a long way.
+  #
+  #   parseval  the pixel error of the map — exactly R2_psi, and nothing else. Kept as the CONTROL
+  #             every claim in README is measured against, and as the fallback for a machine whose
+  #             functionals the probe below cannot evaluate.
+  #   jacobian  measure how the seven scored functionals respond to each coefficient and build the
+  #             metric from the competition's own weights. No knob: the loss becomes
+  #             W_PSI * R2_psi + (W_CONS/7) * sum_j R2_j, which is Consistency entering the loss
+  #             for the first time. The psi block's share of the loss grows, and should.
+  #
+  # A third mode, `field`, moved a hand-set share of the psi budget onto the poloidal-field error.
+  # It is gone. It did its job — it showed the effect was real (+0.0059 at its best against +0.0117
+  # for `jacobian`) — but its optimum was a flat plateau from 0.01 to 0.1, so the data could say
+  # that some field weighting helps and never how much. That is the argument for measuring the
+  # metric instead of tuning it. `target_metric.poloidal_field_form` stays: li is exactly <B_p^2>
+  # and deserves that exact form rather than a linearisation.
+  metric: jacobian
+
+  # `jacobian` only. Frames probed, and the size of the probe. The probe is ISOTROPIC — the same
+  # step for every coefficient, because on an orthonormal basis that is the same size of flux
+  # error whichever component it is — and it is measured in units of the per-frame flux spread,
+  # sqrt(psi_ss_tot / n_pca). It has to sit near the errors the model actually makes: these
+  # functionals extract a contour and a sub-pixel maximum, so a derivative taken at an
+  # infinitesimal step describes a regime the model never occupies. 0.05 is ~ the model's own
+  # relative flux error at R2_psi = 0.997.
+  # `jacobian` only. Divide each scalar's block in M by how badly its own linearisation misses.
+  # The per-component differences say how each direction acts alone; whether their sum still
+  # describes reality when every coefficient is wrong at once is a different question, and random
+  # full-vector probes on the same frames answer it. Measured on a trained model the Jacobian
+  # over-states `li` by 1.65x and `tri_bot` by 1.51x, and an over-stated sensitivity is an
+  # over-weighted scalar. No new input: the ratio comes from the probe, not from a model.
+  calibrate_scalars: false
+
+  # C10, 2026-08-18. Which form li's block of `M_cons` is built from.
+  #
+  # `jacobian` is the linearisation, and every number in this fork before 2026-08-18 was measured
+  # on it. `field` substitutes `target_metric.poloidal_field_form` -- the exact quadratic form for
+  # the poloidal-field error, with the 1/R that makes it a field rather than a flux gradient --
+  # rescaled to the SAME TRACE the linearised block had, so the block's weight is untouched and
+  # only its directions move.
+  #
+  # It exists because of a measurement, not a hunch. Per held-out frame, `dc^T G dc` ranks frames by
+  # their actual li error at Spearman 0.5442 against 0.4923 for the shipped metric and 0.3859 for
+  # Parseval -- and it is WORSE than the metric for every other scalar (volume -0.1206, Z_axis
+  # -0.0439, R_axis -0.0403). That split is the physics: li is a normalised <B_p^2> and the shape
+  # scalars are contour geometry. C9 independently put li furthest above its own label-noise floor
+  # and C1 put it at 18.7% of the geometry cost.
+  #
+  # The 08-13 `field` loss added this form to the objective with a hand-set lambda and was removed
+  # because the plateau (+0.0048 / +0.0059 / -0.0054) could not be located. This is a substitution
+  # at fixed trace, so there is no lambda to locate.
+  #
+  # MEASURED 2026-08-18 AND REFUTED. Paired on salt 0, four seeds: S 0.9941 -> 0.9939, and li's own
+  # R2 0.9642 -> 0.9588. The form that ranks li's error best makes li WORSE in the loss, because
+  # the gate measured which FRAMES are bad and a loss needs which DIRECTION to move -- G is the
+  # energy of the field error, missing the first-order term that carries direction. Left here at
+  # `jacobian` with the number attached, so nobody re-derives the idea from the comment above it.
+  li_form: jacobian
+
+  jacobian_frames: 300
+  # A13. Validation frames the composite monitor scores when a model sets
+  # `stop_on: composite`. Each one costs an LCFS extraction and seven derivations per
+  # evaluation, so this and `composite_every_steps` together set what stopping costs: 150
+  # frames every 2000 steps is a few minutes on a production fit. Ignored otherwise.
+  monitor_frames: 150
+
+  # A9. Which of the seven scored functionals the net predicts as EXTRA outputs during training,
+  # thrown away at inference — the scorer derives them from the submitted map, so they can never be
+  # submitted, but nothing stops the net being taught them. Comma-separated names from
+  # R_axis, Z_axis, kappa, tri_top, tri_bot, volume, li — or `none`.
+  #
+  # It exists because of a measurement: C1 decomposed the geometry cost onto every frame and found
+  # kappa and li carrying 42% of it between them, while the net predicts neither and only sees them
+  # through the LINEARISED jacobian metric. `aux_weight` is their share of the loss, set the way
+  # W_QB sets the two submitted scalars' share.
+  #
+  # Requires the targets precomputed once: my_experiments/aux_targets.py, about an hour for the
+  # 0.80/1.0 split, cached by the exact file list.
+  aux_scalars: none
+  aux_weight: 0.1
+  # How W_CONS is split among the seven scored scalars. `equal` is the scorer's own
+  # 1/7 each and is what everything before 2026-08-26 was measured on. Otherwise a
+  # comma list of name=weight, normalised; omitted names get 0. Only the SPLIT moves.
+  cons_split: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
+  # Multiplies the Consistency block against the psi term in the Jacobian metric. 1.0 is the
+  # scorer's own ratio. Raising it says the loss should follow marginal return rather than
+  # the score's weights: psi holds 1.7% of what is still lost on 0.55 of the weight,
+  # Consistency 70.9% on 0.20.
+  cons_gain: 1.0
+  # Weight on the GRADIENT of the map error (poloidal_field_form: |grad dpsi|/R). The seven scored
+  # scalars all read a level set, whose position and shape are set by the slope, and the Parseval
+  # term is blind to it. 1.0 = as much as the flux term. 0.0 is off.
+  field_weight: 0.0
+  # Weight on the flux error with the plasma envelope up-weighted `env_inside` times. The envelope
+  # is 57.8% of the grid, so a plain Parseval loss spends 42% of itself where nothing is scored.
+  env_weight: 0.0
+  env_inside: 4.0
+  jacobian_delta: 0.0332
+
+  # `jacobian` only. Add the BOUNDARY term: how far the plasma boundary moves when the
+  # coefficients are wrong. A flux error displaces a level set along its normal by
+  # dpsi / |grad psi|, which is linear in the error and so is one more fixed matrix.
+  #
+  # It supplies what the Jacobian structurally cannot. D_LCFS is a distance — zero at the ground
+  # truth, so a central difference sees no derivative and the loss has never contained it. And
+  # kappa/volume/tri ARE in the Jacobian, but as four scalar summaries of a 512-point curve; they
+  # cannot express a rigid shift or a local dimple. Its weight comes from W_LCFS and from the
+  # displacement the probe itself produces, so it adds no knob.
+  #
+  # Honest limit: D_LCFS is a symmetric HAUSDORFF distance, a maximum over the contour, and this
+  # is a mean square. A surrogate for that term, not that term.
+  boundary: false
+
+models:
+  ridge:
+    type: ridge
+    enabled: true
+    alpha: 1.0
+
+  catboost:
+    type: catboost
+    # Measured at production on 2026-08-14 and switched back off: 3829 s to fit against 296 s
+    # for one MLP, it scores 0.9838 alone against 0.9875-0.9885, and adds +0.0002 to the
+    # ensemble. It did not even converge — 'best iteration 7999 of 8000'.
+    enabled: false
+
+    # One MultiRMSE model over all n_pca + 2 outputs, not one model per output: gradient boosting
+    # with a shared tree structure and vector leaves. Targets are standardized inside the wrapper,
+    # otherwise the first PCA component (variance ~1e10) is the only thing the loss can see.
+    # `iterations` is a ceiling, not a target: set it far above anything the fit should need and
+    # let the validation split decide. At 70 training shots it stops itself around 2142 and keeps
+    # iteration 1942, so the ceiling costs nothing; with more shots the optimum moves and the fit
+    # is free to follow it.
+    # 16000 since 2026-09-03, doubled at the user's call because the fit KEEPS HITTING THE
+    # CEILING: 'best: 7999 of 8000' at production on 2026-08-14 and again on all three collection
+    # salts, with early stopping (patience 50) never firing. A best iteration equal to the last one
+    # allowed is not a converged fit, it is a truncated one — the number reported is a lower bound
+    # on what this model does, and every catboost number on record carries that.
+    iterations: 16000
+    depth: 8
+    learning_rate: 0.1
+    l2_leaf_reg: 3.0
+    # Generous on purpose: the validation curve is noisy, and a patience of 50 fired on a plateau
+    # at iteration 548, costing 0.7439 -> 0.7392. 0 turns early stopping off entirely — trains the
+    # full ceiling and keeps its LAST iteration, which is the control this feature has to beat.
+    early_stopping_rounds: 50
+    random_seed: 0
+    thread_count: 8
+    # `cpu` or `gpu`. At production on the CPU this model took 3829 s against 296 s for the four
+    # MLPs and still hit its iteration ceiling undertrained, which is why it was dropped from the
+    # ensemble on 08-14 — the cost, not the score, was the argument.
+    task_type: gpu
+
+  mlp:
+    type: torch_mlp
+    enabled: true
+    # The sklearn MLPRegressor of experiments.py, rewritten in torch so the training loop is ours:
+    # a plain fully-connected net on the 21 magnetics features, CPU, standardized targets.
+    hidden_sizes: [512, 512]
+    # A ceiling plus the patience that ends the run first, both in ADAM STEPS. The weights kept
+    # are the best evaluation on the validation split, not the last one reached; 0 patience turns
+    # early stopping off entirely.
+    #
+    # Steps, not epochs, because an epoch is `rows / batch_size` steps: counted in epochs these
+    # two silently mean something different every time the data share or the batch size moves,
+    # and this fork moves both. They used to carry a table of one value per share for exactly that
+    # reason. In steps there is one number, and it is the number every result so far was
+    # calibrated on — 18400 of leash inside a 368000 budget.
+    #
+    # The leash is long on purpose: the validation curve has a false floor. A patience of ~600
+    # steps stopped this net while it was still undertrained, keeping weights that scored 0.5521
+    # where the patient version scores 0.7273 on the same shots.
+    max_steps: 368000
+    patience_steps: 18400
+    # How often the validation loss is measured — the resolution at which the best weights are
+    # picked and the patience is judged, and the cadence the training log inherits. One forward
+    # pass over the validation rows, so it is cheap; the reason not to make it 1 is that the best
+    # of many more draws from a noisy curve is a slightly luckier one.
+    eval_every_steps: 50
+    batch_size: 4096
+    learning_rate: 0.0028
+    weight_decay: 0.0
+    seed: 0
+    # Threads for torch, and not one per core: this net is 21 -> 256 -> 256 -> 52, so a batch is
+    # too small to feed 20 threads and the synchronization dominates. Measured on 10k frames,
+    # per epoch: 1 thread 0.064 s, 4 threads 0.040 s, 20 threads 0.351 s.
+    threads: 4
+    device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: gelu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
+    # A head over the PREDICTED coefficients reproducing ALL SEVEN functionals;
+    # 0.0 is off. Seven and not two, because `aux` measured that moving weight
+    # between the scalars creates nothing — a head on all seven has nothing to
+    # reallocate and asks instead that the coefficients carry everything scored.
+    # 0.10 rather than W_CONS's 0.20: the Jacobian metric ALREADY carries 0.20 on
+    # these directions, so 0.20 here would double the emphasis rather than add a
+    # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
+    # updating, so the two arms share a starting point.
+    head_weight: 0.1
+    head_hidden: 128
+    head_frozen: false
+    # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
+    # components 0-12, so a flat 0.5 was 15-23x too large exactly where the signal lives.
+    head_prefit_jitter: 0.0
+    # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
+    # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
+    # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
+    lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
+    lr_final_factor: 0.01
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
+
+  mlp1:
+    type: torch_mlp
+    enabled: true
+    hidden_sizes: [512, 512]
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
+    batch_size: 4096
+    learning_rate: 0.0028
+    weight_decay: 0.0
+    seed: 1
+    threads: 4
+    device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: gelu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
+    # A head over the PREDICTED coefficients reproducing ALL SEVEN functionals;
+    # 0.0 is off. Seven and not two, because `aux` measured that moving weight
+    # between the scalars creates nothing — a head on all seven has nothing to
+    # reallocate and asks instead that the coefficients carry everything scored.
+    # 0.10 rather than W_CONS's 0.20: the Jacobian metric ALREADY carries 0.20 on
+    # these directions, so 0.20 here would double the emphasis rather than add a
+    # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
+    # updating, so the two arms share a starting point.
+    head_weight: 0.1
+    head_hidden: 128
+    head_frozen: false
+    # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
+    # components 0-12, so a flat 0.5 was 15-23x too large exactly where the signal lives.
+    head_prefit_jitter: 0.0
+    # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
+    # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
+    # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
+    lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
+    lr_final_factor: 0.01
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
+
+  mlp2:
+    type: torch_mlp
+    enabled: true
+    hidden_sizes: [512, 512]
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
+    batch_size: 4096
+    learning_rate: 0.0028
+    weight_decay: 0.0
+    seed: 2
+    threads: 4
+    device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: gelu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
+    # A head over the PREDICTED coefficients reproducing ALL SEVEN functionals;
+    # 0.0 is off. Seven and not two, because `aux` measured that moving weight
+    # between the scalars creates nothing — a head on all seven has nothing to
+    # reallocate and asks instead that the coefficients carry everything scored.
+    # 0.10 rather than W_CONS's 0.20: the Jacobian metric ALREADY carries 0.20 on
+    # these directions, so 0.20 here would double the emphasis rather than add a
+    # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
+    # updating, so the two arms share a starting point.
+    head_weight: 0.1
+    head_hidden: 128
+    head_frozen: false
+    # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
+    # components 0-12, so a flat 0.5 was 15-23x too large exactly where the signal lives.
+    head_prefit_jitter: 0.0
+    # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
+    # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
+    # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
+    lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
+    lr_final_factor: 0.01
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
+
+  mlp3:
+    type: torch_mlp
+    enabled: true
+    hidden_sizes: [512, 512]
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
+    batch_size: 4096
+    learning_rate: 0.0028
+    weight_decay: 0.0
+    seed: 3
+    threads: 4
+    device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: gelu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
+    # A head over the PREDICTED coefficients reproducing ALL SEVEN functionals;
+    # 0.0 is off. Seven and not two, because `aux` measured that moving weight
+    # between the scalars creates nothing — a head on all seven has nothing to
+    # reallocate and asks instead that the coefficients carry everything scored.
+    # 0.10 rather than W_CONS's 0.20: the Jacobian metric ALREADY carries 0.20 on
+    # these directions, so 0.20 here would double the emphasis rather than add a
+    # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
+    # updating, so the two arms share a starting point.
+    head_weight: 0.1
+    head_hidden: 128
+    head_frozen: false
+    # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
+    # components 0-12, so a flat 0.5 was 15-23x too large exactly where the signal lives.
+    head_prefit_jitter: 0.0
+    # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
+    # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
+    # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
+    lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
+    lr_final_factor: 0.01
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
+
+  # SEEDS 4-7, off by default. They exist for the mega-ensemble and not for the record: the
+  # 130 artifacts already measured were fitted with four MLP seeds, and switching two more on
+  # by default would make every future hypothesis number incomparable with all of them. A
+  # collection run turns them on with `--only`, which enables exactly the models it names.
+  #
+  # Why seeds at all, when the diversity measurements keep saying architecture is the axis: the
+  # measurements say the OPPOSITE here. Seeds correlate 0.56-0.60, feature sets 0.75, an
+  # n_pca=30 basis 0.625 — and of every architecture tried in the shot-mixer family only `conv`
+  # at 0.546 came in under a reseed. Seeds are the best-decorrelated axis this project has
+  # measured, and inside one run they are also the cheapest thing to add: an MLP fit is ~4
+  # minutes against ~15 for the shot read that a separate run would repeat.
+  mlp4:
+    type: torch_mlp
+    enabled: false
+    hidden_sizes: [512, 512]
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
+    batch_size: 4096
+    learning_rate: 0.0028
+    weight_decay: 0.0
+    seed: 4
+    threads: 4
+    device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: gelu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
+    # A head over the PREDICTED coefficients reproducing ALL SEVEN functionals;
+    # 0.0 is off. Seven and not two, because `aux` measured that moving weight
+    # between the scalars creates nothing — a head on all seven has nothing to
+    # reallocate and asks instead that the coefficients carry everything scored.
+    # 0.10 rather than W_CONS's 0.20: the Jacobian metric ALREADY carries 0.20 on
+    # these directions, so 0.20 here would double the emphasis rather than add a
+    # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
+    # updating, so the two arms share a starting point.
+    head_weight: 0.1
+    head_hidden: 128
+    head_frozen: false
+    # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
+    # components 0-12, so a flat 0.5 was 15-23x too large exactly where the signal lives.
+    head_prefit_jitter: 0.0
+    # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
+    # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
+    # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
+    lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
+    lr_final_factor: 0.01
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
+
+  mlp5:
+    type: torch_mlp
+    enabled: false
+    hidden_sizes: [512, 512]
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
+    batch_size: 4096
+    learning_rate: 0.0028
+    weight_decay: 0.0
+    seed: 5
+    threads: 4
+    device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: gelu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
+    # A head over the PREDICTED coefficients reproducing ALL SEVEN functionals;
+    # 0.0 is off. Seven and not two, because `aux` measured that moving weight
+    # between the scalars creates nothing — a head on all seven has nothing to
+    # reallocate and asks instead that the coefficients carry everything scored.
+    # 0.10 rather than W_CONS's 0.20: the Jacobian metric ALREADY carries 0.20 on
+    # these directions, so 0.20 here would double the emphasis rather than add a
+    # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
+    # updating, so the two arms share a starting point.
+    head_weight: 0.1
+    head_hidden: 128
+    head_frozen: false
+    # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
+    # components 0-12, so a flat 0.5 was 15-23x too large exactly where the signal lives.
+    head_prefit_jitter: 0.0
+    # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
+    # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
+    # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
+    lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
+    lr_final_factor: 0.01
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
+
+  mlp6:
+    type: torch_mlp
+    enabled: false
+    hidden_sizes: [512, 512]
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
+    batch_size: 4096
+    learning_rate: 0.0028
+    weight_decay: 0.0
+    seed: 6
+    threads: 4
+    device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: gelu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
+    # A head over the PREDICTED coefficients reproducing ALL SEVEN functionals;
+    # 0.0 is off. Seven and not two, because `aux` measured that moving weight
+    # between the scalars creates nothing — a head on all seven has nothing to
+    # reallocate and asks instead that the coefficients carry everything scored.
+    # 0.10 rather than W_CONS's 0.20: the Jacobian metric ALREADY carries 0.20 on
+    # these directions, so 0.20 here would double the emphasis rather than add a
+    # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
+    # updating, so the two arms share a starting point.
+    head_weight: 0.1
+    head_hidden: 128
+    head_frozen: false
+    # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
+    # components 0-12, so a flat 0.5 was 15-23x too large exactly where the signal lives.
+    head_prefit_jitter: 0.0
+    # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
+    # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
+    # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
+    lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
+    lr_final_factor: 0.01
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
+
+  mlp7:
+    type: torch_mlp
+    enabled: false
+    hidden_sizes: [512, 512]
+    max_steps: 368000
+    patience_steps: 18400
+    eval_every_steps: 50
+    batch_size: 4096
+    learning_rate: 0.0028
+    weight_decay: 0.0
+    seed: 7
+    threads: 4
+    device: cuda
+    # Architecture, all handed to models.build_mlp. The OUTPUT layer is always linear and is not a
+    # setting: the targets are scaled PCA coefficients with unbounded range, so a squashing head
+    # would cap the tails of the distribution being regressed.
+    #   relu  the baseline every number before 2026-08-14 was measured on
+    #   gelu / silu  nonzero derivative on the negative side, so a dead unit can recover
+    activation: gelu
+    # Share of hidden units zeroed during training. 0.0 is off. The measured train/val gap on the
+    # production screen is 3.4x (train 0.0192, val 0.0650 at epoch 625), so there IS something here
+    # to regularise — and `weight_decay` above, still 0.0, is the cheaper way to try first.
+    dropout: 0.0
+    # Normalisation on the hidden pre-activations: `none`, `batch` or `layer`. Batch norm changes
+    # the convergence badly enough that it cannot be screened at the learning rate tuned without
+    # it — sweep the two JOINTLY or the result is a statement about the rate. Measured that way at
+    # four rates it gave parity for 38% more time. Layer norm normalises WITHIN a sample and so
+    # has none of the batch coupling that result is about.
+    norm: none
+    # Skip connections around every hidden block; needs one width for the whole trunk.
+    residual: false
+    # q95 and betaN get their own output head instead of sharing the final layer with the 50 flux
+    # coefficients.
+    split_heads: false
+    # `mse` or `huber`; `huber_delta` is where the quadratic centre gives way to the linear tail,
+    # in units of the scaled target, which has average unit variance by construction.
+    loss: mse
+    huber_delta: 2.0
+    # Up-weight the first and last `frame_ends_edge` of each shot by
+    # `1 + frame_ends_strength`, mean-normalised. 0.0 is off. The two ends carry
+    # 39.1% of the geometry cost over 20.4% of the frames, and C7 says that is
+    # coefficient error rather than metric sensitivity — so it is signal.
+    frame_ends_strength: 0.0
+    frame_ends_edge: 0.1
+    # A head over the PREDICTED coefficients reproducing ALL SEVEN functionals;
+    # 0.0 is off. Seven and not two, because `aux` measured that moving weight
+    # between the scalars creates nothing — a head on all seven has nothing to
+    # reallocate and asks instead that the coefficients carry everything scored.
+    # 0.10 rather than W_CONS's 0.20: the Jacobian metric ALREADY carries 0.20 on
+    # these directions, so 0.20 here would double the emphasis rather than add a
+    # signal. Pre-fitted in both arms; `head_frozen` only decides whether it keeps
+    # updating, so the two arms share a starting point.
+    head_weight: 0.1
+    head_hidden: 128
+    head_frozen: false
+    # 0.0 = OFF. Measured 2026-08-28: the model's own coefficient error is 0.022-0.087 sd on
+    # components 0-12, so a flat 0.5 was 15-23x too large exactly where the signal lives.
+    head_prefit_jitter: 0.0
+    # `equal` reproduces the scorer. A comma list is a STATIC split, which is cons-reweight one
+    # layer up and measured indistinguishable from zero. `adaptive` recomputes the split from
+    # each scalar's current VALIDATION error every evaluation; always renormalised to mean 1.
+    head_cons_weights: kappa=3,li=3,R_axis=1,Z_axis=1,tri_top=1,tri_bot=1,volume=1
+    # Clip the gradient norm; 0.0 is off. Without it 15 of 28 measured fits at these shares blow
+    # up — training loss to 67.9 against unit-variance targets — and which ones do is decided by
+    # the fourth decimal of the input, so comparisons between them measure the lottery. With it:
+    # 0 of 3, +0.0010 of S on three salts with agreeing signs (t = 3.97), and the fit trains
+    # 93000 steps instead of 50000 because it no longer has to recover from anything.
+    #
+    # A quarter of the learning rate fixes the instability equally well and scores the same
+    # (+0.0012, t = 3.04) — but it takes 170000 steps to get there. Same gain, twice the clock.
+    grad_clip: 1.0
+    # `none` is the constant rate everything so far was measured at. `cosine` decays to
+    # learning_rate * lr_final_factor over the DECLARED HORIZON below, not over the step early
+    # stopping reaches — a schedule whose shape depends on its own outcome is a feedback loop,
+    # not a setting.
+    lr_schedule: none
+    # Linear ramp from zero over this many steps, on top of whatever schedule follows. 0 is
+    # off and is every number before 2026-08-30. The MLPs clip 0.2-0.5% of steps with peak
+    # gradient norms up to 201 against a threshold of 1, and the largest excursions are early.
+    warmup_steps: 0
+    # `plateau` only: evaluations without improvement before the rate is cut. The unit is
+    # EVALUATIONS, not steps, because that is when the validation number exists.
+    plateau_patience_evals: 3
+    lr_final_factor: 0.01
+    # Steps the schedule spans; 0 = use `max_steps`. `max_steps` is a CEILING set far above any
+    # real fit, so leaving this at 0 makes a cosine traverse only its flat first quarter —
+    # measured, it cut the rate by 16% over a run that ended at a quarter of the budget and called
+    # itself an annealing schedule. Set it near where the fit actually ends.
+    lr_t_max_steps: 0
+    # A13. What early stopping reads: `loss` is the validation MSE every fit here has used,
+    # `composite` is the competition score itself over `loss.monitor_frames` validation frames,
+    # decoded and pushed through the vendored scorer. The gradient is unchanged either way.
+    # A20. Decay of a running average of the WEIGHTS, evaluated beside the live ones at every
+    # evaluation; the fit keeps whichever scores better, so it can only help or tie. 0.0 is off.
+    # 0.999 over a 4096-row batch averages roughly the last thousand steps.
+    ema_decay: 0.0
+    stop_on: loss
+    # How often the composite is measured, in steps. It costs an extraction per monitored frame,
+    # so it runs far less often than the validation loss; ignored unless stopping on it.
+    composite_every_steps: 2000
+    # Steps the validation loss may go without improving before the composite is allowed to decide
+    # anything. Until then the fit keeps the best-LOSS weights: a 150-frame sample can flatter a
+    # barely-started net, and the loss cannot. Measured — with this at 0, one model recorded its
+    # best composite at its FIRST evaluation and the patience nearly ended the fit there.
+    composite_after_steps: 10000
+
+  seq:
+    type: torch_seq
+    # ON, and it is a member below: the leaderboard-0.9932 submission was four MLP seeds plus this
+    # model at equal weights. Alone it LOSES to the MLP — 0.9914 against 0.9931, worse on every
+    # term of the composite — and it earns its place only in the average, +0.0007 confirmed on two
+    # salts nothing selected against. `--only ridge mlp` is how a run leaves it out.
+    enabled: true
+    # REQUIRES `frame_share: 1.0` in both shares — trained on thinned frames it would learn the
+    # dynamics at a 100 ms spacing and be asked for them at 20 ms. `train()` refuses the
+    # combination rather than trusting this comment, so `make train` carries 1.0 too.
+    #
+    # `frame_gaps` above was built FOR this model and is nonetheless off: measured, the two columns
+    # cost the per-frame MLP 0.0012, and the pair was selected with them on — so the +0.0007 is a
+    # lower bound taken at the worse setting, which is the safe direction for it to be wrong in.
+    #
+    # The per-frame trunk, identical to the MLP's. The recurrence is a CORRECTION to this, added
+    # through a zero-initialised layer, so at step 0 this model is exactly the MLP and everything
+    # the sequence branch does it has to earn.
+    hidden_sizes: [512, 512]
+    # The recurrent state per direction, and how many GRU layers. Both directions run — a shot is
+    # scored offline and complete, so a frame may be informed by what came after it, and a causal
+    # model would be throwing away half the context for a constraint this task does not have.
+    seq_hidden: 256
+    seq_layers: 1
+    # A second recurrent stage of its own width, or 0 to stack inside one module with
+    # `seq_layers` above. Only this one can be NARROWER than the first: torch gives every
+    # layer of a stacked GRU the same hidden size. At 256 the two are the same architecture,
+    # which is what makes them a check on each other.
+    seq_hidden2: 0
+    # Feed `enc`'s per-frame output to `delta` alongside the shot-level state. Without it the
+    # correction sees the recurrence and nothing else, so anything per-frame it needs has to be
+    # re-derived inside the recurrence from what `enc` already computed. Cannot cost anything at
+    # initialisation — `delta` still starts at zero.
+    seq_skip: false
+    # `seq_cell: conv` only. Receptive field is 2 * sum(dilations) + 1 frames, so this reads 127
+    # frames of the 20 ms series either side; depth is the list's length.
+    seq_conv_dilations: "1,2,4,8,16,32"
+    # `seq_cell: attn` only. `seq_layers` is the number of encoder layers.
+    seq_attn_heads: 8
+    # `gru` is every number before 2026-08-30. `lstm` is a DIVERSITY arm, not an accuracy
+    # one: seq alone loses to the MLP and earns its place in the average, where one extra
+    # architecture beats three extra seeds. Judge it by error correlation with the
+    # existing members (seeds 0.56, feature sets 0.75), not by its own composite.
+    seq_cell: gru
+    # A hidden layer between the recurrent state and the correction, or 0 for the single linear
+    # map every number before 2026-08-31 used. See my_experiments/seq_model.py for why the
+    # asymmetry with `hidden_sizes` — two layers for the per-frame part, one for the shot-level
+    # part, both producing the same 52 coordinates — is worth a measurement.
+    seq_head_hidden: 0
+    # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
+    # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
+    batch_shots: 32
+    # Measured on this GPU at the production shape: 65 ms/step at 32 shots (125k frames/s), against
+    # 67 at 16 and 110 at 64 — so 32 is both the cheapest step and near the best throughput.
+    # The budget was first set to match the MLP's in PASSES over the data — at 5633 shots a pass is
+    # 176 steps, so 40000 was 227 passes — and that reasoning was wrong: the screen's first arm
+    # stopped at `best step 40000 of 40000`, i.e. it measured the ceiling and not the model. 200000
+    # is where the fit actually ends inside its budget, and it is what the submission used.
+    max_steps: 200000
+    patience_steps: 10000
+    # 500 rather than 200 because validating over 1338 shots costs ~1.3 s: at 200 it would be a
+    # tenth of the whole fit, spent measuring rather than fitting.
+    eval_every_steps: 500
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 0
+    threads: 4
+    device: cuda
+    activation: gelu
+    dropout: 0.0
+    lr_schedule: none
+    lr_final_factor: 0.01
+    lr_t_max_steps: 0
+    # `mse`, or `huber` at `huber_delta` sd of the scaled target. Scaled by 2 to
+    # match the squared-error scale, so an arm differs in outlier handling alone.
+    loss: mse
+    huber_delta: 2.0
+    # Weight averaging, judged against the live weights at every evaluation. 0.0 is off.
+    ema_decay: 0.0
+
+  seq1:
+    type: torch_seq
+    # A25, arm 1. A second and third seed of the sequence model, present so that ONE production
+    # run can be scored both ways: `mlp+mlp1+mlp2+mlp3+seq` is the shipped ensemble and
+    # `...+seq+seq1+seq2` is the treatment, so the comparison is paired by
+    # construction and costs no extra fit. Deliberately NOT in `ensemble.members` — the default
+    # ensemble stays what the leaderboard scored until the gate says otherwise.
+    #
+    # Why it is worth three hours: the production table prices one sequence model at more than
+    # three extra MLP seeds (+0.0012 against +0.0009), and it holds a fifth of the weight while
+    # being the only member whose optimisation noise is unaveraged.
+    enabled: false
+    # REQUIRES `frame_share: 1.0` in both shares — trained on thinned frames it would learn the
+    # dynamics at a 100 ms spacing and be asked for them at 20 ms. `train()` refuses the
+    # combination rather than trusting this comment, so `make train` carries 1.0 too.
+    #
+    # `frame_gaps` above was built FOR this model and is nonetheless off: measured, the two columns
+    # cost the per-frame MLP 0.0012, and the pair was selected with them on — so the +0.0007 is a
+    # lower bound taken at the worse setting, which is the safe direction for it to be wrong in.
+    #
+    # The per-frame trunk, identical to the MLP's. The recurrence is a CORRECTION to this, added
+    # through a zero-initialised layer, so at step 0 this model is exactly the MLP and everything
+    # the sequence branch does it has to earn.
+    hidden_sizes: [512, 512]
+    # The recurrent state per direction, and how many GRU layers. Both directions run — a shot is
+    # scored offline and complete, so a frame may be informed by what came after it, and a causal
+    # model would be throwing away half the context for a constraint this task does not have.
+    seq_hidden: 256
+    seq_layers: 1
+    seq_cell: gru
+    seq_head_hidden: 0
+    seq_hidden2: 0
+    seq_skip: false
+    seq_conv_dilations: "1,2,4,8,16,32"
+    seq_attn_heads: 8
+    # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
+    # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
+    batch_shots: 32
+    # Measured on this GPU at the production shape: 65 ms/step at 32 shots (125k frames/s), against
+    # 67 at 16 and 110 at 64 — so 32 is both the cheapest step and near the best throughput.
+    # The budget was first set to match the MLP's in PASSES over the data — at 5633 shots a pass is
+    # 176 steps, so 40000 was 227 passes — and that reasoning was wrong: the screen's first arm
+    # stopped at `best step 40000 of 40000`, i.e. it measured the ceiling and not the model. 200000
+    # is where the fit actually ends inside its budget, and it is what the submission used.
+    max_steps: 200000
+    patience_steps: 10000
+    # 500 rather than 200 because validating over 1338 shots costs ~1.3 s: at 200 it would be a
+    # tenth of the whole fit, spent measuring rather than fitting.
+    eval_every_steps: 500
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 1
+    threads: 4
+    device: cuda
+    activation: gelu
+    dropout: 0.0
+    lr_schedule: none
+    lr_final_factor: 0.01
+    lr_t_max_steps: 0
+    # `mse`, or `huber` at `huber_delta` sd of the scaled target. Scaled by 2 to
+    # match the squared-error scale, so an arm differs in outlier handling alone.
+    loss: mse
+    huber_delta: 2.0
+    # Weight averaging, judged against the live weights at every evaluation. 0.0 is off.
+    ema_decay: 0.0
+
+  seq2:
+    type: torch_seq
+    # A25, arm 1. A second and third seed of the sequence model, present so that ONE production
+    # run can be scored both ways: `mlp+mlp1+mlp2+mlp3+seq` is the shipped ensemble and
+    # `...+seq+seq1+seq2` is the treatment, so the comparison is paired by
+    # construction and costs no extra fit. Deliberately NOT in `ensemble.members` — the default
+    # ensemble stays what the leaderboard scored until the gate says otherwise.
+    #
+    # Why it is worth three hours: the production table prices one sequence model at more than
+    # three extra MLP seeds (+0.0012 against +0.0009), and it holds a fifth of the weight while
+    # being the only member whose optimisation noise is unaveraged.
+    enabled: false
+    # REQUIRES `frame_share: 1.0` in both shares — trained on thinned frames it would learn the
+    # dynamics at a 100 ms spacing and be asked for them at 20 ms. `train()` refuses the
+    # combination rather than trusting this comment, so `make train` carries 1.0 too.
+    #
+    # `frame_gaps` above was built FOR this model and is nonetheless off: measured, the two columns
+    # cost the per-frame MLP 0.0012, and the pair was selected with them on — so the +0.0007 is a
+    # lower bound taken at the worse setting, which is the safe direction for it to be wrong in.
+    #
+    # The per-frame trunk, identical to the MLP's. The recurrence is a CORRECTION to this, added
+    # through a zero-initialised layer, so at step 0 this model is exactly the MLP and everything
+    # the sequence branch does it has to earn.
+    hidden_sizes: [512, 512]
+    # The recurrent state per direction, and how many GRU layers. Both directions run — a shot is
+    # scored offline and complete, so a frame may be informed by what came after it, and a causal
+    # model would be throwing away half the context for a constraint this task does not have.
+    seq_hidden: 256
+    seq_layers: 1
+    seq_cell: gru
+    seq_head_hidden: 0
+    seq_hidden2: 0
+    seq_skip: false
+    seq_conv_dilations: "1,2,4,8,16,32"
+    seq_attn_heads: 8
+    # SHOTS per step, not rows: at full frames 32 shots is ~7500 frames, so a step here is about
+    # twice the MLP's batch and costs a great deal more, hence the much smaller step budget.
+    batch_shots: 32
+    # Measured on this GPU at the production shape: 65 ms/step at 32 shots (125k frames/s), against
+    # 67 at 16 and 110 at 64 — so 32 is both the cheapest step and near the best throughput.
+    # The budget was first set to match the MLP's in PASSES over the data — at 5633 shots a pass is
+    # 176 steps, so 40000 was 227 passes — and that reasoning was wrong: the screen's first arm
+    # stopped at `best step 40000 of 40000`, i.e. it measured the ceiling and not the model. 200000
+    # is where the fit actually ends inside its budget, and it is what the submission used.
+    max_steps: 200000
+    patience_steps: 10000
+    # 500 rather than 200 because validating over 1338 shots costs ~1.3 s: at 200 it would be a
+    # tenth of the whole fit, spent measuring rather than fitting.
+    eval_every_steps: 500
+    learning_rate: 0.001
+    weight_decay: 0.0
+    seed: 2
+    threads: 4
+    device: cuda
+    activation: gelu
+    dropout: 0.0
+    lr_schedule: none
+    lr_final_factor: 0.01
+    lr_t_max_steps: 0
+    # `mse`, or `huber` at `huber_delta` sd of the scaled target. Scaled by 2 to
+    # match the squared-error scale, so an arm differs in outlier handling alone.
+    loss: mse
+    huber_delta: 2.0
+    # Weight averaging, judged against the live weights at every evaluation. 0.0 is off.
+    ema_decay: 0.0
+
+ensemble:
+  # Predictions of the members, averaged with these weights (renormalized to sum to 1). Averaging
+  # PCA coefficients and averaging the flux maps they decode to are the same thing — the decoder is
+  # affine — so this is an ensemble of flux maps, not merely of coefficients.
+  #
+  # `ridge` is deliberately NOT a member: it is kept enabled as the baseline everything else is
+  # read against, but averaging a model that scores 0.12 into two that score ~0.70 only drags them
+  # down (measured: ensemble 0.5936 with it, against 0.7001 for its best member).
+  members:
+    # Four nets differing only in their seed. The seed-to-seed sigma at production is 0.0009 of S
+    # and averaging removes exactly that variance; averaging PCA coefficients IS averaging flux
+    # maps, since the decoder is affine and the weights sum to 1.
+    mlp: 1.0
+    mlp1: 1.0
+    mlp2: 1.0
+    mlp3: 1.0
+    # The fifth member reads the whole shot rather than one frame, so what it adds is not another
+    # draw of the same noise: it is the only member whose errors have a different shape. Equal
+    # weight because nothing has measured a better one — see A21 in ideas.md.
+    seq: 1.0

@@ -15,7 +15,7 @@
 # evaluate.py would refuse the run and be right to. The single-salt version of this same
 # composition measured 0.993261 against production's 0.992831; the three-salt version is a
 # reasonable bet on top of that and NOT a measured improvement.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 # WAITS FOR THE PIDS IT NEEDS, not only for the artifacts. A submission build runs 28 worker
 # processes; started beside another one, plus a bake's twenty, the pool cannot be created and the
 # failure is `SemLock._rebuild -> FileNotFoundError` — the same signature a pid-budget exhaustion

@@ -129,7 +129,8 @@ def main() -> int:
           "(0 deg = outboard midplane, +90 = top):")
     hist, edges = np.histogram(a, bins=8, range=(-180, 180))
     for h, lo, hi in zip(hist, edges[:-1], edges[1:], strict=True):
-        print(f"    {lo:>+5.0f}..{hi:>+5.0f} deg  {h:>4}  {'#' * int(40 * h / max(hist.max(), 1))}")
+        bars = int(40 * h / max(int(hist.max()), 1))
+        print(f"    {lo:>+5.0f}..{hi:>+5.0f} deg  {h:>4}  {'#' * bars}")
     print("\n  Read the three D_LCFS lines as a decomposition. Whichever removal drops it most is "
           "the error that dominates, and each points at a different part of the solve.")
     return 0

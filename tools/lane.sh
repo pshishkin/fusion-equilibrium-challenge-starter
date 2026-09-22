@@ -13,7 +13,7 @@
 # design, and this removes the dependence on it.
 #
 # Usage: NAME=<tag> ARM_SET="<--set args>" MODELS="<--only args>" SALTS="..." lane.sh [wait-pids...]
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 300; done; done
 OUT="results/${OUTFILE}"
 [ -f "$OUT" ] || echo "name,S,R2_psi,R2_qb,D_LCFS,Cons,wall_s" > "$OUT"

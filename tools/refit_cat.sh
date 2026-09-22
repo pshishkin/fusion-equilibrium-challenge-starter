@@ -11,7 +11,7 @@
 #
 # The old rows and artifacts are removed first, because every runner here resumes by CSV — leaving
 # them would make this a no-op that looks like it ran.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 120; done; done
 for s in 1 2 3; do
   f=results/c_bake_s${s}.csv

@@ -14,7 +14,7 @@
 # basis. The key includes the composition, so a different set of members is a different entry.
 #
 # Usage: SALTS="1 2 3" tools/blend_by_salt.sh          # fills .blend_cache/s<N>/
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 PCT="${PCT:-75}"
 for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 120; done; done
 for SALT in ${SALTS:-1 2 3}; do

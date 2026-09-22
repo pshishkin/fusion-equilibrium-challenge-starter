@@ -6,7 +6,7 @@
 #
 # Everything resumes: a config already on disk is skipped, so re-running costs nothing for what
 # exists. Roughly 11 hours per salt from scratch.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 one () {   # name | --set args
   local row=$1 sets=$2
   local art="artefacts/lanes/baseline_${row}.joblib"

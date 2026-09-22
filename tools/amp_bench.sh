@@ -13,7 +13,7 @@
 #
 # The FIT time is compared, not the wall time: reading dominates the wall and would swamp the
 # signal. Both arms run a fixed 10000 steps with early stopping disabled, so they do the same work.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 120; done; done
 mkdir -p artefacts/bench
 OUT=results/x_amp_bench.csv

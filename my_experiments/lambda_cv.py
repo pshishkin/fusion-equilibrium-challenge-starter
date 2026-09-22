@@ -29,7 +29,8 @@ from my_experiments.baseline_model import sorted_shots, take_share
 GRID = ["0.9900", "0.9950", "1.0000", "1.0025", "1.0050", "1.0075", "1.0100", "1.0150", "1.0250"]
 
 
-def score(files, lam, art, jobs, data_dir, config):
+def score(files: list[Path], lam: str, art: Path, jobs: int,
+          data_dir: Path, config: str) -> float:
     env = dict(os.environ, FUSION_ARTIFACT=str(art), FUSION_COEF_LAMBDA=lam,
                FUSION_COEF_LAMBDA_FROM="0")
     out = subprocess.run(
@@ -63,17 +64,17 @@ def main() -> int:
     halves = [tail[0::2], tail[1::2]]
     print(f"  {len(tail)} clean tail shots -> halves of {len(halves[0])} and {len(halves[1])}")
 
-    S = [{}, {}]
+    S: list[dict[str, float]] = [{}, {}]
     for h in (0, 1):
         for lam in GRID:
             S[h][lam] = score(halves[h], lam, a.artifact, a.jobs, a.local_data_dir, a.config)
-        print(f"  half {h}: " + "  ".join(f"{l}:{S[h][l]:.6f}" for l in GRID))
+        print(f"  half {h}: " + "  ".join(f"{value}:{S[h][value]:.6f}" for value in GRID))
 
     print(f"\n  {'fit on':>8}{'lambda*':>9}{'in-sample':>12}{'OUT-OF-SAMPLE':>15}")
     oos = []
     for h in (0, 1):
         other = 1 - h
-        star = max(GRID, key=lambda l: S[h][l])
+        star = max(GRID, key=lambda value: S[h][value])
         ins = S[h][star] - S[h]["1.0000"]
         out = S[other][star] - S[other]["1.0000"]
         oos.append(out)

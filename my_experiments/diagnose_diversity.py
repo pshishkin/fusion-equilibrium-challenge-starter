@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from itertools import pairwise
 from pathlib import Path
 
 import joblib
@@ -96,7 +97,7 @@ def main() -> int:
     for n, a in arts.items():
         xs = np.asarray(a["scaler"].transform(build_inputs(a["coil"], feats)), dtype=np.float64)
         pred = np.empty((len(xs), n_pca), dtype=np.float64)
-        for lo, hi in zip(bounds[:-1], bounds[1:]):
+        for lo, hi in pairwise(bounds):
             pred[lo:hi] = _predict_targets(a, args.model, xs[lo:hi])[:, :n_pca]
         err[n] = pred - truth
         print(f"  {n}: rms coefficient error {float(np.sqrt((err[n] ** 2).mean())):.5f}",

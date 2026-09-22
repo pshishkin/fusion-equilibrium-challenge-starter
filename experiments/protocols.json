@@ -1,0 +1,20 @@
+{
+  "smoke": {
+    "train": "0.01/0.2",
+    "validation": "0.01/0.2",
+    "score": 0.002,
+    "purpose": "Pipeline correctness; never a model selection result"
+  },
+  "production": {
+    "train": "0.80/1.0",
+    "validation": "0.19/1.0",
+    "score": 0.01,
+    "purpose": "Current Makefile production data protocol"
+  },
+  "paired": {
+    "train": "0.80/1.0",
+    "validation": "0.15/1.0",
+    "score": 0.05,
+    "purpose": "Existing lane protocol; compare arms within salt only"
+  }
+}

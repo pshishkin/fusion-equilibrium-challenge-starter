@@ -17,7 +17,7 @@
 # cannot refute it and is not being asked to: it prices the prize, and
 # my_experiments/diagnose_components.py asks the question that can say no, which is whether the
 # regression reaches the coordinates at all.
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 mkdir -p artefacts/basis logs results
 OUT="results/${OUTFILE:-x_basis_ceiling.csv}"
 [ -f "$OUT" ] || echo "name,envelope,sobolev,n_pca,S,R2_psi,R2_qb,D_LCFS,Cons,wall_s" > "$OUT"

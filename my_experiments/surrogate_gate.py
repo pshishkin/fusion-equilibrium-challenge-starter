@@ -25,7 +25,8 @@ Three predictors are compared on the same frames:
   * `constant`  — predicts the mean change. Present so a correlation can be read against something
                   that knows nothing; a method that cannot beat it is not measuring the direction.
 
-Pre-registered threshold, from L3 and unchanged: **proceed only if kappa's correlation exceeds 0.90**
+Pre-registered threshold, from L3 and unchanged: **proceed only if kappa's correlation exceeds
+0.90**
 (the linearisation reached 0.77 when L3 was written). Below that, both surrogate arms close and no
 training code is written.
 """
@@ -33,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import joblib
@@ -59,7 +61,6 @@ def _derive_maps(args: tuple) -> np.ndarray:
     """(T, len(WANT)) — the wanted scalars for a stack of maps, by the scorer's own code."""
     import local_score
     psi, ctx = args
-    idx = [CONS_SCALARS.index(w) for w in WANT]
     out = np.full((len(psi), len(WANT)), np.nan)
     for k in range(len(psi)):
         c = extract_lcfs(psi[k], ctx["grid_R"], ctx["grid_Z"], ctx["machine"],
@@ -125,7 +126,8 @@ def apply_linear(W: np.ndarray, C: np.ndarray) -> np.ndarray:
 
 
 def fit_surrogate(C: np.ndarray, Y: np.ndarray, hidden: int, steps: int, seed: int,
-                  sobolev: float = 0.0, J: np.ndarray | None = None, wd: float = 0.0):
+                  sobolev: float = 0.0, J: np.ndarray | None = None, wd: float = 0.0
+                  ) -> tuple[Callable[[np.ndarray], np.ndarray], float]:
     """Two hidden layers on standardised targets, optionally trained on DERIVATIVES too.
 
     `sobolev > 0` adds `sobolev * ||grad g - J||^2` to the value loss, where `J` is the true
@@ -146,7 +148,7 @@ def fit_surrogate(C: np.ndarray, Y: np.ndarray, hidden: int, steps: int, seed: i
     net = torch.nn.Sequential(torch.nn.Linear(C.shape[1], hidden), torch.nn.GELU(),
                               torch.nn.Linear(hidden, hidden), torch.nn.GELU(),
                               torch.nn.Linear(hidden, Y.shape[1]))
-    opt = torch.optim.Adam(net.parameters(), lr=3e-3)
+    opt: torch.optim.Optimizer = torch.optim.Adam(net.parameters(), lr=3e-3)
     n = len(Xt)
     # The Jacobian in STANDARDISED coordinates: g works on (c-cm)/cs and outputs (y-ym)/ys, so a
     # target dy/dc becomes (dy/dc) * cs / ys. Getting this wrong would train the net towards a
@@ -184,10 +186,11 @@ def fit_surrogate(C: np.ndarray, Y: np.ndarray, hidden: int, steps: int, seed: i
                             device=dev)
         opt.zero_grad()
         if sobolev > 0 and not warm:
+            assert Jt is not None
             xb = Xt[idx].clone().requires_grad_(True)
             out = net(xb)
             v = torch.nn.functional.mse_loss(out, Yt[idx])
-            gterm = 0.0
+            gterm: torch.Tensor | float = 0.0
             for k in range(Y.shape[1]):
                 gk = torch.autograd.grad(out[:, k].sum(), xb, create_graph=True)[0]
                 gterm = gterm + torch.nn.functional.mse_loss(gk, Jt[idx, k])
@@ -232,6 +235,7 @@ def main() -> int:
     a = ap.parse_args()
 
     import pandas as pd
+
     from experiments import _as_psirz_stack
     from my_experiments.baseline_model import predict_row
 
@@ -245,14 +249,14 @@ def main() -> int:
     print(f"  artifact {a.artifact}  salt {salt}  probing {len(files)} clean-tail shots")
 
     pca = art["pca"]
-    rows, psi_true, psi_pred = [], [], []
+    rows, true_parts, pred_parts = [], [], []
     for p in files:
         row = pd.read_parquet(p).iloc[0]
         rows.append(row)
-        psi_true.append(_as_psirz_stack(row["efit_psirz"]).astype(np.float64))
-        psi_pred.append(np.asarray(predict_row(row, D3D, "ensemble", a.artifact)["psirz"]))
-    psi_true = np.vstack(psi_true)
-    psi_pred = np.vstack(psi_pred)
+        true_parts.append(_as_psirz_stack(row["efit_psirz"]).astype(np.float64))
+        pred_parts.append(np.asarray(predict_row(row, D3D, "ensemble", a.artifact)["psirz"]))
+    psi_true = np.vstack(true_parts)
+    psi_pred = np.vstack(pred_parts)
     print(f"  {len(psi_true)} frames")
 
     # Coefficients. The basis is orthonormal, so transform(decode(c)) == c and this is exact.
@@ -267,7 +271,8 @@ def main() -> int:
     ctx = scorer_context(mask["grid_R"], mask["grid_Z"], D3D)
     # dec(c) rather than the raw truth: the question is how the functional responds to a change
     # IN THE BASIS, which is the only thing the model can move.
-    dec = lambda C: np.asarray(pca.inverse_transform(C))
+    def dec(coefficients: np.ndarray) -> np.ndarray:
+        return np.asarray(pca.inverse_transform(coefficients))
     print("  deriving the actual functional values")
     f_true = derive_all(dec(c_true), ctx, a.jobs, "at c_true")
     f_pred = derive_all(dec(c_pred), ctx, a.jobs, "at c_pred")
@@ -308,7 +313,8 @@ def main() -> int:
         "surrogate": g(c_pred[test_idx]) - g(c_true[test_idx]),
         "constant": np.zeros_like(actual) + actual.mean(0),
     }
-    print(f"  === correlation of PREDICTED vs ACTUAL change, on {len(test_idx)} held-out frames ===")
+    print("  === correlation of PREDICTED vs ACTUAL change, "
+          f"on {len(test_idx)} held-out frames ===")
     print(f"  {'method':<12}" + "".join(f"{w:>12}" for w in WANT))
     for name, P in preds.items():
         cors = []
@@ -322,7 +328,8 @@ def main() -> int:
     # held-out column is overfitting, stated rather than inferred.
     a_fit = f_pred[sub] - f_true[sub]
     p_fit = g(c_pred[sub]) - g(c_true[sub])
-    fit_cor = [np.corrcoef(p_fit[:, j], a_fit[:, j])[0, 1] if p_fit[:, j].std() > 0 else float("nan")
+    fit_cor = [np.corrcoef(p_fit[:, j], a_fit[:, j])[0, 1]
+               if p_fit[:, j].std() > 0 else float("nan")
                for j in range(len(WANT))]
     print(f"  {'surrogate ON ITS FIT FRAMES':<12}" + "".join(f"{c:>12.3f}" for c in fit_cor))
     print(f"\n  GATE: kappa correlation for the surrogate is {kc:.3f}; L3 requires > 0.90")

@@ -1,5 +1,16 @@
 # DIII-D / Challenge 1 — what we tested, and what came of it
 
+> Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
+> Historical dates, running labels and superseded verdicts below are retained as evidence.
+
+**2026-09-22 — iteration workflow validation:** `make test`, smoke protocol
+`0.01/0.2 0.01/0.2 0.002`, salt 0, frozen iteration recipe, RTX 3090: S = 0.721159
+on 14 held-out shots, identical in the cold and warm runs. Child process wall time was 144.46 s
+cold and 91.03 s warm; verified resume took 1.30 s. `run compare` with the same artifact as
+baseline and candidate returned zero replacement/addition deltas on those same 14 shots.
+**Pipeline validation only, not a production-quality result or a comparison with 0.9941.**
+Provenance, native metrics and final checks: [results/workflow_20260922.json](results/workflow_20260922.json).
+
 **This file is Challenge 1 only.** MAST's record is [experiments_mast.md](experiments_mast.md)
 and its open ideas are [ideas_mast.md](ideas_mast.md).
 

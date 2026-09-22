@@ -22,12 +22,14 @@ the artifact recorded rather than trusting the arithmetic.
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from my_experiments import evaluate, train
 from toolkit.progress import install_timestamps
+from toolkit.records import write_json
 
 
 def main(argv: list[str]) -> int:
@@ -45,6 +47,15 @@ def main(argv: list[str]) -> int:
             raise SystemExit(f"argument {i + 1} is {share!r}: the three shares come first, then "
                              f"any flags.\n\n{__doc__}")
     passthrough = list(argv[3:])
+    score_options: list[str] = []
+    for flag in ("--metrics-json", "--local-data-dir", "--config"):
+        if flag in passthrough:
+            i = passthrough.index(flag)
+            if i + 1 == len(passthrough) or passthrough[i + 1].startswith("--"):
+                raise SystemExit(f"{flag} requires a value")
+            score_options.extend(passthrough[i:i + 2])
+            if flag == "--metrics-json":
+                del passthrough[i:i + 2]
     # Scoring reads the salt and the model names out of the ARTIFACT, so those need no forwarding —
     # the artifact is the one copy that cannot disagree with what was fitted. `--jobs` is different:
     # it is about this machine, not about the configuration, and both halves need it.
@@ -75,14 +86,26 @@ def main(argv: list[str]) -> int:
     print(f"TRAINING on {train_share}, stopping on {val_share}")
     print("=" * 70)
     sys.argv = ["train.py", "--share", train_share, "--val-share", val_share, *passthrough]
+    started = time.perf_counter()
     train.main()
+    trained = time.perf_counter()
 
     print("\n" + "=" * 70)
     print(f"SCORING on {float(test_share):.1%}")
     print("=" * 70)
     sys.argv = ["evaluate.py", "--share", test_share, *(["--jobs", *jobs] if jobs else []),
+                *score_options,
                 *(["--models", *score_models] if score_models else [])]
-    return evaluate.main()
+    result = evaluate.main()
+    finished = time.perf_counter()
+    if result == 0 and "--metrics-json" in score_options:
+        import json
+        path = Path(score_options[score_options.index("--metrics-json") + 1])
+        record = json.loads(path.read_text())
+        record["timing_seconds"] = {"train": trained - started, "score": finished - trained,
+                                    "train_and_score": finished - started}
+        write_json(path, record)
+    return result
 
 
 if __name__ == "__main__":

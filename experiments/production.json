@@ -1,0 +1,25 @@
+{
+  "name": "production",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "production",
+  "salts": [
+    0
+  ],
+  "jobs": 24,
+  "arms": [
+    {
+      "name": "base",
+      "only": null,
+      "set": [],
+      "score_models": [
+        "ridge",
+        "mlp",
+        "mlp1",
+        "mlp2",
+        "mlp3",
+        "seq",
+        "ensemble"
+      ]
+    }
+  ]
+}

@@ -38,12 +38,13 @@ export HF_READ_TOKEN
 HF_REPO ?= pshishkin/fusion-eq-predictions
 
 .PHONY: ci lint format typecheck test quality prod train eval predict_and_submit_to_hf clean \
-        clean-cache warm-cache download_dataset sweep
+        clean-cache warm-cache download_dataset sweep doctor experiment check-workflow
 
 # Where the dataset lives. It sits BESIDE the repo, not inside it, so a `git clean` cannot delete
-# 97 GB — and every `--local-data-dir` flag already defaults to this path.
+# 104 GB — and every `--local-data-dir` flag already defaults to this path.
 DATA_DIR ?= ../downloaded_huggingface/hf_dataset
 DATASET_REPO ?= Sophelio/fusion-equilibrium-challenge
+DATASET_REVISION ?= 1e280905b85f2a6fdde7e06fca8cf3a1edf447cb
 DATASET_CONFIGS ?= diii_d_train diii_d_public_test mast_public_test
 
 # Which machines the submission carries. BOTH by default: one entry feeds both leaderboards, and a
@@ -55,7 +56,7 @@ SUBMIT_CONFIGS ?= diii_d_public_test mast_public_test
 # single BLAS thread, which is what makes a pool of 28 an actual 28x.
 SUBMIT_JOBS ?= 28
 
-ci: lint typecheck test
+ci: lint typecheck check-workflow test
 
 lint:
 	uv run ruff check .
@@ -67,8 +68,8 @@ format:
 typecheck:
 	uv run mypy
 
-# Everything the pipeline reads: 7041 DIII-D training shots (88 GB), the DIII-D public test set
-# (6.7 GB) and MAST (3.1 GB) — 98 GB, so budget the disk before starting. No token needed; the
+# Everything the pipeline reads: 7041 DIII-D training shots (93.43 GB), the DIII-D public test set
+# (7.19 GB) and MAST (3.24 GB) — 103.86 GB, so budget the disk before starting. No token needed; the
 # dataset is public.
 #
 # Resumable: `hf download` skips files already present, so a killed run only has to be repeated.
@@ -79,57 +80,43 @@ typecheck:
 #   make download_dataset DATASET_CONFIGS=diii_d_train
 #   make download_dataset DATASET_CONFIGS="diii_d_train diii_d_public_test"
 #
-# A submission needs diii_d_public_test; training needs diii_d_train; mast_public_test is only for
-# Challenge 2, which this fork does not implement yet.
+# A DIII-D submission needs diii_d_public_test; training needs diii_d_train.
+# mast_public_test belongs to Challenge 2 and is not used by the DIII-D runner.
 # The one target that wants HF_TOKEN, and the only one that gets it — see the note beside
 # `-include .env` on why a global export breaks the submission push.
 download_dataset: export HF_TOKEN := $(HF_TOKEN)
 download_dataset:
 	@for cfg in $(DATASET_CONFIGS); do \
 		echo "==> $$cfg"; \
-		uv run hf download $(DATASET_REPO) --repo-type dataset \
+		uv run hf download $(DATASET_REPO) --repo-type dataset --revision $(DATASET_REVISION) \
 			--local-dir $(DATA_DIR) --include "data/$$cfg/*" --max-workers 16 || exit 1; \
 	done
 	@du -sh $(DATA_DIR)/data/* 2>/dev/null || true
 
-# The three standard runs. AGENTS.md, "How we test the metric".
-#
-#   test     does it work, and how fast — 70 shots thinned to a fifth of their frames, 14 scored
-#   quality  what does it score — production's own data, 4225 shots, 70 scored, ONE net
-#   prod     what a submission is built from — the same data, FOUR MLP seeds averaged
-#
-# `quality` and `prod` now differ in ONE thing: one net against four. The data is identical.
-#
-# That is the point. The old screen ran on 352 shots, and the reversal AGENTS.md records — n_pca 30
-# beating 50 at quality by +0.0043 on three salts, then losing at production — was caused by that
-# scale and not by the ensemble: with 352 shots the tail PCA components are noise, with 4225 they
-# are signal. A screen at production's data cannot make that class of mistake, because the only
-# thing left varying is the seed count.
-#
-# What the screen still costs is noise: the seed sigma is 0.0013 of S for one net against about
-# half that for four, so a difference read here must clear twice the floor a production run's does.
-# Quality numbers recorded before 2026-08-14 came from 352 shots and four nets, and compare to
-# neither of these.
-#
-# JOBS is the reader/scorer pool. It is capped here because os.cpu_count() reports the HOST's
-# cores, not this container's share, and the pids ceiling is shared with everything else running.
+# Standard shares are recorded in experiments/protocols.json. Smoke is one MLP; quality uses
+# ridge + one MLP on production data; production uses the full enabled zoo. The separate paired
+# protocol preserves the historical lane's 5% scored tail. Every new run freezes its code/config.
+# JOBS controls per-shot work and never the fitted model's arithmetic.
 JOBS ?= 24
 TORCH_ENV = OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4
 
-test:
-	@$(LOG_START); \
-	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.01/0.2 0.01/0.2 0.002 \
-		--only mlp --jobs $(JOBS) $(TEE)
+# Every standard run snapshots code and effective config before fitting. The returned campaign
+# path is content-addressed; repeating the command resumes only identical, verified work.
+test quality prod:
+	@spec=$@; [ "$$spec" != test ] || spec=smoke; [ "$$spec" != prod ] || spec=production; \
+	campaign=$$(uv run python -m my_experiments.run prepare experiments/$$spec.json --jobs $(JOBS)) && \
+	uv run python -m my_experiments.run execute "$$campaign" --data-dir "$(DATA_DIR)"
 
-quality:
-	@$(LOG_START); \
-	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.80/1.0 0.19/1.0 0.01 \
-		--only ridge mlp --jobs $(JOBS) $(TEE)
+check-workflow:
+	uv run python -m unittest discover -s tests -v
 
-prod:
-	@$(LOG_START); \
-	$(TORCH_ENV) uv run python my_experiments/train_eval.py 0.80/1.0 0.19/1.0 0.01 \
-		--jobs $(JOBS) $(TEE)
+doctor:
+	uv run python -m my_experiments.run doctor --data-dir "$(DATA_DIR)"
+
+experiment:
+	@test -n "$(SPEC)" || { echo "SPEC=experiments/example.json is required"; exit 2; }
+	@campaign=$$(uv run python -m my_experiments.run prepare "$(SPEC)" --jobs $(JOBS)) && \
+	uv run python -m my_experiments.run execute "$$campaign" --data-dir "$(DATA_DIR)"
 
 # A pre-declared grid of configurations, one at a time, collected into a CSV. Each run tees into
 # its own logs/<timestamp>-<name>.log and repoints logs/latest.log, so the sweep is watchable the
@@ -207,4 +194,3 @@ clean-cache:
 # shots the training window pulls in, so a new salt otherwise re-reads whatever salt 0 never saw.
 warm-cache:
 	uv run python my_experiments/warm_cache.py
-

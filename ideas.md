@@ -1,5 +1,8 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
+> Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
+> Historical dates, running labels and superseded verdicts below are retained as evidence.
+
 > **The ranked list now lives in [backlog.md](backlog.md), keyed by SLUG.** Entries here are numbered
 > `A22 / B9 / Z3` because that is how they were written; the numbering is retired and kept only so
 > old write-ups stay findable. This file holds the long reasoning behind each entry — read

@@ -30,73 +30,18 @@ before adding code under `my_experiments/`.
 
 ## Where this stands
 
-**Challenge 1 — leaderboard 0.9940** (submitted 2026-09-04), from 0.9938, 0.9932 and 0.9896
-before it. Local production score on salt 0 is 0.9950; the local-minus-board offset has read
-0.0018 / 0.0013 / 0.0012 over three submissions, so it is a stable constant rather than a widening
-gap, and salt 0 plus that offset predicts the board to about a thousandth.
+**Challenge 1 — latest reported leaderboard S = 0.9941**, submitted 2026-09-04 and confirmed
+by the user on 2026-09-21. The historical reference is
+[`baselines/diii_d_20260904.json`](baselines/diii_d_20260904.json). The submission script names
+three salts, ten artifacts per salt and 26 model weights per salt (78 total). The original artifact
+hashes and code revision are not available in this checkout, so this is provenance, not a claim
+that today's `params.yaml` reproduces that submission.
 
-**What 0.9940 is.** A blend of ten artifacts fitted on ONE salt, weighted per MODEL — thirty models
-each carrying weight 1 — chosen by the search in `tools/blend_search.py`: four bases at five models
-each (`n_pca` 50, 70, 100 and the shaped basis), three wide MLPs, and three shot mixers (`lstm`,
-`attn`, `conv`). It is the top 75% of the collection by solo score; the coarse pass found 25/50/75%
-within 0.00004 of each other and the full set clearly worse.
-
-**Read the +0.0002 carefully.** On the local tail it beat the salt-1 production ensemble by
-+0.00043, and on the board it beat an entry from 2026-08-18 by +0.0002 — but that entry is not the
-same model this one was measured against, since `cons-reweight` and `pca-head` were canonised in
-between and never submitted. The direction agrees and the record moved; the two deltas are not a
-paired comparison and should not be quoted as one.
-
-**The three-salt build now running is the paired one.** Same composition, same weights, same code —
-three salts instead of one. That difference is the only thing between the two submissions, so the
-board reading isolates the diversity axis this project has never varied: WHICH 80% of the shots a
-member trained on. It cannot be measured locally at all, because the members' training sets between
-them cover the corpus and no clean tail exists for a cross-salt blend.
-
-**What the 2026-08-20 programme settled.** Six 16-salt arms, a paired production confirmation and
-about twenty-five rescoring measurements, all in
-[experiments_history.md](experiments_history.md). The short version:
-
-* **Nothing shipped.** `ema` (weight averaging) was accepted on the quality screen at +0.00101 with
-  16 signs of 16 and t = 7.2, then measured at **zero** on the production ensemble (−0.00002 over
-  four pairs). `jac`, `bnd` and the whole `ema_decay` sweep were refuted.
-* **The screen mis-measures a whole class of change.** It fits ONE net, so anything that works by
-  removing seed noise looks large there and vanishes once four seeds are averaged. Not "seven times
-  too large" — all of it. Changes that alter what every model does (a loss, a stopping rule, a
-  feature) are not discounted this way; that distinction was written down before the data arrived.
-* **Ensembling is exhausted, from five directions.** Seed averaging floors at 56% of one member's
-  squared error and four seeds have taken three quarters of the removable part; feature sets
-  decorrelate LESS than seeds (0.75 against 0.56) and floor at 75%; fitted ensemble weights
-  cross-validate NEGATIVE; a fourth member of the same kind is worth +0.0002 and a perfectly
-  independent one +0.0013.
-* **What is left is an information limit.** The map is finished as pixels (R²ψ 0.9998 of a 1.0000
-  ceiling). The seven functionals live in basis components 20–50, which carry 0.02% of the flux
-  variance, already receive **30% of the loss weight** (the Jacobian metric up-weights them 1434x),
-  and are still predicted at R² 0.43–0.93 — with 66% of the residual shared by every seed. The 21
-  instantaneous signals plus their derivatives and integrals do not determine the fine structure of
-  the boundary.
-
-**Challenge 1 has 0.0056 of S left in it, and every single line item is below what a run can
-measure.** `uv run python my_experiments/diagnose_budget.py` converts the cost shares into what a
-term is actually worth, using the fact that `finalize_machine` averages the seven pooled R² with
-equal weight — so a scalar's whole budget is `(0.20/7)·(1 − R²_j)`:
-
-| where | a perfect one is worth |
-|---|---|
-| Consistency, all seven | +0.00396 |
-| — of which kappa | +0.00114 |
-| — of which li | +0.00092 |
-| D_LCFS | +0.00098 |
-| R²qb | +0.00057 |
-| R²ψ | +0.00011 |
-| **everything** | **+0.00562** |
-
-A paired production run resolves **0.0013**. So every entry above except "Consistency, all seven"
-is a target that cannot be confirmed even when it is hit perfectly. The escape — "one mechanism
-collects several budgets" — is measured and shut: the seven residuals have a leading principal
-component of 34.8% and `li` shares 19.6% of its variance with the other six. Seven problems, not
-one. What survives is the averaging axis, which this arithmetic does not cap; see A25 in
-[ideas.md](ideas.md).
+**The iteration control is frozen separately** in
+[`baselines/iteration.params.yaml`](baselines/iteration.params.yaml). It has no newly measured
+score yet. Current decisions, historical evidence and unresolved candidates are indexed in
+[`experiment_status.md`](experiment_status.md); old "running" labels in the historical notes are
+not a live queue. See [the iteration workflow](#reproducible-diii-d-iterations) below.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
@@ -117,25 +62,23 @@ functions that read a row's own `source` column and hand it to the right module.
 
 ## Continuing on another machine
 
-Everything needed is in git except the data and the cache, both of which are rebuilt by two
-commands. Budget about 98 GB of download, 25 GB of cache, and half an hour before the first
-production run:
+Use Python 3.12 and the locked environment. The complete public dataset is 103.86 GB in decimal
+units at revision `1e280905b85f2a6fdde7e06fca8cf3a1edf447cb`; DIII-D training contains 7041 files.
+The pinned DIII-D filename/size/SHA-256 manifest is `my_experiments/diii_d_dataset.json`.
+Data and reproducible caches are not committed.
 
 ```bash
-make download_dataset      # 98 GB, resumable, no token needed
-make warm-cache            # decode all 7041 shots once, ~25 GB, a few minutes
-make prod                  # 4225 shots, four MLP seeds, ~25 min
+uv sync --locked --python 3.12
+make download_dataset
+make doctor               # dataset completeness and the explicitly configured CPU/CUDA device
+make warm-cache           # optional; only after the complete corpus is present
+make test                 # frozen smoke campaign, not a model-quality measurement
 ```
 
-Two things a bigger machine changes:
-
-- **The four ensemble members train one after another.** They are independent and could run at
-  once; the loop in `baseline_model.train` predates the ensemble. Batching them into one
-  vectorized model was built and measured on 2026-08-14 — 13.1x on the fit, score unchanged — and
-  then removed as not worth its complexity; see experiments_history.md before rebuilding it.
-- **The training share stopped at 0.60 for no principled reason.** 0.45 → 0.60 was worth +0.0018
-  and the curve had not flattened; the obstacle was always memory, and the shot cache plus
-  `parallel.release()` removed most of it.
+CUDA must be accessible to the process running the checks. An agent sandbox may hide GPU device
+nodes even when the host driver works; a failing sandbox check alone does not diagnose a broken
+driver. There is no automatic CPU fallback. `experiments/smoke-cpu.json` explicitly selects CPU
+when that is wanted; its score must not be compared bit-for-bit to CUDA training.
 
 ## The MLP fits on the GPU
 
@@ -212,61 +155,99 @@ cannot see, such as a numpy upgrade that decodes a value differently.
 up to 500 rows, and a row costs ~420 MB as a Python dict — measured, not estimated. `--n-shots 50`
 therefore asks for ~200 GB and gets OOM-killed before the first shot loads.
 
-## Workflow
+## Reproducible DIII-D iterations
 
-**Three** windows on one shot list ordered by `sha1` of the shot id: training from the head,
-validation immediately behind it, scoring from the tail. Validation belongs to the head end because
-it is part of *fitting* — CatBoost and the MLP read it every iteration to decide when to stop and
-which iteration to keep — so only the untouched tail can still measure generalization.
-`evaluate.py` checks the tail against the training **and** validation filenames recorded in the
-artifact, rather than trusting index arithmetic, and refuses to score on overlap. `hashlib`, never
-the builtin `hash()`, which is salted per process and would silently reorder between the two runs.
+The canonical data protocols live in [`experiments/protocols.json`](experiments/protocols.json):
+
+| Profile | Train shots/frames | Validation shots/frames | Score shots | Purpose |
+|---|---|---|---|---|
+| `smoke` | 0.01/0.2 | 0.01/0.2 | 0.002 | Pipeline correctness, one MLP |
+| `production` | 0.80/1.0 | 0.19/1.0 | 0.01 | Production; quality uses the same data with ridge + one MLP |
+| `paired` | 0.80/1.0 | 0.15/1.0 | 0.05 | Existing multi-salt lane protocol |
+
+These are distinct protocols, not interchangeable score labels. Do not silently change shares.
+Production's enabled ensemble is four MLPs plus a sequence model. Validation is part of fitting;
+scoring uses the SHA-1-ordered tail, and every member's train/validation filenames are checked for
+overlap. The complete pinned corpus is checked before training so an ongoing download cannot
+silently change the split.
 
 ```bash
-# what decides anything: 5633 shots at EVERY frame, 70 scored, FOUR seeds
-make prod        # train_eval.py 0.80/1.0 0.19/1.0 0.01 --jobs 24
-
-# the screen: the SAME data, ONE net, so a quarter of the fit
-make quality     # train_eval.py 0.80/1.0 0.19/1.0 0.01 --only ridge mlp --jobs 24
-
-# does it work at all, and how fast: 70 shots, 14 scored, one net, ~1 min
-make test        # train_eval.py 0.01/0.2 0.01/0.2 0.002 --only mlp --jobs 24
-
-# the smoke run plus the linter and the type checker
-make ci
-
-# 1. train on the head of the list -> my_experiments/baseline.joblib
-uv run python my_experiments/train.py --share 0.05/0.2 --val-share 0.05/0.2
-
-# --only narrows the zoo for one run, --salt reshuffles which shots land where. Neither is a
-# second home for hyper-parameters: they have no defaults, they are printed, and the artifact
-# records the EFFECTIVE configuration rather than whatever params.yaml says at the time.
-uv run python my_experiments/train_eval.py 0.80/1.0 0.19/1.0 0.01 --only mlp --salt 1
-
-# 2. score on the tail, with the real competition metric — every model, then the comparison table
-uv run python my_experiments/evaluate.py --share 0.01
-uv run python my_experiments/evaluate.py --share 0.01 --models catboost ensemble
-
-# 3. build the submission (874 local DIII-D test shots, 1.38 GB .npz, ~3 min)
-uv run python submission_skeleton.py --max-shots 0 --source local \
-    --configs diii_d_public_test
-
-# 3b. push the file already built, without spending 3 minutes rebuilding it
-uv run python push_predictions.py --repo pshishkin/fusion-eq-predictions --read-token hf_...
-
-# or all of it in one command: predict, validate, push, write the pointer zip
-make predict_and_submit_to_hf
-
-# 4. upload the newest submissions/submission_pointer_*.zip to codabench.org/competitions/17456
+make doctor
+make test                 # snapshot + smoke + JSON result; repeats verify and reuse completed work
+make quality
+make prod
+make check-workflow       # inexpensive orchestration and scorer-interface regression tests
+make ci                   # lint, types, workflow tests, standard smoke
 ```
 
-Step 3 sends nothing anywhere without `--repo`; with `--repo` but no `--read-token` it only creates
-the private Hugging Face repo. Only both together upload. It predicts with the **ensemble** —
-`predict_row`'s default — so what goes to the leaderboard is whatever `ensemble.members` in
-`params.yaml` weights.
+A declarative campaign names its params file, an existing profile, salts, model selection, explicit
+`--set` overrides and scored models. `experiments/paired-example.json` is a proposal to recheck
+sequence cosine against the frozen control, not an experiment already run.
 
-`evaluate.py --mode perfect` / `--mode zeros` check the harness itself — they must print S = 1.0
-and S = 0.0 exactly.
+```bash
+uv run python -m my_experiments.run prepare experiments/paired-example.json
+# The command prints runs/<name>-<content hash>. Keep that path; edits do not alter this campaign.
+uv run python -m my_experiments.run execute runs/<name>-<content-hash>
+uv run python -m my_experiments.run status runs/<name>-<content-hash>
+uv run python -m my_experiments.run summary runs/<name>-<content-hash> --control base
+# Or prepare and execute in one command:
+make experiment SPEC=experiments/paired-example.json
+```
+
+`prepare` freezes the source files and effective YAML for ALL arms before any fit. Identity includes
+the source hashes, protocol, model configs and installed Python package versions. `execute` refuses
+a changed snapshot or environment. Each arm/salt has its own artifact, live log, `metrics.json`,
+preflight and completion record. Resume skips only completed runs whose artifact, config and metrics
+hashes still match. An interrupted fit is retrained; this is not an optimizer checkpoint facility.
+Required head/auxiliary targets are built automatically through the shared shot pool. Their cache
+records full-shot lengths, applies the training frame selection separately to each shot, and keys
+reuse on producer code, dependency lock and source file identities. Snapshots share the cache safely.
+A file lock prevents simultaneous execution of the same campaign; worker process groups are
+terminated together on interruption. `tail -F logs/latest.log` follows the active run.
+Worker records include the host boot and PID namespace. Inspect or resume a live run in the same
+process namespace; a sandbox that hides its workers must not classify them as terminated.
+
+The runner uses the existing `train_eval.py` and `local_score.py` arithmetic. JSON preserves the
+scorer's native precision (currently six decimals for S), records the exact scored filenames and
+keeps per-functional detail. It does not parse progress text or implement another metric.
+`dlcfs` in JSON is the **distance**, unlike the misleading legacy CSV column headed `D_LCFS`,
+which contains `1-D_LCFS`. Summaries report paired deltas and SE, not an automatic statistical verdict.
+The measured cold/warm cycle, verified resume and scorer self-checks are recorded in the
+2026-09-22 workflow entry in [experiments_history.md](experiments_history.md), with machine-readable
+evidence in [results/workflow_20260922.json](results/workflow_20260922.json). These are smoke checks,
+not estimates of the current production score.
+
+### Candidate quality and contribution to the ensemble
+
+```bash
+uv run python -m my_experiments.run compare \
+  --baseline runs/<campaign>/base_s0/baseline.joblib --weights 5 \
+  --candidate runs/<candidate>/base_s0/baseline.joblib --candidate-weight 1 \
+  --share 0.05 --jobs 24
+```
+
+This example gives a five-member baseline artifact weight 5 and a single-model candidate weight 1;
+set the weights to describe the actual blend. The command copies the inputs and source into a new
+comparison directory and scores candidate alone, baseline alone and their decoded-map blend on
+identical shots through the real scorer. `comparison.json` distinguishes replacement delta from
+addition delta. Every artifact participates in the overlap check. Cross-salt members require a
+common holdout reserved before fitting; `--on-holdout` selects it. Ordinary salt tails cannot make
+an existing cross-salt blend locally scorable. Candidate selection and confirmation must be separate.
+
+### Direct commands and legacy recipes
+
+For diagnostics that intentionally use the original entry points, give every fit a unique path:
+
+```bash
+FUSION_ARTIFACT=artefacts/lanes/baseline_named.joblib \
+  uv run python my_experiments/train_eval.py 0.80/1.0 0.15/1.0 0.05 \
+  --jobs 24 --score-models ensemble --metrics-json logs/named-metrics.json
+```
+
+The old `tools/*.sh` recipes now locate the repository relative to themselves, but their CSV-based
+resume logic is historical and is not the new runner's integrity guarantee. Use frozen campaigns
+for new experiments. `make predict_and_submit_to_hf` remains a separately authorized publishing
+operation; none of the new runner commands uploads or pushes anything.
 
 ## The models
 
@@ -442,7 +423,7 @@ accident of the loop's shape — 61 steps at the production shares, 515 at batch
 both the resolution at which the best weights are picked and the granularity of the patience. It is
 `eval_every_steps: 50` now, and it is a setting rather than a consequence.
 
-### Where the models stand
+### Historical model measurements (not the current baseline)
 
 Two commands, and which one produced a number has to be said every time — see AGENTS.md, "How we
 test the metric".
@@ -686,8 +667,8 @@ after those three had been read as results.
 The score now comes from blending many models rather than from any one of them, and the pieces below
 exist because assembling a blend naively is slow and quietly wrong in three separate ways.
 
-**`tools/registry.py` — what is on disk.** 130 artifacts holding 541 fitted models across 12 splits,
-grouped by SPLIT rather than by name, because that is what decides blendability: `salts:a+b+c`
+**`tools/registry.py` — what is on disk.** The previous machine held 130 artifacts with 541 fitted
+models across 12 splits. The tool lists the artifacts available locally, grouped by SPLIT rather than by name, because that is what decides blendability: `salts:a+b+c`
 averages decoded predictions and `evaluate.py` refuses the run unless no member has seen a scored
 shot. Members of one salt share the split, so each group is a ready-made blend with a clean 352-shot
 tail. Scores are joined from `results/*.csv` on the artifact name, so most rows carry a number
@@ -744,9 +725,9 @@ invariant left to violate; that is the whole difference.
 On 2026-09-04 only the accident that their phases did not line up kept one from pushing the other's
 half-written file.
 
-## The lane runner
+## The legacy lane runner
 
-`tools/lane.sh` is what produces every paired number in this project: for each salt and each arm it
+`tools/lane.sh` produced the historical paired tables; new experiments use the frozen runner above: for each salt and each arm it
 trains one artifact, scores it, and appends a row to a CSV. It lived in a scratch directory until
 2026-08-31 and was therefore invisible to the history — while carrying two bugs in one week, neither
 of which left a trace anywhere reviewable. That is why it is here now.

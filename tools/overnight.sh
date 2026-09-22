@@ -6,7 +6,7 @@
 # step that is already done is skipped rather than repeated.
 #
 # Usage: tools/overnight.sh [wait-pids...]
-cd /workspace/fusion-equilibrium-challenge-starter
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 120; done; done
 
 echo "===== $(date -u +%F\ %H:%M) STEP 1: rung 1b — the replicate, and the three mixers ====="

@@ -4,7 +4,10 @@
 both arms inside a single lane so a pair always completes together, which puts them in one file.
 The arithmetic is the same: match by SALT, difference within the salt, never compare across salts.
 """
-import argparse, csv, re, statistics as st
+import argparse
+import csv
+import re
+import statistics as st
 from pathlib import Path
 
 TERMS = {"S": 1.0, "R2_psi": 0.55, "R2_qb": 0.15,
@@ -16,9 +19,11 @@ TERMS = {"S": 1.0, "R2_psi": 0.55, "R2_qb": 0.15,
           "D_LCFS": 0.10, "Cons": 0.20}
 
 
-def load(path, base_arm):
-    rows = {}
-    for r in csv.DictReader(Path(path).open()):
+def load(path: str, base_arm: str) -> tuple[dict[str, dict[int, dict[str, str]]], list[str]]:
+    rows: dict[str, dict[int, dict[str, str]]] = {}
+    with Path(path).open() as stream:
+        source_rows = list(csv.DictReader(stream))
+    for r in source_rows:
         m = re.match(r"^(.+?)_(.+?)_s(\d+)$", r["name"])
         if not m:
             continue
@@ -32,7 +37,7 @@ def load(path, base_arm):
     return rows, arms
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("path")
     ap.add_argument("--base", default="base")
@@ -55,7 +60,7 @@ def main():
         pos = sum(x > 0 for x in d)
         t = mean / se if n > 1 and se else float("nan")
         print(f"  {arm:<12}{n:>4}{mean:>+10.5f}{se:>9.5f}{t:>7.1f}  {pos}/{n}")
-        print(f"      per salt: " + " ".join(f"{x*1e4:+.1f}" for x in d) + "   (units 1e-4)")
+        print("      per salt: " + " ".join(f"{x*1e4:+.1f}" for x in d) + "   (units 1e-4)")
         if a.terms:
             for term, w in TERMS.items():
                 if term == "S":

@@ -522,6 +522,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--models", nargs="+",
                     help="score these members of the zoo (names from params.yaml, plus "
                          "'ensemble') on the same shots, and print them side by side")
+    ap.add_argument("--metrics-json", type=Path,
+                    help="write the scorer's results without parsing or rounding the log")
     args = ap.parse_args(argv)
 
     if args.models and args.mode != "model":
@@ -609,6 +611,15 @@ def main(argv: list[str] | None = None) -> int:
 
     if len(results) > 1:
         report_comparison(results, len(shots), machine)
+
+    if args.metrics_json:
+        from toolkit.records import write_json
+        write_json(args.metrics_json, {
+            "schema_version": 1, "scoring_version": SCORING_VERSION,
+            "machine": machine, "config": args.config, "mode": args.mode,
+            "n_shots": len(shots), "files": [p.name for p in args.files] if args.files else None,
+            "results": results,
+        })
 
     if args.mode in ("perfect", "zeros"):
         want = 1.0 if args.mode == "perfect" else 0.0
