@@ -62,6 +62,9 @@ functions that read a row's own `source` column and hand it to the right module.
 
 ## Continuing on another machine
 
+For the state of this checkout and the next agent's starting points, read
+[the 22 September 2026 handover](handover-22-sep-2026.md).
+
 Use Python 3.12 and the locked environment. The complete public dataset is 103.86 GB in decimal
 units at revision `1e280905b85f2a6fdde7e06fca8cf3a1edf447cb`; DIII-D training contains 7041 files.
 The pinned DIII-D filename/size/SHA-256 manifest is `my_experiments/diii_d_dataset.json`.
