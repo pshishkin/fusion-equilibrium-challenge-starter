@@ -1,0 +1,67 @@
+{
+  "checks": {
+    "all_full_shot_lengths_equal_source_blocks": true,
+    "all_target_bits_equal_source_blocks": true,
+    "all_target_rows_equal_source_blocks_including_nan": true,
+    "scored_overlap": 0
+  },
+  "composition_helper_sha256": "de5c5753cd8b97ba4aff878c657c5992c530530f347c8b033f1f9c0763d48c77",
+  "control_artifact": "/home/pavel/fusion-equilibrium-challenge-starter/runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+  "control_artifact_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+  "control_source_hash": "0adf0bfdca14ed3dd2b06bf0e653d7409954221a17bff3ef7e49f1beae93ba2b",
+  "dataset_identity": {
+    "bytes": 93425197716,
+    "config": "diii_d_train",
+    "files": 7041,
+    "manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420",
+    "revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+    "verification": "names_sizes_parquet_markers"
+  },
+  "elapsed_seconds": 4.500965644008829,
+  "method": "Exact ordered concatenation of full-shot float32 functional arrays and int64 frame counts; no new functional extraction",
+  "numpy_version": "2.5.0",
+  "ordered_names_sha256": {
+    "scored": "6e2486e24cb5b31b1e3883f70b2ca514045963fb26cd27cf7acb3990f953cd4f",
+    "train": "ef647476085c5a99db733b1d5ee032411d7ddb0244b838c6744aea9f4ea0b92f",
+    "union": "051694af68fb0b353c548a69face0d102888933da4b8770a1337ea6285d344cd",
+    "validation": "789369be4636fee2717721bef8fb85ff30a83759e72866c2b6b4dd8efdfa624c"
+  },
+  "producer_sha256": {
+    "experiments.py": "8ecba8150e8146f75021ed1a76744d2c9cbcf0d0c1c8b3706039808a943b40c2",
+    "fusion_scoring/common.py": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "fusion_scoring/contour.py": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "fusion_scoring/derive.py": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "fusion_scoring/lcfs.py": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "fusion_scoring/masks/d3d_envelope.npz": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1",
+    "fusion_scoring/masks/mast_envelope.npz": "50ab5a3e99205978db235ec3b85baa084f87308e7f8bdda6f3c57c7d5ff03616",
+    "fusion_scoring/metrics.py": "1c1ed3c40b4f6f0e0206651841281ff11a3c8564283b31158eb5efee3c587764",
+    "fusion_scoring/o_point.py": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4",
+    "local_score.py": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "my_experiments/aux_targets.py": "1f6813db1c8f1c6e9aa52462e5ad263dc86242ccd34e1333aa85eb5bbc315dd8",
+    "my_experiments/target_metric.py": "0b00c39a5fc4bfe22bd449b4202ded1c689a0652e052d3f993a8b969320e3c8a",
+    "uv.lock": "563b20ed6ec89475fdb1d97e3b782f7f04c650d08c06c19a60ba85894a12e415"
+  },
+  "refit_campaign": "/home/pavel/fusion-equilibrium-challenge-starter/runs/refit-production-a5034fff0c4b4f22",
+  "refit_source_hash": "fe84df2c5ccc5cc63f6326e1db0a494c475c258f61528b1d5024df63661b75cf",
+  "source_caches": [
+    {
+      "frames": 1248457,
+      "path": "/home/pavel/fusion-equilibrium-challenge-starter/.aux_targets/cons_5633_44886cbd8d8f30e7234ada94.npz",
+      "sha256": "b07458510b7ab83d66d4450d3862576138d6069bfd21308f39771d5ea839046d",
+      "shots": 5633
+    },
+    {
+      "frames": 296053,
+      "path": "/home/pavel/fusion-equilibrium-challenge-starter/.aux_targets/cons_1338_d44374d9b1b03992e3c9a1ad.npz",
+      "sha256": "4d8d6a76345922b008b301a3e8b670f3eefe40a06428b026c1e2be027f3de0d5",
+      "shots": 1338
+    }
+  ],
+  "target_cache": {
+    "frames": 1544510,
+    "path": "/home/pavel/fusion-equilibrium-challenge-starter/.aux_targets/cons_6971_378babebc93f94ea251fed12.npz",
+    "sha256": "1de2785f5f7d8de3ce89086ccd6362e8600db581e36847be34edff1813fc1df4",
+    "shots": 6971,
+    "status": "published"
+  }
+}

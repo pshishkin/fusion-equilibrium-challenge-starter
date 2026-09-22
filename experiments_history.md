@@ -24,6 +24,16 @@ focused CPU tests. Verdict: the no-validation path works end to end; the tiny-fi
 correctness checks. Evidence: [results/refit_smoke_20260922.json](results/refit_smoke_20260922.json),
 [results/refit_validation_compat_20260922.json](results/refit_validation_compat_20260922.json).
 
+**2026-09-22 — exact auxiliary-cache reuse for refit:**
+`python -m my_experiments.refit_cache` composed the verified 5633-shot train and 1338-shot
+validation target blocks into the ordered 6971-shot, 1,544,510-frame refit cache in **4.50 s**.
+The helper checked producer and dependency identities, all full-shot lengths, target bits
+including NaNs, and zero overlap with the 70 scored shots before atomic publication. SHA-256 of
+the ready cache is `1de2785f5f7d8de3ce89086ccd6362e8600db581e36847be34edff1813fc1df4`.
+Verdict: reuse removes the cold auxiliary extraction step from this exact refit without changing
+the targets. Evidence: [composition](results/refit_cache_composition_20260922.json),
+[independent verification](results/refit_cache_verification_20260922.json).
+
 **2026-09-22 — compact production control and iteration cost:**
 `make experiment SPEC=experiments/compact-production.json`, production shares
 `0.80/1.0 0.19/1.0 0.01`, salt 0, seed 0 for `mlp` and `seq`, frozen iteration configuration

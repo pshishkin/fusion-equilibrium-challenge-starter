@@ -227,6 +227,10 @@ The scorer's JSON `dlcfs` is the distance; legacy CSV `D_LCFS` contains `1-D_LCF
 Auxiliary target caches record full-shot frame counts and use the same per-shot thinning as training.
 They may be shared by snapshots only when producer code, dependency lock and input identities match.
 Missing caches are built explicitly through `pimap`; incomplete files are never published as ready.
+For a fixed-step refit on the exact union of previously cached full-shot training and validation
+windows, a cache may be composed from their ordered per-shot blocks only after verifying producer
+code, dependency lock, dataset identity, full-shot lengths, exact target bits and scoring exclusion.
+Publish the composed cache atomically; never treat a concatenated filename alone as proof.
 
 The pinned DIII-D manifest must match the complete local corpus before a fit. Missing, unexpected,
 wrong-sized or invalid parquet files are errors. Full SHA-256 verification is available separately.

@@ -216,6 +216,25 @@ The `refit-production` shares were approved on 2026-09-22 for this separate expe
 precommitted step budgets are explicit in
 [`experiments/refit-production.json`](experiments/refit-production.json). They do not replace the
 ordinary production protocol or its validation-based stopping.
+
+Before executing the fixed-step refit, the original full-shot train and validation auxiliary
+targets can be composed into the 6971-shot cache in their exact order:
+
+```bash
+.venv/bin/python -m my_experiments.refit_cache \
+  runs/compact-production-9301af36275620f7/base_s0/baseline.joblib \
+  runs/refit-production-a5034fff0c4b4f22 \
+  --data-dir ../downloaded_huggingface/hf_dataset \
+  --record results/refit_cache_composition_20260922.json
+```
+
+The helper checks producer code, dependencies, input identities, full-shot lengths, every target
+bit and score-tail exclusion before publishing the cache atomically. Its measured composition and
+hashes are in
+[`results/refit_cache_composition_20260922.json`](results/refit_cache_composition_20260922.json).
+An independent verify-only pass is recorded in
+[`results/refit_cache_verification_20260922.json`](results/refit_cache_verification_20260922.json).
+It reuses computed targets; the refit itself still trains both models from scratch.
 Production's enabled ensemble is four MLPs plus a sequence model. Validation is part of fitting;
 scoring uses the SHA-1-ordered tail, and every member's train/validation filenames are checked for
 overlap. The complete pinned corpus is checked before training so an ongoing download cannot
