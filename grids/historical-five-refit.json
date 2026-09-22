@@ -1,0 +1,30 @@
+{
+  "name": "historical-five-refit",
+  "date": "2026-09-22",
+  "purpose": "Measure whether the approved fixed-step two-model refit contributes to the recoverable historical five-member ensemble",
+  "status": "Separate matched diagnostic on the reused 70-shot salt-0 tail; not independent confirmation",
+  "scored_files_source": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+  "scored_files_source_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+  "historical_inference_git_commit": "eb70e25",
+  "historical_artifact": "artefacts/20260815-prod-4seeds-seq.joblib",
+  "historical_artifact_sha256": "8dc3af11401b1024e6dafdcb76c7c50f110cdaa0a415e547d2877c709e2c2656",
+  "refit_artifact": "runs/refit-production-a5034fff0c4b4f22/base-refit_s0/baseline.joblib",
+  "refit_artifact_sha256": "70a90d36fd0c989d85264c896bf566af39bc97ce97e3b3f01d51aa72af62019d",
+  "refit_native_metrics": "runs/refit-production-a5034fff0c4b4f22/base-refit_s0/metrics.json",
+  "refit_native_metrics_sha256": "baeb608f03a90f86555d591930a1ed1d053e8dd08b8ed4fefba14d5fe9a6911e",
+  "refit_inference_source": "runs/refit-production-a5034fff0c4b4f22/source",
+  "refit_source_hash": "fe84df2c5ccc5cc63f6326e1db0a494c475c258f61528b1d5024df63661b75cf",
+  "refit_members": ["mlp", "seq"],
+  "refit_member_weights": [0.5, 0.5],
+  "blend_member_weights": {
+    "historical_ensemble": 5,
+    "refit_ensemble": 2,
+    "total": 7
+  },
+  "blend_rule": "Average decoded maps and submitted scalars with 5:2 member counts, then cast once to float32",
+  "scorer_source": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "scorer_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+  "comparisons": ["historical_ensemble", "refit_ensemble", "historical_plus_refit"],
+  "jobs": 4,
+  "weights_searched": false
+}

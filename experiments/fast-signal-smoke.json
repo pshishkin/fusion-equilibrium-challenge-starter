@@ -1,0 +1,21 @@
+{
+  "name": "fast-signal-cpu-smoke",
+  "params": "../baselines/fast-signal.params.yaml",
+  "profile": "smoke",
+  "salts": [0],
+  "jobs": 4,
+  "arms": [
+    {
+      "name": "both-descriptors",
+      "only": ["mlp"],
+      "set": [
+        "features.fast_magnetics=[{signal: ECOILA, halfwidth_ms: 5.0}, {signal: plasma_current, halfwidth_ms: 20.0}]",
+        "models.mlp.device=cpu",
+        "models.mlp.max_steps=8",
+        "models.mlp.patience_steps=8",
+        "models.mlp.eval_every_steps=2"
+      ],
+      "score_models": ["mlp"]
+    }
+  ]
+}

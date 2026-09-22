@@ -3,6 +3,90 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-22 — recovered older five-member control and additive diagnostics:**
+`tools/historical_compare.py` loaded `artefacts/20260815-prod-4seeds-seq.joblib` with its original
+inference source, decoded its four MLPs and sequence model, and scored the same 70 unseen salt-0
+shots through one pinned current native scorer. The old artifact has the same 5633 train and 1338
+validation filenames as the compact control, but is an August control, **not evidence of the
+September leaderboard submission recipe**. Its local **S 0.994478** is the reference for the
+following fixed member-count blends:
+
+| Candidate added to old five | Artifact/member weights | S | ΔS vs old five |
+|---|---:|---:|---:|
+| `cons_gain=2` MLP | 5:1 | 0.994690 | +0.000212 |
+| `env_weight=1` MLP | 5:1 | 0.994585 | +0.000107 |
+| cosine sequence | 5:1 | 0.994688 | +0.000210 |
+| fixed-step two-model refit | 5:2 | 0.994707 | +0.000229 |
+| `cons_gain=2` + `env_weight=1` + cosine sequence | 5:1:1:1 | **0.994872** | **+0.000394** |
+
+The accumulated eight-member blend's native terms are R²ψ 0.999845, R²qb 0.997165,
+raw D_LCFS 0.009452 and Consistency 0.981641. Separately, replacing the old sequence within
+the old five by the cosine sequence scored **0.994438** against its matched decoded control
+**0.994479**, **−0.000041**: addition and replacement answer different questions. These are
+adaptive diagnostics on the already reused 70-shot tail, not independent confirmation or a
+weight search, and no collection is promoted. The old artifact hash, original inference revision,
+fixed grids, decoded prediction hashes, native scorer JSON and filename checks are in
+[geometry](results/historical_five_geometry_20260922.json),
+[cosine](results/historical_five_cosine_20260922.json),
+[stack](results/historical_five_stack_20260922.json), and
+[refit](results/historical_five_refit_20260922.json).
+
+**2026-09-22 — fast magnetics input audit and pipeline identity, before any production fit:**
+`python my_experiments/diagnose_fast_magnetics.py` read only input columns from 100 train and 20
+public-test shots, all 120 parquets SHA-256 verified, covering 27,270 EFIT frames. `ECOILA` raw
+sampling is 0.05 ms on 71/100 train and 16/20 public shots, 0.5 ms on the rest; plasma current is
+0.5 ms on all 120. Every tested centered window stayed inside raw acquisition support. On regular
+interior frames, the corrected plasma-current ±20 ms derivative almost duplicates the existing
+EFIT-grid derivative (correlation 0.999999999998); its novelty concentrates at edges and gaps.
+`ECOILA` ±5 ms retains 29.2% train and 33.9% public-test variance after projection on existing
+inputs. This is descriptive input evidence, not predictive gain; the two-arm hypothesis is in
+`ideas.md`. A frozen CPU smoke fit of the two-feature path completed with 70 train / 70 validation /
+14 scored shots and a trainable, statically weighted functional head. On 69 frames, full and slim
+rows gave bit-identical inputs and predictions. Independently, the unchanged compact artifact
+scored through the new evaluator reproduced every native and decoded scorer field on the original
+70-shot tail. These are correctness checks, not a new model score. Evidence:
+[input audit](experiments/fast-signal-diagnostic.md),
+[smoke](results/fast_signal_smoke_20260922.json),
+[old-model identity](results/fast_signal_identity_20260922.json).
+
+**2026-09-22 — A4 fixed-step refit on the old validation window:**
+`python -m my_experiments.run prepare experiments/refit-production.json`, then `run execute` on
+the frozen campaign. The 6971 full-frame train shots are the exact ordered union of the compact
+control's 5633 train and 1338 validation shots; the validation block is empty. MLP and sequence
+kept their last weights after the preregistered 40898 and 36989 steps, respectively. All scores
+use the same 70 unseen production-tail shots, with no overlap. The candidate ensemble by itself
+scored **S 0.992860** (MLP 0.992006, sequence 0.990179) versus the original compact ensemble
+**0.993385**, a replacement loss of **−0.000525**. Its terms were R²ψ 0.999775, R²qb 0.995106,
+raw D_LCFS 0.011501 and Consistency 0.974338.
+
+The separately scored equal-weight blend of the two complete two-member artifacts scored
+**S 0.994032**, **+0.000647** over the original; each of the four fitted models effectively
+has weight 0.25. That addition gain is a different measurement from refit's failed replacement.
+The ready auxiliary cache was composed in 4.50 s from verified old blocks. The refit worker's
+native train/score times were 1042.27 / 94.25 s, child wall 1140.84 s; fit-only MLP/sequence
+times were 101.3 / 775.9 s. A separate pinned-source comparison took 93.01 s. Independent
+historical CPU4 scoring overlapped the GPU run, so these wall times are not isolated throughput
+benchmarks. Verdict: this fixed-step refit does not improve the compact model on its own, but it
+adds useful diversity to that small ensemble on one salt. It is not promoted to the working
+control or claimed as an independent confirmation. Exact YAML, native terms, hashes and files:
+[results/refit_production_20260922.json](results/refit_production_20260922.json).
+
+**2026-09-22 — cosine sequence as a compact-ensemble replacement:**
+`python -m my_experiments.run prepare experiments/sequence-cosine-screen.json`, then `run execute`
+at production `0.80/1.0 0.19/1.0 0.01`, salt 0 and seed 0. Only the sequence model was fitted;
+its schedule changed to cosine with the preregistered 80000-step horizon. On the identical 70
+unseen files, candidate sequence alone scored **S 0.992205** against the original sequence's
+0.990514. The matched decoded 50/50 mixture with the unchanged original MLP scored **0.993692**
+against **0.993386** for the original pair, **ΔS +0.000306**. Replacement terms were R²ψ
+0.999792, R²qb 0.996001, raw D_LCFS 0.010184 and Consistency 0.977126. Fit-only time was
+**1375.3 s**, keeping step 56500 after 66500 steps; the full child train and scorer wall was
+1559.86 s, and the matched four-row comparison took 110.90 s. Historical CPU scoring overlapped
+the late fit, and the comparison overlapped the separate refit GPU fit, so these elapsed times are
+not isolated throughput estimates. Verdict: positive compact single-salt screen, consistent with
+the earlier positive multi-salt cosine result but without a paired variance estimate on this
+compact replacement; the working baseline is not changed. Native scorer fields, weights, effective
+YAML, scored filenames and hashes: [results/sequence_cosine_screen_20260922.json](results/sequence_cosine_screen_20260922.json).
+
 **2026-09-22 — four geometry-loss MLP screens against the compact ensemble:**
 `python -m my_experiments.run prepare experiments/geometry-loss-screen.json`, then `run execute`
 on the frozen campaign, production `0.80/1.0 0.19/1.0 0.01`, salt 0 and seed 0. Each arm changed

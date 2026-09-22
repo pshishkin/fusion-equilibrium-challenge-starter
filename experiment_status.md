@@ -30,12 +30,41 @@ source identity and timing evidence: `results/compact_production_20260922.json`.
 This is a one-split working control, not an uncertainty estimate, a measurement of the full
 enabled ensemble, or a reproduction of the historical submission.
 
+An older four-MLP-plus-sequence artifact was recovered and rescored locally on these same 70 shots
+using its original inference code and the current native scorer: S 0.994478. Fixed-weight
+additions of the screened MLP, cosine sequence and two-model refit artifacts led to a best observed
+eight-member stack S 0.994872. This is an adaptive diagnostic on reused shots, not an accepted
+production replacement or evidence that the recovered August artifact is the September submission.
+All fixed grids, member weights and native terms are in the four `results/historical_five_*.json`
+records indexed by `experiments_history.md`.
+
 The four 2026-09-22 geometry-loss screens have completed on this same salt-0 tail. The best
 matched replacement was `env_weight=1` at ΔS +0.000144 against the decoded two-member control;
 `cons_gain=2` was +0.000053, while `cons_gain=4` and `field_weight=0.3` decreased S. This is
 single-salt screening with no measured paired variance, so the compact control remains unchanged.
 Full native terms and the distinct candidate-alone scores are in
 `results/geometry_loss_screen_20260922.json`; interpretation is in `experiments_history.md`.
+
+The separately registered cosine sequence screen also completed on the same 70-shot tail:
+replacement ΔS +0.000306 against the matched decoded control. Its candidate-alone score and
+per-term result are in `results/sequence_cosine_screen_20260922.json`. This single-salt result
+does not replace the working control; the historical eight-pair cosine evidence below remains a
+distinct measurement on its own protocol.
+
+The user-approved fixed-step refit on 6971 shots also completed with zero validation shots and
+the same 70-shot tail. It scored S 0.992860 alone versus the compact control's 0.993385; an
+equal-weight addition of the full refit artifact scored 0.994032. The former is a negative
+replacement result, the latter a positive diversity screen, with no new acceptance decision.
+Native fields, exact union file check and timings are in `results/refit_production_20260922.json`.
+The follow-up cosine sequence fixed-step refit is preregistered separately in
+`experiments/seq-cosine-refit.json`, with step and schedule budgets derived from the validated
+cosine fit's best step and exact sampler pass ratio. It has no score yet.
+
+The next input-feature hypothesis is a two-arm fast magnetics screen, still unmeasured. Its
+input-only audit covers 100 train and 20 public-test shots with verified file hashes; the
+predeclared A/B feature sets and the audit's edge/interior distinction are in
+`experiments/fast-signal-diagnostic.md` and `experiments/fast-signal-screen.json`. No current
+baseline score or accepted feature set changes on the strength of this audit.
 
 Numbers below are paired within salt, recomputed from the named CSVs; they are historical
 experiments, not measurements of the newly frozen control. SE is the sample standard deviation

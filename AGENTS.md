@@ -251,6 +251,13 @@ When a replacement member comes from another artifact, keep the unchanged member
 both the original-member control and the replacement through the same decoded-map averaging path.
 Different target scalers make coefficient-space mixing invalid. Preserve the native ensemble score
 as a separate anchor, and measure any numerical difference between it and the decoded control.
+For comparisons after the working tree has changed, use `run compare --source-campaign` or
+`run compare-replacement --source-campaign` to pin the evaluator to the candidate's verified frozen
+snapshot. The comparison records the live controller source separately and checks that the
+candidate artifact belongs to that snapshot.
+An older artifact may need its original inference code to unpickle and predict. Keep that source
+isolated rather than adding compatibility guesses to current model classes; decode predictions
+before blending across artifacts and score them with a pinned native scorer and exact file list.
 
 ## Every function is annotated
 
@@ -284,6 +291,12 @@ way to hang. And there is exactly one pool for the whole run: a pool per phase p
 five times over and gave back most of the speed-up.
 
 New per-shot loops go through `pimap`, not through a private pool.
+
+Optional fast magnetics columns live in a full-shot sidecar keyed by explicit artifact-owned YAML
+descriptors, producer/dependency identity and each pinned source parquet hash. They must not
+invalidate or silently alter the 208-column base shot cache. A centered window outside a raw
+signal's support is an error naming its shot, signal, width and bounds. Slim scored rows carry the
+union of descriptors required by their artifacts; each artifact selects only its own columns.
 
 ## The core count must not change the score. The device does, and that is a different rule
 

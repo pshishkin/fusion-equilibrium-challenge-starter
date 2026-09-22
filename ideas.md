@@ -1,27 +1,32 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
-## 2026-09-22 remaining compact screens, registered before fitting
+## 2026-09-22 cosine sequence fixed-step refit, registered before fitting
 
-The four geometry-loss arms have been measured; their frozen spec, results and verdict are in
-`experiments_history.md`. They remain separate from the unmeasured screens below.
-Record all native terms, the exact files, artifact hashes, and fit/score wall times. A single salt
-screens a hypothesis; it does not establish a production improvement. See the historical
-`field-and-envelope` and `cons_gain` entries in `backlog.md` for the motivation and caveats.
+The separate `experiments/seq-cosine-refit.json` tests the already measured cosine sequence
+recipe on the same exact 6971-shot union of the compact train and validation windows, with the
+same 70-shot salt-0 score tail excluded. The original cosine sequence kept step 56500 after
+validation stopping, with `lr_t_max_steps=80000`. The sequence sampler has 176 full shot batches
+per pass on 5633 shots and 217 on 6971. Holding the number of data passes and the selected point
+within the cosine schedule fixed gives `round(56500*217/176)=69662` optimizer steps and
+`round(80000*217/176)=98636` schedule steps. These values, zero validation, seed 0 and the
+unchanged model/loss/features are frozen before fitting. Only sequence is trained. The prior
+constant-rate two-model refit lost as a replacement but helped as an addition; this experiment
+asks whether the already positive cosine sequence recipe transfers with the extra data. Its
+individual score and contribution when added to the previously recovered five-member ensemble
+are separate measurements. Neither has been measured for this refit yet.
 
-The separate `experiments/sequence-cosine-screen.json` registers a sequence-only production
-screen with `models.seq.lr_schedule=cosine` and the previously tested
-`models.seq.lr_t_max_steps=80000`, before viewing the geometry screen scores. Its selection
-quantity is the native score of a decoded 50/50 mixture of the original MLP and candidate sequence
-model minus the matched decoded 50/50 original MLP and original sequence control. It is a separate
-hypothesis, not another arm of the geometry loss comparison.
+## 2026-09-22 fast magnetics screen, registered before fitting
 
-The separate `experiments/refit-production.json` registers a fixed-step refit on the union of the
-original train and validation windows: 6971 shots at full frames, with the identical 70-shot tail
-excluded. Its optimizer budgets were fixed before measurement from the original best stops and
-the actual batches per pass: MLP `round(33000 * 378 / 305) = 40898` steps and sequence
-`round(30000 * 217 / 176) = 36989` steps. Each model saves its last weights; there is no
-validation or early stopping in this protocol. This tests additional training data with the
-original model settings and does not mix a geometry-loss change into the refit.
+The measured input-only audit, sample boundaries and full parquet hashes are recorded in
+`experiments/fast-signal-diagnostic.md` and `experiments_history.md`. The audit motivated a
+narrow signal test but made no prediction about score gain.
+
+`experiments/fast-signal-screen.json` proposes two separate production-share salt-0 seed-0 MLP
+arms against an unchanged control: A adds `ECOILA` ±5 ms only; B adds A plus corrected
+plasma-current ±20 ms to test gap/edge handling. The unchanged original sequence model will be
+the fixed second member in matched 50/50 replacement comparisons on the same 70 unseen shots.
+Feature availability and independence do not imply a score gain. No fit or score has been measured
+for either arm yet; see the diagnostic for sample limits and exact source/data hashes.
 
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
@@ -674,6 +679,11 @@ class, and only the Group B capacity ideas remain.
 **ΔS ≈ +0.002…+0.005, confidence 0.6.**
 
 ## A4. More shots, and absorb the validation window — *2026-08-13*
+
+**Status 2026-09-22:** the compact fixed-step 0.99/1.0 refit proposed here was measured on the
+same 70-shot production tail. Its standalone replacement lost and its addition to the compact
+two-member ensemble gained; exact terms and protocol are in `experiments_history.md`. The
+historical proposal below remains as the preregistered reasoning, not an open result.
 
 **Hypothesis.** Training on ~4200–4900 shots, then refitting on train + validation with the epoch
 count frozen from the stopped run, gains ≥ 0.0015.

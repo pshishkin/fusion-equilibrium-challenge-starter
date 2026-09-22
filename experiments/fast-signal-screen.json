@@ -1,0 +1,27 @@
+{
+  "name": "fast-signal-screen",
+  "params": "../baselines/fast-signal.params.yaml",
+  "profile": "production",
+  "salts": [0],
+  "jobs": 24,
+  "arms": [
+    {
+      "name": "control",
+      "only": ["mlp"],
+      "set": [],
+      "score_models": ["mlp"]
+    },
+    {
+      "name": "ecoila-5ms",
+      "only": ["mlp"],
+      "set": ["features.fast_magnetics=[{signal: ECOILA, halfwidth_ms: 5.0}]"],
+      "score_models": ["mlp"]
+    },
+    {
+      "name": "ecoila-5ms-ip-20ms",
+      "only": ["mlp"],
+      "set": ["features.fast_magnetics=[{signal: ECOILA, halfwidth_ms: 5.0}, {signal: plasma_current, halfwidth_ms: 20.0}]"],
+      "score_models": ["mlp"]
+    }
+  ]
+}

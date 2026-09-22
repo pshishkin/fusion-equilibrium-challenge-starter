@@ -32,7 +32,7 @@ def machine_of(row: Any) -> str:
     return source
 
 
-def slim_row(row: Any) -> dict:
+def slim_row(row: Any, model_specs: tuple[str | None, ...] = ()) -> dict:
     """Keep only what inference reads, so a scored fold fits in memory.
 
     A full DIII-D row retains 101 MB against the ~6 MB inference touches, and every scored shot
@@ -42,7 +42,7 @@ def slim_row(row: Any) -> dict:
         from mast.predict import slim_row as slim_mast
         return slim_mast(row)
     from my_experiments.baseline_model import slim_row as slim_d3d
-    return slim_d3d(row)
+    return slim_d3d(row, model_specs=model_specs)
 
 
 def predict_row(row: Any, model: str | None = None) -> dict:

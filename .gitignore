@@ -23,6 +23,9 @@ baseline_*.joblib
 # Decoded shots, rebuilt on demand — see my_experiments/shot_cache.py. Tens of GB, and keyed by
 # the source parquet's mtime, so it is worthless to anyone else's checkout.
 .shot_cache/
+# Optional centered raw-current columns, cached separately so the base 208-column shots stay
+# reusable across feature screens. The sidecars are derived from pinned parquets and YAML specs.
+.fast_magnetics_cache/
 # A9's per-frame functionals, one npz per split — see my_experiments/aux_targets.py. About 30 MB
 # each and 13 core-hours to rebuild, but keyed by the exact file list, so a checkout with a
 # different split cannot use them. Missed when A9 was built; a full per-salt set is ~600 MB.

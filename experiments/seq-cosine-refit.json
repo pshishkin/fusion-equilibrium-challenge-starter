@@ -1,0 +1,20 @@
+{
+  "name": "seq-cosine-refit",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "refit-production",
+  "salts": [0],
+  "jobs": 24,
+  "arms": [
+    {
+      "name": "seq-cosine-refit",
+      "only": ["seq"],
+      "set": [
+        "models.seq.max_steps=69662",
+        "models.seq.patience_steps=0",
+        "models.seq.lr_schedule=cosine",
+        "models.seq.lr_t_max_steps=98636"
+      ],
+      "score_models": ["seq"]
+    }
+  ]
+}

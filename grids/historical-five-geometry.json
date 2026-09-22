@@ -1,0 +1,33 @@
+{
+  "name": "historical-five-geometry",
+  "date": "2026-09-22",
+  "purpose": "Test whether two positive compact geometry screens help the recoverable five-member historical ensemble",
+  "status": "Matched diagnostic on the same 70 shots used to screen candidates; not independent confirmation",
+  "scored_files_source": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+  "scored_files_source_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+  "historical_inference_git_commit": "eb70e25",
+  "historical_artifact": "artefacts/20260815-prod-4seeds-seq.joblib",
+  "historical_artifact_sha256": "8dc3af11401b1024e6dafdcb76c7c50f110cdaa0a415e547d2877c709e2c2656",
+  "historical_members": ["mlp", "mlp1", "mlp2", "mlp3", "seq"],
+  "candidate_inference_source": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "candidate_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+  "candidates": [
+    {
+      "name": "cons-2",
+      "artifact": "runs/geometry-loss-screen-4a5516b9b1684353/cons-2_s0/baseline.joblib",
+      "artifact_sha256": "1e9f28aacf8eb10b2883ce7e68ede31073a483423192fe1be41ce98e30c737bb"
+    },
+    {
+      "name": "env-1",
+      "artifact": "runs/geometry-loss-screen-4a5516b9b1684353/env-1_s0/baseline.joblib",
+      "artifact_sha256": "251c101c09a42313e6c58057b50b38d5410f538bfc40dad69cc9f2560e1c147f"
+    }
+  ],
+  "blend_weights": {
+    "historical_ensemble": 0.8333333333333334,
+    "candidate": 0.16666666666666666
+  },
+  "score_models": ["historical_ensemble", "cons-2", "env-1", "historical_plus_cons-2", "historical_plus_env-1"],
+  "jobs": 4,
+  "scorer": "current local_score.py via scorer-native metrics JSON"
+}

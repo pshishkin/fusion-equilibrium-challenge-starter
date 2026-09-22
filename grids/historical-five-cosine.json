@@ -1,0 +1,37 @@
+{
+  "name": "historical-five-cosine",
+  "date": "2026-09-22",
+  "purpose": "Measure whether a sequence cosine candidate contributes to or replaces the recoverable five-member ensemble",
+  "status": "Matched diagnostic on the same 70 shots used in prior screens; not independent confirmation",
+  "scored_files_source": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+  "scored_files_source_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+  "historical_inference_git_commit": "eb70e25",
+  "historical_artifact": "artefacts/20260815-prod-4seeds-seq.joblib",
+  "historical_artifact_sha256": "8dc3af11401b1024e6dafdcb76c7c50f110cdaa0a415e547d2877c709e2c2656",
+  "candidate_artifact": "runs/sequence-cosine-screen-9007ddb3f714c95d/seq-cosine_s0/baseline.joblib",
+  "candidate_artifact_sha256": "da46cdc5c5eaacc97f5968f9458f8ca00454072db1f01b89226df266a93da641",
+  "candidate_native_individual_metrics": "runs/sequence-cosine-screen-9007ddb3f714c95d/seq-cosine_s0/metrics.json",
+  "candidate_native_individual_metrics_sha256": "7381bfdad362685deadd49e73b47c11ace0be95f59b1383ad771febc3804974f",
+  "candidate_inference_source": "runs/sequence-cosine-screen-9007ddb3f714c95d/source",
+  "candidate_source_hash": "49add25c12d720d604a0e98cf14666f69711be7f9cda02444fe77d341616cf9b",
+  "pinned_scorer_source": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "pinned_scorer_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+  "registered_comparisons": [
+    {
+      "name": "addition",
+      "control": "historical_ensemble",
+      "candidate": "historical_ensemble*5+cosine_seq*1",
+      "member_weights": [5, 1]
+    },
+    {
+      "name": "sequence_replacement",
+      "control": "historical_mlp_four*4+historical_seq*1",
+      "candidate": "historical_mlp_four*4+cosine_seq*1",
+      "member_weights": [4, 1],
+      "identity_rule": "The matched decoded control may use the original native anchor only if its arrays are byte-identical; otherwise score the matched control separately"
+    }
+  ],
+  "candidate_alone_score": 0.992205,
+  "score": "current vendored metric through frozen local_score.main; scorer-native JSON",
+  "jobs": 4
+}

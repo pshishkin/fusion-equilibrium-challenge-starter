@@ -1,0 +1,40 @@
+{
+  "name": "historical-five-positive-stack",
+  "date": "2026-09-22",
+  "purpose": "Test one accumulated decoded blend of all candidates whose individual addition helped the historical five-member ensemble",
+  "status": "Adaptive diagnostic on reused 70-shot salt-0 tail; not independent confirmation",
+  "selection_evidence": [
+    "results/historical_five_geometry_20260922.json",
+    "runs/historical-five-geometry-20260922/historical_plus_cosine_seq.metrics.json"
+  ],
+  "scored_files_source": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+  "scored_files_source_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+  "sources": [
+    {
+      "name": "historical_ensemble",
+      "prediction": "runs/historical-five-geometry-20260922/historical_ensemble.npz",
+      "members": 5
+    },
+    {
+      "name": "cons-2",
+      "prediction": "runs/historical-five-geometry-20260922/cons-2.npz",
+      "members": 1
+    },
+    {
+      "name": "env-1",
+      "prediction": "runs/historical-five-geometry-20260922/env-1.npz",
+      "members": 1
+    },
+    {
+      "name": "cosine_seq",
+      "prediction": "runs/historical-five-geometry-20260922/cosine_seq.npz",
+      "members": 1
+    }
+  ],
+  "blend_rule": "Single float64 weighted sum of all four decoded sources, divide by 8, cast once to float32",
+  "scorer_source": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "scorer_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+  "jobs": 4,
+  "comparisons": ["historical_ensemble", "accumulated_stack"],
+  "weights_searched": false
+}

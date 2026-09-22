@@ -185,6 +185,53 @@ The completed four-arm screen and its scorer-native results are in
 with the selection rule and verdict in [`experiments_history.md`](experiments_history.md). The
 original compact control remains the working baseline while the small single-salt effects are
 assessed.
+The separately frozen cosine sequence screen is recorded in
+[`results/sequence_cosine_screen_20260922.json`](results/sequence_cosine_screen_20260922.json)
+and interpreted in `experiments_history.md`; the working control is unchanged pending a broader
+ensemble decision.
+An older four-MLP-plus-sequence artifact has also been rescored on the same 70 shots with its
+original inference code. Its own score and fixed-weight additions are indexed in
+[`experiments_history.md`](experiments_history.md), with native evidence in the
+`results/historical_five_*.json` records. This recovered August artifact is a useful local
+ensemble control; its identity does not establish what was submitted in September.
+
+The proposed fast magnetics screen is documented in
+[`experiments/fast-signal-diagnostic.md`](experiments/fast-signal-diagnostic.md) and
+[`experiments/fast-signal-screen.json`](experiments/fast-signal-screen.json). Its input-only audit
+checked 100 train and 20 public-test shots against their full hashes. The two planned additions
+are an `ECOILA` centered ±5 ms derivative, then that feature plus a corrected plasma-current
+centered ±20 ms derivative aimed at shot edges and gaps. These are unscored hypotheses; the
+current model and its score remain unchanged.
+The fast feature bank is an artifact-owned YAML setting backed by separate full-shot sidecars;
+the 208-column base shot cache remains reusable. The frozen two-feature CPU smoke and exact
+unchanged-model scorer identity are recorded in
+[`results/fast_signal_smoke_20260922.json`](results/fast_signal_smoke_20260922.json) and
+[`results/fast_signal_identity_20260922.json`](results/fast_signal_identity_20260922.json).
+They establish pipeline correctness only.
+
+After `run prepare` prints a fast-screen campaign path, prewarm its new auxiliary producer key and
+the two explicit sidecar specifications from that campaign's frozen source:
+
+```bash
+repo_dir="$(pwd)"
+fast_campaign="$repo_dir/runs/fast-signal-screen-<content-hash>"
+cd "$fast_campaign/source"
+FUSION_AUX_CACHE="$repo_dir/.aux_targets" MPLCONFIGDIR=/tmp/matplotlib-fast-aux \
+  "$repo_dir/.venv/bin/python" -m my_experiments.aux_targets \
+  --share 0.80/1.0 --val-share 0.19/1.0 --salt 0 --jobs 24 \
+  --local-data-dir "$repo_dir/../downloaded_huggingface/hf_dataset"
+for arm in ecoila-5ms-ip-20ms ecoila-5ms; do
+  FUSION_SHOT_CACHE="$repo_dir/.shot_cache" MPLCONFIGDIR=/tmp/matplotlib-fast-prewarm \
+    "$repo_dir/.venv/bin/python" -m my_experiments.fast_magnetics \
+    --params "$fast_campaign/${arm}_s0/params.yaml" \
+    --train-share 0.80/1.0 --val-share 0.19/1.0 --jobs 24 \
+    --local-data-dir "$repo_dir/../downloaded_huggingface/hf_dataset"
+done
+```
+
+New sidecars verify each pinned parquet before publication. The auxiliary producer changed with
+the scoring context, so this campaign computes its own target caches rather than reusing an older
+key. These CPU preparation steps have no fitted model or score.
 
 For a candidate fitted on the same production split, freeze the evaluator to the candidate's
 campaign and pass the baseline artifact hash and the measured decoded control:
@@ -219,6 +266,14 @@ The `refit-production` shares were approved on 2026-09-22 for this separate expe
 precommitted step budgets are explicit in
 [`experiments/refit-production.json`](experiments/refit-production.json). They do not replace the
 ordinary production protocol or its validation-based stopping.
+The measured fixed-step fit and same-tail comparison are in
+[`results/refit_production_20260922.json`](results/refit_production_20260922.json). The refit
+artifact's own score and its contribution when added to the compact ensemble are distinct results;
+the working control remains unchanged.
+The follow-up single-sequence cosine refit is predeclared in
+[`experiments/seq-cosine-refit.json`](experiments/seq-cosine-refit.json). It retains the same
+train/score split and scales the previous cosine sequence's selected steps and schedule horizon
+by the exact shot-batches-per-pass ratio; it has no result yet.
 
 Before executing the fixed-step refit, the original full-shot train and validation auxiliary
 targets can be composed into the 6971-shot cache in their exact order:
@@ -253,8 +308,9 @@ make ci                   # lint, types, workflow tests, standard smoke
 ```
 
 A declarative campaign names its params file, an existing profile, salts, model selection, explicit
-`--set` overrides and scored models. `experiments/paired-example.json` is a proposal to recheck
-sequence cosine against the frozen control, not an experiment already run.
+`--set` overrides and scored models. `experiments/paired-example.json` is a still-unrun
+paired-lane proposal. The separate compact cosine screen above has been measured on the production
+salt-0 tail.
 
 ```bash
 uv run python -m my_experiments.run prepare experiments/paired-example.json
@@ -305,6 +361,12 @@ identical shots through the real scorer. `comparison.json` distinguishes replace
 addition delta. Every artifact participates in the overlap check. Cross-salt members require a
 common holdout reserved before fitting; `--on-holdout` selects it. Ordinary salt tails cannot make
 an existing cross-salt blend locally scorable. Candidate selection and confirmation must be separate.
+Use `--source-campaign runs/<candidate-campaign>` to score through the candidate's verified frozen
+evaluator source after the working tree changes. The runner checks the candidate completion source
+hash and saves the live comparison controller separately.
+For the recovered older five-member artifact, use [`tools/historical_compare.py`](tools/historical_compare.py)
+with its pinned original inference source and an explicit `--scorer-root`; the preregistered grids
+under `grids/historical-five-*.json` state every fixed member weight and scored-file source.
 
 ### Direct commands and legacy recipes
 

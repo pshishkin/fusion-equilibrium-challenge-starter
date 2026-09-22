@@ -91,7 +91,11 @@ def source_files() -> list[Path]:
     files += [
         ROOT / name
         for name in (
-            ".python-version", "pyproject.toml", "uv.lock", "params.yaml", "Makefile",
+            ".python-version",
+            "pyproject.toml",
+            "uv.lock",
+            "params.yaml",
+            "Makefile",
             "experiments/protocols.json",
         )
     ]
@@ -506,24 +510,52 @@ def compare(args: argparse.Namespace) -> None:
         "candidate": f"salts:{candidate}",
         "augmented": f"salts:{base}+{candidate}",
     }
-    hashes = {str(p.relative_to(ROOT)): file_hash(p) for p in source_files()}
+    if args.source_campaign is None:
+        source_root = ROOT
+        source_hash = None
+        hashes = {str(p.relative_to(ROOT)): file_hash(p) for p in source_files()}
+    else:
+        source_campaign = args.source_campaign.resolve()
+        source_meta = verify_source(source_campaign)
+        source_root = source_campaign / "source"
+        source_hash = source_meta["source_hash"]
+        hashes = source_meta["identity"]["source"]
+        candidate_path = args.candidate.resolve()
+        if not completed(candidate_path.parent):
+            raise ValueError(f"{candidate_path}: no verified campaign completion record")
+        candidate_source_hash = read_json(candidate_path.parent / "complete.json")["source_hash"]
+        if candidate_source_hash != source_hash:
+            raise ValueError(
+                f"{candidate_path}: fitted source hash "
+                f"{candidate_source_hash}, evaluator snapshot "
+                f"{source_campaign} hash {source_hash}"
+            )
     for rel in hashes:
         dest = folder / "source" / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / rel, dest)
+        shutil.copyfile(source_root / rel, dest)
         if file_hash(dest) != hashes[rel]:
             raise ValueError(f"{rel}: source changed while preparing comparison")
+    controller_hash = file_hash(Path(__file__))
     write_json(
         folder / "request.json",
         {
             "inputs": inputs,
             "specs": specs,
             "source": hashes,
+            "controller_run_sha256": controller_hash,
+            "source_campaign": str(args.source_campaign.resolve())
+            if args.source_campaign
+            else None,
+            "source_hash": source_hash,
             "share": args.share,
             "holdout": args.on_holdout,
             "environment": environment(),
         },
     )
+    shutil.copyfile(Path(__file__), folder / "controller_run.py")
+    if file_hash(folder / "controller_run.py") != controller_hash:
+        raise ValueError(f"{folder}: comparison controller changed while being copied")
     command = [
         sys.executable,
         "-u",
@@ -821,6 +853,9 @@ def main() -> int:
     p.add_argument("--jobs", type=int, default=1)
     p.add_argument("--data-dir", type=Path, default=DATA)
     p.add_argument("--output", type=Path, default=ROOT / "runs")
+    p.add_argument(
+        "--source-campaign", type=Path, help="score with a verified frozen campaign source snapshot"
+    )
     p = sub.add_parser("compare-replacement", help="score one fitted member in place of another")
     p.add_argument("--baseline", type=Path, required=True)
     p.add_argument("--baseline-sha256", required=True)

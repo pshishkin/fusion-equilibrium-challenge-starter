@@ -353,7 +353,7 @@ GEOMETRY_COLUMNS: tuple[str, ...] = (
 FEATURES_KEY = "magnetics_features"
 
 
-def slim_row(row: Row) -> dict[str, Any]:
+def slim_row(row: Row, model_specs: tuple[str | None, ...] = ()) -> dict[str, Any]:
     """The inference inputs of one row, detached from the rest of it and reduced to size.
 
     A dataset row retains 101 MB, of which inference reads 79 — and 77 of those are the raw
@@ -379,6 +379,12 @@ def slim_row(row: Row) -> dict[str, Any]:
         v = row[col]
         out[col] = v if isinstance(v, str) else np.array(v, copy=True)
     out[FEATURES_KEY] = features_for_row(row)
+    if model_specs:
+        from my_experiments import fast_magnetics
+
+        union = fast_magnetics.required_for_models(model_specs)
+        if union:
+            out[fast_magnetics.FAST_KEY] = fast_magnetics.slim_features(row, union)
     return out
 
 
@@ -845,6 +851,8 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         "derivatives": params.derivatives,
         "derivative_signals": params.derivative_signals,
         "vessel": params.vessel,
+        "fast_magnetics": [{"signal": signal, "halfwidth_ms": width}
+                           for signal, width in params.fast_magnetics],
         "thomson": params.thomson, "frame_gaps": params.frame_gaps,
         "columns": list(basis.columns), "index": index, "gains": gains, "maps": maps,
         "grid_R": basis.grid_R, "grid_Z": basis.grid_Z, "machine": basis.machine,
@@ -1216,11 +1224,43 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # stop on a number that is partly its own reflection.
     F = build_inputs(plan, X)
     Fv = build_inputs(plan, Xv) if not fixed_steps else np.empty((0, F.shape[1]), dtype=F.dtype)
+    if params.fast_magnetics:
+        from my_experiments import fast_magnetics
+
+        extra, extra_shots = fast_magnetics.load_many(
+            files, frame_share, params.fast_magnetics, jobs, "reading train fast magnetics"
+        )
+        if len(extra_shots) != len(shots):
+            raise ValueError(f"fast train sidecars returned {len(extra_shots)} shots against "
+                             f"{len(shots)} base shots")
+        if not np.array_equal(extra_shots, shots):
+            mismatch = np.flatnonzero(extra_shots != shots)
+            i = int(mismatch[0])
+            raise ValueError(f"{files[i].name}: base cache has {shots[i]} kept frames but fast "
+                             f"sidecar has {extra_shots[i]}")
+        F = np.hstack([F, extra])
+        if not fixed_steps:
+            extra_val, extra_val_shots = fast_magnetics.load_many(
+                val_files, val_frame_share, params.fast_magnetics, jobs,
+                "reading validation fast magnetics"
+            )
+            if len(extra_val_shots) != len(shots_val):
+                raise ValueError(f"fast validation sidecars returned {len(extra_val_shots)} "
+                                 f"shots against {len(shots_val)} base shots")
+            if not np.array_equal(extra_val_shots, shots_val):
+                mismatch = np.flatnonzero(extra_val_shots != shots_val)
+                i = int(mismatch[0])
+                raise ValueError(f"{val_files[i].name}: base cache has {shots_val[i]} kept "
+                                 f"frames but fast sidecar has {extra_val_shots[i]}")
+            Fv = np.hstack([Fv, extra_val])
+        else:
+            Fv = np.empty((0, F.shape[1]), dtype=F.dtype)
     print(f"  inputs: {F.shape[1]} features per frame ({plan['inputs']}, "
           f"derivatives={plan['derivatives']}/{plan['derivative_signals']}, "
           f"thomson={plan['thomson'] or 'off'}, "
           f"frame_gaps={'on' if plan['frame_gaps'] else 'off'}, "
-          f"vessel={plan.get('vessel', 'none')})")
+          f"vessel={plan.get('vessel', 'none')}, "
+          f"fast_magnetics={plan['fast_magnetics']})")
     if plan["thomson"]:
         # The validity flag sits at the end of the SUMMARY part of the Thomson block, before the raw
         # profiles; a shot whose diagnostic never fired
@@ -1699,7 +1739,14 @@ def predict_row(row: Row, source: str = "DIII-D", model: str = ENSEMBLE,
     feats = features_for_row(row)                          # features_for_row demands finiteness
     if plan["subtract"] or plan["inputs"] != "currents":
         check_grid(plan, row)
-    Xs = art["scaler"].transform(build_inputs(plan, feats))
+    model_inputs = build_inputs(plan, feats)
+    if plan.get("fast_magnetics"):
+        from my_experiments import fast_magnetics
+
+        fast_spec = fast_magnetics.normalize_spec(plan["fast_magnetics"],
+                                                  "artifact coil.fast_magnetics")
+        model_inputs = np.hstack([model_inputs, fast_magnetics.features_for_row(row, fast_spec)])
+    Xs = art["scaler"].transform(model_inputs)
     P = _predict_targets(art, model, Xs)
 
     n_pca = art["n_pca"]

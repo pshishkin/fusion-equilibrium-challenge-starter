@@ -30,7 +30,7 @@ moves it, and the reason is written in its row.
 | slug | what | state |
 |---|---|---|
 | `huber-prod` | production confirmation of the one accepted change | **DONE: 6 pairs, +0.00000, 3/6. ZERO, like `ema`.** Extending to 12 pairs |
-| `seq-cosine` | `lr_schedule: cosine`, `lr_t_max_steps: 80000` for the sequence member | queued behind `huber-prod`; base arm computing on salts 2–7 |
+| `seq-cosine` | `lr_schedule: cosine`, `lr_t_max_steps: 80000` for the sequence member | compact salt-0 replacement screen measured 2026-09-22; see experiments_history.md. Earlier paired-lane evidence remains separate. |
 | `tail-noise` | does the 1%→5% tail actually cut paired noise | **DONE: sample is 73% of paired variance; the tail HALVED the sd for +44% wall. Worth it.** |
 
 ## Open, ranked

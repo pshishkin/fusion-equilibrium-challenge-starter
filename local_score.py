@@ -117,7 +117,7 @@ def _as_psi_stack(psirz_raw: Any) -> FloatArray:
     )
 
 
-def _shot_from_row(row: Any) -> dict:
+def _shot_from_row(row: Any, model_specs: tuple[str | None, ...] = ()) -> dict:
     """Keep ψ, the two value scalars, and the inference inputs. Streamed dict or parquet row alike.
 
     `row` itself is deliberately NOT kept. Every scored shot stays in memory for the whole run —
@@ -130,7 +130,7 @@ def _shot_from_row(row: Any) -> dict:
     """
     psi = _as_psi_stack(row["efit_psirz"])
     return {
-        "row": slim_row(row),
+        "row": slim_row(row, model_specs=model_specs),
         "psi": psi,
         "q95": np.asarray(row["efit_q95"], dtype=np.float64),
         "betaN": np.asarray(row["efit_beta_n"], dtype=np.float64),
@@ -143,7 +143,17 @@ def _shot_from_row(row: Any) -> dict:
     }
 
 
-def load_shots_streaming(n_shots: int, skip: int, config: str) -> list[dict]:
+def _shot_with_context(row: Any, source_label: str,
+                       model_specs: tuple[str | None, ...]) -> dict:
+    """Attach the parquet filename or stream position to input-feature failures."""
+    try:
+        return _shot_from_row(row, model_specs)
+    except ValueError as exc:
+        raise ValueError(f"{source_label}: {exc}") from exc
+
+
+def load_shots_streaming(n_shots: int, skip: int, config: str,
+                         model_specs: tuple[str | None, ...] = ()) -> list[dict]:
     """Stream `n_shots` DIII-D training shots from the Hub, after skipping `skip`."""
     from datasets import load_dataset
     ds = load_dataset(REPO_ID, config, split="train", streaming=True)
@@ -153,14 +163,15 @@ def load_shots_streaming(n_shots: int, skip: int, config: str) -> list[dict]:
             continue
         if len(out) >= n_shots:
             break
-        shot = _shot_from_row(row)
+        shot = _shot_with_context(row, f"streamed shot index {i}", model_specs)
         out.append(shot)
         print(f"  loaded shot {i}  T={shot['psi'].shape[0]}")
     return out
 
 
 def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
-                     files: list[Path] | None = None) -> list[dict]:
+                     files: list[Path] | None = None,
+                     model_specs: tuple[str | None, ...] = ()) -> list[dict]:
     """Read shots from a downloaded copy of the dataset: <dir>/data/<config>/*.parquet.
 
     Files are taken in sorted order, so `--skip` is deterministic and reproducible — unlike
@@ -176,7 +187,7 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
         out = []
         bar = tqdm(files, desc="  reading shots", unit="shot", **bar_kwargs(SHOT_EVERY))
         for path in bar:
-            shot = _shot_from_row(pd.read_parquet(path).iloc[0])
+            shot = _shot_with_context(pd.read_parquet(path).iloc[0], path.name, model_specs)
             out.append(shot)
             bar.set_postfix(frames=sum(s["psi"].shape[0] for s in out), refresh=False)
         return out
@@ -202,7 +213,7 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
     bar = tqdm(files[skip:skip + n_shots], desc="  reading shots", unit="shot",
                **bar_kwargs(SHOT_EVERY))
     for path in bar:
-        shot = _shot_from_row(pd.read_parquet(path).iloc[0])
+        shot = _shot_with_context(pd.read_parquet(path).iloc[0], path.name, model_specs)
         out.append(shot)
         bar.set_postfix(frames=sum(s["psi"].shape[0] for s in out), refresh=False)
     return out
@@ -211,11 +222,12 @@ def load_shots_local(n_shots: int, skip: int, local_data_dir: Path, config: str,
 def load_shots(n_shots: int, skip: int, source: str = "hf",
                local_data_dir: Path = DEFAULT_LOCAL_DATA_DIR,
                config: str = TRAIN_CONFIG,
-               files: list[Path] | None = None) -> list[dict]:
+               files: list[Path] | None = None,
+               model_specs: tuple[str | None, ...] = ()) -> list[dict]:
     if source == "local":
-        out = load_shots_local(n_shots, skip, local_data_dir, config, files)
+        out = load_shots_local(n_shots, skip, local_data_dir, config, files, model_specs)
     else:
-        out = load_shots_streaming(n_shots, skip, config)
+        out = load_shots_streaming(n_shots, skip, config, model_specs)
     if not out:
         raise SystemExit(f"No shots loaded (skip={skip} past the end of the split?)")
     if files is None and len(out) < n_shots:
@@ -539,8 +551,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Loading {len(args.files)} training shots (explicit file list)...")
     else:
         print(f"Loading {args.n_shots} training shots (skip={args.skip}, {src_label})...")
+    model_specs: tuple[str | None, ...] = (
+        tuple(args.models or [None]) if args.mode == "model" and args.pred is None else ()
+    )
     shots = load_shots(args.n_shots, args.skip, args.source, args.local_data_dir, args.config,
-                       args.files)
+                       args.files, model_specs)
 
     machine, R, Z, mask_coarse, mask_f = _machine_of(shots)
     print(f"  {machine}: grid R {R[0]:.3f}..{R[-1]:.3f}, Z {Z[0]:.3f}..{Z[-1]:.3f}, "
