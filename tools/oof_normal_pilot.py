@@ -23,6 +23,9 @@ import numpy as np
 import pandas as pd
 import yaml
 
+# The vendored scorer keeps upstream flat imports; load them from this source snapshot.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "fusion_scoring"))
+
 from experiments import _as_psirz_stack
 from fusion_scoring import common, contour, derive, lcfs
 from my_experiments import baseline_model
