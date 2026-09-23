@@ -88,7 +88,8 @@ local score is not a deployable or public result.
 A [contour-displacement learnability screen](experiments/contour-displacement-learnability-review.json)
 is specified for review. Its input-only feature, contour-normal Fourier, fixed Ridge and additive
 map components have synthetic tests; there has been no competition target extraction, learner fit
-or score. The proposed new split requires agreement before training.
+or score. The frozen runner in `tools/run_contour_learnability.py` separates source/filename
+preparation, supervised training, target-stripped predictions and native scoring.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

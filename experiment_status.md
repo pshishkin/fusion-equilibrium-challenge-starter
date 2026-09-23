@@ -147,8 +147,11 @@ times: `results/geometry_source_li_full70_20260923.json`.
 A [bounded input-only contour learnability design](experiments/contour-displacement-learnability-review.json)
 is frozen for review. Synthetic-only feature, Fourier, Ridge and additive-map components exist in
 `tools/contour_learnability.py`; its proposed new 35/35 learner split has no competition target
-extraction, fit or score yet and requires user agreement before training. Any score on this
-repeatedly used tail would be a screen, not independent confirmation.
+extraction, fit or score yet. The user delegated the split choice, and the fixed review protocol
+is approved for one diagnostic screen. `tools/run_contour_learnability.py` now enforces a frozen
+source and ordered-file manifest before target extraction, then separate train, input-only map,
+input-only profile and native score stages. Any score on this repeatedly used tail would be a
+screen, not independent confirmation.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
