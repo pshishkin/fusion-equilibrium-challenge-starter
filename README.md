@@ -121,6 +121,10 @@ has now [completed](results/direct_contour_opoint_20260923.json). Some true boun
 intersect rays from the magnetic O-point more than once, so this single-origin positive-radius
 chart stopped before a log-radius PCA or direct model fit. The O-point came from true ψ only as
 a TRAIN-target geometry diagnostic; the reserved tail was untouched.
+A [full physical-contour MLP proposal](experiments/direct-full-contour-mlp-review.json) now tests a
+different supervised target: all scorer contour points, learned from permitted inputs alone. Its
+first gate is a truth-assisted mechanism screen on the existing validation window; no model has
+been fitted or evaluation-tail shot read under that proposal.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

@@ -1,0 +1,102 @@
+{
+  "name": "input-only-full-LCFS-polygon-MLP-review",
+  "date_utc": "2026-09-23",
+  "status": "Exact review proposal only; no target-cache build, compact-validation oracle, MLP fit, evaluation70 score, public prediction or GPU launch until root reviews the protocol and implementation source",
+  "question": "Can one direct physical 512x2 contour model trained only from allowed inputs recover enough scorer-sensitive boundary detail to improve the fixed best11 source-map correction, without the Fourier/PCA/radius representation floors?",
+  "evidence_and_limit": {
+    "truth_assisted_additive_full70": "results/geometry_additive_full70_20260923.json",
+    "truth_assisted_source_li_full70": "results/geometry_source_li_full70_20260923.json",
+    "fixed_input_only_Ridge35_negative": "results/contour_learnability_screen_20260923.json",
+    "absolute_Fourier_negative": "results/direct_contour_representation_20260923.json",
+    "absolute_PCA_negative": "results/direct_contour_pca_20260923.json",
+    "centroid_and_true_O_point_radius_negatives": ["results/direct_contour_star_20260923.json", "results/direct_contour_opoint_20260923.json"],
+    "interpretation": "The full truth-assisted additive contour plus source-li mechanism gained 0.001955 S on the reused salt-0 70, but true contours are unavailable at inference. The fixed 35/35 input-only Ridge failed, smooth absolute Fourier missed localized Hausdorff detail, PCA64 generated a self-crossing and both single-origin radius charts failed. Full 1024-coordinate supervision removes those low-dimensional representation floors, but its predictability and topology are unknown. A fixed 0.5 displacement may realize LESS than the full truth-assisted local gain; no >=0.0013 public improvement is assumed."
+  },
+  "effective_yaml": "baselines/direct-full-contour-mlp.review.params.yaml",
+  "effective_yaml_sha256": "adc7b3a9a4d5123633fe6e162aec9b88da99ddb87a7c77819f1a168326ab4cc5",
+  "source_and_split": {
+    "compact_artifact": "runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+    "compact_artifact_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+    "train_shots": 5633,
+    "train_ordered_names_sha256": "ef647476085c5a99db733b1d5ee032411d7ddb0244b838c6744aea9f4ea0b92f",
+    "train_full_frames_previously_measured": 1248457,
+    "validation_shots": 1338,
+    "validation_ordered_names_sha256": "789369be4636fee2717721bef8fb85ff30a83759e72866c2b6b4dd8efdfa624c",
+    "validation_full_frames_previously_measured": 296053,
+    "internal_native_validation_selection": "First 200 in the saved compact validation order, fixed before fit",
+    "internal_native_validation_shots": 200,
+    "internal_native_validation_ordered_names_sha256": "dd57975effa56c3e51b075792092a3902bc1813747f1ee5ed7c60d1973dea817",
+    "reserved_evaluation_shots": 70,
+    "reserved_evaluation_full_frames": 14830,
+    "reserved_evaluation_ordered_names_sha256": "6e2486e24cb5b31b1e3883f70b2ca514045963fb26cd27cf7acb3990f953cd4f",
+    "reserved_evaluation_source_prediction": "runs/historical-five-geometry-20260922/historical_psi_eleven_qb_eight.npz",
+    "reserved_evaluation_source_prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+    "disjointness": "Verify exact filenames from artifact and scorer record, all three windows disjoint. Only train5633 supplies MLP gradients; validation1338 supplies early stopping and the fixed native selection subset; all original tail70 remains evaluation-only. User delegated split choice but the original 80/19/1 shot windows are preserved. Evenly thinning frames within train/validation to 0.20 is a proposed fit-resource choice recorded in YAML, not a change to which shots are held out.",
+    "dataset_manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420"
+  },
+  "label_and_input_pipeline": {
+    "train_target": "Extract the frozen scorer-native true physical LCFS from efit_psirz for every selected TRAIN and validation frame after baseline_model.thin_frames(n,0.20), in the same per-shot index order as permitted input features. Require finite/simple 512x2 physical polygons, canonical CCW orientation and start at the first maximum-R point. Missing or degenerate source is a filename/frame exception, not a skipped example. Do not use the stored efit_lcfs_* columns.",
+    "input": "Build only my_experiments.baseline_model.features_for_row(row)'s existing 208 permitted columns plus normalized elapsed efit_times phase, width 209. Run through the target-stripped slim-row path and test with poisoned EFIT target fields. The correction MLP never sees a base-model predicted psi, contour, O-point, derived scalar, old-ensemble member ID, or residual target during fit or validation monitoring.",
+    "normalization": "Fit a feature StandardScaler on selected TRAIN frames only. Subtract the TRAIN mean 1024-coordinate target polygon and divide every coordinate by one TRAIN global RMS of residual coordinates in metres; fail on nonfinite/zero scale. Invert exactly once to physical float32 coordinates for candidate inference. No per-vertex whitening that hides sharp boundary errors.",
+    "sampling_and_loss": "One seed-0 MLP with three width-512 GELU hidden layers and a 1024 linear output. Draw each training batch by choosing a TRAIN shot uniformly, then one of its fixed thinned frames uniformly, so each shot has equal expected weight. AdamW and the fixed step/checkpoint schedule are in the effective YAML. For each frame let e_i be squared 2-D vertex error divided by TRAIN global-RMS squared. Loss L = mean over all 512 e_i + mean of the largest 26 e_i (top 5% rounded up), with equal weights 1 and 1. No Chamfer, differentiable scorer surrogate, extra edge penalty or loss sweep. Monitor the identical loss averaged within shot and then equally across all validation shots; retain the minimum-loss validation checkpoint, with no validation gradient updates.",
+    "target_cache": "A separate per-shot contour sidecar must record original full-frame count, exact thin_frames indices, selected input feature shape, target polygon shape/dtype, source parquet SHA, producer Python/scorer-mask hashes, dependency lock SHA and configuration SHA. Publish each ready entry atomically only after validating finite arrays and exact alignment. The unthinned original row remains available for later full-frame native validation. No fit begins from an incomplete or stale cache.",
+    "code_to_freeze_after_review": ["tools/direct_full_contour_cache.py", "tools/direct_full_contour_train.py", "tools/direct_full_contour_predict.py"],
+    "model_training_source_must_be_snapshot_before_fit": true
+  },
+  "native_map_construction": {
+    "source_on_internal_validation": "Use the previously frozen compact two-model MLP+sequence artifact to generate decoded float32 predictions for the first 200 compact validation shots, preserving its original train/validation membership provenance. It was early-stopped on these validation shots; all native val results are selection-only, never generalization claims.",
+    "source_on_reserved_tail70": "Use the already pinned best11 map/prior8 scalar NPZ. It excludes every original tail70 file from fitting and is evaluated on that exact list without refitting or weight search.",
+    "prediction": "On input-only rows, predict physical 512x2 polygon; require finite coordinates, within the physical grid and simple closed topology. Extract C_pred from the selected source psi with the unchanged scorer, reverse/cyclically match the candidate to C_pred, then set target movement u=0.5*(C_candidate_matched-C_pred). Require the blended contour C_pred+u to remain simple and in-grid. Use the frozen contour-local additive psi update with lambda=1, width two minimum grid spacings, its axis and edge anchors/taper, and float64 arithmetic followed by one float32 cast. Copy the source q95/betaN bytes exactly.",
+    "source_fallback": "If and only if the learned polygon is finite but non-simple/out-of-grid, the blended polygon is invalid, or the finite corrected psi lacks a scorer-native LCFS, use the ORIGINAL source psi bytes for that frame. Count each fallback by reason and filename/frame; never read truth to choose it. A malformed input row, nonfinite model output, mismatched shape, bad source contour or target-cache identity is a hard exception, not fallback. For exact-source fallback bypass source-li compensation so ψ remains byte-identical.",
+    "source_li": "For non-fallback corrected maps, apply exactly the existing fixed nine-a input-only source-derived li preservation family, with its candidate rejections counted and a=0 control. No true li/contour access to choose a. If a=0 or source-map validity fails, raise; do not substitute a label.",
+    "round_trip": "On validation and final evaluation, extract the scorer-native LCFS from every non-fallback corrected float32 psi. Report its physical symmetric Hausdorff to the intended blended polygon and to C_pred; require validation median <=one and p95 <=two physical grid spacings. This tests the existing first-order additive map rather than overriding native contour/functionals."
+  },
+  "predeclared_stages_and_gates": [
+    {
+      "stage": "0 compact-validation mechanism gate before new target cache/GPU fit",
+      "scope": "On exactly the first 200 compact validation shots, score the compact2 original source versus a truth-assisted fixed-0.5 contour blend through the same additive/source-li map formula and frozen native scorer. This is an investment screen using EFIT true contour only as an oracle; it is NOT a deployable model or upper bound over all correction families. The compact source used these shots for early stopping, so absolute S is selection-only.",
+      "pass": "Oracle map+source-li minus original S >= +0.001300, submitted scalars exact, no scorer-native LCFS/derived failures and finite output. Otherwise stop before full target extraction or GPU fit. Record all native terms, provenance and wall time."
+    },
+    {
+      "stage": "1 input-only direct contour fit if stage0 passes",
+      "scope": "Build exact thinned contour target/input cache on train5633/validation1338 only; fit one CUDA MLP using the single YAML recipe, select by validation loss, no hyperparameter sweep. No base prediction is read by the learner. A target/feature parity CPU smoke and CUDA forward/gradient smoke must pass before full fit.",
+      "pass": "Finite source/target/cache identities and a valid best validation checkpoint. Otherwise stop without touching tail70."
+    },
+    {
+      "stage": "2 internal native validation gate before tail70",
+      "scope": "Seal compact2 source, learned additive map and learned map+source-li prediction NPZs on the same fixed validation200, using target-stripped inference features. Score through untouched pinned native local_score only after predictions are sealed. This validation has been seen by both early-stopping procedures and is an investment screen, not independent confirmation.",
+      "pass": "Map+source-li versus compact2 original S >= +0.001300; fallback frames <=1% with full reason counts; unchanged q95/betaN bits; zero native LCFS/derived failures; non-fallback map-to-intended-blend median/p95 <=1/2 grid spacings. Otherwise stop; no tail70 score or retry."
+    },
+    {
+      "stage": "3 one reserved-tail evaluation only if both earlier gates pass",
+      "scope": "On original pinned salt-0 tail70/14,830 frames, construct exactly one best11-source control, learned map and learned map+source-li NPZ with identical ordered filenames and exact q95/betaN bytes, then one native scorer pass each. No true-tail contour enters model, fallback or parameter selection. Report individual stage times, all native terms, failures and the contribution against the unchanged best11 source.",
+      "interpretation": "Even a local >=+0.0013 would be one adaptively used salt-0 tail result, not a public-fold or top-3 guarantee; do not change the public artifact, submit, upload or tune on this tail automatically."
+    }
+  ],
+  "source_hashes_to_preserve": {
+    "uv.lock": "563b20ed6ec89475fdb1d97e3b782f7f04c650d08c06c19a60ba85894a12e415",
+    "my_experiments/baseline_model.py": "95cc2ea754a8326d4d40588a7301b3e87df4d1e79e39eacea1df698d1551f14a",
+    "experiments.py": "8ecba8150e8146f75021ed1a76744d2c9cbcf0d0c1c8b3706039808a943b40c2",
+    "tools/contour_learnability.py": "99b41cfd525310d97d9ff84dc31e0a71cc247dff9389ce4922d2679ad022e35a",
+    "tools/geometry_source_li_compensation.py": "b8e874b24fae2a7f4e631cadf210832a69577d8445b416cd10eb8e0e5ce7b5fc",
+    "tools/geometry_additive_probe.py": "35dada856d5c818191dc9b88592bfc665acb8139a008ba0e1c729f88b270a56d",
+    "frozen_native_local_score.py": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde"
+  },
+  "planned_frozen_outputs": {
+    "campaign": "runs/direct-full-contour-mlp-<content-hash>",
+    "source_snapshot": "runs/direct-full-contour-mlp-<content-hash>/source",
+    "manifest": "runs/direct-full-contour-mlp-<content-hash>/manifest.json",
+    "target_cache": ".direct_contour_targets/<producer-and-input-hash>/",
+    "model": "runs/direct-full-contour-mlp-<content-hash>/fit/direct_contour.joblib",
+    "validation_native_JSON": "runs/direct-full-contour-mlp-<content-hash>/validation/*.metrics.json",
+    "evaluation70_native_JSON": "runs/direct-full-contour-mlp-<content-hash>/evaluation70/*.metrics.json",
+    "portable_result": "results/direct_full_contour_mlp_<UTCdate>.json"
+  },
+  "resource_estimate_and_uncertainty": {
+    "train_selected_frames_approximate": 250000,
+    "validation_selected_frames_approximate": 59000,
+    "basis": "The compact MLP fit took 151 s on 1.25M full frames; current train-only 300 native LCFS probe extraction took 6 s at four workers, and previous 6,971-shot auxiliary contour/functionals cache took about 18 minutes at 24 workers. A 20%-frame LCFS+feature cache still reads every selected parquet; budget roughly 10-25 min CPU24, with actual measured wall and memory. Raw float32 309k×1024 contour targets are about 1.27 GB and 309k×209 input features about 0.26 GB before metadata/overhead. One 1024-output 8,000-step MLP fit could take several to tens of minutes on the sole RTX3090 lane; measure a small CUDA smoke first. Full-frame validation200 additive plus source-li native scoring may cost another 10-30 min CPU24. These are estimates, not measured effects or a throughput guarantee.",
+    "host": "Resolve current cgroup memory/pid limits and live workers immediately before each heavy stage. One GPU fit at a time; CPU target extraction and scoring use pimap with preserved shot order and watchable process-group logs.",
+    "approval_gate": "Root reviews this exact mathematical/data protocol, YAML and later frozen source/tests before stage0 or any GPU fit. The user authorized autonomous top-3 work, but this document alone is not permission to change the reserved evaluation split or publish a candidate."
+  }
+}

@@ -24,6 +24,10 @@ physically distinct origin on the same TRAIN-only probes without changing the fa
 threshold. Its [result](results/direct_contour_opoint_20260923.json) also failed on genuine
 multi-intersection rays. The single-origin star-shaped family is closed before any axis/log-radius
 learner; no further origin is chosen on these probes.
+A separate [full-resolution contour MLP route](experiments/direct-full-contour-mlp-review.json)
+keeps all physical boundary points instead of compressing into Fourier, PCA or one-origin radii.
+It remains unmeasured and must first demonstrate that its fixed half-strength map correction has
+enough native-score headroom on validation-only truth before a new GPU fit is warranted.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

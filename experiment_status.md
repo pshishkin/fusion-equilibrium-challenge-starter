@@ -222,6 +222,15 @@ the other 153,591 had one intersection, with none missing or collinear. Those ra
 **174×** farther apart than the fixed vertex-deduplication tolerance. The strict gate failed,
 closing this simple one-origin star-shaped family before log-radius PCA, a third TRAIN sample,
 model fitting or any use of the reserved tail.
+A distinct [full-resolution contour MLP review protocol](experiments/direct-full-contour-mlp-review.json)
+is now frozen for an input-only 512×2 physical polygon target, train5,633/validation1,338 and
+evaluation-only tail70. It avoids the failed low-dimensional basis and never uses the existing
+best11 map, contour or axis as a learner input. Before any new target cache or GPU fit, its fixed
+half-strength truth-contour correction must first pass a scorer-native investment gate on the
+first 200 compact validation shots using the compact two-model source. That validation source
+was early-stopped on the same window, so it is selection-only. The YAML, stage gates, counted
+source fallback and final once-only tail protocol are in the review file; no Stage-0 result or
+new model fit is yet claimed.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

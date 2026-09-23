@@ -1,0 +1,62 @@
+# Review-only fixed recipe. No extraction, fit or score is authorized by this YAML.
+name: direct_full_contour_mlp_review
+seed: 0
+device: cuda
+input:
+  base_feature_width: 208
+  phase_feature: elapsed_fraction_of_efit_window
+  total_width: 209
+  exclude_base_prediction_and_EFIT_targets: true
+data:
+  train_frame_share: 0.20
+  validation_frame_share: 0.20
+  thinning: baseline_model.thin_frames
+  train_shot_weighting: uniform_shot_then_uniform_kept_frame
+target:
+  scorer_native_points: 512
+  coordinates: physical_RZ_metres
+  orientation: counterclockwise
+  start: first_maximum_R_point
+  flatten_order: R0_Z0_R1_Z1
+  output_width: 1024
+  normalization: train_mean_contour_and_one_global_RMS
+model:
+  hidden_width: 512
+  hidden_layers: 3
+  activation: gelu
+  dropout: 0.0
+  normalization: none
+  output_activation: none
+optimizer:
+  name: adamw
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  batch_size: 4096
+  max_steps: 8000
+  validation_every_steps: 250
+  patience_steps: 1500
+  selected_weights: best_validation_checkpoint
+loss:
+  per_vertex: squared_physical_distance_divided_by_train_global_RMS_squared
+  all_vertex_mean_weight: 1.0
+  worst_vertex_count: 26
+  worst_vertex_mean_weight: 1.0
+  validation_monitor: equal_shot_mean_of_same_loss
+geometry:
+  correction_fraction: 0.5
+  additive_psi_lambda: 1.0
+  additive_shell_width_grid_cells: 2.0
+  interior_source_li_family: experiments/geometry-additive-source-li-compensation-v3.json
+  invalid_predicted_polygon_action: counted_exact_source_fallback
+  invalid_blended_polygon_action: counted_exact_source_fallback
+  failed_corrected_LCFS_action: counted_exact_source_fallback
+  maximum_fallback_frame_fraction_on_validation: 0.01
+  corrected_to_intended_blend_median_max_grid_cells: 1.0
+  corrected_to_intended_blend_p95_max_grid_cells: 2.0
+gate:
+  native_validation_shots: 200
+  compact2_oracle_delta_S_minimum: 0.0013
+  compact2_learned_delta_S_minimum: 0.0013
+  zero_native_LCFS_or_derived_failures: true
+  final_evaluation_shots: 70
+  final_evaluation_once_if_validation_passes: true
