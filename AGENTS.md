@@ -254,6 +254,10 @@ corrected map arrays through the unmodified native scorer, with independent subm
 unchanged; never override LCFS or derived-function outputs or package those arrays as a public
 prediction. A failed numerical validity gate for a fixed correction family is not evidence that
 all geometry corrections fail, and a local-fold result does not bound a different public fold.
+A postprocessor claiming an inference-available target must derive that target only from the
+original prediction and permitted input geometry, never from EFIT truth columns. Keep an exact
+zero-change candidate as control; count invalid nonzero candidates by reason rather than silently
+skipping frames or widening a parameter grid after seeing a score.
 
 When a replacement member comes from another artifact, keep the unchanged members fixed and score
 both the original-member control and the replacement through the same decoded-map averaging path.

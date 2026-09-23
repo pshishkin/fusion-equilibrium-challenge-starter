@@ -123,6 +123,19 @@ three-shot prediction/scorer bits before the successful full run. Evidence:
 `results/geometry_additive_v3_parity_20260923.json` and the frozen specs under
 `experiments/geometry-map-additive-*.json`. No model has learned this correction from inputs.
 
+The first source-li compensation family exposed a support bug: all 4,624 nonzero profile
+candidates on the first 578 frames altered vacuum grid-edge ψ bits, so only the bit-exact a=0
+control remained. The separately frozen spatially restricted variant uses the scorer's polygon
+interior and an exact one-cell segment-distance taper. On the same three shots all nine fixed
+profile candidates were valid for every frame, and mean absolute error to the ORIGINAL
+prediction's own derived li fell 0.0190 → 0.0094; the true-li score and S fell on this small,
+atypical subset, as expected because the additive map had already improved them. This does not
+measure full-tail or deployable value: the contour stage still uses true contours. Evidence is
+`results/geometry_source_li_v1_null_20260923.json`,
+`results/geometry_source_li_v2_smoke_20260923.json` and the frozen source-li specs under
+`experiments/geometry-additive-source-li-*.json`. A single exact 70-shot diagnostic is
+predeclared but has no result yet.
+
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
 reject stale half-precision caches; an old-control writer round-trip reproduced the original

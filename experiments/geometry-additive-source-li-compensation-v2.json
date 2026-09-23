@@ -1,0 +1,80 @@
+{
+  "name": "additive-contour-source-li-preservation",
+  "date_utc": "2026-09-23",
+  "status": "Pre-registered domain-support amendment for root math review before v2 code or scoring; first3 only if approved",
+  "amends_spec": "experiments/geometry-additive-source-li-compensation.json",
+  "amends_spec_sha256": "8af66d5a9682af53bf9962d132f4f0addb2e4943781547cd52a884417fb31143",
+  "amendment_reason": "V1 completed first3 with all 4624 nonzero a candidates rejected because flux-level u∈[0,1] also occurred on vacuum grid-edge pixels; a=0 was the only valid map on all 578 frames. The boundary-bit invariant is physically meaningful and remains. Change only the spatial support of the SAME nine-a monotone profile family: multiply its additive flux difference by a fixed one-cell smoothstep of signed physical distance INSIDE the current additive LCFS polygon. Outside/on contour and at the grid edge the profile correction is exactly zero. No true li, parameter-grid, target or score optimization.",
+  "v1_null_result": "results/geometry_source_li_v1_null_20260923.json",
+  "v1_null_result_sha256": "fa69c09218c039ea872d802ccd5c1859eb5431d4835fecc2bcaa9acc0185a19b",
+  "question": "Can a deterministic interior flux-profile remap recover the ORIGINAL predicted map's own scorer-derived li after the fixed truth-assisted additive contour correction, without destroying its improved contour?",
+  "scope": "Mechanism diagnostic only. The li target is computed from the original source prediction and is available without labels at inference; however the existing additive contour-corrected map still used C_true and is not deployable. No public inputs or targets and no model fit.",
+  "input": {
+    "source_prediction": "runs/historical-five-geometry-20260922/historical_psi_eleven_qb_eight.npz",
+    "source_prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+    "source_prediction_record": "runs/historical-five-geometry-20260922/historical_psi_eleven_qb_eight.json",
+    "additive_prediction": "runs/geometry-map-additive-full70-v3-20260923/additive-full70.npz",
+    "additive_prediction_sha256": "162d227547d9fa33110d56d35d40f5753db06bf4338e271cc3bd39df2e308831",
+    "additive_prediction_record": "runs/geometry-map-additive-full70-v3-20260923/additive-full70.json",
+    "additive_prediction_record_sha256": "6101a62c0537025ff0df11d4618dc159b2dc6fda650678b730644df850b6fc99",
+    "additive_native_result": "results/geometry_additive_full70_20260923.json",
+    "additive_native_result_sha256": "522c8448a43ab4b15e874b889b64a64aadeeb06deab0ecba5225a4bb814aba74",
+    "files_json": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+    "files_json_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+    "ordered_filenames_sha256": "6e2486e24cb5b31b1e3883f70b2ca514045963fb26cd27cf7acb3990f953cd4f",
+    "config": "diii_d_train",
+    "data_dir": "../downloaded_huggingface/hf_dataset",
+    "fit_overlap_count": 0,
+    "all_source_and_additive_arrays_float32": true,
+    "submitted_scalars": "Both q95 and betaN copied bit-exact from the additive prediction (already identical to the source prediction)"
+  },
+  "family": {
+    "li_target": "On each frame, extract C_source from the original source psi through frozen scorer LCFS code, then li_target=derive.internal_inductance(psi_source,grid_R,grid_Z,'DIII-D',C_source). Do not read efit_li, derive_frame(psi_true), true psi, or any public label to choose a.",
+    "normalization": "Extract C_add from the additive psi through frozen scorer code. With scorer sign s and additive map phi=s*psi_add, phi_axis at its scorer-detected integer O-point, phi_sep=median bilinear phi sampled on its 512-point C_add, span=phi_axis-phi_sep>0 and finite. Record max/p95 contour-level spread rather than rejecting on the resampling surrogate.",
+    "profile": "Keep the SAME global nonlinear family: for 0<=u=(phi_axis-phi)/span<=1, g_a(u)=u+a*u^2*(1-u)^2; outside this u interval g_a(u)=u. Compute the global flux difference delta_a=s*(phi_axis-span*g_a(u))-psi_add in float64, then spatially restrict it by the fixed interior taper below. Endpoints and first derivatives of g match identity; g'_a(u)=1+2a*u*(1-u)*(1-2u) has minimum >0.615 on |a|<=2. Cast final psi_new=psi_add+T_inside*delta_a once to finite float32.",
+    "interior_support": "Use the scorer's own even-odd _points_in_polygon to mark physical 65x65 grid points strictly inside the CURRENT additive C_add polygon, not C_true. For every grid point compute the exact minimum Euclidean physical distance to the 512 straight polygon segments (including the closing segment), with closest-point projection clipped to each segment. Define signed distance sdist=+d inside, -d outside, and 0 on the contour. Let width=min(diff(grid_R),diff(grid_Z)) metres, fixed at one physical grid spacing. T_inside=h(sdist/width), where h(t)=0 for t<=0, 3t^2-2t^3 for 0<t<1, 1 for t>=1. Require T_inside=0 on every grid edge and every polygon point; no clipping of psi or adaptive width. This keeps the LCFS and vacuum map unchanged in the continuous construction while allowing interior gradient changes.",
+    "candidate_a_grid": [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0],
+    "choice": "Evaluate the scorer's own internal_inductance for each VALID candidate using that candidate's own extracted contour C_a. Choose the valid a minimizing absolute li_a-li_target, ties by smallest |a| then lowest a. No truth-li target, continuous optimizer, adaptive grid, lambda change or competition-score tuning.",
+    "zero_control": "a=0 returns the additive psi map byte for byte, never reconstructed through normalization; its source map/LCFS/li must be finite and valid, so every frame has a guaranteed candidate. If a=0 fails, abort rather than skip the frame.",
+    "invalid_nonzero_candidates": "Keep the SAME validity gates: reject a nonzero a explicitly with per-frame reason if the candidate map is nonfinite/wrong-shape, boundary psi bits change, scorer-native LCFS is missing, magnetic axis moves by more than 0.01*min physical grid spacing, scorer-native symmetric Hausdorff(C_a,C_add) exceeds 0.1*min grid spacing, or li_a is nonfinite. Count every rejected a and reason. Do not drop a frame or silently replace a candidate; a=0 remains eligible.",
+    "output": "Actual finite float32 compensated psi maps, original/additive q95/betaN bit-exact, selected a, source li_target, additive li at a=0, selected li, candidate validity counts and contour/axis deviations. Record inside-grid count, shell width and taper boundary max. Do not override any scorer-derived value."
+  },
+  "smoke": {
+    "files": [
+      "d3d_shot_6f6a0f6402.parquet",
+      "d3d_shot_18269a24ec.parquet",
+      "d3d_shot_17b33ca9c3.parquet"
+    ],
+    "frames_per_shot": [332, 9, 237],
+    "total_frames": 578,
+    "purpose": "Numerical correctness and source-li target matching of the fixed spatially restricted family only. The additive A baseline happens to have better true-li R2 than the original source on these three shots, so restoration toward source li may LOWER the three-shot score; do not tune the family from that outcome.",
+    "execution_gate": "Code and score only after root math review of this spec. Full70 compensation requires a separate review of first3 validity, candidate rejections, li target movement and all native fields."
+  },
+  "scoring": {
+    "frozen_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4",
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "native_comparison": "Score the additive prediction and compensated prediction on the exact same ordered filenames through unmodified frozen local_score.main. Report native S, R2psi, R2qb, D_LCFS, Consistency, all seven consistency R2, failure counts, scalar bits and stage times; no second metric implementation.",
+    "jobs": 4
+  },
+  "arithmetic_prospect_not_a_result": {
+    "local_additive_S": 0.996257,
+    "local_additive_li_r2": 0.939465,
+    "local_original_source_li_r2": 0.972388,
+    "max_local_S_increase_from_exact_li_restoration_if_all_other_terms_constant": 0.000940657,
+    "resulting_local_S_if_exact_restoration_and_no_other_changes": 0.997198,
+    "caveat": "This is only score-weight arithmetic, not achievable gain or public-fold bound. Candidate remap can change psi, contour and other functionals, and the additive contour source still uses true labels."
+  },
+  "cost_and_scope": {
+    "first3_expected_candidate_li_evaluations": 5202,
+    "first3_build_time_order_of_minutes": "Prior nine-a B truth-li smoke took 57.3 s for 578 frames. This adds source-li extraction and candidate rejection accounting; budget roughly 1-3 minutes, then ~8 s native scorer per artifact.",
+    "full70_expected_candidate_li_evaluations_if_later_approved": 133470,
+    "full70_cost_note": "About 25-40 minutes CPU by first3 scaling, no GPU fit. No full70 run in this stage.",
+    "no_model_fit": true,
+    "no_public_data_or_submission": true
+  }
+}

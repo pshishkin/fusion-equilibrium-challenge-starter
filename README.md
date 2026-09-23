@@ -80,6 +80,10 @@ uses the true contour only as a mechanism probe. It produced finite maps for the
 70-shot tail and a scorer-native geometry change with some li damage; it cannot be run on public
 inputs without learning the contour correction from inputs alone. Its fixed formula and one
 preflight amendment are in `experiments/geometry-map-additive-*.json`.
+A separate [source-li preservation probe](results/geometry_source_li_v2_smoke_20260923.json)
+uses the original prediction's own scorer-derived li as its target, never a true-li label.
+Its first three-shot check is complete; the full 70-shot diagnostic is still pending. The
+contour-corrected input to this postprocessor remains truth-assisted.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

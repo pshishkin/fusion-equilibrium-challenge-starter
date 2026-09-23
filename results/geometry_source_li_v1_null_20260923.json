@@ -1,0 +1,35 @@
+{
+  "additive_prediction_sha256": "162d227547d9fa33110d56d35d40f5753db06bf4338e271cc3bd39df2e308831",
+  "compensated_native_result_logically_identical_from_exact_array_bits": true,
+  "compensated_native_score_run": false,
+  "compensated_prediction_sha256": "a25b2e7e5c003735791a39fc274ff069742ed0c7f76a159dfa538d482e980c73",
+  "control_native_metrics_sha256": "eb2dc1c28a0ce24c8a69af13e499277cdbfaca108b755e6b5e745a5d9e68f6a8",
+  "control_prediction_sha256": "a25b2e7e5c003735791a39fc274ff069742ed0c7f76a159dfa538d482e980c73",
+  "date_utc": "2026-09-23",
+  "exact_control_vs_compensated_array_bits": 9,
+  "frames": 578,
+  "interpretation": "Global u\u2208[0,1] can include vacuum grid-edge pixels, so all nonzero candidates violate the frozen edge-bit invariant. No frame was skipped and a=0 remained bit-exact. The outcome tests the v1 domain definition, not whether an inside-polygon remap can preserve source li. Do not drop the boundary-bit gate.",
+  "invalid_nonzero_a_by_reason": {
+    "boundary_bits_changed": 4624
+  },
+  "invalid_nonzero_a_total": 4624,
+  "native_S": 0.981702,
+  "prior_additive_native_metrics_sha256": "eb2dc1c28a0ce24c8a69af13e499277cdbfaca108b755e6b5e745a5d9e68f6a8",
+  "producer_sha256": "7703ad6aa3919d25b5c0b19a9279617e0a85e24b7e6123faa9601a8a05d6102d",
+  "purpose": "First-three-shot deterministic source-li target mechanism null under v1 global flux-range definition; no true li or target column used",
+  "selected_a_counts": {
+    "0.0": 578
+  },
+  "source_li_target_from_predicted_psi_only": true,
+  "source_prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+  "spec": "experiments/geometry-additive-source-li-compensation.json",
+  "spec_sha256": "8af66d5a9682af53bf9962d132f4f0addb2e4943781547cd52a884417fb31143",
+  "target_columns_read": false,
+  "target_outside_valid_li_span_frames": 578,
+  "timing_seconds": {
+    "compensation_build": 14.663757469999837,
+    "control_build": 0.6432404080114793,
+    "control_native_score_wall_approx": 8.3
+  },
+  "valid_a_count_each_frame": 1
+}

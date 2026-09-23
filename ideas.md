@@ -1,14 +1,13 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
-**2026-09-23 — learnable boundary correction with li preservation, not yet tested:**
-The fixed contour-local additive *truth-assisted* correction now has a scorer-native full-70
-mechanism result in [`experiments_history.md`](experiments_history.md), but its C_true target is
-unavailable at inference. Before any deployable model, a separate diagnostic could apply a
-deterministic monotone interior flux-level compensation to recover the ORIGINAL source map's
-scorer-derived li after the additive contour correction. That target is available from the
-source prediction without ground truth; the contour correction itself still needs to be learned
-from input signals. No such li-preserving compensation or predictor has been measured, fitted
-or submitted. Its mathematical family and numerical gates require pre-registration before code.
+**2026-09-23 — learnable boundary correction still untested:**
+The truth-assisted contour-local additive correction now has a scorer-native full-70 mechanism
+result in [`experiments_history.md`](experiments_history.md), but C_true is unavailable at
+inference. A source-li compensation postprocessor, whose target comes solely from the original
+prediction, has passed a three-shot numerical mechanism check and has a frozen 70-shot
+diagnostic pending. Even if that compensation works, an input-only predictor of contour
+displacement must be designed and paired across fresh split salts before anything here can
+become a deployable model. No such predictor has been fitted or submitted.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

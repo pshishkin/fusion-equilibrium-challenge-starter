@@ -3,6 +3,21 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — source-li target compensation, first-three-shot mechanism screen:**
+The target for every profile parameter is `internal_inductance` of the ORIGINAL predicted ψ,
+not the true EFIT li or a stored label. A first global-u formulation found that vacuum grid
+edges can satisfy `u∈[0,1]`: all **4,624** nonzero candidates changed boundary ψ bits, so the
+exact a=0 control was selected on all **578** frames. A predeclared spatially restricted version
+kept the same nine monotone a values and multiplied only the interior flux difference by a
+one-grid-cell smoothstep of exact polygon-segment distance. All nine candidates then passed
+the frozen validity checks on all 578 frames; 263 frames selected nonzero a, and mean absolute
+error to the source-derived li target fell **0.0190 → 0.0094**. The native score on these
+three shots moved **S 0.981702 → 0.980183** and true li R² **0.610578 → 0.562825**, as the
+truth-assisted additive map was already better than the original source on this subset.
+This is a correctness/mechanism result, not a reason to retune a or infer a full-70/public gain.
+The additive contour stage still uses true labels. [V1 null](results/geometry_source_li_v1_null_20260923.json),
+[spatial v2 smoke](results/geometry_source_li_v2_smoke_20260923.json).
+
 **2026-09-23 UTC — fixed contour-local additive ψ correction on the full labeled tail:**
 The scorer-native C_pred/C_true contours supplied one fixed TPS displacement; a Gaussian shell
 of **two physical grid spacings** and **λ=1** applied the first-order map update

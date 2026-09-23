@@ -1,0 +1,90 @@
+{
+  "a0_map_bits_exact": true,
+  "additive_prediction_sha256": "162d227547d9fa33110d56d35d40f5753db06bf4338e271cc3bd39df2e308831",
+  "compensated_minus_control": {
+    "S": -0.001519,
+    "consistency": -0.006839,
+    "dlcfs": -3.3e-05,
+    "r2_psi": -0.000283,
+    "r2_qb": 0.0
+  },
+  "compensated_prediction_sha256": "5500b9614b0257b5fb9a8eb713ba9172f38ae28b3de9d4fdf502468ffcaab444",
+  "control_native_identical_to_previous_additive_first3": true,
+  "control_prediction_sha256": "a25b2e7e5c003735791a39fc274ff069742ed0c7f76a159dfa538d482e980c73",
+  "date_utc": "2026-09-23",
+  "exact_segment_distance_wall_seconds_mean_per_frame": 0.1275995896684967,
+  "files": [
+    "d3d_shot_6f6a0f6402.parquet",
+    "d3d_shot_18269a24ec.parquet",
+    "d3d_shot_17b33ca9c3.parquet"
+  ],
+  "frames": 578,
+  "interpretation": "Spatial taper fixes the v1 vacuum-edge domain error: all nine candidates are valid and deterministic source-li target error halves. The small three-shot true li score and S worsen because the additive map already improved true li on this atypical subset. A remains truth-assisted at its contour stage; this is neither deployable nor a full70/public prediction.",
+  "invalid_nonzero_a_by_reason": {},
+  "invalid_nonzero_a_total": 0,
+  "max_selected_contour_shift_m": 0.0008619895342546441,
+  "mean_abs_source_li_error_after": 0.009413904434604157,
+  "mean_abs_source_li_error_before": 0.019023035381020126,
+  "native_compensated": {
+    "S": 0.980183,
+    "cons_fail_frac": 0.0,
+    "consistency": 0.920208,
+    "dlcfs": 0.003608,
+    "lcfs_fail_frac": 0.0,
+    "r2_cons_each": {
+      "R_axis": 0.919601,
+      "Z_axis": 0.97754,
+      "kappa": 0.990307,
+      "li": 0.562825,
+      "tri_bot": 0.997455,
+      "tri_top": 0.996847,
+      "volume": 0.996884
+    },
+    "r2_psi": 0.998429,
+    "r2_qb": 0.982437
+  },
+  "native_compensated_metrics_sha256": "d5c96259b9eff7cb86faf3f24b06d8bf27b055be65e986125a8eb66738752b56",
+  "native_control": {
+    "S": 0.981702,
+    "cons_fail_frac": 0.0,
+    "consistency": 0.927047,
+    "dlcfs": 0.003641,
+    "lcfs_fail_frac": 0.0,
+    "r2_cons_each": {
+      "R_axis": 0.919585,
+      "Z_axis": 0.977567,
+      "kappa": 0.990337,
+      "li": 0.610578,
+      "tri_bot": 0.997457,
+      "tri_top": 0.99686,
+      "volume": 0.996945
+    },
+    "r2_psi": 0.998712,
+    "r2_qb": 0.982437
+  },
+  "native_control_metrics_sha256": "eb2dc1c28a0ce24c8a69af13e499277cdbfaca108b755e6b5e745a5d9e68f6a8",
+  "nonzero_selected_frames": 263,
+  "original_source_prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+  "producer_sha256": "6390ccf6421f3c1cc0ad1ecad3cce7aae210798c701ded793345d177e2b15dbb",
+  "purpose": "First-three-shot input-only source-li target compensation after truth-assisted additive contour map, correctness/mechanism only; no full70/public/model fit",
+  "scalar_bits_unchanged": true,
+  "selected_a_counts": {
+    "-0.5": 243,
+    "-1.0": 13,
+    "-1.5": 1,
+    "-2.0": 3,
+    "0.0": 315,
+    "0.5": 3
+  },
+  "source_li_target_outside_candidate_span_frames": 1,
+  "source_target_columns_read": false,
+  "spec": "experiments/geometry-additive-source-li-compensation-v3.json",
+  "spec_sha256": "712feb996fe94b6c4b88931f496a308e1cab157684befa5eb68cc916eb80aad0",
+  "timing_seconds": {
+    "compensated_native_score_wall_approx": 7.9,
+    "compensation_build": 130.56493705199682,
+    "control_build": 0.6374520219978876,
+    "control_native_score_wall_approx": 8.3
+  },
+  "valid_a_count_each_frame": 9
+}
