@@ -258,6 +258,11 @@ A postprocessor claiming an inference-available target must derive that target o
 original prediction and permitted input geometry, never from EFIT truth columns. Keep an exact
 zero-change candidate as control; count invalid nonzero candidates by reason rather than silently
 skipping frames or widening a parameter grid after seeing a score.
+For a learned contour correction, the supervised target extractor may read EFIT truth only on its
+declared training shots. Prediction features must run through the target-stripped inference row;
+test that poisoned EFIT target fields are never accessed. Keep entire shots together across a
+learner split, freeze representation and regularization before fitting, and require the same
+source-map bit identity when the predicted displacement is zero.
 
 When a replacement member comes from another artifact, keep the unchanged members fixed and score
 both the original-member control and the replacement through the same decoded-map averaging path.

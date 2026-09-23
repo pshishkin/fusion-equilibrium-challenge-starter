@@ -145,9 +145,10 @@ no true labels, but its additive-map input still used C_true, so the combined sc
 deployable nor independent confirmation. Exact native fields, per-shot target errors and stage
 times: `results/geometry_source_li_full70_20260923.json`.
 A [bounded input-only contour learnability design](experiments/contour-displacement-learnability-review.json)
-is frozen for review. Its proposed new 35/35 learner split has no extraction, fit or score yet
-and requires user agreement before training; any score on this repeatedly used tail would be a
-screen, not independent confirmation.
+is frozen for review. Synthetic-only feature, Fourier, Ridge and additive-map components exist in
+`tools/contour_learnability.py`; its proposed new 35/35 learner split has no competition target
+extraction, fit or score yet and requires user agreement before training. Any score on this
+repeatedly used tail would be a screen, not independent confirmation.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
