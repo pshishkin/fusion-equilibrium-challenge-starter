@@ -50,9 +50,11 @@ truth-assisted full-map [native pilot](results/oof_normal_k8_pilot_20260923.json
 predeclared score margin; the remaining four base fits and correction learner were not run.
 The last 200 original validation shots were excluded from the base fit as the internal native
 gate, and the original tail70 remained evaluation-only. No public artifact changed.
-The [separate full-normal diagnostic](experiments/oof-full-normal-diagnostic.json) is frozen before
-measurement on the same TRAIN-only pilot; its purpose is to isolate Fourier truncation from the
-already failed K8 branch. It has no score yet and cannot promote the K8 learner.
+The [separate full-normal diagnostic](experiments/oof-full-normal-diagnostic.json) is now
+[measured](results/oof_full_normal_diagnostic_20260923.json) on the same TRAIN-only pilot. Keeping
+all scorer-contour normal components improved over K8 but still missed the prior investment
+margin. Neither result promoted the K8 learner; folds 1–4, internal gate200 and original tail70
+were not evaluated for this branch.
 A focused five-step CPU comparison of the ordinary path before and after the explicit-file change
 produced byte-identical artifacts and predictions; see
 `results/oof_default_path_parity_20260923.json`. This checks compatibility, not the proposed OOF

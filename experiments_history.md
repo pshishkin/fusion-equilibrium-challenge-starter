@@ -3,6 +3,23 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — full scorer-normal displacement against the failed K8 pilot:**
+On the exact same first **100** original-TRAIN OOF shots/**21,667** frames, the only changed
+operation was retaining all **512** normal-displacement components instead of Fourier DC plus
+modes 1–8. The fixed additive ψ correction, input-only source-li compensation, submitted scalars
+and native scorer were unchanged. The pinned original source scored **S 0.991298**; K8 scored
+**0.991736** (**+0.000438**) and the full-normal arm **0.992090** (**+0.000792**).
+High-frequency detail thus added **+0.000354**, but the full arm still missed the earlier
+**+0.002600** investment margin. Raw D_LCFS improved **0.013430 → 0.006741**, Consistency
+**0.969871 → 0.970681**, and li R² still fell **0.938689 → 0.884629**. No native LCFS or
+derived failures; q95/βN arrays remained byte-identical. Source snapshot preparation took a
+few seconds; the full-normal map/profile build took **749.59 s** and one native scorer pass
+**68.06 s**; the exact source control JSON was reused by hash. Verdict: this constrained
+normal/additive/profile family has too little observed score headroom on the OOF TRAIN pilot to
+justify folds 1–4 or a correction learner under the frozen recipe. This is neither a bound on
+all contour methods nor an evaluation-tail/public result.
+[Full native terms, hashes and per-shot movement](results/oof_full_normal_diagnostic_20260923.json).
+
 **2026-09-23 UTC — fivefold OOF compact-MLP K8 normal-contour pilot, stopped after fold 0:**
 One frozen fold-0 MLP trained for exactly **33,000** steps on **5,416** allowed shots and
 **1,200,575** full frames, excluding its own **1,355** OOF shots, the separate 200-shot native

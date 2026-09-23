@@ -140,9 +140,10 @@ remaining four base fits and correction learner were not run; the original evalu
 internal gate stayed out of all training and this pilot. The pilot code remains reproducible from
 its frozen campaign, but no deployable OOF correction was selected.
 A separately [preregistered full-normal diagnostic](experiments/oof-full-normal-diagnostic.json)
-retains all scorer-contour normal components on the same TRAIN pilot to check whether K8
-truncation removed important local detail. It is a mechanism comparison, not a new learner fit
-or a reopened score gate.
+retained all scorer-contour normal components on the same TRAIN pilot. Its
+[native result](results/oof_full_normal_diagnostic_20260923.json) showed some value in the
+discarded detail, but still missed the fixed investment margin. No further folds or contour
+learner were fitted, and the reserved evaluation tail stayed untouched.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
