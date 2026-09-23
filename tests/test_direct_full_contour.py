@@ -48,6 +48,7 @@ class DirectFullContourTests(unittest.TestCase):
         self.assertAlmostEqual(float(measured.item()), 1 / 512 + 1 / 26, places=7)
         measured.backward()
         self.assertIsNotNone(prediction.grad)
+        assert prediction.grad is not None
         self.assertTrue(torch.isfinite(prediction.grad).all())
         network = DirectContourMLP()
         self.assertEqual(network(torch.zeros(3, 209)).shape, (3, 1024))

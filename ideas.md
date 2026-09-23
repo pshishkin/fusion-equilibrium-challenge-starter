@@ -26,11 +26,11 @@ multi-intersection rays. The single-origin star-shaped family is closed before a
 learner; no further origin is chosen on these probes.
 A separate [full-resolution contour MLP route](experiments/direct-full-contour-mlp-review.json)
 keeps all physical boundary points instead of compressing into Fourier, PCA or one-origin radii.
-It remains unmeasured and must first demonstrate that its fixed half-strength map correction has
-enough native-score headroom on validation-only truth before a new GPU fit is warranted.
-That [fixed mechanism gate](results/direct_full_contour_stage0_20260923.json) passed on the
-validation window, but uses true contours. The input-only model fit and its effect remain
-unmeasured; neither an oracle S difference nor an early-stopping window predicts public rank.
+Its [fixed truth-assisted mechanism gate](results/direct_full_contour_stage0_20260923.json)
+passed, but the one [input-only Stage-2 fit and native validation](results/direct_full_contour_stage2_20260923.json)
+failed its score gate. This fixed full-coordinate target and MLP recipe is closed; the reserved
+evaluation tail was not opened. A different learner needs its own leakage-safe train/validation
+protocol and must not infer a gain from the earlier truth-assisted gate.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

@@ -121,21 +121,15 @@ has now [completed](results/direct_contour_opoint_20260923.json). Some true boun
 intersect rays from the magnetic O-point more than once, so this single-origin positive-radius
 chart stopped before a log-radius PCA or direct model fit. The O-point came from true ψ only as
 a TRAIN-target geometry diagnostic; the reserved tail was untouched.
-A [full physical-contour MLP proposal](experiments/direct-full-contour-mlp-review.json) now tests a
-different supervised target: all scorer contour points, learned from permitted inputs alone. Its
-first gate is a truth-assisted mechanism screen on the existing validation window; no model has
-been fitted or evaluation-tail shot read under that proposal. The Stage-0 code in
-`tools/run_direct_full_contour_oracle.py` builds a frozen compact-source validation prediction,
-constructs actual half-contour ψ maps, and passes sealed arrays to the unchanged native scorer.
-That [mechanism gate passed](results/direct_full_contour_stage0_20260923.json) on a validation
-window the compact source had already seen for early stopping. The essential next question is
-whether a new model can infer the needed contour from permitted inputs; no such model has yet
-been fitted or tested on the reserved evaluation tail.
-The direct-contour training code now has an [input-only target cache](tools/direct_full_contour_cache.py),
-a [single fixed MLP](tools/direct_full_contour_train.py) and a
-[counted-fallback prediction path](tools/direct_full_contour_predict.py). The campaign source and
-cache must be frozen and checked before any full fit; a prepared model or cache is not a measured
-candidate.
+A [full physical-contour MLP experiment](experiments/direct-full-contour-mlp-review.json) tested
+all scorer contour points learned from permitted inputs alone. Its [truth-assisted Stage-0
+mechanism gate](results/direct_full_contour_stage0_20260923.json) passed, so one frozen
+[input-only target cache](tools/direct_full_contour_cache.py), [fixed MLP](tools/direct_full_contour_train.py)
+and [counted-fallback prediction path](tools/direct_full_contour_predict.py) were run. The
+[native Stage-2 validation result](results/direct_full_contour_stage2_20260923.json) failed its
+predeclared score gate despite valid predictions. The reserved evaluation tail was not read for
+this model, and no public prediction was changed. This validation window was used for model
+selection, so the result is an investment decision rather than independent confirmation.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

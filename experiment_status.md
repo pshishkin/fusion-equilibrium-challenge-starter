@@ -1,6 +1,6 @@
 # DIII-D: current experiment status
 
-Updated 2026-09-23 (Moscow). This is the current index, not another experiment history.
+Updated 2026-09-24 (Moscow). This is the current index, not another experiment history.
 Historical explanations and negative results remain in `experiments_history.md`, `backlog.md`,
 `ideas.md`, and `single_model_results.md`. Their old "running" labels are historical.
 
@@ -34,6 +34,16 @@ Historical explanations and negative results remain in `experiments_history.md`,
   result below is a candidate to verify against this control, not silently reapply.
 
 ## Latest recorded evidence
+
+The fixed full-coordinate input-only contour MLP passed its truth-assisted Stage-0 mechanism
+screen, then failed the predeclared Stage-2 native validation score gate. Its sole frozen fit used
+the compact train/validation windows only; valid predicted polygons and zero source fallbacks did
+not produce a gain against the unchanged compact source. The original 70-shot evaluation tail
+was not read for this learner, and no public artifact changed. Full component scores, file/source
+hashes, selected-frame counts, wall times and stop decision are in
+`results/direct_full_contour_stage2_20260923.json`; the distinct truth-assisted mechanism result
+is in `results/direct_full_contour_stage0_20260923.json`. The validation200 window is selection-only
+and was seen by both compact-source and contour-model early stopping.
 
 The user approved a compact production baseline on 2026-09-22: `mlp` and `seq` only, seed 0 each,
 salt 0, equal weights, unchanged production shares. Spec: `experiments/compact-production.json`.

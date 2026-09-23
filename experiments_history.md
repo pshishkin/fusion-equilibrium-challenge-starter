@@ -3,6 +3,25 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — input-only full-coordinate LCFS MLP, one frozen fit:**
+The predeclared Stage-0 truth-assisted gate passed, so one 209→512×3→1024 MLP trained on
+**5,633** compact TRAIN shots (**249,737** thinned frames) with **1,338** validation shots
+(**59,199** thinned frames); the original salt-0 tail70 was untouched. Its input-only predicted
+contours were applied at fixed half strength to the compact source on the first **200** validation
+shots/**44,911** full frames. All predicted corrections were finite, with **zero** source
+fallbacks or native scorer failures; the corrected-to-intended contour median/p95 distance was
+**0.333/1.403 grid cells**, inside the predeclared geometric limits. The unchanged source scored
+native **S 0.991623**, learned map **0.990890**, and learned map plus input-only source-li
+compensation **0.991350**, a final **−0.000273** against the required **+0.001300**. Raw D_LCFS
+was **0.012443 → 0.012526**, Consistency **0.970709 → 0.969531**; submitted q95/βN were
+bit-identical. Cache construction took **2,291.63 s**, memmap assembly **10.24 s**, one GPU fit
+**89.22 s** (best validation checkpoint at step 8,000), prediction/correction build
+**1,413.66 s** and the three sequential native scorer passes **438.02 s** total. Verdict: this
+fixed full-coordinate learner did not transfer the truth-assisted contour headroom to an
+input-only gain. Stop before reserved tail70 evaluation, public output or a parameter retry.
+This early-stopping validation window is a selection screen, not independent generalization.
+[Native fields, source/config/cache hashes and timing](results/direct_full_contour_stage2_20260923.json).
+
 **2026-09-23 UTC — fixed half-contour mechanism gate before any direct-polygon MLP:**
 On first **200 compact validation shots/44,911 full frames**, the unchanged compact two-member
 source had native **S 0.991623**. Replacing each predicted contour displacement with a fixed
