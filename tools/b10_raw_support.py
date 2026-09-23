@@ -25,7 +25,7 @@ from toolkit.parallel import pimap, release
 from toolkit.records import file_hash, write_json
 
 ROOT = Path(__file__).resolve().parent.parent
-SPEC = ROOT / "experiments/b10-two-rate-information-gate-v2.json"
+SPEC = ROOT / "experiments/b10-two-rate-information-gate-v3.json"
 DATA = ROOT.parent / "downloaded_huggingface/hf_dataset"
 OOF = ROOT / "runs/oof-normal-k8-5fold-20260923"
 INPUT_COLUMNS = [
@@ -155,6 +155,8 @@ def prepare(run: Path) -> None:
         raise ValueError(f"{SPEC}: B10 support helper SHA differs")
     if file_hash(ROOT / spec["amends_spec"]) != spec["amends_spec_sha256"]:
         raise ValueError(f"{SPEC}: reviewed B10 protocol SHA differs")
+    if file_hash(ROOT / spec["amends_spec_v2"]) != spec["amends_spec_v2_sha256"]:
+        raise ValueError(f"{SPEC}: prior v2 B10 protocol SHA differs")
     files_path = OOF / "files.json"
     artifact_path = OOF / "fold0/base.joblib"
     if (file_hash(files_path) != spec["frozen_data_plan"]["OOF_files_manifest_sha256"]
@@ -180,13 +182,15 @@ def prepare(run: Path) -> None:
         target = source / path.relative_to(ROOT)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, target)
-    for path in (SPEC, ROOT / spec["amends_spec"]):
+    for path in (SPEC, ROOT / spec["amends_spec"], ROOT / spec["amends_spec_v2"]):
         target = source / path.relative_to(ROOT)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, target)
     hashes = {str(path.relative_to(ROOT)): file_hash(source / path.relative_to(ROOT))
               for path in source_files()}
     hashes[str(SPEC.relative_to(ROOT))] = file_hash(source / SPEC.relative_to(ROOT))
+    for path in (ROOT / spec["amends_spec"], ROOT / spec["amends_spec_v2"]):
+        hashes[str(path.relative_to(ROOT))] = file_hash(source / path.relative_to(ROOT))
     write_json(run / "manifest.json", {
         "classification": "B10_input_only_support_audit_frozen_before_raw_read",
         "origin_root": str(ROOT),
@@ -216,7 +220,7 @@ def audit(run: Path, jobs: int) -> int:
     if ROOT.resolve() != (run / "source").resolve():
         raise ValueError(f"B10 preaudit imported from {ROOT}, expected {run / 'source'}")
     manifest = json.loads((run / "manifest.json").read_text())
-    spec = json.loads((run / "source/experiments/b10-two-rate-information-gate-v2.json")
+    spec = json.loads((run / "source/experiments/b10-two-rate-information-gate-v3.json")
                       .read_text())
     for relative, expected in manifest["source_sha256"].items():
         path = run / "source" / relative

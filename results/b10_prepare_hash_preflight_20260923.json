@@ -1,0 +1,16 @@
+{
+  "classification": "B10_prepare_filename_hash_preflight_stopped_before_raw_data",
+  "date_utc": "2026-09-23",
+  "attempted_command": "python -m tools.b10_raw_support prepare --run runs/b10-raw-support-20260923 --jobs 4",
+  "review_spec_sha256": "642052819ce4061f74ef021579cb64411047b627487b459cd5cba3ebbbb05ef3",
+  "v2_spec_sha256": "43d07a1bbadcfa0209c0e32ec33058ef238cfa23d660f0f7190fac90f5e9e582",
+  "recorded_fold0_OOF_ordered_sha256": "037ff7f422bc72c5ea4af51ad49ff3c9a4b13fb945222e796b2360399116356",
+  "actual_frozen_manifest_fold0_OOF_ordered_sha256": "037ff7f422bc72c5ea4af51ad49ff3c9a4b13fb945222e796b2360399116356e",
+  "failure": "The copied 1355-name ordered SHA omitted its final hexadecimal e. All other inspected counts, gate hash, artifact train/val disjointness and selected width 84 matched.",
+  "raw_parquet_files_read": 0,
+  "target_columns_read": 0,
+  "run_directory_created": false,
+  "models_fitted": 0,
+  "native_scores_run": 0,
+  "resolution": "Preserve v2; add a named v3 amendment correcting only the copied filename hash, pin the changed helper source SHA, then retry the same input-only preflight before any fit."
+}

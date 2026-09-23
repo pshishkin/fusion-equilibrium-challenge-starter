@@ -38,7 +38,7 @@ model. The separate [full-normal, non-Fourier diagnostic](results/oof_full_norma
 showed some value in high-frequency normal detail but still missed the fixed investment margin.
 This constrained contour-normal+additive+source-li family is closed before more base fits or a
 correction learner; no rank or learner capacity sweep is justified by this TRAIN-only pilot.
-One [narrow B10 information-gate review](experiments/b10-two-rate-information-gate-review.json)
+One [narrow B10 information-gate review](experiments/b10-two-rate-information-gate-v3.json)
 revisits the earlier closed fast-stream idea with a matched low-pass waveform control. D11's
 variance evidence and the scored fast-derivative null make this a low-prior hypothesis, not a
 reopened gain claim. The first gate is input-only clock/support completeness over its declared

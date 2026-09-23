@@ -151,7 +151,7 @@ run as a consequence.
 A [single fixed input-only li guard](experiments/oof-li-guard-v2.json) on those saved TRAIN-shot
 maps [recovered much of the li loss](results/oof_li_guard_20260923.json), but still failed its
 predeclared native-score investment margin. No threshold search, new fit or public action followed.
-A [two-rate waveform information gate](experiments/b10-two-rate-information-gate-v2.json)
+A [two-rate waveform information gate](experiments/b10-two-rate-information-gate-v3.json)
 is preregistered as a separate, low-prior input hypothesis. The
 [input-only preflight](tools/b10_raw_support.py) first checks the raw clocks, units and full
 window support on allowed shots, before target extraction or any new model fit. An unsupported
