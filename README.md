@@ -148,6 +148,9 @@ A [read-only li discrepancy audit](results/oof_li_discrepancy_20260923.json) on 
 maps found that the input-only profile step did not reliably preserve its own li target. A small
 number of frames dominate the discrepancy. No alternative li optimizer or contour learner was
 run as a consequence.
+A [single fixed input-only li guard](experiments/oof-li-guard-v2.json) is now preregistered on
+those saved TRAIN-shot maps. It explicitly counts whole-frame source fallbacks and requires a
+matched native score; no threshold search or new fit is part of this check.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

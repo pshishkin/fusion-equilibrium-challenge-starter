@@ -279,6 +279,11 @@ A postprocessor claiming an inference-available target must derive that target o
 original prediction and permitted input geometry, never from EFIT truth columns. Keep an exact
 zero-change candidate as control; count invalid nonzero candidates by reason rather than silently
 skipping frames or widening a parameter grid after seeing a score.
+An explicitly predeclared whole-frame source fallback based on an input-only derived quantity is
+an auditable model choice: freeze its threshold before measurement, preserve the selected source
+map's bytes and submitted scalar bytes, record every fallback filename/frame and score the full
+result with native failure penalties. It is not a license to hide numerical failures or tune a
+fallback threshold after seeing the score.
 For a learned contour correction, the supervised target extractor may read EFIT truth only on its
 declared training shots. Prediction features must run through the target-stripped inference row;
 test that poisoned EFIT target fields are never accessed. Keep entire shots together across a

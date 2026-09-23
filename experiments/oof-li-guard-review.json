@@ -1,0 +1,57 @@
+{
+  "name": "same100-oof-input-only-li-discrepancy-source-guard",
+  "date_utc": "2026-09-23",
+  "status": "Frozen design for root math/protocol review; no guarded map or native score has been produced",
+  "question": "Does one fixed input-only source-li discrepancy guard prevent the rare large li changes from the truth-assisted full-normal contour operation without discarding its useful boundary correction?",
+  "scope": "The exact same first100 original-TRAIN fold0-OOF shots/21,667 frames and byte-pinned source/full-normal prediction NPZs. The full-normal candidate is still truth-assisted; this only tests an inference-available safeguard on its already sealed maps. The original tail70, internal gate200, public shots, new base/correction fits and new true contours remain inaccessible.",
+  "pinned_inputs": {
+    "old_campaign": {
+      "path": "runs/oof-normal-k8-5fold-20260923/campaign.json",
+      "sha256": "2ed48f0cbd4ffda8fedf3fc24198be176a6d27eb58a3dda8d89d02ed0f987f6d"
+    },
+    "old_files_manifest": {
+      "path": "runs/oof-normal-k8-5fold-20260923/files.json",
+      "sha256": "e8733030d09d237691ba94e93f4b65f57268cf2efe689b01c697f7691422e621"
+    },
+    "source_prediction": {
+      "path": "runs/oof-normal-k8-5fold-20260923/pilot/source.npz",
+      "sha256": "66df3227393032305d36f716d7fbdc9b11075341a55e0aa3fa9123181d55bb6e"
+    },
+    "source_native_json": {
+      "path": "runs/oof-normal-k8-5fold-20260923/pilot/source.metrics.json",
+      "sha256": "c3310fb97be7a15e842c313f0e078597ed4e300e71d9266db5030337731d337f"
+    },
+    "full_normal_prediction": {
+      "path": "runs/oof-full-normal-20260923/full_normal.npz",
+      "sha256": "17736bd1175fa49c16d8bae72797f523ebb4065c6631ce6ea292812bded81129"
+    },
+    "full_normal_native_result": {
+      "path": "results/oof_full_normal_diagnostic_20260923.json",
+      "sha256": "5e5dc15c2c0bca9e2e5a84a0f40229e33fe6136a2a3c79635237bbb1a1a72999"
+    },
+    "li_discrepancy_audit": {
+      "path": "results/oof_li_discrepancy_20260923.json",
+      "sha256": "85d7a3a95951ea12166d57f162d1f96af5add23ec14bb10c570db5fb25ab5fdc"
+    }
+  },
+  "pinned_scorer": {
+    "root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "mask_sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1"
+  },
+  "frozen_protocol": {
+    "ordered_filenames_sha256": "8363384de1d2125166049a88425db370cea04ab051b38031f92e5622d57652bd",
+    "shots": 100,
+    "frames": 21667,
+    "li_calculation": "For each source/final map use that map's own scorer-native LCFS and derive.internal_inductance at fixed DIII-D sign, exactly as the completed input-only li audit. Read only input grid geometry from parquet and the two saved NPZs. Abort with shot/frame if either li is missing/nonfinite or arrays, source hashes, filename/order/lengths differ; never read efit_psirz, efit_li or other EFIT truth targets.",
+    "fixed_threshold_dimensionless": 0.05,
+    "guard": "For every frame where abs(li_final-li_source)>0.05, replace the ENTIRE final psirz map with an exact float32 byte copy of that frame's original source psirz. Otherwise retain the existing full-normal map byte for byte. q95 and betaN are copied byte for byte from the original source for all frames. Record fallback shot/frame indices, absolute li differences and total fraction; no dropped frame, clipping, continuous optimizer or threshold sweep.",
+    "identity_checks": "Hash-check the two source NPZs and old native JSON, verify same100 ordered filenames and frame shapes, float32 maps/scalars, no gate200/tail70 overlap, and exact source/candidate unchanged-map bits after guard. Write a separately named guarded NPZ atomically, then score once with the pinned untouched native local_score. Reuse the hash-pinned original source control native JSON; do not implement another metric.",
+    "native_comparison": "Report S, R2psi, R2qb, raw D_LCFS, Consistency, all seven functional R2 and failures for original source, unguarded full-normal and guarded full-normal, on identical100 TRAIN shots. Report fallback fraction/shot count, li(source) vs li(guarded) exactness on reverted frames and retained-frame li discrepancy, and stage wall time. The guard changes only map selection, not model weights or q95/betaN.",
+    "decision": "This is a predeclared investment test only. Continue considering this constrained contour family only if fallback fraction <=0.02 AND guarded-minus-original S >=+0.002600 with no new native failures and exact scalar bytes. If either fails, close it; do not tune the 0.05 threshold, expand a-grid, refit a model, use tail70 or upload based on this same100 diagnostic. A passing oracle guard would still be truth-assisted and require a separately justified input-only contour learner."
+  },
+  "reason_for_threshold": "The completed li audit found median absolute source-to-final li change 0.007745, p99 0.147994 and rare maximum 1.783671; the top1% frames supplied 89.44% of squared discrepancy. The fixed 0.05 threshold is about five percent of typical source li and targets those outliers while aiming to keep most boundary changes. Its exact fallback rate and native gain have not yet been measured.",
+  "source_freeze": "Implement and test the guard in a new tool, then add its exact source SHA and snapshot identity to an explicit final pre-execution amendment before constructing or scoring the guarded map. Any algorithm/threshold change requires a new named spec, never a silent retry."
+}

@@ -58,7 +58,11 @@ were not evaluated for this branch.
 A [read-only scorer-native li audit](results/oof_li_discrepancy_20260923.json) on those same
 saved TRAIN-shot maps found material final-minus-source li discrepancies concentrated in a few
 frames. It used no true labels; the separate native true-li R² decline remains a measured score
-fact, not a per-frame attribution from this audit. No new optimizer, fit or score gate followed.
+fact, not a per-frame attribution from this audit. The audit itself performed no optimizer fit
+or native rescoring.
+A [separate fixed source-fallback li guard](experiments/oof-li-guard-v2.json) is prepared as a
+bounded follow-up on the same saved TRAIN-shot maps. Its threshold and stop conditions were
+declared before fallback counts or a guarded score were measured.
 A focused five-step CPU comparison of the ordinary path before and after the explicit-file change
 produced byte-identical artifacts and predictions; see
 `results/oof_default_path_parity_20260923.json`. This checks compatibility, not the proposed OOF
