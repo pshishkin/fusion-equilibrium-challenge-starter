@@ -251,6 +251,17 @@ see [`experiment_status.md`](experiment_status.md). An input-only comparison wit
 at the private repo's previous commit is in
 [`results/old_vs_new_private_hf_20260923.json`](results/old_vs_new_private_hf_20260923.json).
 
+An explicit flux-only float16 probe of the same fixed recipe is now recorded in
+[`results/best11_f16_probe_20260923.json`](results/best11_f16_probe_20260923.json). The exact
+70-shot native comparison, full 874-shot structural validation and strict scalar-bit checks are
+separate from the normal float32 export path. Its DIII-D file was uploaded as a separate pinned HF
+revision while the original float32 pointer remained valid; the redacted receipt is
+[`results/private_hf_f16_probe_20260923.json`](results/private_hf_f16_probe_20260923.json).
+The ignored `submissions/submission_pointer_f16_probe_*.zip` is labelled for manual Codabench
+submission. There is no public score for this probe yet. The publisher's optional
+`--evidence`, `--receipt`, `--expected-parent` and `--variant float16-probe` arguments make that
+single-file revision explicit and prevent overwriting the prior receipt.
+
 The completed fast magnetics screen is documented in
 [`experiments/fast-signal-diagnostic.md`](experiments/fast-signal-diagnostic.md) and
 [`experiments/fast-signal-screen.json`](experiments/fast-signal-screen.json). Its input-only audit

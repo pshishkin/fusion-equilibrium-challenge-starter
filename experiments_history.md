@@ -3,6 +3,19 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — explicit best-eleven float16 flux-only probe:**
+The fixed eleven-map/prior-eight-scalar float32 prediction was cast once to float16 **only for
+ψ**; q95/βN remained bit-identical float32 and no member was refitted or reweighted. On the
+exact same 70-shot tail through the frozen native scorer, S **0.995080 → 0.994704**
+(**−0.000376**), with R²qb unchanged at 0.997165, raw D_LCFS **0.009378 → 0.010053** and
+Consistency **0.982616 → 0.981072**. The full 874-shot quantized public NPZ passed the local
+validator and was uploaded as a separate private HF revision with a labelled pointer; the prior
+float32 pointer stays pinned. A strict preflight rejected a truncated public source SHA in the
+first spec before conversion; the v2 spec records this hash-only correction. Verdict: float16
+reduces local score for this recipe, while its effect on the public fold remains unmeasured until
+manual Codabench submission. [Native and artifact evidence](results/best11_f16_probe_20260923.json),
+[HF receipt](results/private_hf_f16_probe_20260923.json).
+
 **2026-09-23 UTC — previous private DIII-D prediction versus current public candidate:**
 The private Hugging Face dataset's parent commit `836da676877283aa8fe0608dc501ffe49f5e072e`
 held a 1,372,856,730-byte DIII-D NPZ (SHA-256 `46aeb3bf5930ca621a3ba47b8189f72b454dbd49a7b2f1a5893b75d9df6e71de`),

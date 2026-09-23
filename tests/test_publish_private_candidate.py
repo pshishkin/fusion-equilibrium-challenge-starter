@@ -68,6 +68,7 @@ class FakeApi:
         assert kwargs["path_in_repo"] == publisher.FILENAME
         assert kwargs["parent_commit"] == self.state["sha"]
         assert kwargs["token"] == "secret-write"
+        assert "float16-probe" in str(kwargs["commit_message"])
         self.state["calls"] = cast(int, self.state["calls"]) + 1
         source = Path(str(kwargs["path_or_fileobj"]))
         files = self.state["files"]
@@ -92,11 +93,12 @@ class PublishPrivateCandidateTests(unittest.TestCase):
             evidence.write_text(
                 json.dumps(
                     {
+                        "variant": "float16-flux-only-probe",
                         "final_npz": {
                             "path": str(candidate),
                             "bytes": candidate.stat().st_size,
                             "sha256": digest,
-                        }
+                        },
                     }
                 )
             )
@@ -118,10 +120,9 @@ class PublishPrivateCandidateTests(unittest.TestCase):
                 output.write_bytes(candidate.read_bytes())
                 return str(output)
 
-            pointer = root / "submissions" / "pointer.zip"
             with (
                 patch.object(publisher, "EVIDENCE", evidence),
-                patch.object(publisher, "RECEIPT", root / "receipt.json"),
+                patch.object(publisher, "POINTER_DIR", root / "submissions"),
                 patch("tools.publish_private_candidate.tempfile.TemporaryDirectory") as temporary,
             ):
                 temporary.return_value.__enter__.return_value = str(root)
@@ -129,14 +130,20 @@ class PublishPrivateCandidateTests(unittest.TestCase):
                     api_type=lambda token: FakeApi(token, state),
                     download=download,
                     dotenv=dotenv,
-                    pointer=pointer,
+                    receipt_path=root / "receipt.json",
+                    expected_parent="a" * 40,
+                    variant="float16-probe",
                 )
             self.assertEqual(state["calls"], 1)
             files = cast(dict[str, tuple[int, str, str]], state["files"])
             self.assertEqual(files["mast_public_test.npz"], (4, "mast-blob", "mast-sha"))
             self.assertEqual(receipt["revision"], "b" * 40)
+            self.assertEqual(receipt["parent_revision"], "a" * 40)
+            self.assertEqual(receipt["variant"], "float16-probe")
             self.assertNotIn("secret-read", (root / "receipt.json").read_text())
             self.assertNotIn("secret-write", (root / "receipt.json").read_text())
+            pointer = Path(str(receipt["pointer_path"]))
+            self.assertTrue(pointer.name.startswith("submission_pointer_f16_probe_"))
             with zipfile.ZipFile(pointer) as archive:
                 self.assertEqual(archive.namelist(), ["manifest.json"])
                 manifest = json.loads(archive.read("manifest.json"))
@@ -168,6 +175,27 @@ class PublishPrivateCandidateTests(unittest.TestCase):
             os.chmod(dotenv, 0o644)
             with self.assertRaisesRegex(publisher.PublishError, "readable by group"):
                 publisher._credentials(dotenv)
+
+    def test_parent_guard_blocks_upload_before_remote_mutation(self) -> None:
+        state: dict[str, object] = {
+            "sha": "a" * 40,
+            "files": {"mast_public_test.npz": (4, "mast-blob", "mast-sha")},
+            "calls": 0,
+        }
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(publisher, "_candidate", return_value=(Path("unused"), 1, "0" * 64)),
+            patch.object(publisher, "_credentials", return_value=("secret-write", "secret-read")),
+            self.assertRaisesRegex(publisher.PublishError, "parent changed"),
+        ):
+            publisher.publish(
+                api_type=lambda token: FakeApi(token, state),
+                download=lambda *args, **kwargs: "unused",
+                receipt_path=Path(folder) / "receipt.json",
+                expected_parent="c" * 40,
+                variant="float16-probe",
+            )
+        self.assertEqual(state["calls"], 0)
 
 
 if __name__ == "__main__":

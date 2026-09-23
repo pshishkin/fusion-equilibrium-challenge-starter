@@ -262,6 +262,11 @@ Submission predictions and all reusable blend/MAST caches must store flux maps a
 scalars as float32. Never silently downcast flux to float16. Blend decoded maps in float64 and cast
 once to float32; version cache keys with the output format and reject old float16 cache entries.
 Upcasting an old half-precision cache does not restore the lost information.
+The user-approved 2026-09-23 float16 flux probe is an explicit, separately named experiment:
+only its `psirz` arrays may be cast once to float16, while q95/betaN remain bit-identical
+float32. It requires a frozen transform spec, matched native-score comparison, complete public
+shape validation, a separately labelled HF commit/pointer and preserved original float32
+artifact/pointer. Do not generalize this probe to the normal float32 production writer or caches.
 For a private Hugging Face pointer submission, load distinct read and write credentials from the
 gitignored mode-600 `.env` in memory, never from CLI arguments or logs. Upload only the intended
 file to the existing private dataset, with a parent-commit guard; preserve and verify all

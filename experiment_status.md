@@ -69,6 +69,17 @@ offline root ZIP was also built and checked against the validated NPZ. Output/so
 are in `results/public_diii_d_candidate_20260923.json`;
 ZIP hash, CRC and access audit are in `results/challenge1_offline_zip_20260923.json`.
 
+An explicit float16-flux-only probe kept that recipe and every q95/βN bit fixed. On the same
+70-shot tail, the native score fell from S 0.995080 to 0.994704, entirely through LCFS and
+Consistency at reported precision; the unchanged scalar R² was 0.997165. Its separate 874-shot
+f16 NPZ passed complete structural validation and was uploaded to the existing private HF dataset
+at a new pinned revision, preserving MAST and the earlier float32 pointer. The new pointer is
+labelled `f16_probe` and awaits manual Codabench submission, so there is **no public f16 score**.
+The initial spec's public source SHA transcription was corrected in an explicit v2 amendment
+before public conversion. Exact evidence: `grids/best11-f16-public-probe.json`,
+`grids/best11-f16-public-probe-v2.json`, `results/best11_f16_probe_20260923.json` and
+`results/private_hf_f16_probe_20260923.json`. No geometry oracle test has begun.
+
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
 reject stale half-precision caches; an old-control writer round-trip reproduced the original

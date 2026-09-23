@@ -39,8 +39,14 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def _candidate() -> tuple[Path, int, str]:
-    record = json.loads(EVIDENCE.read_text())
+def _candidate(evidence: Path | None = None, variant: str = "float32") -> tuple[Path, int, str]:
+    if evidence is None:
+        evidence = EVIDENCE
+    record = json.loads(evidence.read_text())
+    if variant == "float16-probe" and record.get("variant") != "float16-flux-only-probe":
+        raise PublishError(f"{evidence}: missing explicit float16 probe identity")
+    if variant not in ("float32", "float16-probe"):
+        raise PublishError(f"unsupported publication variant {variant}")
     item = record["final_npz"]
     path = Path(item["path"])
     if path.name != FILENAME or not path.is_file():
@@ -158,13 +164,29 @@ def publish(
     download: Callable[..., str],
     dotenv: Path = Path(".env"),
     pointer: Path | None = None,
+    evidence: Path | None = None,
+    receipt_path: Path | None = None,
+    expected_parent: str | None = None,
+    variant: str = "float32",
 ) -> dict[str, Any]:
     """Upload one file, verify pinned remote bytes with read access, then create pointer."""
-    candidate, size, digest = _candidate()
+    if evidence is None:
+        evidence = EVIDENCE
+    if receipt_path is None:
+        receipt_path = RECEIPT
+    if variant == "float16-probe" and receipt_path == RECEIPT:
+        raise PublishError("float16 probe requires a separate receipt path")
+    if expected_parent is not None and not SHA_RE.fullmatch(expected_parent):
+        raise PublishError("expected parent commit SHA is malformed")
+    if receipt_path.exists():
+        raise PublishError(f"{receipt_path}: refusing to replace an existing receipt")
+    candidate, size, digest = _candidate(evidence, variant)
     write, read = _credentials(dotenv)
     write_api = api_type(token=write)
     read_api = api_type(token=read)
     parent, old_files = _preflight(write_api, read_api, write, read)
+    if expected_parent is not None and parent != expected_parent:
+        raise PublishError(f"private repo parent changed: {parent}, expected {expected_parent}")
     commit = write_api.upload_file(
         path_or_fileobj=str(candidate),
         path_in_repo=FILENAME,
@@ -172,7 +194,7 @@ def publish(
         repo_type="dataset",
         token=write,
         parent_commit=parent,
-        commit_message="Publish validated float32 DIII-D public predictions",
+        commit_message=f"Publish validated {variant} DIII-D public predictions",
     )
     sha = commit.oid
     if not isinstance(sha, str) or not SHA_RE.fullmatch(sha):
@@ -206,11 +228,14 @@ def publish(
             raise PublishError("read-token download of pinned DIII-D bytes differs")
     if pointer is None:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        pointer = POINTER_DIR / f"submission_pointer_{timestamp}.zip"
+        label = "f16_probe_" if variant == "float16-probe" else ""
+        pointer = POINTER_DIR / f"submission_pointer_{label}{timestamp}.zip"
     _pointer(pointer, sha, read)
     receipt: dict[str, Any] = {
         "repo_id": REPO,
         "private": True,
+        "variant": variant,
+        "parent_revision": parent,
         "revision": sha,
         "uploaded_file": FILENAME,
         "bytes": size,
@@ -221,24 +246,37 @@ def publish(
         "pointer_path": str(pointer),
         "pointer_bytes": pointer.stat().st_size,
         "pointer_sha256": _sha256(pointer),
+        "evidence_path": str(evidence),
+        "evidence_sha256": _sha256(evidence),
         "token_values_recorded": False,
     }
-    RECEIPT.write_text(json.dumps(receipt, indent=2) + "\n")
+    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
     return receipt
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=["plan", "preflight", "publish"])
+    parser.add_argument("--evidence", type=Path, default=EVIDENCE)
+    parser.add_argument("--receipt", type=Path, default=RECEIPT)
+    parser.add_argument("--expected-parent")
+    parser.add_argument("--variant", choices=("float32", "float16-probe"), default="float32")
     args = parser.parse_args()
     try:
         if args.mode == "publish":
             from huggingface_hub import HfApi, hf_hub_download
 
-            receipt = publish(api_type=HfApi, download=hf_hub_download)
+            receipt = publish(
+                api_type=HfApi,
+                download=hf_hub_download,
+                evidence=args.evidence,
+                receipt_path=args.receipt,
+                expected_parent=args.expected_parent,
+                variant=args.variant,
+            )
             print(json.dumps(receipt))
             return 0
-        candidate, size, digest = _candidate()
+        candidate, size, digest = _candidate(args.evidence, args.variant)
         if args.mode == "plan":
             print(
                 json.dumps(
@@ -256,6 +294,10 @@ def main() -> int:
 
         write, read = _credentials()
         parent, files = _preflight(HfApi(token=write), HfApi(token=read), write, read)
+        if args.expected_parent is not None and parent != args.expected_parent:
+            raise PublishError(
+                f"private repo parent changed: {parent}, expected {args.expected_parent}"
+            )
         if args.mode == "preflight":
             print(
                 json.dumps(
