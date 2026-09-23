@@ -154,8 +154,9 @@ predeclared native-score investment margin. No threshold search, new fit or publ
 A [two-rate waveform information gate](experiments/b10-two-rate-information-gate-v3.json)
 is preregistered as a separate, low-prior input hypothesis. The
 [input-only preflight](tools/b10_raw_support.py) first checks the raw clocks, units and full
-window support on allowed shots, before target extraction or any new model fit. An unsupported
-raw bin ends this fixed pilot rather than being silently filled.
+window support on allowed shots, before target extraction or any new model fit. That
+[support gate passed](results/b10_raw_support_20260923.json); the matched models still have no
+score. An unsupported raw bin would have ended the fixed pilot rather than being silently filled.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

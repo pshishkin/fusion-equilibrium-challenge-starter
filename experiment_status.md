@@ -67,9 +67,9 @@ map, but the predeclared native-score investment margin was not reached. This co
 branch is closed without a threshold sweep, additional fit, original-tail score or public action.
 A separate [two-rate raw-waveform information gate](experiments/b10-two-rate-information-gate-v3.json)
 is planned because it would test a different permitted input source. Historical raw-signal
-screens make its prior weak. The input-only clock/support [preflight code](tools/b10_raw_support.py)
-is ready; no raw target cache, paired head or native gate score has yet run. The complete
-1555-shot preflight comes first and has an explicit stop on unsupported raw windows. Its
+screens make its prior weak. The input-only clock/support [preflight](results/b10_raw_support_20260923.json)
+passed with all selected input parquets verified; no raw target cache, paired head or native gate
+score has yet run. The complete preflight has an explicit stop on unsupported raw windows. Its
 [first filename-hash preflight](results/b10_prepare_hash_preflight_20260923.json) caught a copied
 digest typo before any raw file was read; the v3 amendment preserves that failure and the unchanged
 scientific protocol.

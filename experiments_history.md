@@ -3,6 +3,21 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — B10 two-rate raw-input support gate before any target or model:**
+The frozen first-fold OOF residual-head plan named **1,355** training and **200** sealed-gate
+shots, **343,935** full EFIT frames altogether, and excluded the original tail70. The input-only
+preflight SHA-verified all **1,555** source parquets, checked each raw clock and the established
+plasma-current time-origin correction against EFIT-centre interpolation, and found **zero**
+requested ±10 ms/0.5 ms bins beyond raw acquisition support. On gate200, **136 shots/29,024
+frames** use a 0.05 ms common magnetics clock and **64/14,118** use 0.5 ms; Ip is on its own
+0.5 ms clock throughout. A low-pass control reconstructed from the EFIT cadence would need
+**62,200** explicitly masked edge-value bins per signal across the selected shots, while the raw
+branch needs none. The scan took **62.41 s**, read no EFIT target column and fitted nothing.
+Verdict: the input availability gate passes; this is not evidence that subframe waveforms improve
+native S. The first prepare attempt had stopped on a copied filename-hash typo before reading a
+raw file; v3 preserves the same scientific protocol and records that correction.
+[Source, rate classes, hashes and stage timing](results/b10_raw_support_20260923.json).
+
 **2026-09-23 UTC — one fixed input-only li guard on the full-normal TRAIN oracle:**
 Before looking at guarded score, a strict **|li_final−li_source| > 0.05** rule was frozen: replace
 the whole corrected ψ frame with the original source ψ bytes, and leave q95/βN exact. On the
