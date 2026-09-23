@@ -3,6 +3,21 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — one fixed input-only li guard on the full-normal TRAIN oracle:**
+Before looking at guarded score, a strict **|li_final−li_source| > 0.05** rule was frozen: replace
+the whole corrected ψ frame with the original source ψ bytes, and leave q95/βN exact. On the
+same **100 original-TRAIN OOF shots/21,667 frames**, this reverted **433 frames** across
+**49 shots**, fraction **1.99843%**, just within the declared **2%** fallback ceiling. Native S
+was **0.991298** source, **0.992090** unguarded truth-assisted full-normal map, and **0.993144**
+guarded map. The guard recovered **+0.001054** over unguarded; its **+0.001846** vs source still
+missed the predeclared **+0.002600** investment margin. Raw D_LCFS **0.013430 → 0.007076**
+(unguarded **0.006741**), Consistency **0.969871 → 0.976140**, li R² **0.938689 → 0.937334**
+(unguarded **0.884629**); q95/βN bytes exact and native failures zero. Building the selected
+maps took **41.15 s**, one native scorer pass **69.48 s**. Verdict: the input-only mismatch is a
+useful validity signal, but this fixed truth-assisted contour family fails its own investment
+rule even after the safeguard. No threshold sweep, remaining OOF base fits, correction learner,
+evaluation-tail score or public action. [All native terms, fallback identities and hashes](results/oof_li_guard_20260923.json).
+
 **2026-09-23 UTC — did source-li compensation preserve its own input-only target?**
 Read-only on the same **100 original-TRAIN OOF shots/21,667 frames**, using only the saved source
 and full-normal ψ maps plus input grid geometry, the byte-pinned scorer extracted each map's own

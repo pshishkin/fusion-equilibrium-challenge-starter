@@ -38,10 +38,11 @@ model. The separate [full-normal, non-Fourier diagnostic](results/oof_full_norma
 showed some value in high-frequency normal detail but still missed the fixed investment margin.
 This constrained contour-normal+additive+source-li family is closed before more base fits or a
 correction learner; no rank or learner capacity sweep is justified by this TRAIN-only pilot.
-The [single li discrepancy guard](experiments/oof-li-guard-v2.json) remains unmeasured: it would
-use each map's own scorer-derived li to reject an explicitly counted frame correction, keeping
-the source map otherwise unchanged. It does not learn a contour or choose a threshold on the
-evaluation tail.
+The [single fixed li discrepancy guard](results/oof_li_guard_20260923.json) was then measured:
+it recovered much of li and some native score but still failed the frozen investment margin.
+This closes the constrained contour-normal operation on the TRAIN-only OOF pilot. A new path
+toward top three must be a genuinely different deployable model or information source, with its
+own train-only gate before the reserved evaluation tail.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the
