@@ -97,6 +97,9 @@ The earlier 35/35 screen remains a historical diagnostic. A separately
 found that the tested absolute Fourier targets preserved nearly all smooth contour variation
 but lost boundary detail under the scorer's distance measure. That fixed family stopped before any
 learner fit and did not inspect the reserved tail.
+A separate [train-only physical-contour PCA gate](experiments/direct-contour-pca-representation-review.json)
+is fixed for one comparison of two ranks on disjoint training shots. It is a representation
+check, with no base-model or correction-learner fit and no use of the reserved evaluation tail.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

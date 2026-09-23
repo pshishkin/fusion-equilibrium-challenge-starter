@@ -1,0 +1,62 @@
+{
+  "name": "direct-contour-physical-PCA-train-only-representation-gate",
+  "date_utc": "2026-09-23",
+  "status": "Frozen proposal for root math/protocol review only; do not read the second sample's true psi or fit PCA before approval",
+  "question": "Can an empirically learned low-dimensional physical contour basis retain localized diverted-boundary detail on different TRAIN shots where fixed K8/K16 smooth Fourier failed?",
+  "prior_negative": {
+    "preregistration": "experiments/direct-contour-representation-prereg.json",
+    "result": "results/direct_contour_representation_20260923.json",
+    "result_sha256": "c24e85c9f952d86c027c12dd7cb91c4526e5b5e7937b63050a85ececc591762c",
+    "verdict": "K8/K16 absolute Fourier stopped at its frozen physical Hausdorff gate on 100 compact TRAIN shots/300 probes; no model fit or evaluation-tail score occurred. This PCA family is a separately proposed single gate, not a Fourier mode escalation."
+  },
+  "fixed_split": {
+    "compact_artifact": "runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+    "compact_artifact_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+    "compact_train_shots": 5633,
+    "compact_train_ordered_names_sha256": "ef647476085c5a99db733b1d5ee032411d7ddb0244b838c6744aea9f4ea0b92f",
+    "compact_validation_shots": 1338,
+    "compact_validation_ordered_names_sha256": "789369be4636fee2717721bef8fb85ff30a83759e72866c2b6b4dd8efdfa624c",
+    "reserved_evaluation_tail_shots": 70,
+    "reserved_evaluation_tail_frames": 14830,
+    "reserved_evaluation_ordered_names_sha256": "6e2486e24cb5b31b1e3883f70b2ca514045963fb26cd27cf7acb3990f953cd4f",
+    "dataset_manifest": "my_experiments/diii_d_dataset.json",
+    "dataset_manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420",
+    "rule": "Only compact TRAIN files may supply contours for this basis and its representation check. The 1,338 model-validation shots and 70 reserved tail shots are untouched. A later learner fit on 5,633/1,338 still requires separate protocol review."
+  },
+  "basis_training_sample": {
+    "frozen_prior_manifest": "runs/direct-contour-representation-20260923/manifest.json",
+    "frozen_prior_manifest_sha256": "67f8e51cea30938e8cf95458c5dc2656a997763087742029a6e27957c1cfe812",
+    "selection": "Reuse exactly the prior train-only diagnostic's ordered first 100 eligible compact TRAIN filenames, full frame counts and fixed q=0.1/0.5/0.9 frame indices. The prior diagnostic did not persist contour arrays, so reread only these 300 already selected TRAIN labels; no adaptive reselection.",
+    "shots": 100,
+    "frames": 300,
+    "ordered_names_sha256": "ed1a198f536d3b48c13422a1c86b22e6d4e04cee45890304ae263ab599e606d7"
+  },
+  "representation_check_sample": {
+    "selection": "Continue in compact artifact TRAIN order strictly after the 100th basis-training shot. Use the next 100 shots with at least three finite strictly increasing permitted efit_times frames; inspect at most the next 200 filenames, fail if fewer than 100 qualify. For each, select floor(q*(n-1)+0.5) at q=0.1/0.5/0.9. No true psi, stored LCFS or score result may be inspected to choose these shots.",
+    "shots": 100,
+    "frames": 300,
+    "freeze_before_truth_read": "Write exact ordered names, full frame counts, three probe indices, source/parquet/scorer hashes and disjointness proof into an immutable ignored run manifest before reading any true psi from this second sample. The basis and check samples must not overlap."
+  },
+  "representation": {
+    "truth": "Use frozen scorer-native LCFS extraction from efit_psirz only on selected compact TRAIN shots and fixed frame probes, not the stored efit_lcfs_* columns. Use the same 512-point arclength physical (R,Z) contour, CCW orientation and max-R canonical start as the prior Fourier diagnostic. Missing/non-simple true contours are hard feasibility failures with shot/frame context, never skipped.",
+    "vector": "Flatten each physical contour as [R0,Z0,R1,Z1,...,R511,Z511] in float64, with all coordinates in metres. Fit one PCA on exactly the 300 basis-training vectors; center each coordinate using only that sample's mean, do not whiten or scale R against Z, and do not fit any component using the 300 representation-check vectors.",
+    "basis": "scikit-learn PCA(n_components=64, svd_solver='full', whiten=False), deterministic BLAS thread count four, random_state=0 recorded but unused by the full solver. Score reconstructions with the first 32 and first 64 components from this ONE fitted basis. The choices 32 and 64 are fixed before any second-sample target read; no rank sweep or basis refit.",
+    "measurements": "On the 300 held-within-TRAIN representation-check contours, report scorer-native symmetric physical Hausdorff median/p95/max, zero-crossing/simple-polygon count, out-of-grid count, and pooled held-vector L2 reconstruction ratio for 32 and 64 components. Training-sample reconstruction is descriptive only. Preserve all 600 shot/frame probe identities and per-probe measurements in ignored run evidence.",
+    "selection_gate": "Select the smallest of 32 and 64 components having zero non-simple or out-of-grid reconstructed polygons, median symmetric Hausdorff <=0.25 of the minimum DIII-D physical grid spacing and p95 <=0.5 grid spacing on the SECOND sample. If neither passes, close low-dimensional absolute contour PCA before full target extraction or a model fit. No test on validation1338 or reserved tail70, and no extra component count on this same sample.",
+    "no_learner_fit_or_score": true
+  },
+  "scorer_provenance": {
+    "frozen_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4",
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "diii_d_envelope_npz_sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1"
+  },
+  "estimated_cost_and_authorization": {
+    "source_of_estimate": "The prior 100-shot/300-frame Fourier train-only probe took 1.65 s preparation and 6.00 s extraction/projection at four workers. This PCA gate rereads 200 shots/600 frames plus one 300-by-1024 full SVD; budget below two minutes CPU and below 2 GB peak memory, with actual stage walls recorded.",
+    "required_before_run": "Root reviews this exact basis math, sample disjointness and threshold. Then implement and freeze code/source/sample manifest before opening the second sample's true psi. No full target cache, GPU fit, model selection on reserved tail, public prediction or submission is authorized by this review spec alone."
+  }
+}
