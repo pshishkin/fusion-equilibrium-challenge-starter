@@ -3,6 +3,28 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — fixed input-only contour-displacement learnability screen:**
+After the user delegated the split choice, the preregistered first **35** salt-0 tail shots
+(7,267 frames) supplied only supervised contour targets; last **35** (7,563 frames) used
+target-stripped inputs until predictions were sealed. K8 normal Fourier retained **93.915%**
+of training normal-displacement energy; median reconstruction RMS was **0.000494 m** against
+one grid cell **0.026562 m**, so the representation gate passed. One 216-feature weighted Ridge
+(α=35, no search) then predicted a contour correction. Frozen native S on the evaluation35:
+original best11 map **0.994876**; predicted additive map **0.994813** (**−0.000063**);
+that map plus deterministic source-li preservation **0.994841** (**−0.000035**).
+Raw D_LCFS was **0.009526 → 0.009702 → 0.009703** and Consistency
+**0.981311 → 0.981086 → 0.981245**. q95/βN were bit-identical and native extraction
+had zero failures. Target/representation work took **132.64 s**, Ridge fit **0.031 s**,
+input-only map construction **65.78 s**, source-li postprocessing **502.12 s**, and three
+sequential native scorers **52.01 / 51.77 / 51.98 s**. An initial frozen snapshot stopped at
+an import-path provenance check after some training parquet columns had been loaded, before
+target-contour extraction or a fit; the repaired v2 snapshot completed without changing the
+protocol. Verdict: **fails the fixed +0.001 screen gate**. Good low-dimensional target
+representation did not translate into useful prediction from these permitted inputs under this
+one Ridge specification. This repeatedly observed tail is not independent confirmation or a
+public-fold estimate. No K, α, feature, weight or model retry and no public submission.
+[Full native fields, source and filename hashes](results/contour_learnability_screen_20260923.json).
+
 **2026-09-23 UTC — source-derived li preservation after additive contour correction, full tail:**
 The fixed one-grid-cell inside-polygon taper and nine monotone a values targeted li computed
 from the ORIGINAL predicted ψ/C_source, not EFIT truth. On the same **70 shots/14,830 frames**,

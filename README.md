@@ -86,10 +86,11 @@ Its [fixed full-70 diagnostic](results/geometry_source_li_full70_20260923.json) 
 the contour-corrected input to this postprocessor remains truth-assisted, so the combined
 local score is not a deployable or public result.
 A [contour-displacement learnability screen](experiments/contour-displacement-learnability-review.json)
-is specified for review. Its input-only feature, contour-normal Fourier, fixed Ridge and additive
-map components have synthetic tests; there has been no competition target extraction, learner fit
-or score. The frozen runner in `tools/run_contour_learnability.py` separates source/filename
-preparation, supervised training, target-stripped predictions and native scoring.
+has now [completed](results/contour_learnability_screen_20260923.json). Its fixed input-only
+Fourier/Ridge learner passed the shape-representation check but did not improve the native score
+on the reused evaluation tail. The frozen runner in `tools/run_contour_learnability.py` separates
+source/filename preparation, supervised training, target-stripped predictions and native scoring;
+this result neither confirms nor rules out other learned contour corrections.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

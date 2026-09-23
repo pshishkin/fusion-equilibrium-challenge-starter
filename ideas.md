@@ -1,14 +1,11 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
-**2026-09-23 — learnable boundary correction still untested:**
-The truth-assisted contour-local additive correction and deterministic source-li compensation
-now have scorer-native full-70 mechanism results in [`experiments_history.md`](experiments_history.md).
-The compensation target uses only the original prediction, but C_true for the first contour
-correction remains unavailable at inference. An input-only predictor of contour
-displacement must be designed and paired across fresh split salts before anything here can
-become a deployable model. No such predictor has been fitted or submitted.
-One bounded [learnability-screen design](experiments/contour-displacement-learnability-review.json)
-is frozen for review only. It does not authorize fitting on the proposed new split.
+**2026-09-23 — deployable boundary correction remains open beyond the fixed Ridge screen:**
+The truth-assisted contour correction and source-li compensation establish local mechanism
+headroom, but the single preregistered [input-only K8/Ridge screen](results/contour_learnability_screen_20260923.json)
+failed its native-score gate on a reused evaluation tail. Any different representation or learner
+needs a new, independently planned test; adjusting this screen on the same 35 shots would not
+confirm a gain. No learned contour correction was promoted to a public artifact.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

@@ -145,13 +145,19 @@ no true labels, but its additive-map input still used C_true, so the combined sc
 deployable nor independent confirmation. Exact native fields, per-shot target errors and stage
 times: `results/geometry_source_li_full70_20260923.json`.
 A [bounded input-only contour learnability design](experiments/contour-displacement-learnability-review.json)
-is frozen for review. Synthetic-only feature, Fourier, Ridge and additive-map components exist in
-`tools/contour_learnability.py`; its proposed new 35/35 learner split has no competition target
-extraction, fit or score yet. The user delegated the split choice, and the fixed review protocol
-is approved for one diagnostic screen. `tools/run_contour_learnability.py` now enforces a frozen
-source and ordered-file manifest before target extraction, then separate train, input-only map,
-input-only profile and native score stages. Any score on this repeatedly used tail would be a
-screen, not independent confirmation.
+has completed exactly once after the user delegated its split choice. On first35/7,267 training
+frames, its fixed K8 normal Fourier representation retained **93.915%** of normal displacement
+energy and met the one-cell reconstruction gate. One per-shot-weighted Ridge used 216 permitted
+features; evaluation last35/7,563 frames were read through target-stripped input columns before
+predictions were sealed. Native S on those same 35 was **0.994876** for the original best11 map,
+**0.994813** for the predicted contour-local additive map (**−0.000063**), and **0.994841**
+after source-derived li preservation (**−0.000035**). The preregistered **+0.001000** screen gate
+failed. Raw D_LCFS increased **0.009526 → 0.009702 → 0.009703**; the submitted scalars were
+bit-identical and no native extraction failed. This fixed learner did not predict a useful
+correction on this reused tail; it does not refute all input-only contour learners, and the local
+fold gives no public-gain estimate. Frozen source, exact file hashes, native fields and stage
+timings: `results/contour_learnability_screen_20260923.json`. No hyperparameter retry or public
+candidate was made.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
