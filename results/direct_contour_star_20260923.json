@@ -1,0 +1,229 @@
+{
+  "amended_spec": "experiments/direct-contour-star-viability-v2.json",
+  "amended_spec_sha256": "c8154ed549970a52b5a15c7daf14ea4d45503591e30ade7253cfd2e36cbcfd8a",
+  "classification": "strict_centroid_star_shaped_gate_failed",
+  "collinear_ambiguous_rays": 0,
+  "date_utc": "2026-09-23",
+  "exactly_one_positive_intersection_rays": 153596,
+  "fixed_shifted_angle_rays": 153600,
+  "frames": 300,
+  "frozen_manifest_sha256": "0fdbd55c788b9fe5a5e75fb96089875b12c13ed7139cdc014296b95633d885c1",
+  "frozen_run": "runs/direct-contour-star-20260923",
+  "frozen_runner_sha256": "40e7dc1ffbeb1142ad7f47bb03ac5baa531473a36c12c4f1caf59fac52b03e16",
+  "frozen_source_files": 128,
+  "full_per_frame_record_sha256": "f1419aae5ef4f2ec0a8dec68914806abf9d0f6835c1b614d8c87a7159f93c736",
+  "minimum_positive_radius_m": 0.466277916738568,
+  "multiple_intersection_rays": 4,
+  "name": "train-only-centroid-star-shapedness-gate",
+  "no_log_radius_PCA_direct_model_fit_or_reserved_tail_access": true,
+  "original_review_spec": "experiments/direct-contour-star-viability-review.json",
+  "original_review_spec_sha256": "c18bc9cfd207740bcec25d26685a37a62958189d24a580979641bb7af1c5315e",
+  "pathological_train_frames": [
+    {
+      "centroid_RZ_m": [
+        1.6472608892705651,
+        -0.03675265154200628
+      ],
+      "centroid_edge_distance_m": 0.49032297051880186,
+      "centroid_inside": true,
+      "centroid_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_847ea9092f.parquet",
+      "first_pathology": {
+        "angle_index": 359,
+        "angle_radians": 4.411728745959104,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.1643539325957517,
+          1.1875633012801534,
+          1.207399565583409
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 221,
+      "minimum_positive_radius_m": 0.49032867105311434,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "posthoc_intersected_segments_radius_m_segment_fraction": [
+        [
+          358,
+          1.1643539325957517,
+          0.32277699970242363
+        ],
+        [
+          355,
+          1.1875633012801534,
+          0.8719461523208664
+        ],
+        [
+          352,
+          1.207399565583409,
+          0.06606064530204626
+        ]
+      ],
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "centroid_RZ_m": [
+        1.6475490043636893,
+        -0.03701845971388857
+      ],
+      "centroid_edge_distance_m": 0.5395237562406132,
+      "centroid_inside": true,
+      "centroid_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_7b5149d989.parquet",
+      "first_pathology": {
+        "angle_index": 371,
+        "angle_radians": 4.558990901596125,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.0778250237433247,
+          1.0981758070944996,
+          1.1166784101048386
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 216,
+      "minimum_positive_radius_m": 0.5395286088434139,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "posthoc_intersected_segments_radius_m_segment_fraction": [
+        [
+          368,
+          1.0778250237433247,
+          0.24603326679445178
+        ],
+        [
+          366,
+          1.0981758070944996,
+          0.059721783618683445
+        ],
+        [
+          362,
+          1.1166784101048386,
+          0.2686033906165512
+        ]
+      ],
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "centroid_RZ_m": [
+        1.6074783791396918,
+        -0.05062839227308478
+      ],
+      "centroid_edge_distance_m": 0.570995574930419,
+      "centroid_inside": true,
+      "centroid_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_ac9573e5c4.parquet",
+      "first_pathology": {
+        "angle_index": 358,
+        "angle_radians": 4.399456899656019,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.1079992408050732,
+          1.1084524436989485,
+          1.1138637669543416
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 159,
+      "minimum_positive_radius_m": 0.5709963163403792,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "posthoc_intersected_segments_radius_m_segment_fraction": [
+        [
+          360,
+          1.1079992408050732,
+          0.02341759789372044
+        ],
+        [
+          359,
+          1.1084524436989485,
+          0.9709123144597241
+        ],
+        [
+          352,
+          1.1138637669543416,
+          0.06569994449641212
+        ]
+      ],
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "centroid_RZ_m": [
+        1.6356139617698742,
+        -0.033986041711694066
+      ],
+      "centroid_edge_distance_m": 0.5491087568015647,
+      "centroid_inside": true,
+      "centroid_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_71fe5656a3.parquet",
+      "first_pathology": {
+        "angle_index": 369,
+        "angle_radians": 4.534447208989955,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.0352649643531688,
+          1.0433056958736964,
+          1.0433834610340285
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 192,
+      "minimum_positive_radius_m": 0.5491120020983432,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "posthoc_intersected_segments_radius_m_segment_fraction": [
+        [
+          365,
+          1.0352649643531688,
+          0.31498118033295236
+        ],
+        [
+          364,
+          1.0433056958736964,
+          0.36244615791002954
+        ],
+        [
+          361,
+          1.0433834610340285,
+          0.09969949749035457
+        ]
+      ],
+      "shared_vertex_duplicate_hits_deduplicated": 1,
+      "zero_intersection_angles": 0
+    }
+  ],
+  "posthoc_intersection_attribution": "The four failing rays were re-examined on the SAME TRAIN frames only. Their three hits lie on distinct polygon segments with interior segment parameters and physically distinct radii; they are not shared-vertex dedup artifacts. No threshold, angle grid or training sample was changed after this diagnosis.",
+  "prior_train_sample_manifest_sha256": "67f8e51cea30938e8cf95458c5dc2656a997763087742029a6e27957c1cfe812",
+  "scorer_source_sha256": {
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "diii_d_envelope_npz_sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4"
+  },
+  "shots": 100,
+  "source_commit": "df5c7e4",
+  "strictly_inside_centroids": 300,
+  "timing_seconds": {
+    "prepare": 1.0016355850093532,
+    "probe": 4.24485466000624,
+    "sum": 5.246490245015593
+  },
+  "train_sample_ordered_names_sha256": "ed1a198f536d3b48c13422a1c86b22e6d4e04cee45890304ae263ab599e606d7",
+  "verdict": "The fixed centroid-based log-radius chart is not globally valid on this first100 TRAIN-shot sample. Stop before any log-radius PCA, third100 read, model fit or 70-tail score. This refutes only this single-chart centroid representation, not all topology-safe contour models.",
+  "zero_intersection_rays": 0
+}

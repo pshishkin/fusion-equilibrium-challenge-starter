@@ -203,10 +203,14 @@ a DVC branch points bulk data at SSH remotes. Its repository BSD license is not 
 data-wide reuse grant, and no disjointness proof exists. No bulk access, public/private shot
 fingerprinting, model fit or submission was attempted.
 The next bounded contour question is a [train-only centroid-ray viability gate](experiments/direct-contour-star-viability-v2.json)
-on the already selected first 100 compact TRAIN shots/300 frames. A half-bin angular amendment
-avoids deterministic vertex hits. This is only a test of whether one positive radius exists for
-every ray from each true contour's centroid; the true centroid is a training target, never an
-inference feature. No log-radius basis or learner is fitted without review of this gate.
+on the already selected first 100 compact TRAIN shots/300 frames. The half-bin angular amendment
+avoided deterministic vertex hits, but the [fixed gate](results/direct_contour_star_20260923.json)
+failed: all **300** true polygon centroids were strictly inside, yet **4 of 153,600** rays on
+four distinct frames each had three physical boundary intersections. The other 153,596 rays had
+exactly one; there were no zero or collinear-ambiguous rays. A read-only check found distinct,
+interior segment crossings rather than shared-vertex duplicates. The true centroid is a training
+target, never an inference feature; this single-chart log-radius construction is now stopped
+before PCA, a third sample, learner fit or use of the reserved tail.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

@@ -3,6 +3,18 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — fixed centroid-ray star-shapedness of scorer-native LCFS:**
+The same **100 compact TRAIN shots/300 fixed frames** supplied true scorer LCFS polygons; the
+half-bin-shifted 512-ray construction froze its centroid, intersection and shared-vertex rules
+before measurement. All **300** centroids were strictly inside. **153,596/153,600** rays had one
+unique positive hit, but four rays on four different shots had **three**; zero rays had no hit or
+a collinear ambiguity. Each failing ray intersected three actual polygon segments at interior
+positions, so endpoint deduplication cannot erase the concavity. Preparation took **1.00 s** and
+the probe **4.24 s**. Verdict: the strict 100% star-shaped gate fails for this centroid-origin
+single-chart representation; no log-radius PCA, third TRAIN sample, learner fit, evaluation-tail
+score or public submission. This does not refute topology-safe contour modeling generally.
+[Per-frame identities and source hashes](results/direct_contour_star_20260923.json).
+
 **2026-09-23 UTC — single public EFIT-AI HDF5 sample schema/access audit:**
 GitLab project 36523277 exposes one checked-in DIII-D example, `179565.h5` (**19,572,048 bytes**, SHA
 `d7764e6a…`), at a pinned public commit. The file has **13** equilibrium/Thomson times,
