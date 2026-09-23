@@ -93,9 +93,10 @@ source/filename preparation, supervised training, target-stripped predictions an
 this result neither confirms nor rules out other learned contour corrections.
 For future learners, the user has reserved the original salt-0 score tail entirely for evaluation.
 The earlier 35/35 screen remains a historical diagnostic. A separately
-[predeclared train-only contour representation check](experiments/direct-contour-representation-prereg.json)
-will test whether an absolute contour target can be compressed before fitting a new input-only
-learner on the other shots; it does not train a model or inspect the reserved tail.
+[predeclared train-only contour representation check](results/direct_contour_representation_20260923.json)
+found that the tested absolute Fourier targets preserved nearly all smooth contour variation
+but lost boundary detail under the scorer's distance measure. That fixed family stopped before any
+learner fit and did not inspect the reserved tail.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

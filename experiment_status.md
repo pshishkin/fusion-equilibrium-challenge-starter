@@ -166,9 +166,14 @@ permitted inputs is the current *unfitted* candidate: its proposed labels come f
 true LCFS on the 5,633 train and 1,338 validation shots only, with no base-model prediction in
 its training target or features. This avoids treating a base model's in-sample residuals as
 independent. A [fixed train-only Fourier representation calibration](experiments/direct-contour-representation-prereg.json)
-will inspect just three frames each from the first 100 eligible train shots before a full target
-cache, architecture or GPU fit is considered. No 70-tail score or public prediction follows from
-that diagnostic without separate review.
+inspected three fixed frames each from the first 100 eligible train shots. Both predeclared
+absolute-contour Fourier targets failed their physical Hausdorff gate: K8 median/p95 were
+**1.627/1.940 grid cells**, K16 **0.799/1.070 cells**, despite centered-shape L² energy retention
+**99.9927%/99.9990%**. All reconstructed polygons stayed simple and inside the grid. This is a
+representation failure for these two low-dimensional absolute Fourier choices, not a model-fit
+result or a general contour impossibility. No full target cache, architecture, GPU fit, 70-tail
+read/score or public prediction followed. The fixed sample, frozen source/scorer identities and
+timings are in `results/direct_contour_representation_20260923.json`.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

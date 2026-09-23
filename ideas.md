@@ -6,6 +6,9 @@ headroom, but the single preregistered [input-only K8/Ridge screen](results/cont
 failed its native-score gate on a reused evaluation tail. Any different representation or learner
 needs a new, independently planned test; adjusting this screen on the same 35 shots would not
 confirm a gain. No learned contour correction was promoted to a public artifact.
+The [train-only absolute Fourier gate](results/direct_contour_representation_20260923.json)
+then rejected both predeclared low-dimensional smooth targets before another fit; its result says
+that high L² retention does not preserve the localized separatrix detail measured by Hausdorff.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

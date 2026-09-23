@@ -3,6 +3,19 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — train-only absolute LCFS Fourier representation gate:**
+Following the user decision to reserve all original 70 tail shots for evaluation only, a frozen
+calibration extracted scorer-native true LCFS on **300 fixed frames from 100 compact TRAIN shots**.
+No base-model prediction or held-tail label was read. K8 reconstruction retained **99.9927%**
+of pooled centered-shape L² energy but had median/p95 symmetric Hausdorff error
+**0.043215/0.051528 m** (**1.627/1.940 grid cells**); K16 retained **99.9990%** but still
+missed by **0.021218/0.028415 m** (**0.799/1.070 cells**). Both had zero self-intersecting or
+out-of-grid reconstructed polygons. Neither met the frozen median≤0.25-cell and p95≤0.5-cell
+gate. Preparation took **1.65 s** and the train-only probe **6.00 s**. Verdict: these two smooth
+absolute Fourier targets erase scorer-sensitive boundary detail despite excellent L² fidelity;
+stop this family before any full target extraction or fit. This is not an S score or a general
+negative for learned contours. [Frozen sample, scorer hashes and per-K results](results/direct_contour_representation_20260923.json).
+
 **2026-09-23 UTC — fixed input-only contour-displacement learnability screen:**
 After the user delegated the split choice, the preregistered first **35** salt-0 tail shots
 (7,267 frames) supplied only supervised contour targets; last **35** (7,563 frames) used
