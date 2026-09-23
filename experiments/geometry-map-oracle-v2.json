@@ -1,0 +1,88 @@
+{
+  "name": "geometry-map-truth-assisted-constrained-corrections",
+  "date_utc": "2026-09-23",
+  "status": "Root-reviewed amendment to the frozen v1 design; approved for three-shot correctness smoke only, no full-70 correction or model fit",
+  "amends_spec": "experiments/geometry-map-oracle.json",
+  "amends_spec_sha256": "a5d290405032ffc8056dae2a8275728dd30dfd24e18fbd4a0368931c7445aa0c",
+  "amendment_reason": "Make clear that these are constrained truth-assisted candidate families, not universal geometry ceilings; make score thresholds investment rules rather than claims about public-fold impossibility; add exact a=0 map-bit control and separate numerical infeasibility from a scientific negative.",
+  "question": "Can these two fixed truth-assisted map-space correction families move contour geometry or interior li enough to justify later input-only model research?",
+  "scope": "Constrained mechanism gate only, not an upper bound over every geometry correction. The true psi of labeled DIII-D training-corpus shots may determine a correction, but no true values or corrected arrays may enter a public submission or deployable predictor.",
+  "input": {
+    "prediction": "runs/historical-five-geometry-20260922/historical_psi_eleven_qb_eight.npz",
+    "prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+    "prediction_record": "runs/historical-five-geometry-20260922/historical_psi_eleven_qb_eight.json",
+    "files_json": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+    "files_json_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+    "data_config": "diii_d_train",
+    "data_dir": "../downloaded_huggingface/hf_dataset",
+    "source_dtype": "float32 for psirz, q95 and betaN",
+    "fit_overlap_count": 0,
+    "local_control_S_on_full_70": 0.99508,
+    "source_of_truth": "Stored efit_psirz on these labeled training-corpus shots only; oracle targets are scorer-derived LCFS and f_j(psi_true), not stored scalar labels"
+  },
+  "smoke": {
+    "selection_rule": "First three files in the pinned 70-shot score order, without looking at oracle outcomes",
+    "files": [
+      "d3d_shot_6f6a0f6402.parquet",
+      "d3d_shot_18269a24ec.parquet",
+      "d3d_shot_17b33ca9c3.parquet"
+    ],
+    "frames_per_shot": [332, 9, 237],
+    "total_frames": 578,
+    "purpose": "Correctness/topology/finite-map gate only; pooled S on three shots is not a quality estimate. Classify failure as numerical infeasibility of this fixed construction or a valid-map score outcome.",
+    "execution_gate": "Only after root reviews and accepts this spec and the math; no full-70 pass or fitting at this stage"
+  },
+  "common_rules": {
+    "submitted_scalars": "q95 and betaN must be bit-identical float32 arrays from the input prediction",
+    "map_dtype": "finite float32 after one final cast; no float16 precision confound",
+    "reference_code": "Use the scorer's own frozen extract_lcfs, derive_frame and internal_inductance on true and predicted maps. Never replace a native derived output directly.",
+    "scoring": "Rescore actual corrected psi arrays through the unmodified frozen local_score.py on exactly the same ordered filenames as the original control, one native pass per arm",
+    "failures": "A missing/degenerate contour, nonfinite output, invalid topology or shape mismatch raises with shot and frame; never silently skip a frame or substitute the true map. Record a validity exception as numerical infeasibility, not evidence that the geometry mechanism is useless."
+  },
+  "A_contour_warp": {
+    "hypothesis": "This one smooth spatial warp family can align predicted and true LCFS contours and move D_LCFS/shape without replacing the full flux map; its failure does not refute other warp families",
+    "contours": "Extract scorer-native 512-point C_pred and C_true on every frame. Reject missing, nonsimple or oppositely oriented geometry unless true contour reversal restores common orientation.",
+    "correspondence": "Match equal-arclength samples by the single cyclic shift minimizing summed squared physical (R,Z) displacement; break ties by the lowest shift. No star-shaped or radial-contour assumption.",
+    "warp": "Use 64 uniformly spaced matched boundary controls, the predicted magnetic-axis anchor with zero displacement and 16 fixed grid-edge anchors (four corners plus 1/4, 1/2 and 3/4 along every edge) with zero displacement. Fit a 2-D thin-plate-spline RBF displacement in unit-normalized grid coordinates, smoothing=0.0001, degree=1. Let W(x)=x+u(x) map predicted coordinates to true-contour coordinates.",
+    "resampling": "For each fixed output grid point solve W(x_source)=x_output by at most 20 fixed-point iterations, tolerance 0.00001 of the smaller grid spacing; bilinearly sample original psi at x_source with bounds_error=True, then cast once to float32.",
+    "validity": "Require boundary controls unique, both closed contours simple, maximum matched displacement <= 4 grid diagonals, det(grad W)>0.2 on every grid cell, inverse convergence and in-grid sampling. Any violation fails the arm for that frame and the smoke as a whole.",
+    "truth_used": "Only C_true; no true interior psi values, li target, stored q95 or betaN",
+    "report": "Native S, R2_psi, D_LCFS, all seven consistency R2, LCFS failures and warp validity; no claim of a deployable predictor"
+  },
+  "B_interior_li_remap": {
+    "hypothesis": "This nine-point nonlinear monotone remap family can change li through |grad psi| while preserving the axis and LCFS level sets in the continuum; its failure does not refute other profile corrections",
+    "normalization": "With scorer sign s and predicted axis/LCFS, phi=s*psi, u=(phi_axis-phi)/(phi_axis-phi_sep). phi_sep is the median bilinear phi sample on the scorer-extracted predicted contour; require positive axis-to-separatrix span, all finite contour samples and max deviation from the median <=0.001 of that span.",
+    "family": "For 0<=u<=1 use g_a(u)=u+a*u^2*(1-u)^2; outside this interval use g_a(u)=u. Construct phi_new=phi_axis-(phi_axis-phi_sep)*g_a(u), psi_new=s*phi_new. This fixes g(0)=0, g(1)=1 and endpoint first derivatives. On the fixed candidate grid |a|<=2, the analytic minimum derivative is >0.615.",
+    "candidate_grid": [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0],
+    "oracle_choice": "Per frame, evaluate scorer-native internal_inductance on each candidate map using the original predicted contour. Choose the candidate with minimum absolute error to scorer-derived li(psi_true); ties choose smallest |a| then lowest a. This is a truth-assisted ceiling, not a deployable parameter.",
+    "validity": "Require all nine maps finite float32, strict monotonicity on [0,1], the a=0 map bit-exact with the source, same O-point within 0.01 grid spacing, no new LCFS extraction failure and symmetric Hausdorff distance from the original predicted contour <=0.1 of the smaller grid spacing. A violation fails that frame and the smoke.",
+    "truth_used": "Only scorer-derived li(psi_true); no true contour alignment or true map replacement",
+    "report": "Native S, li R2, R2_psi, D_LCFS and every other consistency R2; report fraction of frames whose true li lies outside the nine-candidate li range"
+  },
+  "scorer_provenance": {
+    "root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "campaign_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4",
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "jobs_for_native_score": 4
+  },
+  "arithmetic_headroom": {
+    "source": "results/historical_eleven_blocks_20260922.json for local terms; official Codabench details for public 941038",
+    "local_D_LCFS_plus_four_contour_scalars_max_S_if_perfect": 0.002843,
+    "local_li_only_max_S_if_perfect": 0.000789,
+    "public_D_LCFS_plus_four_contour_scalars_max_S_if_perfect": 0.002984,
+    "public_li_only_max_S_if_perfect": 0.001145,
+    "public_gap_from_float32_941038_to_third_at_0_9954": 0.001318,
+    "interpretation": "These are true arithmetic headroom bounds for individually perfect metric terms, not achievable gains or bounds on public improvement from the fixed corrections. Geometry corrections can hurt R2_psi and other terms."
+  },
+  "after_smoke_decision": {
+    "A": "No full-70 correction unless all 578 smoke frames pass topology/inverse/finite checks. If a later full-70 valid-map net Delta S is below the current public third-place gap, deprioritize investment in this exact warp family; local and public folds are different, so this is not an impossibility theorem.",
+    "B": "No full-70 correction unless all smoke frames preserve contour/axis constraints and a=0 exact bits. The local li-only arithmetic headroom is below the current public gap, but public-fold improvement cannot be bounded by local Delta S. Treat this exact family as secondary unless later full-70 li contribution reaches at least 0.000395 S (half local li headroom) with positive net S.",
+    "model_training": "Never from this mechanism smoke; any deployable input-only learner would require a separate pre-registered paired-salt confirmation",
+    "cost_estimate": "The measured full-70 native scorer takes about 98 seconds at CPU4 per arm; first-three-shot smoke covers 578 frames and may still pay process-start overhead. Nine li functional evaluations per frame plus TPS solves can dominate map construction; measure smoke wall before budgeting a full-70 oracle. No GPU fit is part of this stage."
+  }
+}

@@ -68,6 +68,9 @@ by frame position. Its native same-shot results and separate old-five addition e
 and [`results/historical_five_position_metric_20260922.json`](results/historical_five_position_metric_20260922.json).
 The conditioned member improves alone but reduces both tested ensembles against its matched
 pooled control; it is not promoted.
+Two truth-assisted map-space geometry mechanisms are preregistered, with no smoke or fit result
+yet: [contour warp and interior li remap](experiments/geometry-map-oracle-v2.json). They are
+constrained mechanism checks on labeled DIII-D training-corpus shots, not public submissions.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

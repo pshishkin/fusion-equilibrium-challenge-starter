@@ -85,8 +85,14 @@ above. The local/public precision penalties differ by only +0.000025 in S.
 The initial spec's public source SHA transcription was corrected in an explicit v2 amendment
 before public conversion. Exact evidence: `grids/best11-f16-public-probe.json`,
 `grids/best11-f16-public-probe-v2.json`, `results/best11_f16_probe_20260923.json` and
-`results/private_hf_f16_probe_20260923.json` and
-`results/best11_f16_public_20260923.json`. No geometry oracle test has begun.
+`results/private_hf_f16_probe_20260923.json`, plus
+`results/best11_f16_public_20260923.json`. No geometry mechanism smoke has begun.
+
+Two constrained truth-assisted geometry corrections are frozen for a correctness smoke on the
+first three pinned, fit-excluded DIII-D training-corpus shots: a contour-alignment map warp and
+an interior flux-level li remap. They are not universal oracle ceilings, do not alter submitted
+q95/βN and cannot use public labels. The reviewed amended spec is
+`experiments/geometry-map-oracle-v2.json`; no full-70 correction or model fit has been run.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

@@ -1,5 +1,14 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
+**2026-09-23 — constrained truth-assisted geometry mechanism gate (not yet tested):**
+[`experiments/geometry-map-oracle-v2.json`](experiments/geometry-map-oracle-v2.json)
+predeclares two separate map-space corrections on already labeled, fit-excluded DIII-D training
+shots: a smooth contour-alignment warp for LCFS/shape, and a monotone interior flux-level remap
+for scorer-derived li. Both keep submitted q95/βN bits fixed and must be rescored as actual ψ maps
+through the native scorer. Their use of true ψ makes them mechanism probes, not deployable models
+or universal geometry upper bounds. The first three pinned shots are a correctness smoke only;
+no full-70 oracle or model training is authorized by this entry.
+
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the
 working compact ensemble.

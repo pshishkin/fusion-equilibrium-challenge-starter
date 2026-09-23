@@ -249,6 +249,11 @@ A candidate's individual score, replacement effect and contribution when ADDED t
 ensemble are different measurements. Report the baseline, candidate and augmented ensemble on the
 same unseen shots with explicit artifact weights. A cross-salt ensemble requires a common holdout
 excluded before every fit; the ordinary per-salt tail is not enough.
+Truth-assisted corrections built from labeled ψ are mechanism probes only. Score their actual
+corrected map arrays through the unmodified native scorer, with independent submitted scalars
+unchanged; never override LCFS or derived-function outputs or package those arrays as a public
+prediction. A failed numerical validity gate for a fixed correction family is not evidence that
+all geometry corrections fail, and a local-fold result does not bound a different public fold.
 
 When a replacement member comes from another artifact, keep the unchanged members fixed and score
 both the original-member control and the replacement through the same decoded-map averaging path.
