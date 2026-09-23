@@ -159,6 +159,17 @@ fold gives no public-gain estimate. Frozen source, exact file hashes, native fie
 timings: `results/contour_learnability_screen_20260923.json`. No hyperparameter retry or public
 candidate was made.
 
+For **future** contour or base-model fits, the user has reserved all original salt-0 tail 70
+shots/14,830 frames as evaluation-only. The completed 35/35 screen above is preserved as a
+historical diagnostic, not reused as a fitting protocol. A direct absolute-contour learner from
+permitted inputs is the current *unfitted* candidate: its proposed labels come from scorer-native
+true LCFS on the 5,633 train and 1,338 validation shots only, with no base-model prediction in
+its training target or features. This avoids treating a base model's in-sample residuals as
+independent. A [fixed train-only Fourier representation calibration](experiments/direct-contour-representation-prereg.json)
+will inspect just three frames each from the first 100 eligible train shots before a full target
+cache, architecture or GPU fit is considered. No 70-tail score or public prediction follows from
+that diagnostic without separate review.
+
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
 reject stale half-precision caches; an old-control writer round-trip reproduced the original

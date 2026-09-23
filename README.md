@@ -91,6 +91,11 @@ Fourier/Ridge learner passed the shape-representation check but did not improve 
 on the reused evaluation tail. The frozen runner in `tools/run_contour_learnability.py` separates
 source/filename preparation, supervised training, target-stripped predictions and native scoring;
 this result neither confirms nor rules out other learned contour corrections.
+For future learners, the user has reserved the original salt-0 score tail entirely for evaluation.
+The earlier 35/35 screen remains a historical diagnostic. A separately
+[predeclared train-only contour representation check](experiments/direct-contour-representation-prereg.json)
+will test whether an absolute contour target can be compressed before fitting a new input-only
+learner on the other shots; it does not train a model or inspect the reserved tail.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

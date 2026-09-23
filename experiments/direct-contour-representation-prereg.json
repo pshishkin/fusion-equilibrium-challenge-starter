@@ -1,0 +1,60 @@
+{
+  "name": "direct-contour-absolute-fourier-train-only-calibration",
+  "date_utc": "2026-09-23",
+  "status": "Frozen before one CPU-only true-contour representation calibration; no learner fit, base-model prediction, score-tail read, GPU fit or public submission",
+  "user_evaluation_rule": "All original salt-0 tail 70 shots and 14,830 frames remain evaluation-only for every future fitted base or correction model. The prior 35/35 diagnostic remains a historical screen and is superseded for future protocols.",
+  "question": "Can a low-dimensional absolute physical LCFS representation retain scorer-native true DIII-D boundaries accurately enough to justify an input-only learner trained on the remaining 6,971 shots?",
+  "split_provenance": {
+    "compact_artifact": "runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+    "compact_artifact_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+    "compact_score_files": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+    "compact_score_files_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+    "train_shots": 5633,
+    "train_ordered_names_sha256": "ef647476085c5a99db733b1d5ee032411d7ddb0244b838c6744aea9f4ea0b92f",
+    "validation_shots": 1338,
+    "validation_ordered_names_sha256": "789369be4636fee2717721bef8fb85ff30a83759e72866c2b6b4dd8efdfa624c",
+    "fit_eligible_union_shots": 6971,
+    "fit_eligible_union_ordered_names_sha256": "051694af68fb0b353c548a69face0d102888933da4b8770a1337ea6285d344cd",
+    "evaluation_only_tail_shots": 70,
+    "evaluation_only_tail_frames": 14830,
+    "evaluation_only_tail_ordered_names_sha256": "6e2486e24cb5b31b1e3883f70b2ca514045963fb26cd27cf7acb3990f953cd4f",
+    "overlap_count": 0,
+    "dataset_manifest": "my_experiments/diii_d_dataset.json",
+    "dataset_manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420"
+  },
+  "sample": {
+    "eligibility": "Inspect only the compact artifact's TRAIN filenames in their saved order. A shot is eligible if its permitted efit_times has at least three finite, strictly increasing frames. Select the first 100 eligible shots, without looking at psi or any derived target; inspect at most the first 200 filenames and abort if fewer than 100 qualify.",
+    "shot_count": 100,
+    "frame_quantiles": [0.1, 0.5, 0.9],
+    "index_formula": "For n frames and each fixed quantile q, select floor(q*(n-1)+0.5). Require the three indices to be distinct; if a metadata-eligible shot violates this, fail rather than substitute another shot.",
+    "expected_probes": 300,
+    "freeze_before_truth_read": "Publish the complete ordered 100 basenames, each full frame count and three indices, input parquet/source hashes, scorer hashes and source snapshot into an ignored immutable run directory before opening efit_psirz. The tail70 filenames cannot appear in the sample."
+  },
+  "truth_and_representation": {
+    "truth": "Use the frozen scorer's LCFS extraction from true efit_psirz on only the selected 100 TRAIN shots and three fixed frames per shot, with the DIII-D envelope mask and physical efit_grid_R/Z. Never use the stored efit_lcfs_* contour or a scored-tail label. Missing/non-simple true contour is a recorded feasibility failure, not a skipped frame.",
+    "canonicalization": "Orient the 512-point arclength-sampled physical (R,Z) polygon counterclockwise using signed area; then cyclically roll the first point to maximum R with lowest-index tie. Reject nonfinite, zero-area or self-crossing polygons.",
+    "fixed_candidates": [8, 16],
+    "encoding": "For each coordinate independently, keep the real DC and complex Fourier modes 1..K of the canonical 512-point contour, set higher modes to zero, inverse-transform to a physical polygon; K8 has 34 real coefficients, K16 has 66. No contour truth enters input features or a public prediction.",
+    "measurements": "For each K, report pooled centered-shape energy retained (subtract the per-frame contour centroid before the Fourier energy), median/p95/max scorer-native symmetric physical Hausdorff distance from reconstructed polygon to C_true, simple-polygon fraction, within-grid fraction and per-frame invalid reasons. Preserve exact shot/frame order and all 300 rows in ignored run evidence; track a small summary JSON.",
+    "selection_gate": "Choose the smallest K whose reconstruction has zero non-simple/out-of-grid frames, median Hausdorff <= 0.25 minimum physical grid cell and p95 Hausdorff <= 0.5 cell on these TRAIN-ONLY probes. If neither K passes, stop this absolute-Fourier family before full target extraction or fit. No K choice uses validation1338 or evaluation70 outcomes.",
+    "interpretation": "This is geometric representation feasibility only, not a score gain, learner fit, public-fold bound or proof that the coefficients are predictable from permitted inputs."
+  },
+  "scorer_provenance": {
+    "frozen_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4",
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "diii_d_envelope_npz_sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1"
+  },
+  "cost_and_next_gate": {
+    "jobs": 4,
+    "anticipated_cpu_time": "Two to five minutes for 100 selected parquets/300 scorer LCFS extractions plus complete pinned-manifest validation; measure actual stages. No GPU or full corpus target cache.",
+    "if_representation_passes": "Propose, then root-review/freeze an exact direct contour learner on compact train5633/validation1338 with all tail70 reserved only for its final native evaluation. Inputs must be permitted 208 baseline features plus shot phase (width209), with no base-model map, contour or residual target in learner fit. No full extraction/model fit/public run follows automatically from this calibration.",
+    "no_large_download": true,
+    "no_model_fit": true,
+    "no_public_or_eval70_labels": true
+  }
+}

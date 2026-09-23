@@ -191,6 +191,15 @@ nowhere else.
 Non-overlap is checked against the **filenames** stored in the artifact — both `train_files` and
 `val_files` — not by index arithmetic, so the check stays correct when the data directory grows.
 
+The user has reserved the original salt-0 70-shot tail for evaluation only in future work. Do not
+use any of those files for training a base model or correction learner, validation, early stopping,
+representation selection or other fit decisions. The earlier 35/35 contour screen used part of
+that tail for training; preserve it as historical evidence, but do not repeat its split. A new
+learner may use the remaining 6,971 shots with a declared train/validation split. If it learns a
+residual against a base model, its supervised residuals need genuinely out-of-fold base predictions;
+alternatively, learn an absolute truth target from permitted inputs alone and use the base
+prediction only after learner inference.
+
 ## How we run and compare experiments
 
 `experiments/protocols.json` is the machine-readable source of data shares:
