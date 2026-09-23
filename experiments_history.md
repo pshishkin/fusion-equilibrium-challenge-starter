@@ -3,6 +3,24 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — fixed half-contour mechanism gate before any direct-polygon MLP:**
+On first **200 compact validation shots/44,911 full frames**, the unchanged compact two-member
+source had native **S 0.991623**. Replacing each predicted contour displacement with a fixed
+**half** shift toward scorer-native TRUE validation LCFS, through actual additive ψ maps, gave
+**0.993561**; fixed source-derived li preservation gave **0.993861**, a preregistered Stage-0
+effect **+0.002238** and a PASS over +0.001300. Raw D_LCFS **0.012443 → 0.006948**;
+Consistency **0.970709 → 0.979143**; ψ **0.999732 → 0.999734**; q95/βN bytes exact.
+All **44,911** maps had native LCFS, no source fallback or derived failure, and the scorer's
+corrected-to-intended-contour distance had median/p95 **0.158/0.981 grid cells**. Work took
+**3.35 s** frozen preparation, **53.69 s** input-only compact inference,
+**1,414.10 s** contour/profile construction and **145.12/146.16/145.92 s** for the three
+sequential native scorer passes. Verdict: this fixed operation has selection-window mechanism
+headroom sufficient to warrant testing one full-resolution input-only contour learner. True
+contours were used to construct the treatment; the compact source already used these validation
+shots for early stopping. The result is neither an achievable model gain nor a public-fold
+forecast. No new MLP, tail70 evaluation or submission followed.
+[Full native fields, hashes and stage timing](results/direct_full_contour_stage0_20260923.json).
+
 **2026-09-23 UTC — true magnetic O-point as fixed polar LCFS origin:**
 On the same **100 compact TRAIN shots/300 fixed frames**, the scorer-native O-point of each true
 ψ map replaced the polygon centroid; the 512 shifted ray angles and tolerances were unchanged

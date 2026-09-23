@@ -233,8 +233,20 @@ source fallback and final once-only tail protocol are in the review file; no Sta
 new model fit is yet claimed.
 The Stage-0 runner now has separate source-freeze, isolated compact prediction, truth-assisted
 half-contour construction and native-score phases. Its code is correctness-checked but no
-validation score has yet been read; any Stage-0 result must be labeled selection-only because
-the compact artifact already used that validation window for early stopping.
+independent validation score has been read: its [fixed Stage-0 result](results/direct_full_contour_stage0_20260923.json)
+on first200 compact validation shots/44,911 frames passed the preregistered investment gate.
+Native S was **0.991623** for the compact source, **0.993561** for the truth-assisted half map,
+and **0.993861** after input-only source-li preservation (**+0.002238** versus source).
+Raw D_LCFS fell **0.012443 → 0.006948** and Consistency rose **0.970709 → 0.979143**;
+ψ and q95/βN were essentially unchanged, with scalar bytes exactly identical. There were zero
+source fallbacks and native extraction failures; the corrected map's contour was within median
+**0.158**, p95 **0.981** physical grid cells of its intended half-blend. Preparation took
+**3.35 s**, compact inference **53.69 s**, map plus li construction **1,414.10 s**, and three
+native scorer passes **145.12/146.16/145.92 s**. This uses TRUE validation contours and the
+compact source had already early-stopped on those shots: it demonstrates constrained local
+mechanism headroom, not a learned correction, independent validation or public gain. The next
+work is the single preregistered input-only MLP on train5,633/validation1,338; all original
+tail70 remains evaluation-only and no GPU fit has yet begun.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

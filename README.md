@@ -127,6 +127,10 @@ first gate is a truth-assisted mechanism screen on the existing validation windo
 been fitted or evaluation-tail shot read under that proposal. The Stage-0 code in
 `tools/run_direct_full_contour_oracle.py` builds a frozen compact-source validation prediction,
 constructs actual half-contour ψ maps, and passes sealed arrays to the unchanged native scorer.
+That [mechanism gate passed](results/direct_full_contour_stage0_20260923.json) on a validation
+window the compact source had already seen for early stopping. The essential next question is
+whether a new model can infer the needed contour from permitted inputs; no such model has yet
+been fitted or tested on the reserved evaluation tail.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

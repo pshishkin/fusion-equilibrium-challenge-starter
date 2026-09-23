@@ -28,6 +28,9 @@ A separate [full-resolution contour MLP route](experiments/direct-full-contour-m
 keeps all physical boundary points instead of compressing into Fourier, PCA or one-origin radii.
 It remains unmeasured and must first demonstrate that its fixed half-strength map correction has
 enough native-score headroom on validation-only truth before a new GPU fit is warranted.
+That [fixed mechanism gate](results/direct_full_contour_stage0_20260923.json) passed on the
+validation window, but uses true contours. The input-only model fit and its effect remain
+unmeasured; neither an oracle S difference nor an early-stopping window predicts public rank.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the
