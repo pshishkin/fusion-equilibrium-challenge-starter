@@ -174,10 +174,15 @@ representation failure for these two low-dimensional absolute Fourier choices, n
 result or a general contour impossibility. No full target cache, architecture, GPU fit, 70-tail
 read/score or public prediction followed. The fixed sample, frozen source/scorer identities and
 timings are in `results/direct_contour_representation_20260923.json`.
-The next bounded, still unfitted idea is one [physical-contour PCA representation gate](experiments/direct-contour-pca-representation-review.json):
-fit one basis on the same 100 TRAIN shots and check its two fixed ranks on the next 100 disjoint
-TRAIN shots. This does not reopen the failed Fourier ranks, use validation or tail labels, or
-authorize a full learner fit before the resulting geometry is reviewed.
+One [physical-contour PCA representation gate](results/direct_contour_pca_20260923.json) then fit
+a basis on the same 100 TRAIN shots/300 probes and checked two fixed ranks on the next 100
+disjoint TRAIN shots/300 probes. PCA32 missed its Hausdorff limits: median/p95 **0.257/0.570
+grid cells**. PCA64 met them at **0.094/0.233 cells**, but one of 300 reconstructed polygons was
+non-simple, violating the predeclared zero-topology-failure gate. Both ranks therefore failed;
+no extra rank, threshold or repair was selected on those shots. This closes the fixed
+low-dimensional absolute-contour branch before any full target cache or learner fit. The scorer
+tail 70 and validation 1,338 were not read. The exact disjoint samples, failing frame and timing
+are in the result record.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

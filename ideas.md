@@ -9,6 +9,9 @@ confirm a gain. No learned contour correction was promoted to a public artifact.
 The [train-only absolute Fourier gate](results/direct_contour_representation_20260923.json)
 then rejected both predeclared low-dimensional smooth targets before another fit; its result says
 that high L² retention does not preserve the localized separatrix detail measured by Hausdorff.
+The separately frozen [physical-PCA gate](results/direct_contour_pca_20260923.json) did capture
+that detail at its larger fixed rank, but one held-TRAIN contour self-intersected; the combined
+geometry/topology gate failed. Do not choose another rank or weaken topology on these same shots.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

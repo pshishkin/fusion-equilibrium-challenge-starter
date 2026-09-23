@@ -3,6 +3,20 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — disjoint TRAIN-shot physical-contour PCA gate:**
+One full-SVD PCA basis was fit to 300 fixed scorer-native LCFS contours from the first 100
+compact TRAIN shots. A separate next 100 TRAIN shots/300 fixed frames measured two predeclared
+ranks, with no validation or reserved tail used. PCA32 reconstruction had median/p95 native
+Hausdorff **0.006816/0.015145 m** (**0.257/0.570 grid cells**) and no topology failures,
+so it missed both frozen distance limits. PCA64 had **0.002487/0.006200 m**
+(**0.094/0.233 cells**) but one reconstructed contour in 300 was non-simple, above the zero
+failure allowance. Neither rank passed the combined gate; a high L² reconstruction ratio was
+again insufficient by itself. Preparation took **2.05 s**, basis contour extraction **3.75 s**,
+PCA fit **0.030 s**, held TRAIN contour extraction **4.05 s**, and the whole probe **15.76 s**.
+Verdict: stop this fixed low-dimensional absolute-contour family before full target extraction
+or a correction learner. No threshold repair, third rank, eval70 score or public submission.
+[Frozen basis/check samples and failed-frame identity](results/direct_contour_pca_20260923.json).
+
 **2026-09-23 UTC — train-only absolute LCFS Fourier representation gate:**
 Following the user decision to reserve all original 70 tail shots for evaluation only, a frozen
 calibration extracted scorer-native true LCFS on **300 fixed frames from 100 compact TRAIN shots**.

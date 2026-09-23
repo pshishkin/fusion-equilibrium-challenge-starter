@@ -1,0 +1,1902 @@
+{
+  "PCA64_basis_sha256": "ced3b85b01c88ff056edcb492c9e3e282b14e9736843a2a6ff32c7b621181cf1",
+  "PCA64_training_explained_variance_ratio_sum": 0.9999949239034001,
+  "basis_sample": {
+    "items": [
+      {
+        "file": "d3d_shot_67bea4ee86.parquet",
+        "frames": 263,
+        "probe_indices": [
+          26,
+          131,
+          236
+        ]
+      },
+      {
+        "file": "d3d_shot_1b9fc5705d.parquet",
+        "frames": 321,
+        "probe_indices": [
+          32,
+          160,
+          288
+        ]
+      },
+      {
+        "file": "d3d_shot_2b18735002.parquet",
+        "frames": 266,
+        "probe_indices": [
+          27,
+          133,
+          239
+        ]
+      },
+      {
+        "file": "d3d_shot_c999240565.parquet",
+        "frames": 183,
+        "probe_indices": [
+          18,
+          91,
+          164
+        ]
+      },
+      {
+        "file": "d3d_shot_4a9a11e99b.parquet",
+        "frames": 212,
+        "probe_indices": [
+          21,
+          106,
+          190
+        ]
+      },
+      {
+        "file": "d3d_shot_901723d68a.parquet",
+        "frames": 294,
+        "probe_indices": [
+          29,
+          147,
+          264
+        ]
+      },
+      {
+        "file": "d3d_shot_53752cc4a3.parquet",
+        "frames": 197,
+        "probe_indices": [
+          20,
+          98,
+          176
+        ]
+      },
+      {
+        "file": "d3d_shot_8db7348835.parquet",
+        "frames": 319,
+        "probe_indices": [
+          32,
+          159,
+          286
+        ]
+      },
+      {
+        "file": "d3d_shot_e03594001b.parquet",
+        "frames": 126,
+        "probe_indices": [
+          13,
+          63,
+          113
+        ]
+      },
+      {
+        "file": "d3d_shot_2d0f8214d1.parquet",
+        "frames": 239,
+        "probe_indices": [
+          24,
+          119,
+          214
+        ]
+      },
+      {
+        "file": "d3d_shot_2e7f9bc07c.parquet",
+        "frames": 260,
+        "probe_indices": [
+          26,
+          130,
+          233
+        ]
+      },
+      {
+        "file": "d3d_shot_2907a0e984.parquet",
+        "frames": 274,
+        "probe_indices": [
+          27,
+          137,
+          246
+        ]
+      },
+      {
+        "file": "d3d_shot_a7b8a3597f.parquet",
+        "frames": 291,
+        "probe_indices": [
+          29,
+          145,
+          261
+        ]
+      },
+      {
+        "file": "d3d_shot_2f650afe38.parquet",
+        "frames": 214,
+        "probe_indices": [
+          21,
+          107,
+          192
+        ]
+      },
+      {
+        "file": "d3d_shot_e8d670db78.parquet",
+        "frames": 247,
+        "probe_indices": [
+          25,
+          123,
+          221
+        ]
+      },
+      {
+        "file": "d3d_shot_307552f346.parquet",
+        "frames": 90,
+        "probe_indices": [
+          9,
+          45,
+          80
+        ]
+      },
+      {
+        "file": "d3d_shot_776b72f734.parquet",
+        "frames": 197,
+        "probe_indices": [
+          20,
+          98,
+          176
+        ]
+      },
+      {
+        "file": "d3d_shot_2ca8c33d33.parquet",
+        "frames": 183,
+        "probe_indices": [
+          18,
+          91,
+          164
+        ]
+      },
+      {
+        "file": "d3d_shot_0bb4ea7bb0.parquet",
+        "frames": 248,
+        "probe_indices": [
+          25,
+          124,
+          222
+        ]
+      },
+      {
+        "file": "d3d_shot_ace21a9318.parquet",
+        "frames": 231,
+        "probe_indices": [
+          23,
+          115,
+          207
+        ]
+      },
+      {
+        "file": "d3d_shot_51a4dcbab2.parquet",
+        "frames": 176,
+        "probe_indices": [
+          18,
+          88,
+          158
+        ]
+      },
+      {
+        "file": "d3d_shot_86a02e61b4.parquet",
+        "frames": 258,
+        "probe_indices": [
+          26,
+          129,
+          231
+        ]
+      },
+      {
+        "file": "d3d_shot_a9ae512bc5.parquet",
+        "frames": 124,
+        "probe_indices": [
+          12,
+          62,
+          111
+        ]
+      },
+      {
+        "file": "d3d_shot_624413af82.parquet",
+        "frames": 206,
+        "probe_indices": [
+          21,
+          103,
+          185
+        ]
+      },
+      {
+        "file": "d3d_shot_cc9a416d3a.parquet",
+        "frames": 224,
+        "probe_indices": [
+          22,
+          112,
+          201
+        ]
+      },
+      {
+        "file": "d3d_shot_f738a3a70a.parquet",
+        "frames": 107,
+        "probe_indices": [
+          11,
+          53,
+          95
+        ]
+      },
+      {
+        "file": "d3d_shot_847ea9092f.parquet",
+        "frames": 246,
+        "probe_indices": [
+          25,
+          123,
+          221
+        ]
+      },
+      {
+        "file": "d3d_shot_9fc5d2b15a.parquet",
+        "frames": 369,
+        "probe_indices": [
+          37,
+          184,
+          331
+        ]
+      },
+      {
+        "file": "d3d_shot_4fa34c1598.parquet",
+        "frames": 63,
+        "probe_indices": [
+          6,
+          31,
+          56
+        ]
+      },
+      {
+        "file": "d3d_shot_0f1411c04f.parquet",
+        "frames": 235,
+        "probe_indices": [
+          23,
+          117,
+          211
+        ]
+      },
+      {
+        "file": "d3d_shot_d217dabb63.parquet",
+        "frames": 73,
+        "probe_indices": [
+          7,
+          36,
+          65
+        ]
+      },
+      {
+        "file": "d3d_shot_7b5149d989.parquet",
+        "frames": 241,
+        "probe_indices": [
+          24,
+          120,
+          216
+        ]
+      },
+      {
+        "file": "d3d_shot_854b2487e1.parquet",
+        "frames": 262,
+        "probe_indices": [
+          26,
+          131,
+          235
+        ]
+      },
+      {
+        "file": "d3d_shot_03a2088dca.parquet",
+        "frames": 213,
+        "probe_indices": [
+          21,
+          106,
+          191
+        ]
+      },
+      {
+        "file": "d3d_shot_fa18a25950.parquet",
+        "frames": 289,
+        "probe_indices": [
+          29,
+          144,
+          259
+        ]
+      },
+      {
+        "file": "d3d_shot_1467ccf31a.parquet",
+        "frames": 231,
+        "probe_indices": [
+          23,
+          115,
+          207
+        ]
+      },
+      {
+        "file": "d3d_shot_bf050e4ad5.parquet",
+        "frames": 308,
+        "probe_indices": [
+          31,
+          154,
+          276
+        ]
+      },
+      {
+        "file": "d3d_shot_816d379f9a.parquet",
+        "frames": 343,
+        "probe_indices": [
+          34,
+          171,
+          308
+        ]
+      },
+      {
+        "file": "d3d_shot_aa5b689a6b.parquet",
+        "frames": 354,
+        "probe_indices": [
+          35,
+          177,
+          318
+        ]
+      },
+      {
+        "file": "d3d_shot_727d102695.parquet",
+        "frames": 102,
+        "probe_indices": [
+          10,
+          51,
+          91
+        ]
+      },
+      {
+        "file": "d3d_shot_015dff07b3.parquet",
+        "frames": 371,
+        "probe_indices": [
+          37,
+          185,
+          333
+        ]
+      },
+      {
+        "file": "d3d_shot_41cda6bf77.parquet",
+        "frames": 365,
+        "probe_indices": [
+          36,
+          182,
+          328
+        ]
+      },
+      {
+        "file": "d3d_shot_277a0ec42d.parquet",
+        "frames": 309,
+        "probe_indices": [
+          31,
+          154,
+          277
+        ]
+      },
+      {
+        "file": "d3d_shot_d55ff69eaf.parquet",
+        "frames": 291,
+        "probe_indices": [
+          29,
+          145,
+          261
+        ]
+      },
+      {
+        "file": "d3d_shot_d0bd051d59.parquet",
+        "frames": 212,
+        "probe_indices": [
+          21,
+          106,
+          190
+        ]
+      },
+      {
+        "file": "d3d_shot_0d0e617496.parquet",
+        "frames": 232,
+        "probe_indices": [
+          23,
+          116,
+          208
+        ]
+      },
+      {
+        "file": "d3d_shot_27764e3138.parquet",
+        "frames": 269,
+        "probe_indices": [
+          27,
+          134,
+          241
+        ]
+      },
+      {
+        "file": "d3d_shot_d415ca017c.parquet",
+        "frames": 183,
+        "probe_indices": [
+          18,
+          91,
+          164
+        ]
+      },
+      {
+        "file": "d3d_shot_a1e6f879e2.parquet",
+        "frames": 263,
+        "probe_indices": [
+          26,
+          131,
+          236
+        ]
+      },
+      {
+        "file": "d3d_shot_4c43c5bc52.parquet",
+        "frames": 68,
+        "probe_indices": [
+          7,
+          34,
+          60
+        ]
+      },
+      {
+        "file": "d3d_shot_fd2ad037f6.parquet",
+        "frames": 249,
+        "probe_indices": [
+          25,
+          124,
+          223
+        ]
+      },
+      {
+        "file": "d3d_shot_2d4e942712.parquet",
+        "frames": 253,
+        "probe_indices": [
+          25,
+          126,
+          227
+        ]
+      },
+      {
+        "file": "d3d_shot_89f899c644.parquet",
+        "frames": 286,
+        "probe_indices": [
+          29,
+          143,
+          257
+        ]
+      },
+      {
+        "file": "d3d_shot_5b4f2f490c.parquet",
+        "frames": 221,
+        "probe_indices": [
+          22,
+          110,
+          198
+        ]
+      },
+      {
+        "file": "d3d_shot_58789d7380.parquet",
+        "frames": 306,
+        "probe_indices": [
+          31,
+          153,
+          275
+        ]
+      },
+      {
+        "file": "d3d_shot_5981d962b9.parquet",
+        "frames": 325,
+        "probe_indices": [
+          32,
+          162,
+          292
+        ]
+      },
+      {
+        "file": "d3d_shot_3a8449a2ae.parquet",
+        "frames": 182,
+        "probe_indices": [
+          18,
+          91,
+          163
+        ]
+      },
+      {
+        "file": "d3d_shot_0679809c2a.parquet",
+        "frames": 167,
+        "probe_indices": [
+          17,
+          83,
+          149
+        ]
+      },
+      {
+        "file": "d3d_shot_11b421d69c.parquet",
+        "frames": 267,
+        "probe_indices": [
+          27,
+          133,
+          239
+        ]
+      },
+      {
+        "file": "d3d_shot_04d8e5c5b9.parquet",
+        "frames": 227,
+        "probe_indices": [
+          23,
+          113,
+          203
+        ]
+      },
+      {
+        "file": "d3d_shot_4997bf8d9c.parquet",
+        "frames": 260,
+        "probe_indices": [
+          26,
+          130,
+          233
+        ]
+      },
+      {
+        "file": "d3d_shot_74ae4d6b2d.parquet",
+        "frames": 247,
+        "probe_indices": [
+          25,
+          123,
+          221
+        ]
+      },
+      {
+        "file": "d3d_shot_4bdded0e1e.parquet",
+        "frames": 219,
+        "probe_indices": [
+          22,
+          109,
+          196
+        ]
+      },
+      {
+        "file": "d3d_shot_8b5c2878e6.parquet",
+        "frames": 137,
+        "probe_indices": [
+          14,
+          68,
+          122
+        ]
+      },
+      {
+        "file": "d3d_shot_9ca1fae2f6.parquet",
+        "frames": 182,
+        "probe_indices": [
+          18,
+          91,
+          163
+        ]
+      },
+      {
+        "file": "d3d_shot_6d9cccbcc1.parquet",
+        "frames": 288,
+        "probe_indices": [
+          29,
+          144,
+          258
+        ]
+      },
+      {
+        "file": "d3d_shot_89c50bf966.parquet",
+        "frames": 268,
+        "probe_indices": [
+          27,
+          134,
+          240
+        ]
+      },
+      {
+        "file": "d3d_shot_9d2aa05a1d.parquet",
+        "frames": 216,
+        "probe_indices": [
+          22,
+          108,
+          194
+        ]
+      },
+      {
+        "file": "d3d_shot_a170790e9e.parquet",
+        "frames": 190,
+        "probe_indices": [
+          19,
+          95,
+          170
+        ]
+      },
+      {
+        "file": "d3d_shot_7c2d0643fe.parquet",
+        "frames": 231,
+        "probe_indices": [
+          23,
+          115,
+          207
+        ]
+      },
+      {
+        "file": "d3d_shot_dfdea15fc9.parquet",
+        "frames": 290,
+        "probe_indices": [
+          29,
+          145,
+          260
+        ]
+      },
+      {
+        "file": "d3d_shot_1f7c1346c9.parquet",
+        "frames": 143,
+        "probe_indices": [
+          14,
+          71,
+          128
+        ]
+      },
+      {
+        "file": "d3d_shot_c75128000e.parquet",
+        "frames": 174,
+        "probe_indices": [
+          17,
+          87,
+          156
+        ]
+      },
+      {
+        "file": "d3d_shot_1ec9bfdc1b.parquet",
+        "frames": 183,
+        "probe_indices": [
+          18,
+          91,
+          164
+        ]
+      },
+      {
+        "file": "d3d_shot_abbfbf7c57.parquet",
+        "frames": 127,
+        "probe_indices": [
+          13,
+          63,
+          113
+        ]
+      },
+      {
+        "file": "d3d_shot_6b3271db56.parquet",
+        "frames": 226,
+        "probe_indices": [
+          23,
+          113,
+          203
+        ]
+      },
+      {
+        "file": "d3d_shot_a55059d386.parquet",
+        "frames": 241,
+        "probe_indices": [
+          24,
+          120,
+          216
+        ]
+      },
+      {
+        "file": "d3d_shot_eedfeefe3b.parquet",
+        "frames": 240,
+        "probe_indices": [
+          24,
+          120,
+          215
+        ]
+      },
+      {
+        "file": "d3d_shot_fac1987902.parquet",
+        "frames": 264,
+        "probe_indices": [
+          26,
+          132,
+          237
+        ]
+      },
+      {
+        "file": "d3d_shot_b22be61898.parquet",
+        "frames": 85,
+        "probe_indices": [
+          8,
+          42,
+          76
+        ]
+      },
+      {
+        "file": "d3d_shot_652fea31cd.parquet",
+        "frames": 290,
+        "probe_indices": [
+          29,
+          145,
+          260
+        ]
+      },
+      {
+        "file": "d3d_shot_98f8db0bb5.parquet",
+        "frames": 329,
+        "probe_indices": [
+          33,
+          164,
+          295
+        ]
+      },
+      {
+        "file": "d3d_shot_8087757a73.parquet",
+        "frames": 265,
+        "probe_indices": [
+          26,
+          132,
+          238
+        ]
+      },
+      {
+        "file": "d3d_shot_1294f3152c.parquet",
+        "frames": 294,
+        "probe_indices": [
+          29,
+          147,
+          264
+        ]
+      },
+      {
+        "file": "d3d_shot_da8d9fd3c4.parquet",
+        "frames": 178,
+        "probe_indices": [
+          18,
+          89,
+          159
+        ]
+      },
+      {
+        "file": "d3d_shot_ac9573e5c4.parquet",
+        "frames": 178,
+        "probe_indices": [
+          18,
+          89,
+          159
+        ]
+      },
+      {
+        "file": "d3d_shot_bee48923e3.parquet",
+        "frames": 114,
+        "probe_indices": [
+          11,
+          57,
+          102
+        ]
+      },
+      {
+        "file": "d3d_shot_7d58852d8b.parquet",
+        "frames": 273,
+        "probe_indices": [
+          27,
+          136,
+          245
+        ]
+      },
+      {
+        "file": "d3d_shot_6f3f8e2916.parquet",
+        "frames": 89,
+        "probe_indices": [
+          9,
+          44,
+          79
+        ]
+      },
+      {
+        "file": "d3d_shot_c87c1c5977.parquet",
+        "frames": 282,
+        "probe_indices": [
+          28,
+          141,
+          253
+        ]
+      },
+      {
+        "file": "d3d_shot_91dc8a59a2.parquet",
+        "frames": 214,
+        "probe_indices": [
+          21,
+          107,
+          192
+        ]
+      },
+      {
+        "file": "d3d_shot_e938810a11.parquet",
+        "frames": 241,
+        "probe_indices": [
+          24,
+          120,
+          216
+        ]
+      },
+      {
+        "file": "d3d_shot_71fe5656a3.parquet",
+        "frames": 214,
+        "probe_indices": [
+          21,
+          107,
+          192
+        ]
+      },
+      {
+        "file": "d3d_shot_fb503f01e8.parquet",
+        "frames": 315,
+        "probe_indices": [
+          31,
+          157,
+          283
+        ]
+      },
+      {
+        "file": "d3d_shot_271c4c29c0.parquet",
+        "frames": 218,
+        "probe_indices": [
+          22,
+          109,
+          195
+        ]
+      },
+      {
+        "file": "d3d_shot_6097c06245.parquet",
+        "frames": 259,
+        "probe_indices": [
+          26,
+          129,
+          232
+        ]
+      },
+      {
+        "file": "d3d_shot_bc6131ce8e.parquet",
+        "frames": 268,
+        "probe_indices": [
+          27,
+          134,
+          240
+        ]
+      },
+      {
+        "file": "d3d_shot_e9e27a15bf.parquet",
+        "frames": 243,
+        "probe_indices": [
+          24,
+          121,
+          218
+        ]
+      },
+      {
+        "file": "d3d_shot_9ae4f52ec3.parquet",
+        "frames": 245,
+        "probe_indices": [
+          24,
+          122,
+          220
+        ]
+      },
+      {
+        "file": "d3d_shot_a3113f1655.parquet",
+        "frames": 242,
+        "probe_indices": [
+          24,
+          121,
+          217
+        ]
+      }
+    ],
+    "ordered_names_sha256": "ed1a198f536d3b48c13422a1c86b22e6d4e04cee45890304ae263ab599e606d7",
+    "probes": 300,
+    "shots": 100
+  },
+  "classification": "fixed_PCA32_PCA64_representation_gate_failed",
+  "compact_artifact_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+  "dataset_preflight": {
+    "bytes": 93425197716,
+    "config": "diii_d_train",
+    "files": 7041,
+    "manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420",
+    "revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+    "verification": "names_sizes_parquet_markers"
+  },
+  "date_utc": "2026-09-23",
+  "evaluation70": {
+    "ordered_names_sha256": "6e2486e24cb5b31b1e3883f70b2ca514045963fb26cd27cf7acb3990f953cd4f",
+    "read_or_scored": false
+  },
+  "frozen_manifest_sha256": "b7f3b73e2d0836c3eae89608d99958de004f386ae47aba1343353d1d76c2d29e",
+  "frozen_representation_record_sha256": "5c12be5e333b8186af47bf17a6333188f0eb2fab4a66489ba7c0747f9510e7d7",
+  "frozen_run": "runs/direct-contour-pca-20260923",
+  "frozen_runner_sha256": "780ed8124512c5157512d323ed448b9bd7ea40d3802a5c5471e013fe99e3c4cd",
+  "frozen_source_file_count": 126,
+  "held_sample_metrics": {
+    "PCA32": {
+      "gate_passed": false,
+      "held_vector_L2_reconstruction_ratio": 0.9998855591751233,
+      "max_hausdorff_m": 0.026334383356729617,
+      "median_hausdorff_in_min_grid_cells": 0.2566027418310561,
+      "median_hausdorff_m": 0.006815998094115207,
+      "minimum_grid_spacing_m": 0.02656245231628418,
+      "non_simple_polygon_count": 0,
+      "out_of_grid_count": 0,
+      "p95_hausdorff_in_min_grid_cells": 0.5701812094795713,
+      "p95_hausdorff_m": 0.015145411188442353
+    },
+    "PCA64": {
+      "gate_passed": false,
+      "held_vector_L2_reconstruction_ratio": 0.9999827026298018,
+      "max_hausdorff_m": 0.01530109619231288,
+      "median_hausdorff_in_min_grid_cells": 0.09361843318195934,
+      "median_hausdorff_m": 0.0024867351673210315,
+      "minimum_grid_spacing_m": 0.02656245231628418,
+      "non_simple_polygon_count": 1,
+      "out_of_grid_count": 0,
+      "p95_hausdorff_in_min_grid_cells": 0.23340344726834597,
+      "p95_hausdorff_m": 0.006199767938521789
+    }
+  },
+  "held_within_train_check_sample": {
+    "items": [
+      {
+        "file": "d3d_shot_e6bc54eeb6.parquet",
+        "frames": 175,
+        "probe_indices": [
+          17,
+          87,
+          157
+        ]
+      },
+      {
+        "file": "d3d_shot_313057409c.parquet",
+        "frames": 207,
+        "probe_indices": [
+          21,
+          103,
+          185
+        ]
+      },
+      {
+        "file": "d3d_shot_83f6025442.parquet",
+        "frames": 254,
+        "probe_indices": [
+          25,
+          127,
+          228
+        ]
+      },
+      {
+        "file": "d3d_shot_5c36ecb85f.parquet",
+        "frames": 123,
+        "probe_indices": [
+          12,
+          61,
+          110
+        ]
+      },
+      {
+        "file": "d3d_shot_d4d6f7ec80.parquet",
+        "frames": 292,
+        "probe_indices": [
+          29,
+          146,
+          262
+        ]
+      },
+      {
+        "file": "d3d_shot_180828b27d.parquet",
+        "frames": 152,
+        "probe_indices": [
+          15,
+          76,
+          136
+        ]
+      },
+      {
+        "file": "d3d_shot_7043955265.parquet",
+        "frames": 160,
+        "probe_indices": [
+          16,
+          80,
+          143
+        ]
+      },
+      {
+        "file": "d3d_shot_8c0f923261.parquet",
+        "frames": 245,
+        "probe_indices": [
+          24,
+          122,
+          220
+        ]
+      },
+      {
+        "file": "d3d_shot_ab89bbd5a5.parquet",
+        "frames": 280,
+        "probe_indices": [
+          28,
+          140,
+          251
+        ]
+      },
+      {
+        "file": "d3d_shot_0623ecbd35.parquet",
+        "frames": 256,
+        "probe_indices": [
+          26,
+          128,
+          230
+        ]
+      },
+      {
+        "file": "d3d_shot_2e4a7de40c.parquet",
+        "frames": 265,
+        "probe_indices": [
+          26,
+          132,
+          238
+        ]
+      },
+      {
+        "file": "d3d_shot_2b51040ae4.parquet",
+        "frames": 233,
+        "probe_indices": [
+          23,
+          116,
+          209
+        ]
+      },
+      {
+        "file": "d3d_shot_3f9284a567.parquet",
+        "frames": 228,
+        "probe_indices": [
+          23,
+          114,
+          204
+        ]
+      },
+      {
+        "file": "d3d_shot_dcb2168d34.parquet",
+        "frames": 406,
+        "probe_indices": [
+          41,
+          203,
+          365
+        ]
+      },
+      {
+        "file": "d3d_shot_241b1dff2d.parquet",
+        "frames": 264,
+        "probe_indices": [
+          26,
+          132,
+          237
+        ]
+      },
+      {
+        "file": "d3d_shot_562f3c230b.parquet",
+        "frames": 260,
+        "probe_indices": [
+          26,
+          130,
+          233
+        ]
+      },
+      {
+        "file": "d3d_shot_659ee49bfc.parquet",
+        "frames": 253,
+        "probe_indices": [
+          25,
+          126,
+          227
+        ]
+      },
+      {
+        "file": "d3d_shot_62fc898122.parquet",
+        "frames": 144,
+        "probe_indices": [
+          14,
+          72,
+          129
+        ]
+      },
+      {
+        "file": "d3d_shot_38a85c638d.parquet",
+        "frames": 231,
+        "probe_indices": [
+          23,
+          115,
+          207
+        ]
+      },
+      {
+        "file": "d3d_shot_5fce8628a5.parquet",
+        "frames": 17,
+        "probe_indices": [
+          2,
+          8,
+          14
+        ]
+      },
+      {
+        "file": "d3d_shot_2b43991c96.parquet",
+        "frames": 212,
+        "probe_indices": [
+          21,
+          106,
+          190
+        ]
+      },
+      {
+        "file": "d3d_shot_db5a4b927b.parquet",
+        "frames": 180,
+        "probe_indices": [
+          18,
+          90,
+          161
+        ]
+      },
+      {
+        "file": "d3d_shot_e646d0dbd0.parquet",
+        "frames": 219,
+        "probe_indices": [
+          22,
+          109,
+          196
+        ]
+      },
+      {
+        "file": "d3d_shot_0c432a1ad2.parquet",
+        "frames": 69,
+        "probe_indices": [
+          7,
+          34,
+          61
+        ]
+      },
+      {
+        "file": "d3d_shot_e27dd73def.parquet",
+        "frames": 229,
+        "probe_indices": [
+          23,
+          114,
+          205
+        ]
+      },
+      {
+        "file": "d3d_shot_0df959fd56.parquet",
+        "frames": 303,
+        "probe_indices": [
+          30,
+          151,
+          272
+        ]
+      },
+      {
+        "file": "d3d_shot_ee852181e5.parquet",
+        "frames": 256,
+        "probe_indices": [
+          26,
+          128,
+          230
+        ]
+      },
+      {
+        "file": "d3d_shot_b664d78f05.parquet",
+        "frames": 184,
+        "probe_indices": [
+          18,
+          92,
+          165
+        ]
+      },
+      {
+        "file": "d3d_shot_62862333fc.parquet",
+        "frames": 222,
+        "probe_indices": [
+          22,
+          111,
+          199
+        ]
+      },
+      {
+        "file": "d3d_shot_224039c80e.parquet",
+        "frames": 248,
+        "probe_indices": [
+          25,
+          124,
+          222
+        ]
+      },
+      {
+        "file": "d3d_shot_09791d618d.parquet",
+        "frames": 140,
+        "probe_indices": [
+          14,
+          70,
+          125
+        ]
+      },
+      {
+        "file": "d3d_shot_26bd1ed680.parquet",
+        "frames": 244,
+        "probe_indices": [
+          24,
+          122,
+          219
+        ]
+      },
+      {
+        "file": "d3d_shot_d6242750e0.parquet",
+        "frames": 272,
+        "probe_indices": [
+          27,
+          136,
+          244
+        ]
+      },
+      {
+        "file": "d3d_shot_dc92cf9d62.parquet",
+        "frames": 167,
+        "probe_indices": [
+          17,
+          83,
+          149
+        ]
+      },
+      {
+        "file": "d3d_shot_df54c20e70.parquet",
+        "frames": 245,
+        "probe_indices": [
+          24,
+          122,
+          220
+        ]
+      },
+      {
+        "file": "d3d_shot_909344b2b7.parquet",
+        "frames": 211,
+        "probe_indices": [
+          21,
+          105,
+          189
+        ]
+      },
+      {
+        "file": "d3d_shot_356f8b7339.parquet",
+        "frames": 269,
+        "probe_indices": [
+          27,
+          134,
+          241
+        ]
+      },
+      {
+        "file": "d3d_shot_a45b62899b.parquet",
+        "frames": 258,
+        "probe_indices": [
+          26,
+          129,
+          231
+        ]
+      },
+      {
+        "file": "d3d_shot_e7f7f7a6f2.parquet",
+        "frames": 244,
+        "probe_indices": [
+          24,
+          122,
+          219
+        ]
+      },
+      {
+        "file": "d3d_shot_fc45739b59.parquet",
+        "frames": 197,
+        "probe_indices": [
+          20,
+          98,
+          176
+        ]
+      },
+      {
+        "file": "d3d_shot_ec2f5c430b.parquet",
+        "frames": 132,
+        "probe_indices": [
+          13,
+          66,
+          118
+        ]
+      },
+      {
+        "file": "d3d_shot_87ae000ce2.parquet",
+        "frames": 271,
+        "probe_indices": [
+          27,
+          135,
+          243
+        ]
+      },
+      {
+        "file": "d3d_shot_c136c6d0ee.parquet",
+        "frames": 244,
+        "probe_indices": [
+          24,
+          122,
+          219
+        ]
+      },
+      {
+        "file": "d3d_shot_a903a7f86f.parquet",
+        "frames": 293,
+        "probe_indices": [
+          29,
+          146,
+          263
+        ]
+      },
+      {
+        "file": "d3d_shot_dfcd1762ba.parquet",
+        "frames": 409,
+        "probe_indices": [
+          41,
+          204,
+          367
+        ]
+      },
+      {
+        "file": "d3d_shot_da1881d78f.parquet",
+        "frames": 48,
+        "probe_indices": [
+          5,
+          24,
+          42
+        ]
+      },
+      {
+        "file": "d3d_shot_7d84da23b3.parquet",
+        "frames": 246,
+        "probe_indices": [
+          25,
+          123,
+          221
+        ]
+      },
+      {
+        "file": "d3d_shot_18e3ae05e1.parquet",
+        "frames": 333,
+        "probe_indices": [
+          33,
+          166,
+          299
+        ]
+      },
+      {
+        "file": "d3d_shot_4d80da3884.parquet",
+        "frames": 332,
+        "probe_indices": [
+          33,
+          166,
+          298
+        ]
+      },
+      {
+        "file": "d3d_shot_49cc2d8fd7.parquet",
+        "frames": 56,
+        "probe_indices": [
+          6,
+          28,
+          50
+        ]
+      },
+      {
+        "file": "d3d_shot_fa151eb973.parquet",
+        "frames": 243,
+        "probe_indices": [
+          24,
+          121,
+          218
+        ]
+      },
+      {
+        "file": "d3d_shot_ae80eeecd3.parquet",
+        "frames": 259,
+        "probe_indices": [
+          26,
+          129,
+          232
+        ]
+      },
+      {
+        "file": "d3d_shot_32a1349aa6.parquet",
+        "frames": 263,
+        "probe_indices": [
+          26,
+          131,
+          236
+        ]
+      },
+      {
+        "file": "d3d_shot_e1f6aef1eb.parquet",
+        "frames": 312,
+        "probe_indices": [
+          31,
+          156,
+          280
+        ]
+      },
+      {
+        "file": "d3d_shot_04b3bb055e.parquet",
+        "frames": 100,
+        "probe_indices": [
+          10,
+          50,
+          89
+        ]
+      },
+      {
+        "file": "d3d_shot_2427c80a5d.parquet",
+        "frames": 260,
+        "probe_indices": [
+          26,
+          130,
+          233
+        ]
+      },
+      {
+        "file": "d3d_shot_011ad66040.parquet",
+        "frames": 275,
+        "probe_indices": [
+          27,
+          137,
+          247
+        ]
+      },
+      {
+        "file": "d3d_shot_cb4cc25b65.parquet",
+        "frames": 214,
+        "probe_indices": [
+          21,
+          107,
+          192
+        ]
+      },
+      {
+        "file": "d3d_shot_67f0f1220b.parquet",
+        "frames": 124,
+        "probe_indices": [
+          12,
+          62,
+          111
+        ]
+      },
+      {
+        "file": "d3d_shot_fd9a6c705b.parquet",
+        "frames": 259,
+        "probe_indices": [
+          26,
+          129,
+          232
+        ]
+      },
+      {
+        "file": "d3d_shot_ac3927d7fb.parquet",
+        "frames": 305,
+        "probe_indices": [
+          30,
+          152,
+          274
+        ]
+      },
+      {
+        "file": "d3d_shot_c2c083d017.parquet",
+        "frames": 337,
+        "probe_indices": [
+          34,
+          168,
+          302
+        ]
+      },
+      {
+        "file": "d3d_shot_b2df6a7008.parquet",
+        "frames": 65,
+        "probe_indices": [
+          6,
+          32,
+          58
+        ]
+      },
+      {
+        "file": "d3d_shot_7c851547d0.parquet",
+        "frames": 371,
+        "probe_indices": [
+          37,
+          185,
+          333
+        ]
+      },
+      {
+        "file": "d3d_shot_98e770901c.parquet",
+        "frames": 226,
+        "probe_indices": [
+          23,
+          113,
+          203
+        ]
+      },
+      {
+        "file": "d3d_shot_224630dbb1.parquet",
+        "frames": 233,
+        "probe_indices": [
+          23,
+          116,
+          209
+        ]
+      },
+      {
+        "file": "d3d_shot_384d1d8d85.parquet",
+        "frames": 217,
+        "probe_indices": [
+          22,
+          108,
+          194
+        ]
+      },
+      {
+        "file": "d3d_shot_a80709bf70.parquet",
+        "frames": 91,
+        "probe_indices": [
+          9,
+          45,
+          81
+        ]
+      },
+      {
+        "file": "d3d_shot_8b7272a913.parquet",
+        "frames": 294,
+        "probe_indices": [
+          29,
+          147,
+          264
+        ]
+      },
+      {
+        "file": "d3d_shot_5c53e08bfe.parquet",
+        "frames": 113,
+        "probe_indices": [
+          11,
+          56,
+          101
+        ]
+      },
+      {
+        "file": "d3d_shot_ce1ae18f34.parquet",
+        "frames": 289,
+        "probe_indices": [
+          29,
+          144,
+          259
+        ]
+      },
+      {
+        "file": "d3d_shot_677b6ef58b.parquet",
+        "frames": 333,
+        "probe_indices": [
+          33,
+          166,
+          299
+        ]
+      },
+      {
+        "file": "d3d_shot_f0624844b8.parquet",
+        "frames": 274,
+        "probe_indices": [
+          27,
+          137,
+          246
+        ]
+      },
+      {
+        "file": "d3d_shot_7234c5d67a.parquet",
+        "frames": 247,
+        "probe_indices": [
+          25,
+          123,
+          221
+        ]
+      },
+      {
+        "file": "d3d_shot_6196e023d1.parquet",
+        "frames": 28,
+        "probe_indices": [
+          3,
+          14,
+          24
+        ]
+      },
+      {
+        "file": "d3d_shot_f6178d410e.parquet",
+        "frames": 157,
+        "probe_indices": [
+          16,
+          78,
+          140
+        ]
+      },
+      {
+        "file": "d3d_shot_33d54129bf.parquet",
+        "frames": 225,
+        "probe_indices": [
+          22,
+          112,
+          202
+        ]
+      },
+      {
+        "file": "d3d_shot_c9506afcec.parquet",
+        "frames": 347,
+        "probe_indices": [
+          35,
+          173,
+          311
+        ]
+      },
+      {
+        "file": "d3d_shot_ea67ad907d.parquet",
+        "frames": 229,
+        "probe_indices": [
+          23,
+          114,
+          205
+        ]
+      },
+      {
+        "file": "d3d_shot_3b0f441397.parquet",
+        "frames": 271,
+        "probe_indices": [
+          27,
+          135,
+          243
+        ]
+      },
+      {
+        "file": "d3d_shot_d84a107759.parquet",
+        "frames": 147,
+        "probe_indices": [
+          15,
+          73,
+          131
+        ]
+      },
+      {
+        "file": "d3d_shot_e2cce1873e.parquet",
+        "frames": 106,
+        "probe_indices": [
+          11,
+          53,
+          95
+        ]
+      },
+      {
+        "file": "d3d_shot_dd6736adeb.parquet",
+        "frames": 243,
+        "probe_indices": [
+          24,
+          121,
+          218
+        ]
+      },
+      {
+        "file": "d3d_shot_4ca0920e91.parquet",
+        "frames": 244,
+        "probe_indices": [
+          24,
+          122,
+          219
+        ]
+      },
+      {
+        "file": "d3d_shot_05894f0bd3.parquet",
+        "frames": 229,
+        "probe_indices": [
+          23,
+          114,
+          205
+        ]
+      },
+      {
+        "file": "d3d_shot_5aa5308ccf.parquet",
+        "frames": 182,
+        "probe_indices": [
+          18,
+          91,
+          163
+        ]
+      },
+      {
+        "file": "d3d_shot_ca4c996666.parquet",
+        "frames": 340,
+        "probe_indices": [
+          34,
+          170,
+          305
+        ]
+      },
+      {
+        "file": "d3d_shot_c4617ee9d0.parquet",
+        "frames": 76,
+        "probe_indices": [
+          8,
+          38,
+          68
+        ]
+      },
+      {
+        "file": "d3d_shot_66dd71e37f.parquet",
+        "frames": 230,
+        "probe_indices": [
+          23,
+          115,
+          206
+        ]
+      },
+      {
+        "file": "d3d_shot_0ba7b1288d.parquet",
+        "frames": 202,
+        "probe_indices": [
+          20,
+          101,
+          181
+        ]
+      },
+      {
+        "file": "d3d_shot_3acfc93f75.parquet",
+        "frames": 273,
+        "probe_indices": [
+          27,
+          136,
+          245
+        ]
+      },
+      {
+        "file": "d3d_shot_5a79f2123a.parquet",
+        "frames": 289,
+        "probe_indices": [
+          29,
+          144,
+          259
+        ]
+      },
+      {
+        "file": "d3d_shot_3135e8f4fe.parquet",
+        "frames": 290,
+        "probe_indices": [
+          29,
+          145,
+          260
+        ]
+      },
+      {
+        "file": "d3d_shot_cd9a52ab40.parquet",
+        "frames": 295,
+        "probe_indices": [
+          29,
+          147,
+          265
+        ]
+      },
+      {
+        "file": "d3d_shot_710fd2b0d0.parquet",
+        "frames": 183,
+        "probe_indices": [
+          18,
+          91,
+          164
+        ]
+      },
+      {
+        "file": "d3d_shot_231adf68a3.parquet",
+        "frames": 151,
+        "probe_indices": [
+          15,
+          75,
+          135
+        ]
+      },
+      {
+        "file": "d3d_shot_9257b822af.parquet",
+        "frames": 182,
+        "probe_indices": [
+          18,
+          91,
+          163
+        ]
+      },
+      {
+        "file": "d3d_shot_4d8d2ec464.parquet",
+        "frames": 249,
+        "probe_indices": [
+          25,
+          124,
+          223
+        ]
+      },
+      {
+        "file": "d3d_shot_f2f0e07d6d.parquet",
+        "frames": 228,
+        "probe_indices": [
+          23,
+          114,
+          204
+        ]
+      },
+      {
+        "file": "d3d_shot_70f1b2d91e.parquet",
+        "frames": 294,
+        "probe_indices": [
+          29,
+          147,
+          264
+        ]
+      }
+    ],
+    "ordered_names_sha256": "ed71341eb0bdfbd35c9b694617a6d316c68c48580613b7b45b7d778ef155490a",
+    "probes": 300,
+    "shots": 100
+  },
+  "interpretation": "One PCA64 physical contour basis learned on 300 TRAIN probes preserved the held-within-TRAIN contour substantially better than smooth Fourier. PCA32 missed the fixed Hausdorff limits; PCA64 met Hausdorff but one of 300 reconstructed polygons self-intersected. Both fixed candidates fail the preregistered combined geometry/topology gate. This closes this low-dimensional absolute contour PCA family on this sample, not all boundary learning.",
+  "name": "train-only-physical-contour-PCA-gate",
+  "no_full_target_cache_direct_predictor_fit_GPU_eval70_public": true,
+  "preregistered_gate": {
+    "median_hausdorff_max_grid_cells": 0.25,
+    "non_simple_allowed": 0,
+    "out_of_grid_allowed": 0,
+    "p95_hausdorff_max_grid_cells": 0.5,
+    "selected_components": null
+  },
+  "preregistration": "experiments/direct-contour-pca-representation-review.json",
+  "preregistration_sha256": "6e4358f765cf0bd45cabcf67c2fd6a792cb182a00e4a4fa5b030f43a8b2c95fa",
+  "scorer_source_sha256": {
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "diii_d_envelope_npz_sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4"
+  },
+  "single_non_simple_PCA64_probe": {
+    "PCA64": {
+      "simple_polygon": false,
+      "symmetric_hausdorff_m": 0.005392820089010592,
+      "within_physical_grid": true
+    },
+    "file": "d3d_shot_32a1349aa6.parquet",
+    "frame": 131
+  },
+  "source_commit": "203e417",
+  "timing_seconds": {
+    "PCA64_fit": 0.029676553996978328,
+    "basis_contour_read": 3.7548679600004107,
+    "held_train_contour_read": 4.054533526999876,
+    "prepare": 2.0493264319957234,
+    "probe_total": 15.763624418003019
+  }
+}
