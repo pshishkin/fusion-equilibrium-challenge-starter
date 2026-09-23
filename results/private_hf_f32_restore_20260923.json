@@ -1,0 +1,23 @@
+{
+  "bytes": 2967287097,
+  "date_utc": "2026-09-23",
+  "elapsed_seconds": 118.50368318898836,
+  "mast_preserved": true,
+  "new_pointer_created": false,
+  "non_target_files_preserved": [
+    ".gitattributes",
+    "mast_public_test.npz"
+  ],
+  "original_float32_pointer_path": "submissions/submission_pointer_20260923T095615Z.zip",
+  "original_float32_pointer_revision": "9347337ee781cbaebfd2210148c300c4e4d932fb",
+  "original_float32_pointer_sha256": "4145b07925a0e5f6783c147bdbe4e4d21844822b04d4394bf8c085d5cb086de5",
+  "parent_revision": "ec7a765ac3800acc1cfbd165650409476b5077a6",
+  "pinned_read_token_full_download_verified": true,
+  "private": true,
+  "purpose": "Restore verified float32 DIII-D as private dataset HEAD after the isolated f16 probe; no new pointer or Codabench submission",
+  "repo_id": "pshishkin/fusion-eq-predictions",
+  "restored_file": "diii_d_public_test.npz",
+  "revision": "3a3caa5117b8d23526aecbff129137383f025747",
+  "sha256": "7b39cdc94ec8b95b2c89dfbee4c0fcd3db4898e2671ac3e0ac136efed5b5d704",
+  "token_values_recorded": false
+}

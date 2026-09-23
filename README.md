@@ -68,9 +68,11 @@ by frame position. Its native same-shot results and separate old-five addition e
 and [`results/historical_five_position_metric_20260922.json`](results/historical_five_position_metric_20260922.json).
 The conditioned member improves alone but reduces both tested ensembles against its matched
 pooled control; it is not promoted.
-Two truth-assisted map-space geometry mechanisms are preregistered, with no smoke or fit result
-yet: [contour warp and interior li remap](experiments/geometry-map-oracle-v2.json). They are
-constrained mechanism checks on labeled DIII-D training-corpus shots, not public submissions.
+Two constrained truth-assisted map-space geometry mechanisms are being checked on labeled
+DIII-D training-corpus shots. The [first-three-shot correctness smoke](results/geometry_map_smoke_20260923.json)
+found a valid interior-li remap and a numerical grid-edge failure in the fixed contour warp;
+neither is a deployable predictor or a generalization result. Separate amended specifications
+for the two numerical gates are frozen under `experiments/geometry-map-*.json`.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
@@ -264,6 +266,12 @@ revision while the original float32 pointer remained valid; the redacted receipt
 The ignored `submissions/submission_pointer_f16_probe_*.zip` was submitted as Codabench row
 941187. Its public precision comparison is in
 [`results/best11_f16_public_20260923.json`](results/best11_f16_public_20260923.json).
+After that controlled probe, the private HF dataset HEAD was restored to the verified original
+float32 DIII-D file without touching MAST or creating a new pointer; see
+[`results/private_hf_f32_restore_20260923.json`](results/private_hf_f32_restore_20260923.json).
+The user's requested local f16 bulk files and f16 pointer copy were deleted after their hashes
+were recorded, freeing space while preserving the small evidence files and remote score history:
+[`results/f16_local_cleanup_20260923.json`](results/f16_local_cleanup_20260923.json).
 The publisher's optional
 `--evidence`, `--receipt`, `--expected-parent` and `--variant float16-probe` arguments make that
 single-file revision explicit and prevent overwriting the prior receipt.

@@ -1,0 +1,38 @@
+{
+  "amended_spec": "experiments/geometry-map-oracle-v3.json",
+  "amended_spec_sha256": "16d48e66387297c4c4a516ee48cf124aeeaf836af58f9c9c17141765432815e7",
+  "cyclic_contour_shift": 500,
+  "date_utc": "2026-09-23",
+  "frame": 0,
+  "interpretation": "Structural TPS boundary leakage, far above floating epsilon. V3 multiplies displacement by a smooth boundary-zero taper tied only to predicted-contour distance; still rejects non-injective/inverse-out-of-grid maps.",
+  "inverse_iterations": 10,
+  "inverse_overshoot_high_normalized": {
+    "R": 2.7458528131241167e-05,
+    "Z": 0.000807576150221978
+  },
+  "inverse_overshoot_low_normalized": {
+    "R": 0.0014000991885850707,
+    "Z": 0.002663978186736825
+  },
+  "inverse_residual_normalized": 1.1727645727592604e-07,
+  "max_inverse_overshoot_m": {
+    "R": 0.002380168603904137,
+    "Z": 0.008524730324586218
+  },
+  "max_matched_contour_displacement_m": 0.04273050427924526,
+  "outside_source_grid_pixels": 146,
+  "predicted_contour_min_distance_to_edges_m": {
+    "Rmax": 0.2666896661271072,
+    "Rmin": 0.18943493815294477,
+    "Zmax": 0.6052835365930268,
+    "Zmin": 0.4533321272768287
+  },
+  "purpose": "Numerical diagnosis of fixed A TPS warp frame-zero inverse-grid failure; no native score, no scientific-negative inference",
+  "raw_boundary_tps_displacement_max_abs_m": {
+    "R": 0.0049544568715363104,
+    "Z": 0.00886054691356865
+  },
+  "shot": "d3d_shot_6f6a0f6402.parquet",
+  "source_spec": "experiments/geometry-map-oracle-v2.json",
+  "source_spec_sha256": "109e3a149f78e982dddc221743b677b14d67f4905231d16d2631a2398df47cd0"
+}

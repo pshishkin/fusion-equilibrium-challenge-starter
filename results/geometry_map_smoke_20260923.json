@@ -1,0 +1,79 @@
+{
+  "A_contour_warp": {
+    "classification": "numerical_infeasibility_of_fixed_construction",
+    "error": "A: d3d_shot_6f6a0f6402.parquet frame 0: inverse TPS warp leaves the source grid",
+    "native_score_run": false,
+    "prediction_written": false,
+    "scientific_negative_inferred": false,
+    "source_log": "runs/geometry-map-smoke-20260923/A-failure.json",
+    "source_log_sha256": "694971963806828bd14b155e386b8c524dc67e8f933c60cd2720e198b62ca587",
+    "wall_seconds": 0.37927015899913386
+  },
+  "B_interior_remap": {
+    "all_578_frames_completed": true,
+    "build_seconds": 57.33695174398599,
+    "chosen_a_counts": {
+      "-0.5": 21,
+      "-2.0": 1,
+      "0.0": 165,
+      "0.5": 56,
+      "1.0": 17,
+      "1.5": 265,
+      "2.0": 53
+    },
+    "classification": "valid_map_construction_and_native_score",
+    "cons_fail_frac": 0.0,
+    "delta_native": {
+      "S": 0.009546,
+      "consistency": 0.047923,
+      "dlcfs": 5.5e-05,
+      "r2_psi": -5.9e-05,
+      "r2_qb": 0.0
+    },
+    "lcfs_fail_frac": 0.0,
+    "li_r2": 0.862264,
+    "li_r2_delta": 0.307841,
+    "metrics_sha256": "8db70c6d669a445db698b8ac4f850c4c74700a6d52f367a91f40f8f64f6af384",
+    "native": {
+      "S": 0.953937,
+      "consistency": 0.79373,
+      "dlcfs": 0.013627,
+      "r2_psi": 0.998525,
+      "r2_qb": 0.982437
+    },
+    "native_score_wall_seconds_approx": 7.9,
+    "prediction_sha256": "5026fefd33adab1dee07cd0c48f24e42b7323612fda01b75f2231dce0bf0a5e3",
+    "scalar_bits_unchanged": true,
+    "true_li_outside_candidate_range_frames": 312,
+    "zero_a_map_bits_exact": true
+  },
+  "control": {
+    "build_seconds": 0.6870435019955039,
+    "li_r2": 0.554423,
+    "map_and_scalar_bits_exact_to_source": true,
+    "metrics_sha256": "71ac4414e1b96f092cbdb9695999338d0bf6cd99fca67bb46c8e70b388329e97",
+    "native": {
+      "S": 0.944391,
+      "consistency": 0.745807,
+      "dlcfs": 0.013572,
+      "r2_psi": 0.998584,
+      "r2_qb": 0.982437
+    },
+    "native_score_wall_seconds_approx": 8.3,
+    "prediction_sha256": "bbd24922a17a9d2d32543aa7bd259d2459482ee545be913711825c6c8ae14d67"
+  },
+  "date_utc": "2026-09-23",
+  "files": [
+    "d3d_shot_6f6a0f6402.parquet",
+    "d3d_shot_18269a24ec.parquet",
+    "d3d_shot_17b33ca9c3.parquet"
+  ],
+  "frames": 578,
+  "frozen_scorer_local_score_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+  "interpretation": "B demonstrates a feasible truth-assisted profile mechanism on only three deliberately fixed shots; the pooled three-shot score is not a generalization estimate. A failed only its fixed TPS inverse-grid gate and cannot be scored. Both need separate review before any full-70 A or deployable learner.",
+  "native_scorer_jobs": 4,
+  "purpose": "First-three-shot correctness smoke of two preregistered truth-assisted constrained map corrections; no public labels, no model fit or full-70 inference",
+  "source_prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+  "spec": "experiments/geometry-map-oracle-v2.json",
+  "spec_sha256": "109e3a149f78e982dddc221743b677b14d67f4905231d16d2631a2398df47cd0"
+}

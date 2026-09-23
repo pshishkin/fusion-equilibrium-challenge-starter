@@ -86,13 +86,24 @@ The initial spec's public source SHA transcription was corrected in an explicit 
 before public conversion. Exact evidence: `grids/best11-f16-public-probe.json`,
 `grids/best11-f16-public-probe-v2.json`, `results/best11_f16_probe_20260923.json` and
 `results/private_hf_f16_probe_20260923.json`, plus
-`results/best11_f16_public_20260923.json`. No geometry mechanism smoke has begun.
+`results/best11_f16_public_20260923.json`. The private HF HEAD has since been restored to the
+verified float32 file, preserving MAST and the original pinned f32 pointer; the f16 public and
+held-70 NPZs and the local f16 pointer copy were deleted at the user's request after their hashes
+were retained. See `results/private_hf_f32_restore_20260923.json` and
+`results/f16_local_cleanup_20260923.json`. Historical HF revisions and Codabench results remain.
 
-Two constrained truth-assisted geometry corrections are frozen for a correctness smoke on the
-first three pinned, fit-excluded DIII-D training-corpus shots: a contour-alignment map warp and
-an interior flux-level li remap. They are not universal oracle ceilings, do not alter submitted
-q95/βN and cannot use public labels. The reviewed amended spec is
-`experiments/geometry-map-oracle-v2.json`; no full-70 correction or model fit has been run.
+The first-three-shot truth-assisted geometry correctness smoke finished on 578 fixed, fit-excluded
+training-corpus frames. The fixed v2 contour warp failed its inverse-grid numerical gate on the
+first frame; this is not a scientific negative. The fixed interior-li remap produced valid maps
+for all 578 frames and improved the scorer-derived li term on that small, unusually difficult
+subset, with q95/βN bits unchanged. No deployable input-only model was fitted. The result is
+`results/geometry_map_smoke_20260923.json`. A's measured edge leakage and separately frozen
+boundary-taper amendment are in `results/geometry_A_boundary_20260923.json` and
+`experiments/geometry-map-oracle-v3.json`. B's first full-70 attempt stopped at a slightly
+overstrict resampled-contour-level proxy, with no output or score; the measured failure and
+root-approved amended retry specification are in `results/geometry_B_v2_failure_20260923.json`,
+`experiments/geometry-map-oracle-B-v3.json` and `experiments/geometry-map-B-full70-v2.json`.
+No full-70 B score or full-70 A correction has been produced yet.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

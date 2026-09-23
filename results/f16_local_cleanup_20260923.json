@@ -1,0 +1,46 @@
+{
+  "date_utc": "2026-09-23",
+  "deleted_files": [
+    {
+      "bytes": 105040797,
+      "path": "runs/best11-f16-probe-20260923/held70.npz",
+      "sha256_verified_before_delete": "b6db9fd0278079717da2d571499a9d796b2c05a22629f3d6d915f02ad446fd4c"
+    },
+    {
+      "bytes": 1374121340,
+      "path": "runs/best11-f16-probe-20260923/public/diii_d_public_test.npz",
+      "sha256_verified_before_delete": "4a575dfbc1671beaa3fda15db377cec0e1aef55188b3dc0fc344ccea33391bbf"
+    },
+    {
+      "bytes": 1372856730,
+      "path": "runs/hf-parent-audit/diii_d_public_test.npz",
+      "sha256_verified_before_delete": "46aeb3bf5930ca621a3ba47b8189f72b454dbd49a7b2f1a5893b75d9df6e71de"
+    },
+    {
+      "bytes": 105055787,
+      "path": "runs/historical-five-geometry-20260922/historical_positive_stack_psirz_f16.npz",
+      "sha256_verified_before_delete": "2154d47655f78a18ceeeee1161a728b17c78ce87d1709fa32e021c19857005c4"
+    },
+    {
+      "bytes": 105066808,
+      "path": "runs/historical-five-geometry-20260922/historical_ensemble_psirz_f16.npz",
+      "sha256_verified_before_delete": "1a5e7a7477869c23b1828a78a7368864f6012450342c867b30f3992725e0f63f"
+    },
+    {
+      "bytes": 266,
+      "path": "submissions/submission_pointer_f16_probe_20260923T113409Z.zip",
+      "sha256_verified_before_delete": "641d3e7941cb843ccfe85f6122674e8c0b0f0155b938242d1b6269ae44d1c2b5"
+    }
+  ],
+  "deleted_npz_and_pointer_bytes": 3062141728,
+  "deleted_shared_temporary_hf_xet_cache": {
+    "after_verified_float32_restore": true,
+    "bytes": 7040637,
+    "path": "runs/.hf_cache"
+  },
+  "original_float32_npz_and_pointer_preserved": true,
+  "purpose": "User-requested removal of locally generated/downloaded float16 bulk material after score and SHA evidence was retained; remote historical commits and Codabench results unchanged",
+  "remote_f16_commit_preserved": true,
+  "total_local_bytes_freed": 3069182365,
+  "tracked_small_evidence_preserved": true
+}

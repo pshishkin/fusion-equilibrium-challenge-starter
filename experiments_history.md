@@ -3,6 +3,32 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — three-shot geometry map mechanism smoke and numerical gates:**
+The fixed first three fit-excluded DIII-D training-corpus shots contain 578 frames. The unchanged
+map/control scored native **S 0.944391** on this tiny subset. The v2 truth-assisted contour warp
+failed on the first frame because raw TPS displacement leaked at the grid edge and its inverse
+went out of bounds; no A map or score was published. The independent nine-value interior li
+remap made 578 valid maps, kept q95/βN bit-exact, and scored **S 0.953937** on the same shots;
+scorer-derived li R² moved **0.554423 → 0.862264**. This is a correctness/mechanism check,
+not a full-tail or deployable-model gain. A separately preregistered full-70 B attempt stopped
+after five complete shots at frame 5 of shot index 6, when the resampled contour's bilinear
+flux spread exceeded a numerical proxy by 1.3%; no B map or score was published. The amended
+B spec drops only that proxy, preserving all nine post-map contour/axis checks. Verdict: B is
+feasible on the small smoke; A and the first full-70 B attempt have numerical feasibility
+failures, not scientific negatives. [Smoke](results/geometry_map_smoke_20260923.json),
+[A edge diagnosis](results/geometry_A_boundary_20260923.json),
+[B proxy diagnosis](results/geometry_B_v2_failure_20260923.json).
+
+**2026-09-23 UTC — private HF float32 HEAD restored and local f16 bulk removed:**
+After the f16 probe, the private dataset's DIII-D file was restored to the verified float32
+SHA-256 `7b39cdc94ec8b95b2c89dfbee4c0fcd3db4898e2671ac3e0ac136efed5b5d704`, with
+the existing MAST and other files unchanged. The original float32 pointer still pins its
+previous valid commit; no new pointer or Codabench submission was made. Locally generated and
+downloaded f16 NPZs plus the f16 pointer copy were deleted after hash checks, freeing
+3,069,182,365 bytes including temporary HF/Xet cache. Historical remote commits, score pages
+and small tracked evidence remain. [Restoration](results/private_hf_f32_restore_20260923.json),
+[cleanup](results/f16_local_cleanup_20260923.json).
+
 **2026-09-23 UTC — explicit best-eleven float16 flux-only probe:**
 The fixed eleven-map/prior-eight-scalar float32 prediction was cast once to float16 **only for
 ψ**; q95/βN remained bit-identical float32 and no member was refitted or reweighted. On the
