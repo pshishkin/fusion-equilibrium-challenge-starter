@@ -44,6 +44,10 @@ hashes, selected-frame counts, wall times and stop decision are in
 `results/direct_full_contour_stage2_20260923.json`; the distinct truth-assisted mechanism result
 is in `results/direct_full_contour_stage0_20260923.json`. The validation200 window is selection-only
 and was seen by both compact-source and contour-model early stopping.
+A separate fivefold out-of-fold normal-residual protocol is only a
+[review proposal](experiments/oof-normal-contour-mlp-review.json); it has no fitted correction
+model or measured score. It would exclude each supervised shot from its own compact-MLP base fit
+and keep the original tail70 for evaluation only.
 
 The user approved a compact production baseline on 2026-09-22: `mlp` and `seq` only, seed 0 each,
 salt 0, equal weights, unchanged production shares. Spec: `experiments/compact-production.json`.

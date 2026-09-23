@@ -130,6 +130,9 @@ and [counted-fallback prediction path](tools/direct_full_contour_predict.py) wer
 predeclared score gate despite valid predictions. The reserved evaluation tail was not read for
 this model, and no public prediction was changed. This validation window was used for model
 selection, so the result is an investment decision rather than independent confirmation.
+A separate [fivefold out-of-fold normal-residual proposal](experiments/oof-normal-contour-mlp-review.json)
+is under protocol review; it has no fitted base or correction model and leaves the reserved tail
+for evaluation only.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
