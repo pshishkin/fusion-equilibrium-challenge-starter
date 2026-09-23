@@ -1,0 +1,82 @@
+{
+  "name": "contour-local-additive-flux-mechanism",
+  "date_utc": "2026-09-23",
+  "status": "Root-approved one-time additive numeric amendment after v2 full70 preflight failure; require first3 bit/native parity before one full70 retry, no fitting/public use",
+  "amends_spec": "experiments/geometry-map-additive-contour-v2.json",
+  "amends_spec_sha256": "d00718faaa5da302c4dbadc76061e0877bdf7cb9a4971fc516f1bf0bd295d60f",
+  "amendment_reason": "The v2 full70 stopped on source shot index42 frame337 because 19/512 matched contour points exceeded a 4-grid-diagonal cap borrowed from the old invertible TPS warp. This new additive map has no inverse coordinate warp to fold. On the offending frame the unchanged lambda1/width formula is finite float32 and edge-bit exact, max |delta psi| is 0.009464 (2.48% of source range), LCFS extraction remains valid, and contour-to-true distance improves 0.242015 to 0.168083m. Remove ONLY the borrowed displacement cap; record max/p95 displacement and retain all other source/topology/TPS/finite/edge/scalar/native-failure checks. No lambda or width tuning.",
+  "v2_full70_failure_record": "runs/geometry-map-additive-full70-20260923/additive-full70-failure.json",
+  "v2_full70_failure_record_sha256": "d350fb65543f617531fa684ce11f5e0379691aeb522c10d0f7bd4fa793a50c77",
+  "v2_numeric_diagnostic": "results/geometry_additive_v2_failure_20260923.json",
+  "v2_numeric_diagnostic_sha256": "fd1ceb9999ebeaa907c789bf890bd7722b95a6a53ed0e68954e5f7dbfa7a5bd7",
+  "question": "Does a first-order, contour-local correction preserve the shape/LCFS mechanism seen in the three-shot inverse-warp smoke while avoiding its interior-li and inverse-conditioning costs?",
+  "scope": "Truth-assisted mechanism probe on labeled DIII-D training-corpus tail only. True psi may supply C_true for this diagnostic, never a deployable model or public prediction. This is a new additive map construction, not an eighth inverse-warp safety amendment.",
+  "input": {
+    "prediction": "runs/historical-five-geometry-20260922/historical_psi_eleven_qb_eight.npz",
+    "prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+    "prediction_record": "runs/historical-five-geometry-20260922/historical_psi_eleven_qb_eight.json",
+    "scored_files_json": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+    "scored_files_json_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+    "data_config": "diii_d_train",
+    "data_dir": "../downloaded_huggingface/hf_dataset",
+    "fit_overlap_count": 0,
+    "source_dtype": "float32 for psirz, q95 and betaN",
+    "truth_usage": "Only scorer-native C_true extracted from efit_psirz of labeled, fit-excluded train-corpus shots. No true interior psi pixels, stored scalar labels or public targets are inserted in any output."
+  },
+  "smoke": {
+    "selection_rule": "The same first three files of the pinned salt-0 70-shot score order, chosen before the additive correction is scored",
+    "files": [
+      "d3d_shot_6f6a0f6402.parquet",
+      "d3d_shot_18269a24ec.parquet",
+      "d3d_shot_17b33ca9c3.parquet"
+    ],
+    "frames_per_shot": [332, 9, 237],
+    "total_frames": 578,
+    "purpose": "Correctness and mechanism gate only; pooled three-shot S is not a generalization estimate",
+    "next_step": "Root reviews smoke validity, contour/shape movement, li tradeoff, timing and all native fields before any full-70 run. No full-70 run, model fit or public use is authorized by this spec alone."
+  },
+  "construction": {
+    "contours": "Extract C_pred and C_true as the frozen scorer's 512-point closed physical (R,Z) LCFS. Reject missing/non-simple contours; reverse orientation if needed, then choose the single cyclic arclength shift minimizing summed squared physical displacement with lowest-shift ties. No star-shaped or radial assumption.",
+    "displacement_controls": "Reuse the fixed prior A forward-displacement geometry: 64 uniformly spaced C_pred-to-C_true boundary controls, predicted magnetic-axis zero-displacement anchor, and 16 zero-displacement grid-edge anchors (four corners plus 1/4, 1/2 and 3/4 of every edge). Fit the same 2-D thin-plate-spline RBF in unit-normalized grid coordinates with smoothing=0.0001 and degree=1. Transform its displacement back to physical metres before applying the flux update.",
+    "boundary_taper": "For every point x=(R,Z), m=0.5 times the minimum physical distance of any C_pred point to any grid edge. h(t)=0 at t<=0, 3t^2-2t^3 at 0<t<1, 1 at t>=1. T(x) is the product h((R-Rmin)/m)h((Rmax-R)/m)h((Z-Zmin)/m)h((Zmax-Z)/m). Require T=0 at every grid-edge pixel and T=1 at every contour control and the predicted axis. Set u_phys(x)=T(x)*(span_R*u_RBF_R(x),span_Z*u_RBF_Z(x)).",
+    "shell": "Let d(x,C_pred) be the nearest Euclidean physical distance from each grid point to one of the 512 scorer-resampled predicted contour points, measured by cKDTree. Set width=2*min(diff(grid_R),diff(grid_Z)) metres from that shot's physical grid, fixed without tuning. Set w(x)=exp(-0.5*(d/width)^2). The discrete-point distance approximation is part of the frozen construction, not an optimized exact-polyline distance.",
+    "gradient": "Compute dpsi_dZ,dpsi_dR=np.gradient(psi_old.astype(float64),grid_Z,grid_R) on the original 65x65 physical grid, matching the scorer's grid orientation. Require finite values.",
+    "map_update": "With fixed lambda=1, psi_new(x)=psi_old(x)-w(x)*(u_phys_R(x)*dpsi_dR(x)+u_phys_Z(x)*dpsi_dZ(x)); compute in float64 and cast once to finite float32. This is the first-order Taylor approximation to psi_old(x-u), without solving an inverse map. There is no weight or width sweep, clipping, flux sign flip, or replacement with true psi pixels.",
+    "submitted_scalars": "Copy q95 and betaN arrays byte-identically from the original float32 NPZ for every shot; do not change their weights or values.",
+    "outputs": "Actual finite float32 psi maps, never overridden LCFS or derived scalar reports. Store max and p95 matched contour displacement, max |delta psi|, max |u_phys|, shell width and boundary psi bit identity. Record scorer-native source/corrected contour distances where extraction succeeds and corrected-map LCFS/consistency failure counts through the native scorer. Never copy a true psi pixel into the result."
+  },
+  "validity": {
+    "preflight": "Verify frozen source NPZ hash, exact ordered filenames/frames, scorer source hashes, original map/scalar shape/dtype/finiteness, true and predicted contour topology and positive contour-to-grid-edge margin. All errors carry shot basename and frame index; fail fast without skipping or mean repair.",
+    "control_correspondence": "Require unique TPS anchors, finite TPS values and full contour/axis taper strength. Record max/p95 matched physical displacement but do not reject on a displacement cap inherited from the unrelated inverse-warp fold gate. The fixed additive finite-map and native LCFS checks remain authoritative.",
+    "post_map": "Fail fast only if psi_new has wrong (T,65,65) shape/dtype, nonfinite entries or grid-edge psi bits differ from psi_old. Construct a source-control NPZ whose every array is bit-identical to the pinned input. Do not require coordinate-warp Jacobian/inverse gates because no coordinate inverse is computed. If the finite corrected map has no LCFS or a derived scalar fails, keep the map and let the unchanged native scorer apply its normal penalties; record failure counts, never substitute true geometry.",
+    "failure_interpretation": "A numeric validity failure is a failure of this one additive family, not evidence that all boundary corrections fail. A valid small-shot S difference is mechanism evidence only, not an expected public or full-70 gain."
+  },
+  "scoring": {
+    "frozen_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "frozen_campaign_source_hash": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4",
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "jobs": 4,
+    "native_comparison": "Build source control and additive candidate NPZs for the same ordered files; score both through untouched frozen local_score.main. Report S, R2psi, R2qb, raw D_LCFS, Consistency and all seven per-derived-scalar R2, failures and shot/frame counts. Never implement a second metric.",
+    "comparison_anchor": "The first-three-shot original source control was already natively scored at S 0.944391; recompute or verify its file/metrics hashes before comparison. Prior A v6 three-shot S 0.965705 is context only and cannot substitute for the additive candidate's own native score."
+  },
+  "expected_cost_and_gate": {
+    "fixed_shell_width_m_for_pinned_DIII_D_grid": 0.053125,
+    "first_three_shot_frames": 578,
+    "full_seventy_frames_if_later_approved": 14830,
+    "first_three_shot_native_score_wall_estimate_seconds_each": 8,
+    "implementation_gate": "No code or score before root reviews this exact math/spec. Then run only three-shot correctness smoke; full-70 requires separate root review.",
+    "mechanism_readout": "Count frames with improved/worsened scorer-native contour distance. Compare kappa/volume/LCFS and li changes against the same three-shot source control, but do not select lambda or width using those outcomes.",
+    "no_model_fit": true,
+    "no_public_data_or_submission": true
+  },
+  "prior_evidence_not_full_seventy_score": {
+    "A_three_shot_smoke": "results/geometry_A_v6_smoke_20260923.json",
+    "A_final_full_seventy_numerical_failure": "results/geometry_A_v7_failure_20260923.json",
+    "B_final_full_seventy_numerical_failure": "results/geometry_B_v3_failure_20260923.json"
+  }
+}

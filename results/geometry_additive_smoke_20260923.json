@@ -1,0 +1,91 @@
+{
+  "additive_native_metrics_sha256": "eb2dc1c28a0ce24c8a69af13e499277cdbfaca108b755e6b5e745a5d9e68f6a8",
+  "additive_prediction_sha256": "a25b2e7e5c003735791a39fc274ff069742ed0c7f76a159dfa538d482e980c73",
+  "control_all_array_bits_exact_to_source": true,
+  "control_native_metrics_sha256": "71ac4414e1b96f092cbdb9695999338d0bf6cd99fca67bb46c8e70b388329e97",
+  "control_prediction_sha256": "bbd24922a17a9d2d32543aa7bd259d2459482ee545be913711825c6c8ae14d67",
+  "date_utc": "2026-09-23",
+  "delta_additive_minus_control": {
+    "S": 0.037311,
+    "consistency": 0.18124,
+    "dlcfs": -0.009931,
+    "r2_psi": 0.000128,
+    "r2_qb": 0.0
+  },
+  "diagnostics": {
+    "additive_contour_to_true_hausdorff_mean_m": 0.006338318579400842,
+    "corrected_lcfs_missing_frames": 0,
+    "improved_frames": 567,
+    "max_abs_delta_psi": 0.017276132965046834,
+    "max_abs_displacement_m": 0.0835978582597407,
+    "shell_width_m": 0.05312490463256836,
+    "source_contour_to_true_hausdorff_mean_m": 0.02067116962861877,
+    "worsened_frames": 11
+  },
+  "files": [
+    "d3d_shot_6f6a0f6402.parquet",
+    "d3d_shot_18269a24ec.parquet",
+    "d3d_shot_17b33ca9c3.parquet"
+  ],
+  "frames": 578,
+  "frozen_scorer_local_score_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+  "interpretation": "The fixed first-order contour-local construction is valid on the preselected three shots and moves shape/LCFS with a much smaller li cost than the old inverse warp. Its use of true contours and tiny selected subset preclude deployability or a generalization claim. Full70 needs separate root review.",
+  "native_additive": {
+    "S": 0.981702,
+    "cons_fail_frac": 0.0,
+    "consistency": 0.927047,
+    "dlcfs": 0.003641,
+    "lcfs_fail_frac": 0.0,
+    "r2_cons_each": {
+      "R_axis": 0.919585,
+      "Z_axis": 0.977567,
+      "kappa": 0.990337,
+      "li": 0.610578,
+      "tri_bot": 0.997457,
+      "tri_top": 0.99686,
+      "volume": 0.996945
+    },
+    "r2_each": {
+      "betaN": 0.975045,
+      "q95": 0.98983
+    },
+    "r2_psi": 0.998712,
+    "r2_qb": 0.982437
+  },
+  "native_control": {
+    "S": 0.944391,
+    "cons_fail_frac": 0.0,
+    "consistency": 0.745807,
+    "dlcfs": 0.013572,
+    "lcfs_fail_frac": 0.0,
+    "r2_cons_each": {
+      "R_axis": 0.919585,
+      "Z_axis": 0.977567,
+      "kappa": 0.106798,
+      "li": 0.554423,
+      "tri_bot": 0.950227,
+      "tri_top": 0.997677,
+      "volume": 0.714374
+    },
+    "r2_each": {
+      "betaN": 0.975045,
+      "q95": 0.98983
+    },
+    "r2_psi": 0.998584,
+    "r2_qb": 0.982437
+  },
+  "producer_sha256": "b4c347b9d4db83667359f5e8011f5cf8c8058cf8478463cb7f68314162b0e26d",
+  "purpose": "Correctness-only fixed truth-assisted contour-local additive map correction on first three pinned DIII-D train-tail shots; no full70/public/fit claim",
+  "scalar_bits_unchanged": true,
+  "scorer_jobs": 4,
+  "source_prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+  "spec": "experiments/geometry-map-additive-contour-v2.json",
+  "spec_sha256": "d00718faaa5da302c4dbadc76061e0877bdf7cb9a4971fc516f1bf0bd295d60f",
+  "timing_seconds": {
+    "additive_build": 21.249556711991318,
+    "additive_native_score_wall_approx": 7.9,
+    "control_build": 0.6473829689784907,
+    "control_native_score_wall_approx": 8.3
+  },
+  "true_psi_pixels_copied_into_output": false
+}

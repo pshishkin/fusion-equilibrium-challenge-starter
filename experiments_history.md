@@ -3,6 +3,26 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — fixed contour-local additive ψ correction on the full labeled tail:**
+The scorer-native C_pred/C_true contours supplied one fixed TPS displacement; a Gaussian shell
+of **two physical grid spacings** and **λ=1** applied the first-order map update
+`ψ_new=ψ_old−w u·∇ψ_old`. q95/βN remained bit-identical. An initial full-70 run stopped on a
+four-grid-diagonal displacement cap inherited from the old *inverse* warp. On its offending
+frame the unchanged additive map was finite and edge-exact, so a preregistered v3 removed only
+that unrelated cap; all nine three-shot prediction arrays and the native JSON remained bit-exact.
+The completed **70 shots/14,830 frames** scored native **S 0.995080 → 0.996257**,
+**+0.001177**, with D_LCFS **0.009378 → 0.003863**, Consistency
+**0.982616 → 0.985709**, kappa **0.965355 → 0.994937** and volume
+**0.983522 → 0.999592**. Li deteriorated **0.972388 → 0.939465**; R²qb was unchanged
+at 0.997165, and no LCFS/derivation failures occurred. Raw scorer-native contour-to-true
+distance improved on **13,776/14,830** frames. Build+verification took **552.13 s**, then
+control and candidate native scoring about **98 s** each. Verdict: real map-space geometry
+sensitivity under a fixed **truth-assisted** construction, not a deployable predictor or an
+independent/public gain. The repeatedly used tail and unavailable C_true at inference prohibit
+that interpretation. [Full terms and per-shot contour movement](results/geometry_additive_full70_20260923.json),
+[initial gate measurement](results/geometry_additive_v2_failure_20260923.json),
+[bit parity](results/geometry_additive_v3_parity_20260923.json).
+
 **2026-09-23 UTC — fixed geometry map families closed after full-70 numerical gates:**
 The truth-assisted A contour warp with boundary taper and damped Newton produced **578/578**
 valid maps on the preregistered first three shots. Safety-only v7 maps and native JSON were

@@ -75,6 +75,11 @@ versions stopped at numerical validity gates before producing a score. The final
 [smoke and parity](results/geometry_A_v7_parity_20260923.json) and
 [full-70 failure](results/geometry_A_v7_failure_20260923.json) are evidence about this fixed
 construction, not a deployable predictor or a generalization result.
+A separate [contour-local additive correction](results/geometry_additive_full70_20260923.json)
+uses the true contour only as a mechanism probe. It produced finite maps for the full labeled
+70-shot tail and a scorer-native geometry change with some li damage; it cannot be run on public
+inputs without learning the contour correction from inputs alone. Its fixed formula and one
+preflight amendment are in `experiments/geometry-map-additive-*.json`.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

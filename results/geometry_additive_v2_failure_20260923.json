@@ -1,0 +1,48 @@
+{
+  "base_spec": "experiments/geometry-map-additive-contour-v2.json",
+  "base_spec_sha256": "d00718faaa5da302c4dbadc76061e0877bdf7cb9a4971fc516f1bf0bd295d60f",
+  "complete_shots_before_failure": 40,
+  "date_utc": "2026-09-23",
+  "extension": "experiments/geometry-map-additive-full70.json",
+  "extension_spec_sha256": "0124bab75d4c69766e170fe23bd5df77a73e92808cbf670a2164125697cae352",
+  "failure": {
+    "arm": "additive",
+    "classification": "numeric_or_source_contour_infeasibility",
+    "error": "additive: d3d_shot_7191b23868.parquet frame 337: matched contour move 0.2430713796985513 m, expected <= 0.22647088893226006 m",
+    "extension_spec_sha256": "0124bab75d4c69766e170fe23bd5df77a73e92808cbf670a2164125697cae352",
+    "no_scientific_negative_inferred": true,
+    "scope": "full70",
+    "spec_sha256": "d00718faaa5da302c4dbadc76061e0877bdf7cb9a4971fc516f1bf0bd295d60f",
+    "wall_seconds": 351.5262971969787
+  },
+  "failure_frame": 337,
+  "failure_json_sha256": "d350fb65543f617531fa684ce11f5e0379691aeb522c10d0f7bd4fa793a50c77",
+  "failure_log_sha256": "78264825378b1327cad3dbdcfd7c05cc1ec1e3128d10c4880f3c7c74a0c06744",
+  "failure_source_index": 42,
+  "in_memory_unchanged_formula_without_borrowed_cap": {
+    "boundary_psi_bits_exact": true,
+    "corrected_lcfs_missing": false,
+    "corrected_true_contour_hausdorff_m": 0.16808294837762633,
+    "finite_float32": true,
+    "max_abs_delta_psi": 0.009464381882462531,
+    "max_delta_fraction_of_source_range": 0.024791101948367113,
+    "max_physical_tps_displacement_m": 0.24155186995879094,
+    "shell_width_m": 0.05312490463256836,
+    "source_psi_range": 0.3817652761936188
+  },
+  "interpretation": "The cap was a fold-avoidance preflight for an inverse warp, not a validity requirement for an additive finite map. The same correction is finite and edge-exact on the offending frame; scorer should judge any resulting LCFS/derived failure. A root-reviewed v3 may remove only that cap, not tune lambda/width.",
+  "matched_contour_displacement_m": {
+    "max": 0.2430713796985513,
+    "median": 0.07795049217437931,
+    "old_inverse_warp_cap": 0.22647088893226006,
+    "p95": 0.21031578337289145,
+    "p99": 0.23670397836889182,
+    "points_above_cap": 19,
+    "total_points": 512
+  },
+  "native_score_run": false,
+  "no_partial_prediction_published": true,
+  "producer_sha256": "07d0c7716b6aa4ee71695d6c423b92034cd2e5a68f13220e35c81bc54fbf6397",
+  "purpose": "Pre-registered additive full70 v2 stopped on a displacement cap copied from inverse warp; read-only in-memory numeric feasibility on the offending frame, no native score",
+  "scorer_source_true_contour_hausdorff_m": 0.24201507028604072
+}

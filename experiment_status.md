@@ -107,6 +107,22 @@ deployable input-only predictor, public-label use or combined A+B result was pro
 `results/geometry_A_v7_failure_20260923.json` and the frozen specs under
 `experiments/geometry-map-*.json`.
 
+A distinct, fixed first-order **additive** ψ correction localized around the predicted LCFS
+completed the exact same full 70-shot tail with no native extraction failures and q95/βN bits
+unchanged. Native S was **0.995080 → 0.996257** (**+0.001177**): D_LCFS improved
+0.009378 → 0.003863 and kappa/volume improved, while derived li R² fell 0.972388 → 0.939465.
+Scorer-native contour-to-true distance decreased on 13,776 of 14,830 frames; the full per-shot
+physical-distance table and timing are in `results/geometry_additive_full70_20260923.json`.
+This uses **true contours** from the labeled training corpus and the same repeatedly used salt-0
+tail, so it is a constrained mechanism diagnostic, not a deployable or independently confirmed
+gain or a public-score forecast. One borrowed inverse-warp displacement cap stopped the first
+full run; a predeclared v3 amendment removed only that irrelevant preflight and reproduced the
+three-shot prediction/scorer bits before the successful full run. Evidence:
+`results/geometry_additive_smoke_20260923.json`,
+`results/geometry_additive_v2_failure_20260923.json`,
+`results/geometry_additive_v3_parity_20260923.json` and the frozen specs under
+`experiments/geometry-map-additive-*.json`. No model has learned this correction from inputs.
+
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
 reject stale half-precision caches; an old-control writer round-trip reproduced the original
