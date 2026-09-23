@@ -3,6 +3,17 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — single public EFIT-AI HDF5 sample schema/access audit:**
+GitLab project 36523277 exposes one checked-in DIII-D example, `179565.h5` (**19,572,048 bytes**, SHA
+`d7764e6a…`), at a pinned public commit. The file has **13** equilibrium/Thomson times,
+**129×129** ψ, q95/βN/Ip labels, **53** Thomson channels with Te/ne and coordinates, and
+**24** PF-current constraints per equilibrium slice. It does not expose the challenge's named,
+full-rate **18 F-coils + ECOILA/bcoil/Ip** streams. The public `dvc` branch has metadata pointers
+to SSH remotes at NERSC/GA, not an unauthenticated bulk corpus. Repository BSD text was found,
+but a dataset-wide HDF5 license and shot-disjointness evidence were not. Verdict: this sample
+cannot supply a compatible clean external training set; no bulk download, public/private shot
+fingerprinting or model fit. [Pinned source, fields and access evidence](results/efitai_sample_feasibility_20260923.json).
+
 **2026-09-23 UTC — can a fixed mean-line projection rescue one failed PCA contour?**
 Read-only on the sole non-simple held TRAIN frame, PCA64 had one crossing between polygon
 segments 349 and 357 at **(R,Z)=(1.371973,−1.060385) m**. Its fitted PCA mean was simple and

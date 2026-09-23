@@ -194,7 +194,14 @@ A [read-only official-source external-data audit](results/external_diii_d_data_f
 found that external archives are permitted with disclosure, and EFIT-AI describes potentially
 relevant DIII-D equilibria, but did not verify a downloadable corpus with the matching permitted
 currents/Thomson/ψ schema, a clear data license and a shot-disjointness proof against the
-competition's hidden identifiers. Nothing external was downloaded or fitted; no gain is claimed.
+competition's hidden identifiers. No external corpus was downloaded or fitted; no gain is claimed.
+The [one checked-in EFIT-AI HDF5 sample](results/efitai_sample_feasibility_20260923.json) was
+subsequently downloaded at its pinned public GitLab commit and SHA. It contains sparse EFIT and
+Thomson slices, including q95/βN labels and a finer ψ grid, but no challenge-compatible named
+high-rate actuator traces. The project has only that one HDF5 example on its public main branch;
+a DVC branch points bulk data at SSH remotes. Its repository BSD license is not an explicit
+data-wide reuse grant, and no disjointness proof exists. No bulk access, public/private shot
+fingerprinting, model fit or submission was attempted.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

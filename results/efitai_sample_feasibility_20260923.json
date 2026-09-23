@@ -1,0 +1,57 @@
+{
+  "date_utc": "2026-09-23",
+  "name": "EFIT-AI-public-GitLab-single-HDF5-schema-and-access-audit",
+  "classification": "one_public_sample_not_a_usable_disjoint_training_corpus",
+  "source": {
+    "project": "https://gitlab.com/efit-ai/efitai_database",
+    "project_id": 36523277,
+    "public_default_branch": "main",
+    "pinned_main_commit": "123fab319b92c75a6a242d81d63dd9c655efa39e",
+    "sample_repository_path": "efitai_database/data/diii-d/179565.h5",
+    "sample_raw_url": "https://gitlab.com/api/v4/projects/36523277/repository/files/efitai_database%2Fdata%2Fdiii-d%2F179565.h5/raw?ref=123fab319b92c75a6a242d81d63dd9c655efa39e",
+    "sample_bytes": 19572048,
+    "sample_sha256": "d7764e6a73523ee45d369d17a0ad0ed81573d88a21fe774cdb0c19bc2f9db967",
+    "sample_blob_id": "86a21552e222e188fede55c277aad6529005a2eb",
+    "sample_last_file_commit": "ba1321fbd7a2b81a9e208df3cb6be7fcf8396f3d",
+    "sample_last_file_commit_date_utc": "2023-03-08T00:21:21Z",
+    "ignored_local_path": "runs/efitai-public-sample-20260923/179565.h5",
+    "public_main_diii_d_data_file_count": 1,
+    "project_public_tags": 0,
+    "project_public_releases": 0,
+    "readme": "https://gitlab.com/efit-ai/efitai_database/-/blob/main/README.rst",
+    "repository_license": "https://gitlab.com/efit-ai/efitai_database/-/blob/main/LICENSE",
+    "DVC_branch": "https://gitlab.com/efit-ai/efitai_database/-/tree/dvc"
+  },
+  "sample_HDF5_schema": {
+    "dataset_description": {"machine": "DIII-D", "pulse": 179565, "eqtype": "magnetic"},
+    "root_groups": ["dataset_description", "equilibrium", "thomson_scattering", "wall"],
+    "equilibrium_time_slices": 13,
+    "equilibrium_time_range_seconds": [0.112, 0.372],
+    "thomson_time_slices": 13,
+    "thomson_channel_count": 53,
+    "thomson_fields": "Each channel has electron temperature t_e/data and density n_e/data arrays and its own time, error and physical position r,z. This is relevant but only at 13 sparse sampled times in the example.",
+    "EFIT_psi_dataset_example": "equilibrium/time_slice/0/profiles_2d/0/psi",
+    "EFIT_psi_shape": [129, 129],
+    "EFIT_grid_R_range_m": [0.84, 2.54],
+    "EFIT_grid_Z_range_m": [-1.6, 1.6],
+    "EFIT_scalar_fields_present": ["equilibrium/time_slice/*/global_quantities/q_95", "equilibrium/time_slice/*/global_quantities/beta_normal", "equilibrium/time_slice/*/global_quantities/ip"],
+    "PF_current_constraints_per_slice": 24,
+    "PF_current_constraint_fields": ["measured", "reconstructed", "weight"],
+    "challenge_actuator_mismatch": "The file has only sparse equilibrium-slice PF-current constraints, with 24 unnamed entries; no public HDF5 root/group provides the challenge's named high-rate 18 F-coil plus ECOILA/bcoil/Ip actuator traces and distinct raw time bases. vacuum_toroidal_field/b0 is a field, not the bcoil current trace. The sample therefore cannot be used as a direct row-level replacement for challenge inputs.",
+    "challenge_target_mismatch": "The file contains 13 EFIT ψ grids of 129x129, while the challenge targets full selected shot sequences on a 65x65 grid. A physical-grid resampling rule would be needed even for labels."
+  },
+  "bulk_and_license": {
+    "DVC_remote_config_url": "https://gitlab.com/efit-ai/efitai_database/-/blob/dvc/.dvc/config",
+    "DVC_remote_locations": ["ssh://dtn02.nersc.gov/global/cfs/cdirs/efitai/database_cache", "ssh://iris.gat.com/fusion/projects/efitai/database_cache"],
+    "bulk_access_status": "The public dvc branch exposes pointer files and SSH-configured remotes, not an unauthenticated bulk HDF5 download or a complete public shot manifest. No access bypass or bulk download was attempted.",
+    "license_status": "The GitLab repository root has a BSD LICENSE for repository contents, but its README does not explicitly specify separate HDF5 sample or underlying DIII-D research-data reuse terms. Do not infer a dataset-wide license or corpus availability from this single checked-in sample.",
+    "competition_external_data_rule": "https://fusion-equilibrium-challenge.sophelio.io/faq/",
+    "competition_rule_summary": "Public external tokamak archives are allowed with methods-report disclosure, but this does not establish that the EFIT-AI bulk corpus is publicly downloadable, schema-compatible or disjoint."
+  },
+  "overlap_and_safety": {
+    "sample_train_overlap_proven": false,
+    "sample_public_or_private_overlap_checked": false,
+    "reason": "Competition machine shot numbers are omitted from released rows and the single HDF5 sample lacks matching high-rate named actuator traces. No robust disjointness claim follows from comparing one sparse EFIT sample. Public/private input fingerprint matching was deliberately not attempted; organizer-approved identity/disjointness information would be needed before any external supervised training."
+  },
+  "verdict": "This one public, labeled, sparse HDF5 example confirms that EFIT-AI stores relevant equilibrium and Thomson quantities, but does not provide a usable challenge-compatible or demonstrably disjoint training corpus. Stop the external-data route on current evidence; no model fit or public submission was made."
+}

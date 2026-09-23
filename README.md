@@ -107,7 +107,10 @@ found that moving the failed PCA contour toward its valid mean removed the cross
 the boundary error exceeded the fixed gate; it did not reopen this branch.
 An [official-source external-data review](results/external_diii_d_data_feasibility_20260923.json)
 found no verified, downloadable labeled DIII-D corpus with matching inputs and a provable
-non-overlap with all competition folds. No outside data were downloaded or fitted.
+non-overlap with all competition folds. No outside corpus was downloaded or fitted.
+A [single public EFIT-AI HDF5 sample audit](results/efitai_sample_feasibility_20260923.json)
+confirms that equilibrium and Thomson fields are present, while the required named high-rate
+actuator traces and an openly downloadable bulk corpus remain unverified.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
