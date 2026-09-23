@@ -55,9 +55,10 @@ The [separate full-normal diagnostic](experiments/oof-full-normal-diagnostic.jso
 all scorer-contour normal components improved over K8 but still missed the prior investment
 margin. Neither result promoted the K8 learner; folds 1–4, internal gate200 and original tail70
 were not evaluated for this branch.
-A [read-only scorer-native li audit](experiments/oof-li-discrepancy-audit.json) is prepared on
-those same saved TRAIN-shot maps to determine whether the profile compensator reached its own
-input-only target. It is not a new fit or a score gate.
+A [read-only scorer-native li audit](results/oof_li_discrepancy_20260923.json) on those same
+saved TRAIN-shot maps found material final-minus-source li discrepancies concentrated in a few
+frames. It used no true labels; the separate native true-li R² decline remains a measured score
+fact, not a per-frame attribution from this audit. No new optimizer, fit or score gate followed.
 A focused five-step CPU comparison of the ordinary path before and after the explicit-file change
 produced byte-identical artifacts and predictions; see
 `results/oof_default_path_parity_20260923.json`. This checks compatibility, not the proposed OOF

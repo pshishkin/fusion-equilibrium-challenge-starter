@@ -144,9 +144,10 @@ retained all scorer-contour normal components on the same TRAIN pilot. Its
 [native result](results/oof_full_normal_diagnostic_20260923.json) showed some value in the
 discarded detail, but still missed the fixed investment margin. No further folds or contour
 learner were fitted, and the reserved evaluation tail stayed untouched.
-A [read-only li discrepancy audit](experiments/oof-li-discrepancy-audit.json) is prepared on the
-same saved source and full-normal maps. It checks whether the input-only profile step actually
-preserved its own li target before any new geometry operation is considered.
+A [read-only li discrepancy audit](results/oof_li_discrepancy_20260923.json) on the same saved
+maps found that the input-only profile step did not reliably preserve its own li target. A small
+number of frames dominate the discrepancy. No alternative li optimizer or contour learner was
+run as a consequence.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

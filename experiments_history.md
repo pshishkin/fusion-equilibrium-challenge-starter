@@ -3,6 +3,21 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — did source-li compensation preserve its own input-only target?**
+Read-only on the same **100 original-TRAIN OOF shots/21,667 frames**, using only the saved source
+and full-normal ψ maps plus input grid geometry, the byte-pinned scorer extracted each map's own
+LCFS and li. The absolute final-minus-source li difference had median **0.007745**, p95
+**0.019743**, p99 **0.147994**, maximum **1.783671** and RMS **0.042665**; only **0.688%** of
+frames agreed within **1e−4**. The largest **1%** of frames supplied **89.44%** of squared li
+discrepancy, with a few whole shots carrying much of it. The previously measured native true-li
+R² was **0.938689 → 0.884629**. Verdict: the nine-candidate spatial source-li step did not
+actually hold its own input-only li target, especially in rare high-impact frames. Squared
+source-to-final disagreement is not itself an attribution of native truth error, so this does
+not justify tuning the candidate grid or claiming an li-exact operation would raise S. The
+audit took **31.32 s**, requested no EFIT target columns, and touched no internal gate200,
+evaluation tail70 or public shots.
+[Input/output hashes, distribution and top frames](results/oof_li_discrepancy_20260923.json).
+
 **2026-09-23 UTC — full scorer-normal displacement against the failed K8 pilot:**
 On the exact same first **100** original-TRAIN OOF shots/**21,667** frames, the only changed
 operation was retaining all **512** normal-displacement components instead of Fourier DC plus
