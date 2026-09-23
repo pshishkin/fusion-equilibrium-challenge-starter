@@ -202,6 +202,11 @@ high-rate actuator traces. The project has only that one HDF5 example on its pub
 a DVC branch points bulk data at SSH remotes. Its repository BSD license is not an explicit
 data-wide reuse grant, and no disjointness proof exists. No bulk access, public/private shot
 fingerprinting, model fit or submission was attempted.
+The next bounded contour question is a [train-only centroid-ray viability gate](experiments/direct-contour-star-viability-v2.json)
+on the already selected first 100 compact TRAIN shots/300 frames. A half-bin angular amendment
+avoids deterministic vertex hits. This is only a test of whether one positive radius exists for
+every ray from each true contour's centroid; the true centroid is a training target, never an
+inference feature. No log-radius basis or learner is fitted without review of this gate.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

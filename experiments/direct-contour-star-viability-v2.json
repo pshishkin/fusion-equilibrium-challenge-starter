@@ -1,0 +1,53 @@
+{
+  "amendment_reason": "Shift the fixed 512 global polar angles by half a bin to avoid deterministic polygon-vertex and axis-aligned-edge coincidences introduced by maximum-R contour canonicalization. Keep the same ray count, centroid, intersection/dedup tolerances and strict all-or-none star-shaped gate; no measurement or score prompted the shift.",
+  "amends_spec": "experiments/direct-contour-star-viability-review.json",
+  "amends_spec_sha256": "c18bc9cfd207740bcec25d26685a37a62958189d24a580979641bb7af1c5315e",
+  "cost_and_next_gate": {
+    "estimated_CPU_wall": "The already frozen first100/300 scorer-contour extraction took about 6 seconds at four workers. The exact 512-half-bin-ray by 512-segment batched intersection check adds about 78.6 million pair tests; budget under two minutes CPU and below 2 GB incremental memory, then report actual wall. No GPU or full-corpus read.",
+    "if_passes": "Only after root reviews this one-sample result, separately preregister a single center-plus-log-radius PCA64 family: fit the first100 TRAIN true contours and check a THIRD disjoint100 compact-TRAIN shot triplets, with fixed 32/64 component gates median<=0.25 and p95<=0.5 grid cell, zero out-of-grid/self-crossing. Do not use the earlier second100 to claim a new gate pass.",
+    "no_model_fit": true,
+    "no_public_or_private_shot_fingerprinting": true,
+    "no_validation_or_reserved_eval70_read": true
+  },
+  "date_utc": "2026-09-23",
+  "geometry": {
+    "inside": "Use the frozen scorer's even-odd point-in-polygon helper to test each centroid and require its minimum physical distance to all 512 straight polygon segments to exceed tau. An outside or on-boundary centroid is a frame-level star-shaped failure, not a reason to substitute the magnetic axis or skip the frame.",
+    "numerical_rule": "The ray is unit length. Classify |cross(ray_direction,segment)| <= 1e-12*segment_length as parallel; if also collinear within the same physical tau, report ambiguous rather than inventing one crossing. For nonparallel segments accept 0<=segment_parameter<=1 with endpoint roundoff tolerance tau/segment_length and ray_radius>tau. Record all tolerance-triggered, duplicate and ambiguous cases by shot/frame/angle.",
+    "origin": "Use each true contour's signed shoelace polygon centroid in physical metres after canonical CCW orientation. This is a TRAIN-target construction only. A future deployable model would predict the center from permitted inputs; no true centroid may be an inference feature.",
+    "per_frame_readout": "Record scorer polygon centroid, origin-inside flag, minimum positive ray radius, count of angles with exactly one unique positive intersection, zero/multiple/ambiguous counts, and the first pathological shot/frame/angle. Preserve all 300 frame rows in ignored frozen run evidence and a small tracked summary.",
+    "rays": "For j=0..511, fix theta_j=2*pi*(j+0.5)/512 from the positive R direction and ray c+t*(cos(theta_j),sin(theta_j)), t>0. Intersect against all 512 straight physical polygon segments with the 2-D cross-product line equations. Treat a collinear nonzero-length segment as ambiguous failure. Retain positive ray parameters and segment parameters within the predeclared physical tolerance; deduplicate adjacent shared-vertex hits whose positive radii differ by at most tau=0.0001*minimum physical grid spacing. Do not merge farther distinct crossings.",
+    "true_contour": "Extract the same frozen scorer-native 512-point physical (R,Z) LCFS from efit_psirz on the 300 fixed TRAIN frames. Use no stored efit_lcfs_* boundary, external archive, original base prediction or scored-tail label. Verify finite, simple, nondegenerate polygons and exact DIII-D scorer grid/mask, failing with shot/frame context otherwise.",
+    "viability_gate": "Pass only if all 300 true-contour centroids are strictly inside, every one of the 153,600 fixed rays has exactly one unique positive intersection and no collinear ambiguity occurs. Otherwise stop before log-radius PCA or any direct model fit. This strict topology gate is not a competition S result and does not prove center/radius predictability."
+  },
+  "name": "train-only-scorer-LCFS-star-shaped-centroid-gate-v2",
+  "prior_evidence": {
+    "Fourier_result": "results/direct_contour_representation_20260923.json",
+    "PCA_result": "results/direct_contour_pca_20260923.json",
+    "mean_line_failure": "results/direct_contour_pca_topology_20260923.json",
+    "motivation": "K16 absolute Fourier lost local separatrix detail; a direct 64-component physical-contour PCA met geometric median/p95 gates on a second TRAIN sample but one polygon self-crossed. Moving that polygon toward its simple PCA mean first removed the crossing only beyond the half-cell geometry threshold. This distinct radial representation tests topology without changing those measured gates."
+  },
+  "question": "Is every scorer-native diverted LCFS in a fixed TRAIN-only probe sample star-shaped around its own physical polygon centroid, so an input-only center plus positive log-radius model could avoid PCA self-crossings by construction?",
+  "sample": {
+    "compact_artifact": "runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+    "compact_artifact_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+    "dataset_manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420",
+    "frames": 300,
+    "frozen_first100_train_manifest": "runs/direct-contour-representation-20260923/manifest.json",
+    "frozen_first100_train_manifest_sha256": "67f8e51cea30938e8cf95458c5dc2656a997763087742029a6e27957c1cfe812",
+    "only_train_true_psi": true,
+    "ordered_names_sha256": "ed1a198f536d3b48c13422a1c86b22e6d4e04cee45890304ae263ab599e606d7",
+    "shot_selection": "Reuse exactly the frozen first 100 compact TRAIN filenames and their three q=0.1/0.5/0.9 fixed indices (300 frames) from the earlier train-only representation gate. Do not select frames by their geometry. All 100 shots were in the original 5,633 train files; neither the 1,338 validation shots nor the 70 reserved evaluation tail are in the sample.",
+    "shots": 100
+  },
+  "scorer_provenance": {
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "diii_d_envelope_npz_sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1",
+    "frozen_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4"
+  },
+  "status": "Root-approved numerical amendment frozen before one CPU-only TRAIN first100/300 ray-uniqueness diagnostic; no log-radius PCA/model fit/evaluation tail access"
+}

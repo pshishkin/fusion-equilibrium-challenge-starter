@@ -111,6 +111,9 @@ non-overlap with all competition folds. No outside corpus was downloaded or fitt
 A [single public EFIT-AI HDF5 sample audit](results/efitai_sample_feasibility_20260923.json)
 confirms that equilibrium and Thomson fields are present, while the required named high-rate
 actuator traces and an openly downloadable bulk corpus remain unverified.
+One [train-only centroid-ray viability check](experiments/direct-contour-star-viability-v2.json)
+is preregistered to test whether a positive-radius boundary representation can avoid the PCA
+self-crossing. It has no model fit, score-tail access or public prediction.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

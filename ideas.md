@@ -15,6 +15,10 @@ geometry/topology gate failed. Do not choose another rank or weaken topology on 
 The [fixed mean-line repair check](results/direct_contour_pca_topology_20260923.json) removed the
 one crossing only after worsening the true contour distance past the earlier gate. No third sample
 or new direct-contour fit is planned from these probes.
+One distinct [centroid-ray star-shapedness check](experiments/direct-contour-star-viability-v2.json)
+is preregistered on the earlier first 100 TRAIN shots. If every ray has one positive boundary
+intersection, a future log-radius representation could avoid self-crossing by construction;
+that possibility has not yet been measured or fitted.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the
