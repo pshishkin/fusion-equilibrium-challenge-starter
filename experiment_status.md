@@ -144,6 +144,10 @@ R²qb was unchanged and no LCFS/derived extraction failed. This postprocessor's 
 no true labels, but its additive-map input still used C_true, so the combined score is neither
 deployable nor independent confirmation. Exact native fields, per-shot target errors and stage
 times: `results/geometry_source_li_full70_20260923.json`.
+A [bounded input-only contour learnability design](experiments/contour-displacement-learnability-review.json)
+is frozen for review. Its proposed new 35/35 learner split has no extraction, fit or score yet
+and requires user agreement before training; any score on this repeatedly used tail would be a
+screen, not independent confirmation.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

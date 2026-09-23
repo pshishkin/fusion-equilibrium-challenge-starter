@@ -1,0 +1,83 @@
+{
+  "name": "allowed-input-contour-normal-learnability-gate",
+  "date_utc": "2026-09-23",
+  "status": "Frozen design for root review only; no code, target extraction, model fit, evaluation or share change is authorized by this file",
+  "question": "Can permitted shot inputs and the existing predicted map predict enough of the missing LCFS-normal displacement to improve a genuinely input-only correction?",
+  "scope": "A cheap diagnostic on the previously reused salt-0 70-shot tail, not independent confirmation or a public-score estimate. The historical base ensemble and the additive contour formula were already selected using this tail. Before any training on a new 35/35 learner split, obtain the user's agreement required by AGENTS.md for a share change.",
+  "input": {
+    "base_prediction": "runs/historical-five-geometry-20260922/historical_psi_eleven_qb_eight.npz",
+    "base_prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+    "ordered_files_record": "runs/compact-production-9301af36275620f7/base_s0/metrics.json",
+    "ordered_files_record_sha256": "4da58a6fed12c3f07051dfcee853b5b928240fd563f2c890fd59c163b1927630",
+    "dataset_manifest": "my_experiments/diii_d_dataset.json",
+    "dataset_manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420",
+    "data_config": "diii_d_train",
+    "data_dir": "../downloaded_huggingface/hf_dataset",
+    "base_model_fit_overlap_with_all_70": 0,
+    "map_and_submitted_scalar_dtype": "float32",
+    "score_tail_shots": 70,
+    "score_tail_frames": 14830
+  },
+  "screen_split": {
+    "rule": "Use the existing pinned salt-0 score-tail order without reshuffling: first 35 shot filenames for supervised residual training, last 35 for evaluation. All frames of a shot stay together. Resolve and store the full ordered filename lists before training; abort on hash or frame-count mismatch.",
+    "train_first_35": {
+      "shots": 35,
+      "frames": 7267,
+      "ordered_filenames_sha256": "7b921711fd4d6bfd1636df68f4599a6db76c3569701cda6c56e3890dc4e61239"
+    },
+    "evaluate_last_35": {
+      "shots": 35,
+      "frames": 7563,
+      "ordered_filenames_sha256": "61361b877987093b3cbc63b1d08da63dd969bcc4914064e8fbcbaf1f492d03b1"
+    },
+    "leakage_rule": "Only the first 35 true contours may be read by target extraction and model fitting. Evaluation-row construction must pass a target-stripped slim-row test: no efit_psirz, efit_li, true contours or other EFIT target columns. Evaluation labels are passed only to the untouched frozen native scorer after predictions are sealed."
+  },
+  "representation": {
+    "contours": "Extract source and training-target LCFS with the frozen scorer at 512 equiarclength physical (R,Z) points. Canonically roll the source polygon so its first point has maximum R, breaking ties by lowest original index. Preserve its polygon orientation. For training only, reverse target orientation if necessary and use the existing minimum-squared-distance cyclic correspondence, with lowest-shift tie, to align C_true to C_pred. Reject missing, non-simple or degenerate source/target contours with shot and frame context rather than skipping.",
+    "normal_target": "Let t_i be the unit central-difference tangent of the canonically rolled C_pred polygon in physical metres. The outward normal is sign(signed_polygon_area)*(t_Z,-t_R). The supervised scalar target at each of 512 points is d_i=(C_true_matched_i-C_pred_i) dot normal_i; tangential correspondence noise is discarded.",
+    "fourier": "Predeclare K=8: keep the real DC coefficient and real/imaginary parts of Fourier modes 1 through 8, giving 17 real output coordinates. Inverse-transform these coefficients with all higher modes zero to recover a smooth 512-point normal displacement. No K sweep or evaluation-fold choice.",
+    "train_only_representation_gate": "Before fitting, on first35 only report pooled retained normal-displacement energy sum(d_K^2)/sum(d^2), median per-frame RMS physical reconstruction error, source-to-true and low-pass-reconstruction-to-true symmetric Hausdorff distances, and contour/anchor validity. Continue only if retained energy >=0.80 and median per-frame RMS residual <= one minimum physical grid spacing. A failure closes this fixed K8 screen; do not choose another K using evaluation35. This is a representation check, not a score or a general oracle ceiling."
+  },
+  "allowed_input_features": {
+    "per_frame_base": "Use the existing 208-column my_experiments.baseline_model.features_for_row result; it is constructed from permitted magnetics, frame gaps, vessel-filtered currents and Thomson measurements on efit_times, not EFIT targets. Require exact width 208 and finite values.",
+    "predicted_contour_summaries": ["R_min", "R_max", "Z_min", "Z_max", "absolute_polygon_area", "polygon_perimeter", "polygon_centroid_R"],
+    "phase": "One shot-phase feature (efit_times[t]-efit_times[0])/(efit_times[-1]-efit_times[0]); for a one-frame shot use zero. Abort on nonmonotone or nonfinite multi-frame time arrays.",
+    "total_width": 216,
+    "feature_producer_sha256": {
+      "my_experiments/baseline_model.py": "95cc2ea754a8326d4d40588a7301b3e87df4d1e79e39eacea1df698d1551f14a",
+      "experiments.py": "8ecba8150e8146f75021ed1a76744d2c9cbcf0d0c1c8b3706039808a943b40c2",
+      "my_experiments/shot_cache.py": "976d3904d7621ee1285482c3987b24926059da515cf921ba366987afc0ed43a4"
+    },
+    "selection_rule": "Calculate all feature scaling statistics on train35 only. No true psi pixel or true-derived scalar enters an inference feature. Evaluation and eventual public rows must use the same target-stripped input path."
+  },
+  "learner": {
+    "single_arm": "Weighted StandardScaler followed by one 17-output Ridge fit; alpha=35 in the standardized-feature, per-shot-total-weight-one convention. No hyperparameter search, model seed sweep or early stopping.",
+    "weights": "Each frame in shot j receives weight 1/n_frames_j, so the 35 training shots each contribute total weight one to both weighted scaling and Ridge. The evaluation35 is never used to choose the normal representation, alpha, features or fit duration.",
+    "prediction": "Predict 17 coefficients on each evaluation frame, reconstruct d_K by inverse FFT and set u_i=d_K_i*normal_i at the canonically aligned predicted-contour points. Roll u back to the original scorer contour indexing before selecting the unchanged every-eighth TPS controls. Reject nonfinite predictions; do not clip or substitute a measured true contour."
+  },
+  "map_and_profile": {
+    "additive_map": "After rolling predicted u back to scorer indexing, sample the same original 64 every-eighth predicted-contour controls; use the same unit-grid thin-plate-spline, zero axis/edge anchors, boundary taper, two-minimum-grid-spacing Gaussian contour shell, physical psi gradient and fixed lambda=1 as experiments/geometry-map-additive-contour-v3.json. q95 and betaN remain byte-identical to the original source NPZ. Refactor the producer into a pure predicted-displacement helper; its supplied full truth displacement in original scorer order must reproduce the frozen additive construction before evaluating learned u. A zero-coefficient prediction must return an exact source psi copy, including signed-zero bits, and unchanged submitted scalar arrays.",
+    "source_li": "Apply exactly the nine-a, one-cell interior-polygon taper source-derived-li compensation of experiments/geometry-additive-source-li-compensation-v3.json after the predicted additive map. The li target is derived only from the original predicted psi and its own scorer-native C_source, never true li. Keep candidate-rejection accounting and a=0 exact map control.",
+    "producer_sha256": {
+      "tools/geometry_additive_probe.py": "35dada856d5c818191dc9b88592bfc665acb8139a008ba0e1c729f88b270a56d",
+      "tools/geometry_source_li_compensation.py": "b8e874b24fae2a7f4e631cadf210832a69577d8445b416cd10eb8e0e5ce7b5fc",
+      "tools/geometry_map_smoke.py": "11671eb48778fb789d2be3a5e721c3246801787d27fc197bd9c2a49d02635596"
+    }
+  },
+  "evaluation": {
+    "frozen_scorer_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "frozen_local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "frozen_lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "frozen_contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "frozen_derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "same_evaluation35_native_arms": ["original_best11_map_and_prior8_scalars", "learned_normal_additive_map", "learned_normal_additive_map_plus_source_li"],
+    "scorer_rule": "Score actual float32 psi arrays through untouched frozen local_score.main on identical ordered evaluation35 filenames. Report S and native R2psi, R2qb, raw D_LCFS, Consistency, all seven functional R2, shot/frame counts, LCFS/consistency failure fractions, full stage walls and artifact/source hashes. Do not implement a second metric or override derived contour/functionals.",
+    "screen_go_no_go": "Go only if the learned-normal-additive-plus-source-li S exceeds the original best11 control by at least 0.001000 on evaluation35 with finite exact arrays and no target leakage. This is a bounded investment rule on a reused, adaptively observed tail, not a significance claim or evidence of a public gain. If it fails, do not tune K, alpha, feature groups, weights or thresholds on evaluation35 under this spec."
+  },
+  "cost_and_next_gate": {
+    "estimated_wall": "Target/feature extraction and one CPU Ridge fit likely under 15 minutes; evaluation35 source-li compensation extrapolates to about 28 minutes from the measured 3,300.46-second full70 run; three native evaluation35 scorer passes likely a few minutes. Allow at most 90 minutes wall for this single screen, with process-group cleanup and recorded stages. These are estimates, not measured times for the proposed learner.",
+    "resource_and_disk": "CPU only, at most four scorer workers and one training process, no GPU fit; expect roughly 0.5 GB of new 35-shot prediction NPZs plus small coefficient/features records, with raw parquets read one shot at a time. Resolve current cgroup memory and pid limits before execution rather than assuming old-host capacity.",
+    "confirmation": "If the screen passes, propose a fresh common 5% DIII-D holdout excluded before every refit and fixed ensemble selection, then paired split-salt confirmation; this changes shares and requires explicit user agreement before any fit or holdout score. The reused70 screen cannot confirm generalization, and its result must not be promoted directly to the public artifact.",
+    "approval_before_training": "Root math/protocol review and the user's agreement to this new 35/35 learner split are required. This spec alone authorizes no extraction of supervised targets, fit, evaluation, public upload or new split."
+  }
+}

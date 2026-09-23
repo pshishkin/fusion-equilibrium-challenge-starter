@@ -7,6 +7,8 @@ The compensation target uses only the original prediction, but C_true for the fi
 correction remains unavailable at inference. An input-only predictor of contour
 displacement must be designed and paired across fresh split salts before anything here can
 become a deployable model. No such predictor has been fitted or submitted.
+One bounded [learnability-screen design](experiments/contour-displacement-learnability-review.json)
+is frozen for review only. It does not authorize fitting on the proposed new split.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the
