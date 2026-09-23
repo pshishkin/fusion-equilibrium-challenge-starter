@@ -211,6 +211,12 @@ exactly one; there were no zero or collinear-ambiguous rays. A read-only check f
 interior segment crossings rather than shared-vertex duplicates. The true centroid is a training
 target, never an inference feature; this single-chart log-radius construction is now stopped
 before PCA, a third sample, learner fit or use of the reserved tail.
+A separately [frozen O-point-origin gate](experiments/direct-contour-opoint-star-review.json)
+uses the scorer-native magnetic axis of each true TRAIN map as its one alternative polar origin,
+with unchanged rays and strict all-or-none threshold. This is a target construction only: a
+future direct model would have to predict that axis from permitted inputs, and the existing
+best11 predicted axis is excluded from fitting to avoid in-sample leakage. No O-point result or
+log-radius basis fit is yet claimed.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

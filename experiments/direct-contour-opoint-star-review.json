@@ -1,0 +1,47 @@
+{
+  "name": "train-only-scorer-O-point-ray-uniqueness-gate",
+  "date_utc": "2026-09-23",
+  "status": "Math/protocol review proposal only; no new scorer-native true-psi read, ray calculation, log-radius PCA or model fit before root approval",
+  "question": "Can the scorer-native magnetic O-point serve as one physically fixed polar origin for every true diverted LCFS in the existing TRAIN-only probe sample, where the polygon centroid failed on four genuine concavities?",
+  "distinct_prior": {
+    "centroid_star_result": "results/direct_contour_star_20260923.json",
+    "centroid_star_result_sha256": "95baabe8b44e34e24643a0b723ea48cb4f41f0b0af1be30093b32824b70d8ad8",
+    "interpretation": "The centroid-origin half-bin ray gate failed on four of 153,600 rays in four TRAIN frames, each with three non-endpoint polygon intersections. Changing only the physically distinguished origin to the magnetic O-point is a separate predeclared family, not a reclassification or tolerance change for those rays."
+  },
+  "sample": {
+    "prior_first100_train_manifest": "runs/direct-contour-representation-20260923/manifest.json",
+    "prior_first100_train_manifest_sha256": "67f8e51cea30938e8cf95458c5dc2656a997763087742029a6e27957c1cfe812",
+    "compact_artifact": "runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+    "compact_artifact_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+    "shots": 100,
+    "fixed_frames": 300,
+    "ordered_names_sha256": "ed1a198f536d3b48c13422a1c86b22e6d4e04cee45890304ae263ab599e606d7",
+    "selection": "Reuse exactly the previously frozen first 100 compact TRAIN filenames and q=0.1/0.5/0.9 frame indices. No validation1338 or original salt-0 evaluation70 file or label may enter this gate. Check the pinned dataset manifest and every selected parquet SHA before reading true psi.",
+    "dataset_manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420"
+  },
+  "origin_and_ray_construction": {
+    "true_contour": "Extract the same scorer-native true 512-point physical (R,Z) LCFS from each selected efit_psirz frame with the frozen DIII-D scorer and envelope mask. Do not use stored efit_lcfs_* boundary. Missing/non-simple true contour is a hard source feasibility error with shot/frame context.",
+    "O_point": "For each true psi map, compute (R_axis,Z_axis) using the frozen scorer's derive.magnetic_axis(psi_true,R,Z,'DIII-D',mask_coarse,axis_sign=None). This scorer-native subpixel O-point is a TRAIN target used only to define a representation chart; a future direct model must predict the O-point from permitted features. Neither true O-point nor any current best11 predicted axis/map may be a learner input or residual target.",
+    "inside": "Require frozen scorer even-odd point-in-polygon(O_point,C_true) and minimum Euclidean distance from O_point to every true contour segment strictly greater than tau. Outside/on-contour or nonfinite O-point is a recorded frame failure, never a switch to the true centroid or another origin.",
+    "rays": "Reuse exactly the centroid v2 construction except for origin: 512 global directions theta_j=2*pi*(j+0.5)/512, j=0..511. For each ray intersect all 512 straight physical LCFS segments using 2-D cross products. With tau=0.0001*minimum physical DIII-D grid spacing, deduplicate only positive radii within tau at shared vertices; classify a collinear segment as ambiguous. Use the same parallel/segment-endpoint tolerance and no clipping, skipped frames or angle adaptation.",
+    "readout": "Record 300 O-point coordinates, their strict-inside and minimum boundary-distance values, minimum positive radius, counts of exactly-one/zero/multiple/collinear-ambiguous positive intersections over 153,600 rays, and shot/frame/angle/radii/segment indices for each pathology. Preserve every frame row and source SHA in an ignored frozen run; track a small result summary.",
+    "all_or_none_gate": "Pass only if all 300 true-map O-points are finite and strictly inside their scorer-native C_true, all 153,600 shifted rays have exactly one unique positive intersection, and no collinear ambiguity occurs. A single genuine multiple or zero ray closes this one O-point-origin star-shaped family before log-radius PCA or fitting. This is representation feasibility only, not a score or evidence of predictability from allowed inputs."
+  },
+  "scorer_provenance": {
+    "frozen_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4",
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "diii_d_envelope_npz_sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1"
+  },
+  "cost_and_next_gate": {
+    "estimate": "The frozen centroid version used 1.00 s preparation and 4.24 s for 100 TRAIN shots/300 scorer contours plus ray counts at four workers. Native O-point extraction adds one scorer function per frame; budget under two minutes CPU and below 2 GB incremental memory, then record actual timing.",
+    "if_passes": "After root reviews the O-point result, separately freeze one center-plus-log-radius PCA representation: fit only first100 TRAIN frames' log-radius targets, then check a THIRD disjoint100 compact-TRAIN triplet set with the unchanged 0.25/0.5-cell native Hausdorff and topology gates. No use of the earlier second100 as new confirmation, and no direct MLP/full target cache until that independent TRAIN-only representation check passes.",
+    "no_model_fit": true,
+    "no_validation_or_reserved_tail70_read": true,
+    "no_public_or_private_fingerprinting": true
+  }
+}
