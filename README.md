@@ -151,6 +151,9 @@ run as a consequence.
 A [single fixed input-only li guard](experiments/oof-li-guard-v2.json) on those saved TRAIN-shot
 maps [recovered much of the li loss](results/oof_li_guard_20260923.json), but still failed its
 predeclared native-score investment margin. No threshold search, new fit or public action followed.
+A [two-rate waveform information gate](experiments/b10-two-rate-information-gate-review.json)
+is now preregistered as a separate, low-prior input hypothesis. Its first step checks the raw
+clocks and window support on allowed shots before any target extraction or new model fit.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
