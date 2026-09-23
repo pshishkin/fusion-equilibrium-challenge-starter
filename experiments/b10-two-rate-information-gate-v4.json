@@ -1,0 +1,92 @@
+{
+  "amendment": "Review revision of SHA87eb2b4a08031920c3586e791d6798c50d719245b2bcaeade4d9a2aeaf14ba05 before code/data processing: prove artifact selected width, remove companion mixtures on reused gate200, pre-audit raw support over all1555 with a frozen stop rule, and pin clock/unit behavior.",
+  "amendment_v2": "Final pre-code review of SHA69181a7f68b3db879385a6b01bec09d245509fddf82e30706b4ff980365e5ae6: add one seed1 low-pass A/A noise control and predeclare native scorer breakdown by the shot\u2019s original 0.05/0.5 ms common magnetics rate class. Both are set before raw support audit, fits or gate score.",
+  "amendment_v3": "The first prepare stopped before run-directory creation or raw data read because the copied fold0 OOF ordered-name SHA omitted its last hexadecimal character e. Correct only that manifest SHA transcription, and pin the source constant to this v3 file; no shot roles, numbers, algorithm or gate changed.",
+  "amendment_v4": "Pin full passed input-only support evidence, exact matched-head YAML and source hashes for one bounded raw-versus-lowpass residual-head pilot. All v3 shot roles, support rule, +0.0026/noise/class gates and no-mixture decision remain unchanged.",
+  "amends_spec": "experiments/b10-two-rate-information-gate-review.json",
+  "amends_spec_sha256": "642052819ce4061f74ef021579cb64411047b627487b459cd5cba3ebbbb05ef3",
+  "amends_spec_v2": "experiments/b10-two-rate-information-gate-v2.json",
+  "amends_spec_v2_sha256": "43d07a1bbadcfa0209c0e32ec33058ef238cfa23d660f0f7190fac90f5e9e582",
+  "amends_spec_v3": "experiments/b10-two-rate-information-gate-v3.json",
+  "amends_spec_v3_sha256": "a0d8f81ab6af91ba1f024615789ea27bd8ee4edbe18acfecc593ae297b7dc271",
+  "assembly_helper_sha256": "2dacab40a703d45fe3a9ec22f24f5382de338343bbcf89290b488e5018867e13",
+  "base_artifact": {
+    "path": "runs/oof-normal-k8-5fold-20260923/fold0/base.joblib",
+    "sha256": "bf5035bfd83a2602981ef7def6b96911c259a22d15138f978f29bd638c0e066d"
+  },
+  "campaign_helper_sha256": "585d8eee2e849d16c69fa3f52f9fbc556bbcf3b99b03726b4f0ed2618c18ee44",
+  "counterevidence_and_reason_to_test_once": {
+    "B10_D11_history": "ideas.md D11 had already priced B10's raw fast stream at only 0..+0.0002 S: 99.0-99.9% of coil-current variance is below 50 Hz, Ip is sampled at 0.5 ms and about 30% of shots have only 0.5 ms magnetics. That is a strong negative prior, not an untested clean slate.",
+    "distinct_remaining_possibility": "A derivative, variance spectrum or EMA is a severe hand-designed compression of the actual waveform. A matched-capacity raw-window versus EFIT-reconstructed-window comparison is the narrowest direct test of whether the discarded shape has useful conditional information. This could fail quickly; no score gain is presumed.",
+    "other_measured_nulls": "A fixed ECOILA +/-5 ms derivative replacement lowered compact S by 0.000448; adding corrected Ip +/-20 ms nearly recovered but remained -0.000063. Raw 16-point Thomson pressure profiles lost 0.0014 versus summaries. Broad vessel integrals were flat and the narrow driving-signal bank gained only about 0.0004 on one historical salt."
+  },
+  "date_utc": "2026-09-23",
+  "effective_params_path": "baselines/b10-two-rate-info-gate.params.yaml",
+  "effective_params_sha256": "b8d52cb09b38d6bd27db8248892e519659eb4c941bb4b7e16222d0592d71ddde",
+  "frozen_data_plan": {
+    "OOF_campaign": "runs/oof-normal-k8-5fold-20260923",
+    "OOF_campaign_manifest_sha256": "2ed48f0cbd4ffda8fedf3fc24198be176a6d27eb58a3dda8d89d02ed0f987f6d",
+    "OOF_files_manifest_sha256": "e8733030d09d237691ba94e93f4b65f57268cf2efe689b01c697f7691422e621",
+    "base_prediction": "Use only the frozen fold0 fixed33000-step compact MLP artifact, decoded through its OWN PCA and target scaler to physical float32 psi/q95/betaN. Generate OOF base predictions on train1355 and truly unseen base predictions on gate200 using target-stripped input rows. The base has never trained or stopped on either set. Assert exact artifact train/val/OOF/gate/tail filenames and hashes before labels are read.",
+    "dataset_manifest": "my_experiments/diii_d_dataset.json",
+    "fold0_artifact_sha256": "bf5035bfd83a2602981ef7def6b96911c259a22d15138f978f29bd638c0e066d",
+    "gate_full_frames": 43142,
+    "head_gradient_train": "ALL 1355 fold0 OOF shot filenames, order hash 037ff7f422bc72c5ea4af51ad49ff3c9a4b13fb945222e796b2360399116356, with 300793 full EFIT frames. Every one is absent from fold0 base train_files and val_files. This includes some original compact validation shots, but none of the sealed gate200.",
+    "head_gradient_train_ordered_sha256": "037ff7f422bc72c5ea4af51ad49ff3c9a4b13fb945222e796b2360399116356e",
+    "head_train_full_frames": 300793,
+    "reserved_evaluation": "The original salt-0 tail70, order hash d3a7e1c1dbdd9ab5e185278271d2f06d246de5f9e93fa86a9391e01eb9c25bc6. It is excluded from all extraction, scaling, fit and this gate; do not open it unless a separate full-model gate later passes.",
+    "sealed_native_gate": "The exact last200 original compact validation shots, order hash 66cce2f0c082fb687cf4788e328c4916135036a69595e439e10e62e05b31709e, 43142 full frames. Every one is excluded from ALL five planned OOF base fits and both residual-head fits. Base-model step33000 was selected historically using this validation corpus; disclose that indirect prior selection. This gate has also appeared in earlier project experiments and is selection-only, not independent confirmation.",
+    "sealed_native_gate_ordered_sha256": "66cce2f0c082fb687cf4788e328c4916135036a69595e439e10e62e05b31709e",
+    "selected_input_width_proof": "The cached input feature bank has 208 columns, but this artifact fitted StandardScaler.n_features_in_=84 because baseline_model.build_inputs selects currents, both derivative blocks and Thomson summaries. Its original selected input has NO shot-phase column. The paired residual heads receive those exact 84 selected features plus 52 physical base outputs, with no new phase. Assert widths against the frozen artifact at training and target-stripped prediction."
+  },
+  "gate_helper_sha256": "700e05754f95c0dd79ef109afb1ee0a7868ced1ac5208296260457143967a8ac",
+  "head_helper_sha256": "9559ffbc2dfb1c6a3fa7aa49926d31e15c5c4d6f3ad47f5f65d0d645bcacc576",
+  "name": "B10-matched-two-rate-raw-waveform-information-gate-v4",
+  "native_score_and_decision": {
+    "primary_investment_rule": "Raw seed0 minus matched low-pass seed0 must be at least +0.002600 native S on all gate200 and at least 2 times abs(low-pass seed1 minus low-pass seed0 S), with no increased native failure fraction and valid finite maps/scalars. Both sampling-rate class native deltas raw seed0 minus low-pass seed0 must be positive; a sign reversal blocks automatic full-model promotion even if aggregate passes. Report source-relative gains of all three heads, every native component including q95/betaN, and class sizes. This is a predeclared investment screen for a hoped-for public effect around +0.0014 after possible ensemble dilution, not a significance estimate.",
+    "sealed_arms": "On identical gate200, score ONLY fold0 source, source+low-pass seed0, source+low-pass seed1, and source+raw seed0 through one unchanged pinned native scorer. Report S, R2psi, R2qb, raw D_LCFS, Consistency, all seven functional R2, LCFS/derived failures and prediction/filename hashes. Repeat the SAME four sealed arms through that scorer on the pre-frozen 0.05 ms and 0.5 ms whole-shot subsets separately; report shot/frame counts, all terms and raw-minus-low-pass seed0 in each class. These class scores are descriptive because pooled R2 denominators change across subsets; do not add them to reconstruct aggregate S. Do NOT score compact-sequence or recovered-old-five mixtures: they used gate200 for early stopping. Ensemble contribution is deferred to a disjoint protocol after a pass.",
+    "stop": "If the aggregate raw-versus-control margin, 2x A/A noise separation or either class sign condition fails, do not alter windows, channels, anti-aliasing, architecture, steps or weights on gate200 and do not fit a full model. If all pass, root reviews every native term before one separately preregistered full two-rate CNN+bidirectional-GRU map member. Reusing gate200 for that later model is adaptive selection, not independent confirmation; original tail70 remains evaluation-only and needs another explicit gate before use."
+  },
+  "native_scorer": {
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "root": "runs/geometry-loss-screen-4a5516b9b1684353/source"
+  },
+  "numeric_preflight": {
+    "half_bin_ms": 0.25,
+    "maximum_step_factor": 1.5,
+    "sample_rate_tolerance": 0.01,
+    "value_atol": 1e-05,
+    "value_rtol": 1e-05
+  },
+  "one_shot_smoke_before_freeze": "Allowed first fold0 OOF TRAIN shot 263 frames: exact selected84, PCA50 true/source transforms, finite scaled52 target, zero residual map/scalar bit identity; input-only first gate shot172 frames: raw/control sidecar and source prediction target_columns_requested=[]. Temporary smoke caches were deleted. No native score or model fit.",
+  "paired_residual_head_gate": {
+    "A_A_noise_control": "Fit exactly one ADDITIONAL low-pass-window residual head with seed1, identical data, architecture, scaler, sampler method, 4000 steps and last-weight rule. No raw seed1, no seed sweep or checkpoint choice. Compare its native gate200 S to low-pass seed0 as an observed optimizer-variation reference; do not use it to choose weights or parameters.",
+    "GBT_alternative": "A cheap HistGBT/ExtraTrees probe on a few spectral summaries would be cheaper, but D11 and fixed derivatives already screened hand-designed waveform summaries negatively. Failure of such a proxy could not reject a CNN that uses the waveform shape. This one matched small CNN pair is the stronger direct information gate, with a measured pre-fit raw support audit so it can stop before either GPU fit.",
+    "cheapness_and_limit": "This is a small paired information probe, not the proposed final BiGRU. One source artifact already exists and no new base fit is needed. Building raw windows on 1555 shots and two 4000-step heads should cost substantially less than a new production sequence family; measure CPU/GPU wall, memory and disk. A negative says this fixed waveform information probe failed, not that every temporal model is impossible.",
+    "decoding": "For each input-only prediction, add the 50 predicted residual coefficients through the SAME artifact PCA basis to the physical source \u03c8 map, cast once to float32; add predicted q95/betaN residuals and cast once to float32. No contour oracle or truth-derived selector. Zero residual must reproduce the source map and scalar bytes exactly. Verify finite/full-shape outputs and original shot order before any native scorer reads gate labels.",
+    "matched_architecture": "Two primary otherwise identical residual models at seed0, one on low-pass windows and one on raw windows: shared 84 selected frame features plus 52 base outputs, a depthwise 1D CNN over the 41-by-21 window with fixed kernel5/stride2 twice, pointwise 64 channels, pooled 32-dimensional embedding, then GELU MLP [256,256] to 52 residual outputs. Matched seed0 initialization, ONE shared global per-signal raw-window scaler fitted on train1355 and applied to both arms, equal-shot frame sampler, AdamW lr3e-4, weight_decay1e-4, batch1024, exactly4000 optimizer steps, last weights; no gate-based early stopping or hyperparameter/seed search. Freeze these exact values in one effective YAML before any extraction/fit.",
+    "targets": "On train1355 only, read true EFIT psi/q95/betaN and subtract each shot's genuinely OOF fold0 physical prediction. Project the \u03c8 difference onto THAT artifact's fixed PCA50 basis by a linear map with no centring term; append the two physical submitted-scalar residuals. Convert this 52-vector to the base artifact's already frozen metric-scaled target coordinates as transform(true)-transform(source), so the centring cancels. This scaler was fitted without OOF1355 or gate200. No target statistic is fitted on gate200."
+  },
+  "preaudit_helper_sha256": "c354585b6a32a4243c9979c5f5fd4900019d6adfa0108247048536c3c859f452",
+  "question": "Do sub-EFIT-time magnetics waveforms contain target-relevant information beyond the same signals reconstructed from the 20 ms EFIT cadence, enough to justify one full two-rate sequence-to-map model?",
+  "raw_and_matched_control_inputs": {
+    "cache": "A full-shot sidecar records source parquet SHA, producer/lock identity, exact 41-bin support, original sample-step class, EFIT padding mask and full-frame count. Complete the all-1555 train-plus-gate raw support/clock/unit audit BEFORE materializing supervised targets or fitting heads. Publish sidecars atomically; target-stripped gate-row poison test must pass. Estimated 343935 frames x 41 x 21 x 4 bytes = about 1.2 GB raw float32 window values before compression, plus masks/metadata. Report actual disk/build wall.",
+    "clock_tolerance": "Median raw interval must lie within 1% of exactly 0.05 or 0.5 ms; every interval must be positive and no individual interval may exceed 1.5 times that shot/signal median. Any violation is a pre-fit stop with filename/channel and both measured/reference intervals. The source values at EFIT centres are checked against the existing input interpolation at relative tolerance 1e-5 and absolute tolerance 1e-5 in shipped signal units; the anti-aliased bin mean itself is not expected to equal an instantaneous sample.",
+    "low_pass_control": "Build a 41-by-21 control window from the SAME signal values first sampled at the EFIT cadence, then piecewise-linearly reconstructed over the 0.5 ms grid. Only beyond the first/last EFIT frame, pad with that EFIT edge value and mark an explicit EFIT-cadence support mask. Feed the IDENTICAL mask and original per-signal 0.05/0.5 ms rate indicators to BOTH arms. This padding is for sparse EFIT-cadence reconstruction only; the raw acquisition window must pass its separate full-support audit.",
+    "raw_arm": "Feed the anti-aliased 41-by-21 original waveform through the SAME architecture, with the same EFIT-boundary mask and sample-rate indicators. Both arms also receive the identical frozen 84 selected frame-rate features, base predicted 50 physical PCA coefficients and two base scalars. No EFIT truth, stored LCFS or derived score scalar is an input.",
+    "sampling_rate_class": "Before any fit or gate-label read, classify every shot by the measured median magnetics_time step of its 20 common channels: 0.05 ms or 0.5 ms under the frozen \u00b11% rule. Ip remains on its separate 0.5 ms clock and does not define this class. Freeze the ordered gate200 filenames and hashes for both classes, their frame counts and all padding/mask counts; no class is dropped.",
+    "signals": "Exactly the DIII-D allowlisted 18 F-coils, ECOILA, bcoil and plasma_current. The 20 common magnetics channels use each shot\u2019s magnetics_time. Ip uses magnetics_plasma_current_times after the existing baseline_model.align_ip_times better-coverage choice between shipped and re-origined axes; never reuse magnetics_time for Ip. All these clocks and efit_times are milliseconds. Preserve each raw signal\u2019s shipped input units, and verify t=EFIT-centre values against baseline_model.inputs_only_shot/interpolate_magnetics_to_efit before caching.",
+    "time_grid": "For every EFIT frame t, 41 fixed relative centres \u221210.0,\u22129.5,\u2026,+10.0 ms. On each signal\u2019s own raw clock, use a 0.5 ms bin-centred trapezoidal integral with linearly interpolated endpoints to form a bounded anti-aliased float32 waveform. Require strict monotone finite raw clocks, finite samples, and measured sampling step classified as 0.05 or 0.5 ms within a frozen tolerance. BEFORE any target extraction or head fit, audit every requested bin for all 1355+200 shot/frame/channel combinations. If even ONE raw bin lies outside acquisition support, record shot, signal and requested/actual bounds and STOP this frozen pilot before fitting. No adaptive padding of missing raw data or after-the-fact spec change."
+  },
+  "resource_estimate_not_measurement": "The 1555 selected full shots are about 22% of the 7041-shot 93.43 GB training corpus, so the clock/support audit may read roughly 20 GB of parquet input and the 41x21 float32 waveform sidecar is about 1.2 GB before compression. Three fixed 4000-step residual-head fits (low-pass seeds0/1, raw seed0) on a 24 GB RTX3090 plus four aggregate and eight class-subset native scorer passes should fit a 1-3 hour bounded window if the sidecar remains CPU24 and only one GPU fit runs at a time. These are planning estimates; record actual stage walls, cgroup/pids, disk and peak GPU memory. No full production sequence fit is part of this gate.",
+  "source_freeze": "Copy all reached Python modules, masks and both spec versions to a new immutable ignored run/source snapshot before the input-only1555-shot scan; assert exact preaudit helper, compact artifact, OOF files, dataset manifest and all source SHA identities. If raw support fails, preserve failure record and stop before any target or GPU fit. No after-the-fact padding or threshold change.",
+  "status": "Frozen executable campaign after the complete 1555-shot input-only raw support audit passed, before full sidecar publication, supervised target extraction or any head fit/native score",
+  "support_audit": {
+    "path": "runs/b10-raw-support-20260923/support_audit.json",
+    "sha256": "6958667a815ac443bc526c2e733210168f3c7bdd2e37145751678ab8926a02e0"
+  },
+  "support_portable_result_sha256": "6e3436f2e4e8da8b06e9248455697216af01d0b4aaca616746eb2f809e67a698",
+  "target_helper_sha256": "54357cd14f25a264f1d8abc1d3cfcf03b53eb7122815b2a3c36147d7d5caf855",
+  "uncertainty": "This is the highest-upside untested INPUT route I can identify, not an evidence-backed prediction of +0.0014 public. Prior D11, fixed fast derivatives and existing GRU diversity argue for a low prior. The matched pilot isolates genuinely sub-EFIT waveform shape from low-pass context, but its residual-head result cannot prove that a later full sequence model will transfer.",
+  "waveform_helper_sha256": "1340575eecd4e849168318bc3ba1bdedb2d1071e0914ca1ce3227ffd388869a0"
+}

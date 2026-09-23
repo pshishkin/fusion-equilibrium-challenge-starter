@@ -157,6 +157,11 @@ is preregistered as a separate, low-prior input hypothesis. The
 window support on allowed shots, before target extraction or any new model fit. That
 [support gate passed](results/b10_raw_support_20260923.json); the matched models still have no
 score. An unsupported raw bin would have ended the fixed pilot rather than being silently filled.
+The bounded pilot implementation has an [input-only waveform sidecar](tools/b10_waveforms.py),
+[OOF residual target producer](tools/b10_targets.py), [train-only assembly](tools/b10_assemble.py),
+[matched residual heads](tools/b10_head_model.py) and a [native-score gate](tools/b10_gate.py).
+Its exact model settings live in [the fixed YAML](baselines/b10-two-rate-info-gate.params.yaml).
+These files prepare one comparison; they do not establish a gain or replace the shipped ensemble.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

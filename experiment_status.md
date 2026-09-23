@@ -73,6 +73,10 @@ score has yet run. The complete preflight has an explicit stop on unsupported ra
 [first filename-hash preflight](results/b10_prepare_hash_preflight_20260923.json) caught a copied
 digest typo before any raw file was read; the v3 amendment preserves that failure and the unchanged
 scientific protocol.
+The bounded pilot's raw/low-pass sidecar, genuinely OOF target cache, three fixed matched heads
+and aggregate/rate-class native scorer path are implemented under `tools/b10_*.py`, with settings
+in `baselines/b10-two-rate-info-gate.params.yaml`. Their source and HP must be frozen in a new
+campaign before any supervised target extraction or fit. No model result is claimed yet.
 A focused five-step CPU comparison of the ordinary path before and after the explicit-file change
 produced byte-identical artifacts and predictions; see
 `results/oof_default_path_parity_20260923.json`. This checks compatibility, not the proposed OOF
