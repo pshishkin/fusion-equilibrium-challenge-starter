@@ -247,6 +247,14 @@ compact source had already early-stopped on those shots: it demonstrates constra
 mechanism headroom, not a learned correction, independent validation or public gain. The next
 work is the single preregistered input-only MLP on train5,633/validation1,338; all original
 tail70 remains evaluation-only and no GPU fit has yet begun.
+Stage-1 code is prepared in `tools/direct_full_contour_cache.py`,
+`tools/direct_full_contour_train.py` and `tools/direct_full_contour_predict.py` with the reviewed
+YAML unchanged. Its cache stores selected scorer-native contours and permitted inputs only for
+the declared train/validation windows, with atomic per-shot identity checks. The one MLP uses
+train-only feature/target scaling, shot-balanced batches and the fixed mean-plus-worst-vertex
+loss; invalid inferred polygons trigger an explicit counted source-map fallback. Synthetic
+input-isolation, cache-format and CPU forward/gradient checks pass. No full target cache, CUDA
+fit, learned validation score or reserved-tail inference has yet been measured.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

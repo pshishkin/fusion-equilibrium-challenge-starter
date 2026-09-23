@@ -30,6 +30,8 @@ baseline_*.joblib
 # each and 13 core-hours to rebuild, but keyed by the exact file list, so a checkout with a
 # different split cannot use them. Missed when A9 was built; a full per-salt set is ~600 MB.
 .aux_targets/
+# Per-shot train/validation true-contour targets and permitted input features for the direct MLP.
+.direct_contour_targets/
 
 # Your Hugging Face read token, included by the Makefile. .env.example is the tracked stub.
 .env

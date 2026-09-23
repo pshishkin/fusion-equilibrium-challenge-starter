@@ -243,6 +243,12 @@ For a fixed-step refit on the exact union of previously cached full-shot trainin
 windows, a cache may be composed from their ordered per-shot blocks only after verifying producer
 code, dependency lock, dataset identity, full-shot lengths, exact target bits and scoring exclusion.
 Publish the composed cache atomically; never treat a concatenated filename alone as proof.
+For a supervised contour learner, cache only the declared training and validation shots. Each
+per-shot ready entry must pin the full-shot frame count, selected frame indices, parquet SHA,
+feature/target shapes, effective YAML, producer, dependency lock and scorer source/mask hashes.
+The input feature path is target-stripped, and no reserved evaluation-tail label may enter target
+extraction, normalization, checkpoint selection or fitting. Publish each entry atomically and
+reject a stale or incomplete ready pair rather than repairing it silently.
 
 The pinned DIII-D manifest must match the complete local corpus before a fit. Missing, unexpected,
 wrong-sized or invalid parquet files are errors. Full SHA-256 verification is available separately.

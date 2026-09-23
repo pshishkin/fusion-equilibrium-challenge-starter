@@ -131,6 +131,11 @@ That [mechanism gate passed](results/direct_full_contour_stage0_20260923.json) o
 window the compact source had already seen for early stopping. The essential next question is
 whether a new model can infer the needed contour from permitted inputs; no such model has yet
 been fitted or tested on the reserved evaluation tail.
+The direct-contour training code now has an [input-only target cache](tools/direct_full_contour_cache.py),
+a [single fixed MLP](tools/direct_full_contour_train.py) and a
+[counted-fallback prediction path](tools/direct_full_contour_predict.py). The campaign source and
+cache must be frozen and checked before any full fit; a prepared model or cache is not a measured
+candidate.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
