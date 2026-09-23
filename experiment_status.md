@@ -6,15 +6,21 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
-- **Latest public submission:** Codabench submission **941038** by `pshishkin` scored DIII-D
-  **S 0.994082** on 874 public shots and ranked **10th of 69** in the 2026-09-23 10:13 UTC
-  [leaderboard response](https://www.codabench.org/api/phases/29580/get_leaderboard/?page=1&page_size=100).
-  Its [detailed result](https://www.codabench.org/api/submissions/941038/get_detail_result/)
-  shows R²ψ 0.999817, R²qb 0.995787, D_LCFS 0.010898 and Consistency 0.979525.
-  The earlier six-salt-labelled [submission 915662](https://www.codabench.org/api/submissions/915662/get_detail_result/)
-  scored S 0.994073: the new public change is only **+0.000009**, with lower R²qb offsetting
-  better boundary and Consistency. MAST S remained 0.568092 in both detailed results. This
-  public comparison is separate from the selected local 70-shot score.
+- **Latest public submission:** Codabench f16 flux-only probe **941187** by `pshishkin` scored
+  DIII-D **S 0.993731** on 874 public shots and ranked **11th of 69** in the 2026-09-23
+  11:45 UTC [leaderboard response](https://www.codabench.org/api/phases/29580/get_leaderboard/?page=1&page_size=100).
+  The previous float32 [submission 941038](https://www.codabench.org/api/submissions/941038/get_detail_result/)
+  scored **0.994082**: the [f16 detailed result](https://www.codabench.org/api/submissions/941187/get_detail_result/)
+  is **−0.000351** lower, close to the matched local −0.000376. R²ψ and R²qb were unchanged at
+  reported precision (0.999817 and 0.995787); D_LCFS rose 0.010898 → 0.011618 and
+  Consistency fell 0.979525 → 0.978130. MAST S stayed 0.568092. The current leaderboard shows
+  only the latest row; the earlier detail remains accessible. Full official-source hashes and
+  terms are in `results/best11_f16_public_20260923.json`.
+- **Previous public float32 control:** Submission **941038** ranked **10th of 69** when retrieved
+  on 2026-09-23 10:13 UTC. It improved only **+0.000009** over the prior six-salt-labelled
+  [submission 915662](https://www.codabench.org/api/submissions/915662/get_detail_result/)
+  at S 0.994073: lower R²qb offset better boundary and Consistency. This public comparison is
+  separate from the selected local 70-shot score.
 - **Historical public reference:** Submission **915662** was created 2026-09-05 and labelled
   **“6 salts”**. Its previous public row and retrieval timestamp are in
   `results/leaderboard_reference_20260923.json`, with its manifest at
@@ -64,7 +70,7 @@ The fixed eleven-map/eight-scalar recipe has now been assembled locally for all 
 DIII-D public-test input shots as a float32 NPZ. The existing local validator passed every shot,
 and a held-70 dry run of the builder matched the previously scored recipe bit for bit. It was
 later uploaded as DIII-D only to the private Hugging Face dataset while the prior MAST file was
-preserved, and submission 941038 received the public result above. A separate Challenge1-only
+preserved, and submission 941038 received the float32 control result above. A separate Challenge1-only
 offline root ZIP was also built and checked against the validated NPZ. Output/source identities
 are in `results/public_diii_d_candidate_20260923.json`;
 ZIP hash, CRC and access audit are in `results/challenge1_offline_zip_20260923.json`.
@@ -74,11 +80,13 @@ An explicit float16-flux-only probe kept that recipe and every q95/βN bit fixed
 Consistency at reported precision; the unchanged scalar R² was 0.997165. Its separate 874-shot
 f16 NPZ passed complete structural validation and was uploaded to the existing private HF dataset
 at a new pinned revision, preserving MAST and the earlier float32 pointer. The new pointer is
-labelled `f16_probe` and awaits manual Codabench submission, so there is **no public f16 score**.
+labelled `f16_probe` and was then scored as public submission 941187, with the negative effect
+above. The local/public precision penalties differ by only +0.000025 in S.
 The initial spec's public source SHA transcription was corrected in an explicit v2 amendment
 before public conversion. Exact evidence: `grids/best11-f16-public-probe.json`,
 `grids/best11-f16-public-probe-v2.json`, `results/best11_f16_probe_20260923.json` and
-`results/private_hf_f16_probe_20260923.json`. No geometry oracle test has begun.
+`results/private_hf_f16_probe_20260923.json` and
+`results/best11_f16_public_20260923.json`. No geometry oracle test has begun.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

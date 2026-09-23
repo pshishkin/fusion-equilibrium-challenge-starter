@@ -1,0 +1,90 @@
+{
+  "date_utc": "2026-09-23",
+  "f16_probe": {
+    "created_when_utc": "2026-09-23T11:40:56.177080Z",
+    "detail_endpoint": "https://www.codabench.org/api/submissions/941187/get_detail_result/",
+    "detail_html_sha256": "80c34a9575bfb3dcc91940191506f8d70aab445d5477479d4aa25a2b927d13a9",
+    "hf_receipt": "results/private_hf_f16_probe_20260923.json",
+    "hf_revision": "ec7a765ac3800acc1cfbd165650409476b5077a6",
+    "native": {
+      "S": 0.993731,
+      "consistency": 0.97813,
+      "dlcfs": 0.011618,
+      "lcfs_fail_frac": 0.0,
+      "mast_S": 0.568092,
+      "n_shots": 874,
+      "n_shots_missing": 0,
+      "r2_cons_each": {
+        "R_axis": 0.976749,
+        "Z_axis": 0.982775,
+        "kappa": 0.964723,
+        "li": 0.959917,
+        "tri_bot": 0.98903,
+        "tri_top": 0.990649,
+        "volume": 0.98307
+      },
+      "r2_each": {
+        "betaN": 0.995937,
+        "q95": 0.995637
+      },
+      "r2_psi": 0.999817,
+      "r2_psi_per_shot_mean": 0.999723,
+      "r2_qb": 0.995787
+    },
+    "owner": "pshishkin",
+    "rank_in_current_response": 11,
+    "submission_id": 941187
+  },
+  "float32_control": {
+    "detail_endpoint": "https://www.codabench.org/api/submissions/941038/get_detail_result/",
+    "detail_html_sha256": "c77819585814fb0b9f9a3edef9f63acdc0c233349ea8b94b822a1e5d2cb866f7",
+    "hf_receipt": "results/private_hf_candidate_20260923.json",
+    "hf_revision": "9347337ee781cbaebfd2210148c300c4e4d932fb",
+    "native": {
+      "S": 0.994082,
+      "consistency": 0.979525,
+      "dlcfs": 0.010898,
+      "lcfs_fail_frac": 0.0,
+      "mast_S": 0.568092,
+      "n_shots": 874,
+      "n_shots_missing": 0,
+      "r2_cons_each": {
+        "R_axis": 0.978181,
+        "Z_axis": 0.984868,
+        "kappa": 0.967505,
+        "li": 0.959917,
+        "tri_bot": 0.990701,
+        "tri_top": 0.992394,
+        "volume": 0.983111
+      },
+      "r2_each": {
+        "betaN": 0.995937,
+        "q95": 0.995637
+      },
+      "r2_psi": 0.999817,
+      "r2_psi_per_shot_mean": 0.999723,
+      "r2_qb": 0.995787
+    },
+    "present_in_current_leaderboard": false,
+    "submission_id": 941038
+  },
+  "interpretation": "One controlled flux-only dtype change in the fixed submitted recipe; q95/betaN arrays and public R2 unchanged. Public and held-70 changes are measured on different folds. No new fit, member weighting or public-label access. Codabench detail confirms scores but does not expose the submitted manifest bytes.",
+  "leaderboard_count": 69,
+  "leaderboard_response_sha256": "16aa4292f768edf7b0f6efacb01ff06b75227546aab28d3b82d5dbfc1420214a",
+  "leaderboard_url": "https://www.codabench.org/api/phases/29580/get_leaderboard/?page=1&page_size=100",
+  "local_held70_delta_S": -0.000376,
+  "local_probe_record": "results/best11_f16_probe_20260923.json",
+  "local_probe_record_sha256": "3b5fd4694d5b2a05d76340f4c24aef39b76d32f0fad98685c1b114012a6b42f2",
+  "phase_id": 29580,
+  "public_delta_f16_minus_float32": {
+    "S": -0.000351,
+    "consistency": -0.001395,
+    "dlcfs": 0.00072,
+    "mast_S": 0.0,
+    "r2_psi": 0.0,
+    "r2_qb": 0.0
+  },
+  "public_minus_local_delta_S": 2.5e-05,
+  "public_r2_each_equal": true,
+  "retrieved_utc": "2026-09-23T11:46:58.233607+00:00"
+}

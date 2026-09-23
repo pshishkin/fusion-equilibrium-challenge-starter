@@ -11,10 +11,15 @@ exact same 70-shot tail through the frozen native scorer, S **0.995080 → 0.994
 Consistency **0.982616 → 0.981072**. The full 874-shot quantized public NPZ passed the local
 validator and was uploaded as a separate private HF revision with a labelled pointer; the prior
 float32 pointer stays pinned. A strict preflight rejected a truncated public source SHA in the
-first spec before conversion; the v2 spec records this hash-only correction. Verdict: float16
-reduces local score for this recipe, while its effect on the public fold remains unmeasured until
-manual Codabench submission. [Native and artifact evidence](results/best11_f16_probe_20260923.json),
-[HF receipt](results/private_hf_f16_probe_20260923.json).
+first spec before conversion; the v2 spec records this hash-only correction.
+[Public submission 941187](https://www.codabench.org/api/submissions/941187/get_detail_result/)
+subsequently scored **0.993731**, versus **0.994082** for the float32 control 941038:
+**−0.000351**. Public R²ψ and R²qb were unchanged at reported precision, raw D_LCFS worsened
+**0.010898 → 0.011618**, Consistency **0.979525 → 0.978130**, and MAST was unchanged.
+Verdict: this controlled float16 cast reduced both local and public score; it is not a production
+export improvement. [Native/artifact evidence](results/best11_f16_probe_20260923.json),
+[HF receipt](results/private_hf_f16_probe_20260923.json),
+[official public fields](results/best11_f16_public_20260923.json).
 
 **2026-09-23 UTC — previous private DIII-D prediction versus current public candidate:**
 The private Hugging Face dataset's parent commit `836da676877283aa8fe0608dc501ffe49f5e072e`

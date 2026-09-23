@@ -30,8 +30,9 @@ before adding code under `my_experiments/`.
 
 ## Where this stands
 
-**Challenge 1 — current public submission:** Codabench submission 941038 by `pshishkin` has been
-scored. Its detailed result and comparison with the earlier six-salt-labelled submission 915662
+**Challenge 1 — current public submission:** Codabench submission 941187 by `pshishkin` has been
+scored. Its controlled flux-precision comparison with the previous float32 submission 941038
+and the earlier six-salt-labelled submission 915662
 are in [`experiment_status.md`](experiment_status.md), with links to the official result pages.
 The earlier time-stamped public API evidence is
 [`results/leaderboard_reference_20260923.json`](results/leaderboard_reference_20260923.json).
@@ -257,8 +258,10 @@ An explicit flux-only float16 probe of the same fixed recipe is now recorded in
 separate from the normal float32 export path. Its DIII-D file was uploaded as a separate pinned HF
 revision while the original float32 pointer remained valid; the redacted receipt is
 [`results/private_hf_f16_probe_20260923.json`](results/private_hf_f16_probe_20260923.json).
-The ignored `submissions/submission_pointer_f16_probe_*.zip` is labelled for manual Codabench
-submission. There is no public score for this probe yet. The publisher's optional
+The ignored `submissions/submission_pointer_f16_probe_*.zip` was submitted as Codabench row
+941187. Its public precision comparison is in
+[`results/best11_f16_public_20260923.json`](results/best11_f16_public_20260923.json).
+The publisher's optional
 `--evidence`, `--receipt`, `--expected-parent` and `--variant float16-probe` arguments make that
 single-file revision explicit and prevent overwriting the prior receipt.
 
