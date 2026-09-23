@@ -1,0 +1,52 @@
+{
+  "name": "same100-oof-source-li-preservation-discrepancy",
+  "date_utc": "2026-09-23",
+  "status": "Frozen read-only audit before calculating per-frame source/final li; no model fit, map change, native rescoring or evaluation-tail use",
+  "question": "Did the fixed nine-a input-only source-li compensation actually preserve the source map's scorer-native li on the OOF100 full-normal diagnostic, and are any discrepancies concentrated in a few frames?",
+  "helper_sha256": "f23a92d75c3836ca08bc42d1d70eb2cdb25beeadf6a09b8ad7c33c57334b7199",
+  "pilot_ordered_names_sha256": "8363384de1d2125166049a88425db370cea04ab051b38031f92e5622d57652bd",
+  "pilot_full_frames": 21667,
+  "pinned_inputs": {
+    "old_campaign": {
+      "path": "runs/oof-normal-k8-5fold-20260923/campaign.json",
+      "sha256": "2ed48f0cbd4ffda8fedf3fc24198be176a6d27eb58a3dda8d89d02ed0f987f6d"
+    },
+    "old_files_manifest": {
+      "path": "runs/oof-normal-k8-5fold-20260923/files.json",
+      "sha256": "e8733030d09d237691ba94e93f4b65f57268cf2efe689b01c697f7691422e621"
+    },
+    "source_prediction": {
+      "path": "runs/oof-normal-k8-5fold-20260923/pilot/source.npz",
+      "sha256": "66df3227393032305d36f716d7fbdc9b11075341a55e0aa3fa9123181d55bb6e"
+    },
+    "full_normal_prediction": {
+      "path": "runs/oof-full-normal-20260923/full_normal.npz",
+      "sha256": "17736bd1175fa49c16d8bae72797f523ebb4065c6631ce6ea292812bded81129"
+    },
+    "old_native_summary": {
+      "path": "results/oof_full_normal_diagnostic_20260923.json",
+      "sha256": "5e5dc15c2c0bca9e2e5a84a0f40229e33fe6136a2a3c79635237bbb1a1a72999"
+    }
+  },
+  "pinned_scorer_sources": {
+    "common": {
+      "path": "fusion_scoring/common.py",
+      "sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8"
+    },
+    "derive": {
+      "path": "fusion_scoring/derive.py",
+      "sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0"
+    },
+    "lcfs": {
+      "path": "fusion_scoring/lcfs.py",
+      "sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8"
+    },
+    "mask": {
+      "path": "fusion_scoring/masks/d3d_envelope.npz",
+      "sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1"
+    }
+  },
+  "method": "For each exact frozen OOF100 TRAIN shot/frame, read only input grid_R/grid_Z, never EFIT truth. For each saved float32 source and full-normal map separately, use the byte-pinned scorer LCFS extractor at fixed DIII-D sign and scorer derive.internal_inductance with that map's OWN extracted contour. Abort on missing/nonfinite li, filename/frame/hash mismatch. Record the signed and absolute final-minus-source li distribution, share of squared discrepancy in top1% and top10% frames, per-shot summaries and top20 frame identities. Quote the already measured native true-li R2 values only as context; this audit does not implement a score or reread labels.",
+  "interpretation": "A material source-to-final li difference means the discrete nine-a compensation did not meet its input-only target on this pilot; identify concentration but do not tune the grid or propose a continuous optimizer until a separate review. A tiny discrepancy with degraded native true-li R2 would instead point to a scorer-path or comparison mismatch. Either outcome is a mechanism result, not a deployable top-three candidate.",
+  "scope_limit": "Only the pinned first100 original-TRAIN OOF shots and 21,667 frames. No gate200, original evaluation tail70, public input or external labels; no new base/correction fit, score pass or upload."
+}
