@@ -1,0 +1,83 @@
+{
+  "date_utc": "2026-09-23",
+  "purpose": "Input-only comparison of private HF parent DIII-D NPZ against uploaded candidate; no labels, scorer, fit, or weight optimization",
+  "repo_id": "pshishkin/fusion-eq-predictions",
+  "old_revision": "836da676877283aa8fe0608dc501ffe49f5e072e",
+  "new_revision": "9347337ee781cbaebfd2210148c300c4e4d932fb",
+  "old_revision_last_modified_utc": "2026-09-04T22:45:28Z",
+  "old_submission_identity": "Not proven. A screenshot shows 915662 pointer basename submission_pointer_20260904T224516Z.zip, close in time, but its manifest revision is unavailable.",
+  "old_npz": {
+    "path": "runs/hf-parent-audit/diii_d_public_test.npz",
+    "bytes": 1372856730,
+    "sha256": "46aeb3bf5930ca621a3ba47b8189f72b454dbd49a7b2f1a5893b75d9df6e71de"
+  },
+  "new_npz": {
+    "path": "runs/public-diii-d-eleven-eight-20260923/submission/diii_d_public_test.npz",
+    "bytes": 2967287097,
+    "sha256": "7b39cdc94ec8b95b2c89dfbee4c0fcd3db4898e2671ac136efed5b5d704"
+  },
+  "shots": 874,
+  "frames": 193359,
+  "arrays": 2622,
+  "key_sets_equal": true,
+  "all_shapes_equal": true,
+  "difference_sign": "old_minus_new",
+  "fields": {
+    "psirz": {
+      "old_dtype": "float16",
+      "new_dtype": "float32",
+      "values": 816941775,
+      "nonfinite_old": 0,
+      "nonfinite_new": 0,
+      "exact_fraction": 8.938213497528633e-06,
+      "old_matches_new_cast_float16_fraction": 0.07189336229010936,
+      "mean_signed_old_minus_new": -2.0362003268426338e-05,
+      "mean_abs_difference": 0.0006156658116536434,
+      "rmse_difference": 0.0009592320773332421,
+      "new_rms": 0.1975700407294169,
+      "max_abs_difference": 0.055988967418670654,
+      "median_shot_mae": 0.0005093764287779125,
+      "p95_shot_mae": 0.0014567123545988598,
+      "p95_abs_difference_sample": 0.001870299875736235,
+      "abs_difference_sample_method": "every 1024th flattened value per shot"
+    },
+    "q95": {
+      "old_dtype": "float32",
+      "new_dtype": "float32",
+      "values": 193359,
+      "nonfinite_old": 0,
+      "nonfinite_new": 0,
+      "exact_fraction": 1.551518160520069e-05,
+      "old_matches_new_cast_float16_fraction": 3.103036321040138e-05,
+      "mean_signed_old_minus_new": -0.0038477733179255098,
+      "mean_abs_difference": 0.025193391380576198,
+      "rmse_difference": 0.04616042508367269,
+      "new_rms": 5.627510882325035,
+      "max_abs_difference": 2.016143321990967,
+      "median_shot_mae": 0.01908225185511994,
+      "p95_shot_mae": 0.072061285955651,
+      "p95_abs_difference_sample": 0.07967035770416261,
+      "abs_difference_sample_method": "all values"
+    },
+    "betaN": {
+      "old_dtype": "float32",
+      "new_dtype": "float32",
+      "values": 193359,
+      "nonfinite_old": 0,
+      "nonfinite_new": 0,
+      "exact_fraction": 0.0,
+      "old_matches_new_cast_float16_fraction": 0.0,
+      "mean_signed_old_minus_new": -0.0020837722715926444,
+      "mean_abs_difference": 0.011755462863404531,
+      "rmse_difference": 0.018264711844595372,
+      "new_rms": 1.5221656300977122,
+      "max_abs_difference": 0.5481696128845215,
+      "median_shot_mae": 0.009643250727654606,
+      "p95_shot_mae": 0.028950402647658385,
+      "p95_abs_difference_sample": 0.03662266284227372,
+      "abs_difference_sample_method": "all values"
+    }
+  },
+  "mast_remote_file_unchanged": true,
+  "comparison_wall_seconds": 23.799792081990745
+}

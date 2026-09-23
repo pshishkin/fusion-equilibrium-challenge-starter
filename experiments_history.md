@@ -3,6 +3,31 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — previous private DIII-D prediction versus current public candidate:**
+The private Hugging Face dataset's parent commit `836da676877283aa8fe0608dc501ffe49f5e072e`
+held a 1,372,856,730-byte DIII-D NPZ (SHA-256 `46aeb3bf5930ca621a3ba47b8189f72b454dbd49a7b2f1a5893b75d9df6e71de`),
+last modified 2026-09-04 22:45:28 UTC. The new uploaded NPZ and parent have exactly the same
+874 shot keys, 193,359 frame counts and 2,622 array shapes; no values are nonfinite. Old ψ is
+float16 and new ψ float32, but only **7.1893%** of old ψ values equal new ψ after quantizing the
+new array to float16. Mean absolute old-minus-new differences are **0.0006157** for ψ,
+**0.02519** for q95 and **0.01176** for βN. Both scalar fields are float32 in both files.
+The old pointer basename in a screenshot is close in time to the parent commit, but its manifest
+revision is unavailable, so this does **not** prove that the parent file is submission 915662.
+Verdict: the old and new public-input predictions differ beyond dtype; without labels this
+comparison makes no performance claim. Full hashes, finite/shape checks and 23.8-second comparison
+time: [results/old_vs_new_private_hf_20260923.json](results/old_vs_new_private_hf_20260923.json).
+
+**2026-09-23 UTC — eleven-map/eight-scalar candidate on the public leaderboard:**
+Codabench [submission 941038](https://www.codabench.org/api/submissions/941038/get_detail_result/)
+scored DIII-D **S 0.994082** over 874 shots, versus **0.994073** for the prior
+[submission 915662](https://www.codabench.org/api/submissions/915662/get_detail_result/).
+The change **+0.000009** combines R²qb **−0.000550** with lower D_LCFS by **0.000157** and
+Consistency **+0.000384**; R²ψ moved −0.000001. The 2026-09-23 10:13 UTC
+[public leaderboard](https://www.codabench.org/api/phases/29580/get_leaderboard/?page=1&page_size=100)
+ranked the new row **10th of 69**. MAST S remained 0.568092. Verdict: the selected local
+70-shot gain did not translate into a material public S improvement; no single member or scalar
+block has been isolated as the cause on the public fold.
+
 **2026-09-22 UTC — public leaderboard reference corrected:**
 The public Codabench phase 29580 API returned submission **915662** owned by `pshishkin`, created
 2026-09-05 08:33 UTC, with method label **“6 salts”** and DIII-D **S 0.9941** to four decimals.

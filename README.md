@@ -30,10 +30,12 @@ before adding code under `my_experiments/`.
 
 ## Where this stands
 
-**Challenge 1 — public leaderboard reference S = 0.9941**: Codabench submission 915662 by
-`pshishkin`, created 2026-09-05 and labelled “6 salts” in its public row. The time-stamped public
-API evidence is [`results/leaderboard_reference_20260923.json`](results/leaderboard_reference_20260923.json).
-The current public-reference manifest is
+**Challenge 1 — current public submission:** Codabench submission 941038 by `pshishkin` has been
+scored. Its detailed result and comparison with the earlier six-salt-labelled submission 915662
+are in [`experiment_status.md`](experiment_status.md), with links to the official result pages.
+The earlier time-stamped public API evidence is
+[`results/leaderboard_reference_20260923.json`](results/leaderboard_reference_20260923.json).
+The historical six-salt public-reference manifest is
 [`baselines/diii_d_20260905_leaderboard.json`](baselines/diii_d_20260905_leaderboard.json).
 The earlier [`baselines/diii_d_20260904.json`](baselines/diii_d_20260904.json) is a historical
 three-salt script inference, **not** a verified recipe for that submission. Its original fitted
@@ -218,7 +220,7 @@ ensemble control; its identity does not establish what was submitted in Septembe
 The expanded fixed-weight ensemble and its scalar-block diagnostic are indexed in
 [`experiments_history.md`](experiments_history.md), with full native evidence in
 [`results/historical_eleven_blocks_20260922.json`](results/historical_eleven_blocks_20260922.json).
-They reuse the same development tail and are not an independently confirmed submission.
+Their local score reuses the same development tail; the later public result is reported below.
 The fixed map/scalar recipe has been assembled as a locally validated DIII-D public-input NPZ;
 the artifact, full input identity, float32 format, held-70 recipe parity and build timing are in
 [`results/public_diii_d_candidate_20260923.json`](results/public_diii_d_candidate_20260923.json).
@@ -243,8 +245,11 @@ The publisher accepts no token on the command line:
 `publish` uploads only `diii_d_public_test.npz` to the existing private
 `pshishkin/fusion-eq-predictions` dataset and checks the pinned LFS identity, unchanged MAST file
 and a full read-token download before creating `submissions/submission_pointer_*.zip`.
-The ZIP contains a root `manifest.json` with the read credential, so keep it out of Git. It does
-not upload to Codabench; the candidate has no new public leaderboard score.
+The ZIP contains a root `manifest.json` with the read credential, so keep it out of Git. The
+publisher itself does not submit to Codabench. Submission 941038 was subsequently scored there;
+see [`experiment_status.md`](experiment_status.md). An input-only comparison with the DIII-D file
+at the private repo's previous commit is in
+[`results/old_vs_new_private_hf_20260923.json`](results/old_vs_new_private_hf_20260923.json).
 
 The completed fast magnetics screen is documented in
 [`experiments/fast-signal-diagnostic.md`](experiments/fast-signal-diagnostic.md) and

@@ -4,12 +4,21 @@ Updated 2026-09-23 (Moscow). This is the current index, not another experiment h
 Historical explanations and negative results remain in `experiments_history.md`, `backlog.md`,
 `ideas.md`, and `single_model_results.md`. Their old "running" labels are historical.
 
-## Two distinct baselines
+## Public submissions and iteration control
 
-- **Public leaderboard reference:** Codabench submission **915662** by `pshishkin` was created
-  2026-09-05, is labelled **“6 salts”**, and scores **S 0.9941** to four decimals. The public
-  row and retrieval timestamp are in `results/leaderboard_reference_20260923.json`, with the
-  current manifest at `baselines/diii_d_20260905_leaderboard.json`. The earlier
+- **Latest public submission:** Codabench submission **941038** by `pshishkin` scored DIII-D
+  **S 0.994082** on 874 public shots and ranked **10th of 69** in the 2026-09-23 10:13 UTC
+  [leaderboard response](https://www.codabench.org/api/phases/29580/get_leaderboard/?page=1&page_size=100).
+  Its [detailed result](https://www.codabench.org/api/submissions/941038/get_detail_result/)
+  shows R²ψ 0.999817, R²qb 0.995787, D_LCFS 0.010898 and Consistency 0.979525.
+  The earlier six-salt-labelled [submission 915662](https://www.codabench.org/api/submissions/915662/get_detail_result/)
+  scored S 0.994073: the new public change is only **+0.000009**, with lower R²qb offsetting
+  better boundary and Consistency. MAST S remained 0.568092 in both detailed results. This
+  public comparison is separate from the selected local 70-shot score.
+- **Historical public reference:** Submission **915662** was created 2026-09-05 and labelled
+  **“6 salts”**. Its previous public row and retrieval timestamp are in
+  `results/leaderboard_reference_20260923.json`, with its manifest at
+  `baselines/diii_d_20260905_leaderboard.json`. The earlier
   `baselines/diii_d_20260904.json` describes a **three-salt script-inferred historical recipe**;
   it does not identify this verified six-salt row. Original fitted artifacts, exact weights and
   submitted code hashes remain unavailable, so no local config is a certified reproduction.
@@ -47,15 +56,17 @@ timing index is `results/overnight_summary_20260923.md`.
 An expanded eleven-member fixed blend and a separate scalar-block control were then measured on
 the same repeatedly used 70-shot tail. The best observed diagnostic takes the expanded map and
 the prior eight-member q95/βN block at S 0.995080, but its selection and evaluation share shots.
-It is neither independent confirmation nor an accepted/submitted collection. Full fixed weights,
-block identity checks and native terms: `results/historical_eleven_blocks_20260922.json`.
+That local score is not independent confirmation; the later public submission is recorded above.
+Full fixed weights, block identity checks and native terms:
+`results/historical_eleven_blocks_20260922.json`.
 
 The fixed eleven-map/eight-scalar recipe has now been assembled locally for all 874 pinned
 DIII-D public-test input shots as a float32 NPZ. The existing local validator passed every shot,
-and a held-70 dry run of the builder matched the previously scored recipe bit for bit. This is a
-reviewable local DIII-D candidate, not a leaderboard score or full two-machine submission; no
-MAST build, upload or push occurred. A later Challenge1-only root ZIP was built and checked against
-the validated NPZ. Output/source identities are in `results/public_diii_d_candidate_20260923.json`;
+and a held-70 dry run of the builder matched the previously scored recipe bit for bit. It was
+later uploaded as DIII-D only to the private Hugging Face dataset while the prior MAST file was
+preserved, and submission 941038 received the public result above. A separate Challenge1-only
+offline root ZIP was also built and checked against the validated NPZ. Output/source identities
+are in `results/public_diii_d_candidate_20260923.json`;
 ZIP hash, CRC and access audit are in `results/challenge1_offline_zip_20260923.json`.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
@@ -172,11 +183,16 @@ verified. A concise score/timing index is `results/overnight_summary_20260923.md
    dataset already holds MAST predictions, so the preferred delivery is a single-file DIII-D
    upload plus a small pinned pointer ZIP. That single-file upload is now complete; full pinned
    read-token download matched the validated NPZ, and remote MAST and other non-target files are
-   unchanged. No Codabench upload or new public score has been made. The publisher is
+   unchanged. A subsequent Codabench submission returned the public result above. The publisher is
    `tools/publish_private_candidate.py`, with remote commit and pointer identity in
    `results/private_hf_candidate_20260923.json`, candidate evidence in
    `results/public_diii_d_candidate_20260923.json`, and offline archive evidence in
    `results/challenge1_offline_zip_20260923.json`.
+   An input-only comparison of the prior private-repo DIII-D file with this candidate found
+   identical 874-shot keys, 193,359 frame counts and shapes. Prior ψ was float16 while the new
+   ψ is float32; q95 and βN changed as float32 predictions too. Thus the two files differ beyond
+   export precision, but these unlabeled differences do not explain a score or identify the
+   exact artifact submitted as 915662. See `results/old_vs_new_private_hf_20260923.json`.
 2. A trustworthy generalization check for this adaptively selected collection needs shots held
    out **before every member fit**. The repeatedly scored salt-0 tail and a new ordinary split
    salt do not create an independent dataset for these existing artifacts; confirmation would
