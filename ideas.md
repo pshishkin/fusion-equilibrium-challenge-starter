@@ -1,11 +1,10 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
 **2026-09-23 — learnable boundary correction still untested:**
-The truth-assisted contour-local additive correction now has a scorer-native full-70 mechanism
-result in [`experiments_history.md`](experiments_history.md), but C_true is unavailable at
-inference. A source-li compensation postprocessor, whose target comes solely from the original
-prediction, has passed a three-shot numerical mechanism check and has a frozen 70-shot
-diagnostic pending. Even if that compensation works, an input-only predictor of contour
+The truth-assisted contour-local additive correction and deterministic source-li compensation
+now have scorer-native full-70 mechanism results in [`experiments_history.md`](experiments_history.md).
+The compensation target uses only the original prediction, but C_true for the first contour
+correction remains unavailable at inference. An input-only predictor of contour
 displacement must be designed and paired across fresh split salts before anything here can
 become a deployable model. No such predictor has been fitted or submitted.
 

@@ -3,6 +3,23 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — source-derived li preservation after additive contour correction, full tail:**
+The fixed one-grid-cell inside-polygon taper and nine monotone a values targeted li computed
+from the ORIGINAL predicted ψ/C_source, not EFIT truth. On the same **70 shots/14,830 frames**,
+mean absolute error to that source-derived target fell **0.016031 → 0.007934**. A nonzero a was
+chosen on **3,468** frames; **50** nonzero candidate evaluations were explicitly rejected
+(39 axis shifts, 11 contour shifts), and a=0 remained valid everywhere. Against the previously
+scored truth-assisted additive-map control, native **S 0.996257 → 0.997035**
+(**+0.000778**): li R² **0.939465 → 0.967447**, Consistency
+**0.985709 → 0.989704**, R²ψ **0.999867 → 0.999828**, D_LCFS
+**0.003863 → 0.003861**, and R²qb stayed **0.997165**. No LCFS/derivation failures occurred.
+Compensation build and verification took **3,300.46 s**, including **1,825.22 s** for exact
+polygon-segment distances, plus about **98.2 s** for one frozen native scorer pass. Verdict:
+deterministic source-li targeting works on this reused tail, but the preceding contour correction
+still consumed true labels, so the combined score is not deployable or an independent/public
+result. No parameter-grid expansion, model fit or public submission was made.
+[All native terms and per-shot target movement](results/geometry_source_li_full70_20260923.json).
+
 **2026-09-23 UTC — source-li target compensation, first-three-shot mechanism screen:**
 The target for every profile parameter is `internal_inductance` of the ORIGINAL predicted ψ,
 not the true EFIT li or a stored label. A first global-u formulation found that vacuum grid

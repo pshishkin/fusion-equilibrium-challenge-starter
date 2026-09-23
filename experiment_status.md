@@ -133,8 +133,17 @@ atypical subset, as expected because the additive map had already improved them.
 measure full-tail or deployable value: the contour stage still uses true contours. Evidence is
 `results/geometry_source_li_v1_null_20260923.json`,
 `results/geometry_source_li_v2_smoke_20260923.json` and the frozen source-li specs under
-`experiments/geometry-additive-source-li-*.json`. A single exact 70-shot diagnostic is
-predeclared but has no result yet.
+`experiments/geometry-additive-source-li-*.json`. The exact fixed full-70 compensation has now
+also completed. It selected a nonzero profile parameter on 3,468/14,830 frames, with 50
+explicitly rejected nonzero candidates (39 axis and 11 contour validity failures); a=0 remained
+available on every frame. The mean absolute error to the **original predicted map's** derived
+li fell **0.016031 → 0.007934**. Native S on the same 70 shots was
+**0.996257 → 0.997035** (**+0.000778**) against the truth-assisted additive-map control; li R²
+rose **0.939465 → 0.967447**, near the original map's 0.972388, while flux R² fell slightly.
+R²qb was unchanged and no LCFS/derived extraction failed. This postprocessor's *target* needs
+no true labels, but its additive-map input still used C_true, so the combined score is neither
+deployable nor independent confirmation. Exact native fields, per-shot target errors and stage
+times: `results/geometry_source_li_full70_20260923.json`.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

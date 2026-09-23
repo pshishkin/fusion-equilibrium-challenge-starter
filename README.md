@@ -82,8 +82,9 @@ inputs without learning the contour correction from inputs alone. Its fixed form
 preflight amendment are in `experiments/geometry-map-additive-*.json`.
 A separate [source-li preservation probe](results/geometry_source_li_v2_smoke_20260923.json)
 uses the original prediction's own scorer-derived li as its target, never a true-li label.
-Its first three-shot check is complete; the full 70-shot diagnostic is still pending. The
-contour-corrected input to this postprocessor remains truth-assisted.
+Its [fixed full-70 diagnostic](results/geometry_source_li_full70_20260923.json) is complete;
+the contour-corrected input to this postprocessor remains truth-assisted, so the combined
+local score is not a deployable or public result.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
