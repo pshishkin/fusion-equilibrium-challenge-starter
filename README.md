@@ -124,7 +124,9 @@ a TRAIN-target geometry diagnostic; the reserved tail was untouched.
 A [full physical-contour MLP proposal](experiments/direct-full-contour-mlp-review.json) now tests a
 different supervised target: all scorer contour points, learned from permitted inputs alone. Its
 first gate is a truth-assisted mechanism screen on the existing validation window; no model has
-been fitted or evaluation-tail shot read under that proposal.
+been fitted or evaluation-tail shot read under that proposal. The Stage-0 code in
+`tools/run_direct_full_contour_oracle.py` builds a frozen compact-source validation prediction,
+constructs actual half-contour ψ maps, and passes sealed arrays to the unchanged native scorer.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

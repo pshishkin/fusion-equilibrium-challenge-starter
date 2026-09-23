@@ -231,6 +231,10 @@ first 200 compact validation shots using the compact two-model source. That vali
 was early-stopped on the same window, so it is selection-only. The YAML, stage gates, counted
 source fallback and final once-only tail protocol are in the review file; no Stage-0 result or
 new model fit is yet claimed.
+The Stage-0 runner now has separate source-freeze, isolated compact prediction, truth-assisted
+half-contour construction and native-score phases. Its code is correctness-checked but no
+validation score has yet been read; any Stage-0 result must be labeled selection-only because
+the compact artifact already used that validation window for early stopping.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and
