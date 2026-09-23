@@ -1,0 +1,46 @@
+{
+  "date_utc": "2026-09-23",
+  "failure": {
+    "arm": "A",
+    "classification": "numerical_infeasibility_of_fixed_construction",
+    "error": "A: d3d_shot_6f6a0f6402.parquet frame 7: inverse TPS warp did not converge in 20 iterations",
+    "extension_spec_sha256": null,
+    "no_scientific_negative_inferred": true,
+    "scope": "first3",
+    "spec_sha256": "16d48e66387297c4c4a516ee48cf124aeeaf836af58f9c9c17141765432815e7",
+    "wall_seconds": 1.083747566997772
+  },
+  "failure_json_sha256": "b4457aa63ae23893cd854756cc3c1244e49e2159af9d5d9b900c964a11d2eb2f",
+  "frame0": {
+    "boundary_taper_margin_m": 0.09471746907647238,
+    "corrected_to_true_lcfs_hausdorff_m": 0.008368857601831361,
+    "inverse_iterations": 10,
+    "min_det_jacobian": 0.7366863460208466,
+    "raw_boundary_displacement_max_m": 0.00886054691356865,
+    "shot": "d3d_shot_6f6a0f6402.parquet",
+    "source_to_true_lcfs_hausdorff_m": 0.03987532834714266,
+    "tapered_boundary_displacement_max_m": 0.0
+  },
+  "frame7": {
+    "boundary_taper_margin_m": 0.133592775021538,
+    "forward_inverse_residual_by_iteration_normalized": {
+      "1": 0.006175587298754213,
+      "10": 9.256538732662713e-05,
+      "20": 3.277227603004652e-06,
+      "40": 4.107691209289355e-09,
+      "5": 0.0006945615756130569
+    },
+    "frozen_inverse_tolerance_normalized": 1.5624972060322569e-07,
+    "inverse_out_of_grid_pixels_at_1_5_10_20_40": 0,
+    "max_det_jacobian": 1.6966589599696917,
+    "max_matched_contour_displacement_m": 0.049412142030514916,
+    "min_det_jacobian": 0.8817795517474033,
+    "shot": "d3d_shot_6f6a0f6402.parquet"
+  },
+  "interpretation": "Boundary taper fixed the measured frame-zero edge leakage and preserved contour movement. Frame-seven fixed-point inverse contracts slowly and exceeds the v3 20-iteration tolerance; this is numerical feasibility, not a score result. A fixed 40-iteration bound is a proposed amendment requiring root approval.",
+  "producer_sha256": "67b191cf7960a64a04ea8908e68b06d5648d68a54a4e9915721fe770ef5b41ee",
+  "purpose": "Read-only numerical diagnosis of the root-approved A boundary-zero taper on the first three fixed shots; no complete A map/native score",
+  "spec": "experiments/geometry-map-oracle-v3.json",
+  "spec_sha256": "16d48e66387297c4c4a516ee48cf124aeeaf836af58f9c9c17141765432815e7",
+  "taper_helper_sha256": "030446353d1c36ed1704d95d1fecba35d27f21a50601b2c54ede9302284e2eee"
+}

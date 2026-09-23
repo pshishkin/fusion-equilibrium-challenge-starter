@@ -1,0 +1,79 @@
+{
+  "base_spec": "experiments/geometry-map-oracle-v6.json",
+  "base_spec_sha256": "7cfcebb27bf01e34d2ce3221feec4af3f02c34f747a504c8c6c1d00f910e719f",
+  "date_utc": "2026-09-23",
+  "dense_grid_forward_checks": [
+    {
+      "boundary_displacement_m": 0.0,
+      "det_le_point2": 0,
+      "det_le_zero": 0,
+      "max_condition_physical": 4.583816715630979,
+      "min_det": 0.2455129119318278,
+      "min_singular_physical": 0.23143207364124635,
+      "n": 65,
+      "p99_condition_physical": 1.3315241313178585
+    },
+    {
+      "boundary_displacement_m": 0.0,
+      "det_le_point2": 4,
+      "det_le_zero": 0,
+      "max_condition_physical": 6.078170698019224,
+      "min_det": 0.18934599200592095,
+      "min_singular_physical": 0.17649874108020497,
+      "n": 129,
+      "p99_condition_physical": 1.3630945870990092
+    },
+    {
+      "boundary_displacement_m": 0.0,
+      "det_le_point2": 9,
+      "det_le_zero": 0,
+      "max_condition_physical": 7.100717195589048,
+      "min_det": 0.16381727873992444,
+      "min_singular_physical": 0.15188984734619415,
+      "n": 257,
+      "p99_condition_physical": 1.3636067149271842
+    }
+  ],
+  "extension_spec": "experiments/geometry-map-A-full70-v6.json",
+  "extension_spec_sha256": "183a096da61470c07d7199b4ca7f1c8733178c103fff11867ead5578d5b658cc",
+  "failure": {
+    "arm": "A",
+    "classification": "numerical_infeasibility_of_fixed_construction",
+    "error": "A: d3d_shot_1c5bbadb15.parquet frame 6: Newton iteration 0: min Jacobian det 0.18517890044421997 <= 0.2",
+    "extension_spec_sha256": "183a096da61470c07d7199b4ca7f1c8733178c103fff11867ead5578d5b658cc",
+    "no_scientific_negative_inferred": true,
+    "scope": "full70",
+    "spec_sha256": "7cfcebb27bf01e34d2ce3221feec4af3f02c34f747a504c8c6c1d00f910e719f",
+    "wall_seconds": 87.33887920799316
+  },
+  "failure_frame": 6,
+  "failure_json_sha256": "dc76f24138d736f2a9ec187111f8527078e09a9894f9b5ceb59fc2985ba6f565",
+  "failure_log_sha256": "08cf073e19bda0376cf0156ab36a477da8246562a11baadf6db9c38da1520ab1",
+  "failure_shot": "d3d_shot_1c5bbadb15.parquet",
+  "failure_source_index": 7,
+  "fixed_triangle_nonpositive_count": 0,
+  "interpretation": "Forward warp is positive-orientation and moderately conditioned on grids up to 4x; the frozen .2 Newton determinant threshold rejected one stable positive local derivative. A separate root-reviewed, condition-based gate would be needed before any retry. No universal geometry claim.",
+  "positive_det_diagnostic_newton": {
+    "invalid_points": 0,
+    "max_forward_residual_normalized": 1.5601770579284404e-07,
+    "maximum_backtracking_power_used": 1,
+    "min_det": 0.18517890044421997,
+    "out_of_grid_points": 0,
+    "steps": 4,
+    "unchanged_tolerance_normalized": 1.5624972060322569e-07,
+    "wall_seconds": 0.04587881398038007
+  },
+  "previous_complete_frame_count_at_shot_start": 1298,
+  "prior_1298_frame_min_det_distribution": "Not stored: fail-fast producer publishes diagnostics only after all frames pass. No posthoc silent skips or provisional full70 map.",
+  "producer_sha256": "b87978ac5f4d589e8518c404af2f3dae3e3cc812fded2c16f580ab5931d9191d",
+  "purpose": "Read-only safety diagnosis of the first A v6 full70 numerical stop; no corrected full70 map or native score",
+  "specific_active_point_RZ_m": [
+    1.3181250095367432,
+    1.100000023841858
+  ],
+  "specific_active_point_centered_det_by_step": {
+    "1e-4": 0.18518108333408637,
+    "1e-5": 0.18517890044421997,
+    "1e-6": 0.1851788786095297
+  }
+}

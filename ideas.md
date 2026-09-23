@@ -1,15 +1,13 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
-**2026-09-23 — next geometry mechanism checks, still unconfirmed:**
-The measured first-three-shot smoke and its numerical failures moved to
-[`experiments_history.md`](experiments_history.md). The remaining questions are whether the
-exact fixed interior-li remap survives the full 70-shot native comparison and whether the
-root-reviewed boundary-zero taper makes the fixed contour warp numerically feasible on the same
-three shots. Their frozen specs are
-[`experiments/geometry-map-B-full70-v2.json`](experiments/geometry-map-B-full70-v2.json) and
-[`experiments/geometry-map-oracle-v3.json`](experiments/geometry-map-oracle-v3.json). Both are
-truth-assisted mechanism diagnostics, not deployable predictors or universal ceilings. No model
-fit or public-label use is part of either test.
+**2026-09-23 — contour-local additive correction, not yet measured:**
+The fixed invertible TPS warp and nine-value interior li remap moved to
+[`experiments_history.md`](experiments_history.md): their full-70 attempts stopped on numerical
+validity gates without a score. A distinct additive flux correction near the predicted contour
+may retain the observed small-shot boundary/shape effect without warping interior coordinates.
+It still needs a separate fixed specification and truth-assisted mechanism test before any
+claim; no weight/width search, deployable model or public-label use follows from the prior
+three-shot results.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

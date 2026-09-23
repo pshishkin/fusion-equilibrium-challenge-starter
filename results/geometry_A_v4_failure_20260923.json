@@ -1,0 +1,38 @@
+{
+  "date_utc": "2026-09-23",
+  "failure": {
+    "arm": "A",
+    "classification": "numerical_infeasibility_of_fixed_construction",
+    "error": "A: d3d_shot_6f6a0f6402.parquet frame 294: inverse TPS warp did not converge in 40 iterations",
+    "extension_spec_sha256": null,
+    "no_scientific_negative_inferred": true,
+    "scope": "first3",
+    "spec_sha256": "eb99f58a22b8d6e7cda292292c8621b687e5106843be1ea76a7e7adc72f37fed",
+    "wall_seconds": 24.4230323160009
+  },
+  "failure_frame": 294,
+  "failure_json_sha256": "d97614cb6127762dede07ed20b873017167b7949197a7794c09a855729f2e180",
+  "failure_shot": "d3d_shot_6f6a0f6402.parquet",
+  "frame294": {
+    "boundary_taper_margin_m": 0.13751077093243613,
+    "first_iteration_below_tolerance": 75,
+    "forward_inverse_residual_by_iteration_normalized": {
+      "160": 1.4240543170447323e-12,
+      "20": 0.00023684964793666417,
+      "40": 1.584970615220828e-05,
+      "80": 7.098996737011164e-08
+    },
+    "frozen_inverse_tolerance_normalized": 1.5624972060322569e-07,
+    "max_det_jacobian": 1.6663468677486364,
+    "max_matched_contour_displacement_m": 0.026563488004686088,
+    "maximum_adjacent_residual_ratio": 0.8735940081952729,
+    "min_det_jacobian": 0.859879274359637,
+    "out_of_grid_pixels_through_160_steps": 0,
+    "residual_increases_over_159_steps": 0
+  },
+  "interpretation": "The same forward warp remains orientation-preserving and in-grid; fixed-point inverse converges monotonically but the v4 cap40 is too short. A bounded adaptive stop with unchanged tolerance and cap160 is a proposed numerical amendment, not a score tuning.",
+  "producer_sha256": "01a4ee1a7afde47120203dd9b4429d45222f55c898cba94a691c47fb6771d7cc",
+  "purpose": "Numerical diagnosis of root-approved A v4 boundary-taper inverse cap on the first three fixed shots; no complete A NPZ/native score",
+  "spec": "experiments/geometry-map-oracle-v4.json",
+  "spec_sha256": "eb99f58a22b8d6e7cda292292c8621b687e5106843be1ea76a7e7adc72f37fed"
+}

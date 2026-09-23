@@ -1,0 +1,33 @@
+{
+  "base_spec": "experiments/geometry-map-oracle-v7.json",
+  "base_spec_sha256": "cdb2a7d207798d3bbf30220171dd8f8410291d709dd570b7e6a7393220e42260",
+  "completed_shots_before_failure": 10,
+  "date_utc": "2026-09-23",
+  "decision": "Stop this fixed invertible TPS warp family; do not raise the conditioning threshold or infer a full70 S effect from its three-shot truth-assisted smoke. A separate additive contour-local correction must have a new preregistration.",
+  "dense_max_physical_jacobian_condition": 11.61925891680225,
+  "elapsed_seconds": 294.186111330986,
+  "extension_spec": "experiments/geometry-map-A-full70-v7.json",
+  "extension_spec_sha256": "2d57d035e5ebfc8e00473d9e327c001cf4adbca79a855c9e5b098f8ebd088020",
+  "failure": {
+    "arm": "A",
+    "classification": "numerical_infeasibility_of_fixed_construction",
+    "error": "A: d3d_shot_371aa95fe9.parquet frame 51: dense physical Jacobian condition 11.61925891680225 > 10.0",
+    "extension_spec_sha256": "2d57d035e5ebfc8e00473d9e327c001cf4adbca79a855c9e5b098f8ebd088020",
+    "no_scientific_negative_inferred": true,
+    "scope": "full70",
+    "spec_sha256": "cdb2a7d207798d3bbf30220171dd8f8410291d709dd570b7e6a7393220e42260",
+    "wall_seconds": 294.186111330986
+  },
+  "failure_frame": 51,
+  "failure_json_sha256": "77cef39cb2e3cc3950a5fdfa6cf8bd47db48a6746013d7be991d834f71c137e2",
+  "failure_log_sha256": "2a301a1219f38c7e4ab3df93e9e1c9a29b72b8848767bf9c1155e2467bf0cf26",
+  "failure_shot": "d3d_shot_371aa95fe9.parquet",
+  "failure_source_shot_index": 11,
+  "first3_v7_parity_record": "results/geometry_A_v7_parity_20260923.json",
+  "first3_v7_parity_sha256": "24fb0916a62b3a104488f4e40fc00bdea5b33c7262d37e94ba859a137f650b6a",
+  "frozen_condition_limit": 10.0,
+  "native_full70_score_run": false,
+  "no_partial_prediction_published": true,
+  "producer_sha256": "11671eb48778fb789d2be3a5e721c3246801787d27fc197bd9c2a49d02635596",
+  "purpose": "Final root-approved A v7 full70 safety-gated attempt; fixed TPS inverse family closed on a distinct predeclared conditioning failure"
+}

@@ -68,11 +68,13 @@ by frame position. Its native same-shot results and separate old-five addition e
 and [`results/historical_five_position_metric_20260922.json`](results/historical_five_position_metric_20260922.json).
 The conditioned member improves alone but reduces both tested ensembles against its matched
 pooled control; it is not promoted.
-Two constrained truth-assisted map-space geometry mechanisms are being checked on labeled
-DIII-D training-corpus shots. The [first-three-shot correctness smoke](results/geometry_map_smoke_20260923.json)
-found a valid interior-li remap and a numerical grid-edge failure in the fixed contour warp;
-neither is a deployable predictor or a generalization result. Separate amended specifications
-for the two numerical gates are frozen under `experiments/geometry-map-*.json`.
+Two constrained truth-assisted map-space geometry mechanisms were checked on labeled DIII-D
+training-corpus shots. The [first-three-shot smoke](results/geometry_map_smoke_20260923.json)
+showed useful contour and interior-profile directions, but their separately frozen full-70
+versions stopped at numerical validity gates before producing a score. The final contour-warp
+[smoke and parity](results/geometry_A_v7_parity_20260923.json) and
+[full-70 failure](results/geometry_A_v7_failure_20260923.json) are evidence about this fixed
+construction, not a deployable predictor or a generalization result.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

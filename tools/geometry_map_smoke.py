@@ -12,6 +12,7 @@ import importlib
 import json
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,7 @@ import pandas as pd
 from scipy.interpolate import RBFInterpolator, RegularGridInterpolator
 
 from toolkit.records import file_hash, write_json
+from tools.geometry_taper import boundary_taper, contour_margin
 from tools.historical_compare import _save
 
 
@@ -109,6 +111,200 @@ def _edge_anchors() -> np.ndarray:
     )
 
 
+def _invert_fixed_point(
+    fixed: np.ndarray,
+    field: Callable[[np.ndarray], np.ndarray],
+    span: np.ndarray,
+    tolerance: float,
+    max_iterations: int,
+    adaptive_monotone: bool,
+) -> tuple[np.ndarray, int, float]:
+    """Invert W(x)=x+field(x), with the frozen residual and explicit numeric gates."""
+    inverse = fixed.copy()
+    previous = float("inf")
+    for iteration in range(1, max_iterations + 1):
+        inverse = fixed - field(inverse)
+        if not np.isfinite(inverse).all():
+            raise NumericalInfeasibility(f"inverse iteration {iteration} has nonfinite coordinates")
+        if adaptive_monotone and (np.any(inverse < 0) or np.any(inverse > 1)):
+            overshoot = np.maximum(np.maximum(-inverse, inverse - 1), 0) * span
+            raise NumericalInfeasibility(
+                f"inverse iteration {iteration} left grid by {float(np.max(overshoot))} m, "
+                "expected 0"
+            )
+        residual = float(np.max(np.linalg.norm(inverse + field(inverse) - fixed, axis=1)))
+        if not np.isfinite(residual):
+            raise NumericalInfeasibility(f"inverse iteration {iteration} residual is nonfinite")
+        if residual <= tolerance:
+            return inverse, iteration, residual
+        if adaptive_monotone and residual >= previous:
+            raise NumericalInfeasibility(
+                f"inverse iteration {iteration} residual {residual} did not contract "
+                f"from {previous}, tolerance {tolerance}"
+            )
+        previous = residual
+    raise NumericalInfeasibility(
+        f"inverse TPS warp residual {previous} exceeds tolerance {tolerance} "
+        f"after {max_iterations} iterations"
+    )
+
+
+def _invert_damped_newton(
+    fixed: np.ndarray,
+    field: Callable[[np.ndarray], np.ndarray],
+    boundary: np.ndarray,
+    tolerance: float,
+    max_iterations: int,
+    fd_step: float,
+    alphas: list[float],
+    physical_span: np.ndarray | None = None,
+    max_physical_condition: float | None = None,
+) -> tuple[np.ndarray, int, float, float, float]:
+    """Invert the unchanged forward warp with a strict, per-point decreasing line search."""
+    inverse = fixed.copy()
+    inverse[boundary] = fixed[boundary]
+    minimum_det = float("inf")
+    maximum_condition = 0.0
+
+    def forward(x: np.ndarray) -> np.ndarray:
+        return x + field(x)
+
+    for iteration in range(max_iterations + 1):
+        residual_vec = forward(inverse) - fixed
+        residual = np.linalg.norm(residual_vec, axis=1)
+        residual[boundary] = 0.0
+        if not np.isfinite(residual).all():
+            raise NumericalInfeasibility(f"Newton iteration {iteration}: nonfinite residual")
+        active = (residual > tolerance) & ~boundary
+        if not active.any():
+            return (
+                inverse,
+                iteration,
+                float(np.max(residual)),
+                (minimum_det if np.isfinite(minimum_det) else 1.0),
+                maximum_condition,
+            )
+        if iteration == max_iterations:
+            break
+        ids = np.flatnonzero(active)
+        x = inverse[ids]
+        f = residual_vec[ids]
+        step_r = np.array([fd_step, 0.0])
+        step_z = np.array([0.0, fd_step])
+        dr = (forward(x + step_r) - forward(x - step_r)) / (2 * fd_step)
+        dz = (forward(x + step_z) - forward(x - step_z)) / (2 * fd_step)
+        j00, j01 = dr[:, 0], dz[:, 0]
+        j10, j11 = dr[:, 1], dz[:, 1]
+        det = j00 * j11 - j01 * j10
+        minimum_allowed_det = 0.0 if max_physical_condition is not None else 0.2
+        if not np.isfinite(det).all() or np.any(det <= minimum_allowed_det):
+            raise NumericalInfeasibility(
+                f"Newton iteration {iteration}: min Jacobian det {float(np.min(det))} "
+                f"<= {minimum_allowed_det}"
+            )
+        if max_physical_condition is not None:
+            if physical_span is None:
+                raise ValueError("physical span required for conditioned Newton safety")
+            physical_jac = np.stack(
+                [
+                    np.stack([j00, j01 * physical_span[0] / physical_span[1]], axis=-1),
+                    np.stack([j10 * physical_span[1] / physical_span[0], j11], axis=-1),
+                ],
+                axis=-2,
+            )
+            singular = np.linalg.svd(physical_jac, compute_uv=False)
+            condition = singular[:, 0] / singular[:, 1]
+            if not np.isfinite(condition).all() or np.any(condition > max_physical_condition):
+                raise NumericalInfeasibility(
+                    f"Newton iteration {iteration}: max physical condition "
+                    f"{float(np.max(condition))} > {max_physical_condition}"
+                )
+            maximum_condition = max(maximum_condition, float(np.max(condition)))
+        minimum_det = min(minimum_det, float(np.min(det)))
+        direction = np.column_stack(
+            [(j11 * f[:, 0] - j01 * f[:, 1]) / det, (-j10 * f[:, 0] + j00 * f[:, 1]) / det]
+        )
+        pending = np.ones(len(ids), dtype=bool)
+        for alpha in alphas:
+            local_ids = np.flatnonzero(pending)
+            if not len(local_ids):
+                break
+            candidate = x[local_ids] - alpha * direction[local_ids]
+            inside = np.all((candidate >= 0) & (candidate <= 1), axis=1)
+            candidate_residual = np.linalg.norm(forward(candidate) - fixed[ids[local_ids]], axis=1)
+            accepted = inside & np.isfinite(candidate_residual)
+            accepted &= candidate_residual < residual[ids[local_ids]]
+            inverse[ids[local_ids[accepted]]] = candidate[accepted]
+            pending[local_ids[accepted]] = False
+        if pending.any():
+            raise NumericalInfeasibility(
+                f"Newton iteration {iteration}: {int(pending.sum())} points have no "
+                f"in-grid decreasing step among {len(alphas)} frozen alphas"
+            )
+        if not np.isfinite(inverse).all() or np.any(inverse < 0) or np.any(inverse > 1):
+            raise NumericalInfeasibility(f"Newton iteration {iteration}: invalid inverse grid")
+        if inverse[boundary].tobytes() != fixed[boundary].tobytes():
+            raise NumericalInfeasibility("Newton boundary inverse lost exact identity")
+    raise NumericalInfeasibility(
+        f"Newton max residual {float(np.max(residual))} exceeds unchanged tolerance "
+        f"{tolerance} after {max_iterations} steps"
+    )
+
+
+def _dense_forward_safety(
+    fixed: np.ndarray,
+    warped: np.ndarray,
+    field: Callable[[np.ndarray], np.ndarray],
+    span: np.ndarray,
+    dense_n: int,
+    max_condition: float,
+) -> tuple[float, float, float]:
+    """Check the unchanged warp's grid topology and physical conditioning."""
+    n = int(np.sqrt(len(fixed)))
+    mapped = warped.reshape(n, n, 2)
+    p00 = mapped[:-1, :-1].reshape(-1, 2)
+    p01 = mapped[:-1, 1:].reshape(-1, 2)
+    p10 = mapped[1:, :-1].reshape(-1, 2)
+    p11 = mapped[1:, 1:].reshape(-1, 2)
+
+    def signed_area(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> np.ndarray:
+        u, v = b - a, c - a
+        return 0.5 * (u[:, 0] * v[:, 1] - u[:, 1] * v[:, 0])
+
+    areas = np.concatenate([signed_area(p00, p01, p11), signed_area(p00, p11, p10)])
+    min_area = float(np.min(areas))
+    if not np.isfinite(areas).all() or min_area <= 0:
+        raise NumericalInfeasibility(f"mapped triangle signed area {min_area} <= 0")
+
+    axis = np.linspace(0.0, 1.0, dense_n)
+    dense_r, dense_z = np.meshgrid(axis, axis)
+    dense = np.column_stack([dense_r.ravel(), dense_z.ravel()])
+    forward = dense + field(dense)
+    wr = forward[:, 0].reshape(dense_n, dense_n)
+    wz = forward[:, 1].reshape(dense_n, dense_n)
+    wr_z, wr_r = np.gradient(wr, axis, axis)
+    wz_z, wz_r = np.gradient(wz, axis, axis)
+    det = wr_r * wz_z - wr_z * wz_r
+    min_det = float(np.min(det))
+    if not np.isfinite(det).all() or min_det <= 0:
+        raise NumericalInfeasibility(f"dense forward Jacobian det {min_det} <= 0")
+    physical_jac = np.stack(
+        [
+            np.stack([wr_r, wr_z * span[0] / span[1]], axis=-1),
+            np.stack([wz_r * span[1] / span[0], wz_z], axis=-1),
+        ],
+        axis=-2,
+    ).reshape(-1, 2, 2)
+    singular = np.linalg.svd(physical_jac, compute_uv=False)
+    condition = singular[:, 0] / singular[:, 1]
+    max_observed = float(np.max(condition))
+    if not np.isfinite(condition).all() or max_observed > max_condition:
+        raise NumericalInfeasibility(
+            f"dense physical Jacobian condition {max_observed} > {max_condition}"
+        )
+    return min_area, min_det, max_observed
+
+
 def _warp_map(
     psi: np.ndarray,
     pred: np.ndarray,
@@ -116,6 +312,13 @@ def _warp_map(
     axis: tuple[float, float],
     R: np.ndarray,
     Z: np.ndarray,
+    boundary_zero: bool = False,
+    inverse_max_iterations: int = 20,
+    inverse_stop_mode: str = "fixed",
+    inverse_fd_step: float = 0.00001,
+    inverse_alphas: list[float] | None = None,
+    forward_dense_n: int | None = None,
+    max_physical_condition: float | None = None,
 ) -> tuple[np.ndarray, dict[str, float]]:
     q, shift = _cyclic_match(pred, truth)
     spacing = float(np.hypot(np.mean(np.diff(R)), np.mean(np.diff(Z))))
@@ -132,44 +335,118 @@ def _warp_map(
     shifts = np.vstack([shifts, np.zeros((17, 2))])
     if len(np.unique(anchors, axis=0)) != len(anchors):
         raise NumericalInfeasibility("TPS control points are not unique")
-    rbf = RBFInterpolator(anchors, shifts, kernel="thin_plate_spline", smoothing=0.0001, degree=1)
+    try:
+        rbf = RBFInterpolator(
+            anchors, shifts, kernel="thin_plate_spline", smoothing=0.0001, degree=1
+        )
+    except (ValueError, np.linalg.LinAlgError) as exc:
+        raise NumericalInfeasibility(f"TPS solve failed: {type(exc).__name__}") from exc
+    margin = 0.0
+    if boundary_zero:
+        try:
+            margin = contour_margin(pred, R, Z)
+            contour_taper = boundary_taper(points, lo, span, margin)
+            axis_unit = ((np.asarray(axis) - lo) / span)[None, :]
+            axis_taper = boundary_taper(axis_unit, lo, span, margin)
+        except ValueError as exc:
+            raise NumericalInfeasibility(f"invalid boundary taper: {exc}") from exc
+        if not np.all(contour_taper == 1.0) or not np.all(axis_taper == 1.0):
+            raise NumericalInfeasibility("boundary taper is not full strength at contour/axis")
+
+    def field(x: np.ndarray) -> np.ndarray:
+        raw = rbf(x)
+        return raw * boundary_taper(x, lo, span, margin)[:, None] if boundary_zero else raw
+
     r_norm = (R - R[0]) / span[0]
     z_norm = (Z - Z[0]) / span[1]
     rr, zz = np.meshgrid(r_norm, z_norm)
     fixed = np.column_stack([rr.ravel(), zz.ravel()])
-    warped = fixed + rbf(fixed)
+    edge = np.isclose(fixed[:, 0], 0) | np.isclose(fixed[:, 0], 1)
+    edge |= np.isclose(fixed[:, 1], 0) | np.isclose(fixed[:, 1], 1)
+    raw_edge = rbf(fixed[edge]) * span
+    tapered_edge = field(fixed[edge]) * span
+    if boundary_zero and not np.all(tapered_edge == 0.0):
+        raise NumericalInfeasibility("boundary taper leaves nonzero grid-edge displacement")
+    warped = fixed + field(fixed)
+    if forward_dense_n is not None:
+        if max_physical_condition is None:
+            raise ValueError("dense safety needs frozen maximum physical condition")
+        if warped[edge].tobytes() != fixed[edge].tobytes():
+            raise NumericalInfeasibility("forward warp lost exact grid-boundary identity")
+        min_triangle_area, min_dense_jac, max_dense_condition = _dense_forward_safety(
+            fixed, warped, field, span, forward_dense_n, max_physical_condition
+        )
     wr, wz = warped[:, 0].reshape(rr.shape), warped[:, 1].reshape(zz.shape)
     dwr_dz, dwr_dr = np.gradient(wr, z_norm, r_norm)
     dwz_dz, dwz_dr = np.gradient(wz, z_norm, r_norm)
     jac = dwr_dr * dwz_dz - dwr_dz * dwz_dr
     min_jac = float(np.min(jac))
-    if not np.isfinite(jac).all() or min_jac <= 0.2:
-        raise NumericalInfeasibility(f"warp Jacobian minimum {min_jac} <= 0.2")
-    inverse = fixed.copy()
+    min_allowed_jac = 0.0 if forward_dense_n is not None else 0.2
+    if not np.isfinite(jac).all() or min_jac <= min_allowed_jac:
+        raise NumericalInfeasibility(f"warp grid Jacobian minimum {min_jac} <= {min_allowed_jac}")
+    if inverse_stop_mode not in ("fixed", "adaptive_monotone", "direct_damped_newton"):
+        raise ValueError(f"unsupported inverse stop mode {inverse_stop_mode}")
     tol = 0.00001 * min(np.diff(R).min(), np.diff(Z).min()) / min(span)
-    converged = False
-    for _iteration in range(20):
-        updated = fixed - rbf(inverse)
-        inverse = updated
-        if float(np.max(np.linalg.norm(inverse + rbf(inverse) - fixed, axis=1))) <= tol:
-            converged = True
-            break
-    if not converged:
-        raise NumericalInfeasibility("inverse TPS warp did not converge in 20 iterations")
+    if inverse_stop_mode == "direct_damped_newton":
+        if inverse_alphas is None:
+            raise ValueError("direct Newton requires frozen backtracking alphas")
+        inverse, iterations, inverse_residual, min_newton_det, max_newton_condition = (
+            _invert_damped_newton(
+                fixed,
+                field,
+                edge,
+                tol,
+                inverse_max_iterations,
+                inverse_fd_step,
+                inverse_alphas,
+                physical_span=span if forward_dense_n is not None else None,
+                max_physical_condition=max_physical_condition
+                if forward_dense_n is not None
+                else None,
+            )
+        )
+    else:
+        inverse, iterations, inverse_residual = _invert_fixed_point(
+            fixed,
+            field,
+            span,
+            tol,
+            inverse_max_iterations,
+            adaptive_monotone=inverse_stop_mode == "adaptive_monotone",
+        )
     if np.any(inverse < 0) or np.any(inverse > 1):
-        raise NumericalInfeasibility("inverse TPS warp leaves the source grid")
+        overshoot = np.maximum(np.maximum(-inverse, inverse - 1), 0) * span
+        raise NumericalInfeasibility(
+            f"inverse TPS warp leaves source grid by {float(np.max(overshoot))} m, expected 0"
+        )
     physical = lo + inverse * span
     interpolation = RegularGridInterpolator((Z, R), psi, method="linear", bounds_error=True)
-    sampled = interpolation(np.column_stack([physical[:, 1], physical[:, 0]]))
+    try:
+        sampled = interpolation(np.column_stack([physical[:, 1], physical[:, 0]]))
+    except ValueError as exc:
+        raise NumericalInfeasibility("inverse TPS sampling left the source grid") from exc
     output = sampled.reshape(psi.shape).astype(np.float32)
     if not np.isfinite(output).all():
         raise NumericalInfeasibility("spatial warp produced nonfinite flux")
-    return output, {
+    detail = {
         "cyclic_shift": float(shift),
         "max_displacement_m": max_move,
         "min_jacobian": min_jac,
-        "inverse_iterations": float(_iteration + 1),
+        "inverse_iterations": float(iterations),
+        "inverse_final_residual_normalized": inverse_residual,
+        "boundary_taper_margin_m": margin,
+        "raw_boundary_displacement_max_m": float(np.max(np.abs(raw_edge))),
+        "tapered_boundary_displacement_max_m": float(np.max(np.abs(tapered_edge))),
     }
+    if inverse_stop_mode == "direct_damped_newton":
+        detail["inverse_min_newton_det"] = min_newton_det
+        if forward_dense_n is not None:
+            detail["inverse_max_newton_physical_condition"] = max_newton_condition
+    if forward_dense_n is not None:
+        detail["forward_min_mapped_triangle_area_unit"] = min_triangle_area
+        detail["forward_min_dense_jacobian_det"] = min_dense_jac
+        detail["forward_max_dense_physical_condition"] = max_dense_condition
+    return output, detail
 
 
 def _remap_map(psi: np.ndarray, sign: int, axis: float, sep: float, a: float) -> np.ndarray:
@@ -257,6 +534,8 @@ def build(
         raise ValueError(f"unknown arm {arm}")
     started = time.perf_counter()
     spec = json.loads(spec_path.read_text())
+    if "amends_spec" in spec and file_hash(Path(spec["amends_spec"])) != spec["amends_spec_sha256"]:
+        raise ValueError(f"{spec_path}: amended source spec hash differs")
     source = Path(spec["input"]["prediction"])
     if file_hash(source) != spec["input"]["prediction_sha256"]:
         raise ValueError(f"{source}: prediction SHA differs from frozen spec")
@@ -276,8 +555,9 @@ def build(
         scope = "full70"
         extension = json.loads(extension_path.read_text())
         extension_hash = file_hash(extension_path)
-        if arm not in ("control", "B"):
-            raise ValueError("full70 extension permits only the unchanged control and B")
+        selected_arm = extension.get("arm", "B")
+        if selected_arm not in ("A", "B") or arm not in ("control", selected_arm):
+            raise ValueError(f"{extension_path}: full70 permits control and {selected_arm}")
         if extension["base_spec_sha256"] != file_hash(spec_path):
             raise ValueError(f"{extension_path}: base spec changed")
         if extension["producer_sha256"] != file_hash(Path(__file__)):
@@ -292,11 +572,12 @@ def build(
             or extension["files"] != all_files
         ):
             raise ValueError(f"{extension_path}: ordered filenames changed")
-        b_hash = hashlib.sha256(
-            json.dumps(spec["B_interior_li_remap"], sort_keys=True, separators=(",", ":")).encode()
+        config_key = "A_contour_warp" if selected_arm == "A" else "B_interior_li_remap"
+        config_hash = hashlib.sha256(
+            json.dumps(spec[config_key], sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()
-        if b_hash != extension["B_config_sha256"]:
-            raise ValueError(f"{extension_path}: B algorithm parameters changed")
+        if config_hash != extension[f"{selected_arm}_config_sha256"]:
+            raise ValueError(f"{extension_path}: {selected_arm} algorithm parameters changed")
         names = all_files
         frame_counts = extension["frames_per_shot"]
         expected_frames = extension["total_frames"]
@@ -343,7 +624,44 @@ def build(
                         raise NumericalInfeasibility("source or true scorer LCFS is missing")
                     if arm == "A":
                         axis_r, axis_z, *_ = derive.magnetic_axis(psi, R, Z, "DIII-D", mask, sign)
-                        corrected, detail = _warp_map(psi, c_pred, c_true, (axis_r, axis_z), R, Z)
+                        corrected, detail = _warp_map(
+                            psi,
+                            c_pred,
+                            c_true,
+                            (axis_r, axis_z),
+                            R,
+                            Z,
+                            boundary_zero="boundary_taper" in spec["A_contour_warp"],
+                            inverse_max_iterations=spec["A_contour_warp"].get(
+                                "inverse_max_iterations", 20
+                            ),
+                            inverse_stop_mode=spec["A_contour_warp"].get(
+                                "inverse_stop_mode", "fixed"
+                            ),
+                            inverse_fd_step=spec["A_contour_warp"].get(
+                                "inverse_fd_step_normalized", 0.00001
+                            ),
+                            inverse_alphas=spec["A_contour_warp"].get(
+                                "inverse_backtracking_alphas"
+                            ),
+                            forward_dense_n=spec["A_contour_warp"].get(
+                                "forward_safety_dense_grid_points_per_axis"
+                            ),
+                            max_physical_condition=spec["A_contour_warp"].get(
+                                "forward_safety_max_physical_condition"
+                            ),
+                        )
+                        c_corrected, _ = lcfs.extract_lcfs_with_sign(
+                            corrected, R, Z, "DIII-D", mask, mask.astype(float), axis_sign=sign
+                        )
+                        if c_corrected is None:
+                            raise NumericalInfeasibility("corrected map has no scorer-native LCFS")
+                        detail["source_contour_to_true_hausdorff_m"] = contour.symmetric_hausdorff(
+                            c_pred, c_true
+                        )
+                        detail["corrected_contour_to_true_hausdorff_m"] = (
+                            contour.symmetric_hausdorff(c_corrected, c_true)
+                        )
                     else:
                         corrected, detail = _li_remap(
                             psi,

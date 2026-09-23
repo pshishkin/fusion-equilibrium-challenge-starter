@@ -3,6 +3,23 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — fixed geometry map families closed after full-70 numerical gates:**
+The truth-assisted A contour warp with boundary taper and damped Newton produced **578/578**
+valid maps on the preregistered first three shots. Safety-only v7 maps and native JSON were
+bit-identical to v6; native S was **0.944391 → 0.965705** on those same three shots, with
+D_LCFS **0.013572 → 0.003870** and kappa R² **0.106798 → 0.940405**, but li R² fell
+**0.554423 → 0.093443**. This uses true contours and a small, atypical fold, so it is a
+mechanism/correctness result only. Its sole v7 full-70 attempt stopped after ten complete shots
+at shot index 11 frame 51: dense physical Jacobian condition **11.619 > 10**, a distinct frozen
+safety failure. No full-70 A map or S was produced; this fixed invertible-warp family is closed
+without raising the gate. The nine-value B remap also passed the three-shot smoke, then stopped
+on full-70 v2 contour-level proxy and v3 scorer-native LCFS identity gates, with no full-70 map
+or score. These are numerical feasibility failures of fixed constructions, not evidence that all
+contour or profile corrections are ineffective. [A smoke](results/geometry_A_v6_smoke_20260923.json),
+[safety parity](results/geometry_A_v7_parity_20260923.json),
+[final A failure](results/geometry_A_v7_failure_20260923.json),
+[final B failure](results/geometry_B_v3_failure_20260923.json).
+
 **2026-09-23 UTC — three-shot geometry map mechanism smoke and numerical gates:**
 The fixed first three fit-excluded DIII-D training-corpus shots contain 578 frames. The unchanged
 map/control scored native **S 0.944391** on this tiny subset. The v2 truth-assisted contour warp

@@ -1,0 +1,83 @@
+{
+  "A_metrics_sha256": "0f20a15d8ffd31e712f4a0411d0dfaa44daee4ced31a195eee618b5f5be2d0e3",
+  "A_minus_control": {
+    "S": 0.021314,
+    "consistency": 0.100241,
+    "dlcfs": -0.009702,
+    "r2_psi": 0.000538,
+    "r2_qb": 0.0
+  },
+  "A_native": {
+    "S": 0.965705,
+    "cons_fail_frac": 0.0,
+    "consistency": 0.846048,
+    "dlcfs": 0.00387,
+    "lcfs_fail_frac": 0.0,
+    "r2_cons_each": {
+      "R_axis": 0.914406,
+      "Z_axis": 0.978366,
+      "kappa": 0.940405,
+      "li": 0.093443,
+      "tri_bot": 0.998079,
+      "tri_top": 0.998019,
+      "volume": 0.99962
+    },
+    "r2_psi": 0.999122,
+    "r2_qb": 0.982437
+  },
+  "A_prediction_npz": "runs/geometry-map-smoke-A-v6-20260923/A-first3.npz",
+  "A_prediction_sha256": "ba2263b02e0ba9bd6fa4f2da2596d9767299d03b7a7ffed38fdb6d017cf2d047",
+  "all_frames_valid": true,
+  "control_metrics_sha256": "71ac4414e1b96f092cbdb9695999338d0bf6cd99fca67bb46c8e70b388329e97",
+  "control_native": {
+    "S": 0.944391,
+    "cons_fail_frac": 0.0,
+    "consistency": 0.745807,
+    "dlcfs": 0.013572,
+    "lcfs_fail_frac": 0.0,
+    "r2_cons_each": {
+      "R_axis": 0.919585,
+      "Z_axis": 0.977567,
+      "kappa": 0.106798,
+      "li": 0.554423,
+      "tri_bot": 0.950227,
+      "tri_top": 0.997677,
+      "volume": 0.714374
+    },
+    "r2_psi": 0.998584,
+    "r2_qb": 0.982437
+  },
+  "date_utc": "2026-09-23",
+  "files": [
+    "d3d_shot_6f6a0f6402.parquet",
+    "d3d_shot_18269a24ec.parquet",
+    "d3d_shot_17b33ca9c3.parquet"
+  ],
+  "frames": 578,
+  "frozen_scorer_local_score_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+  "interpretation": "The fixed truth-assisted contour-warp construction is numerically feasible on all three preselected shots and demonstrates shape/LCFS sensitivity. It substantially worsens li on this small subset and uses true contours, so its S gain is not deployable or a generalization estimate. Full70 A requires separate root review.",
+  "map_diagnostics": {
+    "contour_improved_frames": 536,
+    "contour_worsened_frames": 42,
+    "corrected_contour_to_true_hausdorff_mean_m": 0.008268025345109172,
+    "frozen_inverse_tolerance_normalized": 1.5624972060322569e-07,
+    "max_inverse_forward_residual_normalized": 1.5624962752324755e-07,
+    "max_inverse_iterations": 4,
+    "max_tapered_boundary_displacement_m": 0.0,
+    "median_inverse_iterations": 2.0,
+    "min_forward_jacobian": 0.4290647660976867,
+    "source_contour_to_true_hausdorff_mean_m": 0.02067116962861877
+  },
+  "producer_sha256": "1144cef9ded551f9f264e9ba7443783881b51a4f1b27b8c78dd71ecb42cb106e",
+  "purpose": "Correctness-only truth-assisted constrained A contour warp with direct damped Newton on exactly first three pinned DIII-D training-corpus tail shots; no public labels, model fit or full70 claim",
+  "scalar_bits_unchanged": true,
+  "scorer_jobs": 4,
+  "source_prediction_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+  "spec": "experiments/geometry-map-oracle-v6.json",
+  "spec_sha256": "7cfcebb27bf01e34d2ce3221feec4af3f02c34f747a504c8c6c1d00f910e719f",
+  "taper_helper_sha256": "030446353d1c36ed1704d95d1fecba35d27f21a50601b2c54ede9302284e2eee",
+  "timing_seconds": {
+    "A_build_verify": 39.83925607800484,
+    "native_score_wall_approx": 8.3
+  }
+}
