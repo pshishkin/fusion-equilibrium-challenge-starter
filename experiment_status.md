@@ -167,12 +167,16 @@ are recorded in `results/final_ci_20260923.json`. The complete local dataset rem
 verified. A concise score/timing index is `results/overnight_summary_20260923.md`.
 
 1. The best observed local eleven-map/eight-scalar recipe is assembled as a **DIII-D-only**
-   float32 NPZ and a verified root-level Challenge1-only ZIP. It passed full local structural
-   validation, archive CRC and extracted-entry SHA checks. Its ZIP has no MAST component, so it
-   would not preserve a Challenge2 score. It has no public leaderboard result or upload: this
-   workspace has no accessible authenticated Codabench/HF submission route. Keep the input
-   manifest, artifacts and exact weights in `results/public_diii_d_candidate_20260923.json`
-   with the archive/access record in `results/challenge1_offline_zip_20260923.json`.
+   float32 NPZ and a verified root-level Challenge1-only offline ZIP. It passed full local
+   structural validation, archive CRC and extracted-entry SHA checks. The private Hugging Face
+   dataset already holds MAST predictions, so the preferred delivery is a single-file DIII-D
+   upload plus a small pinned pointer ZIP. That single-file upload is now complete; full pinned
+   read-token download matched the validated NPZ, and remote MAST and other non-target files are
+   unchanged. No Codabench upload or new public score has been made. The publisher is
+   `tools/publish_private_candidate.py`, with remote commit and pointer identity in
+   `results/private_hf_candidate_20260923.json`, candidate evidence in
+   `results/public_diii_d_candidate_20260923.json`, and offline archive evidence in
+   `results/challenge1_offline_zip_20260923.json`.
 2. A trustworthy generalization check for this adaptively selected collection needs shots held
    out **before every member fit**. The repeatedly scored salt-0 tail and a new ordinary split
    salt do not create an independent dataset for these existing artifacts; confirmation would

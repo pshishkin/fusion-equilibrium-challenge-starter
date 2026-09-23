@@ -262,6 +262,13 @@ Submission predictions and all reusable blend/MAST caches must store flux maps a
 scalars as float32. Never silently downcast flux to float16. Blend decoded maps in float64 and cast
 once to float32; version cache keys with the output format and reject old float16 cache entries.
 Upcasting an old half-precision cache does not restore the lost information.
+For a private Hugging Face pointer submission, load distinct read and write credentials from the
+gitignored mode-600 `.env` in memory, never from CLI arguments or logs. Upload only the intended
+file to the existing private dataset, with a parent-commit guard; preserve and verify all
+non-target files, especially MAST. Pin the returned commit, verify uploaded size/SHA and actual
+read-token download, then create the token-bearing pointer ZIP under ignored `submissions/`.
+The tracked publication receipt must omit tokens. A local pointer ZIP does not imply a Codabench
+upload or public score.
 An older artifact may need its original inference code to unpickle and predict. Keep that source
 isolated rather than adding compatibility guesses to current model classes; decode predictions
 before blending across artifacts and score them with a pinned native scorer and exact file list.

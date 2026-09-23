@@ -1,0 +1,18 @@
+{
+  "repo_id": "pshishkin/fusion-eq-predictions",
+  "private": true,
+  "revision": "9347337ee781cbaebfd2210148c300c4e4d932fb",
+  "uploaded_file": "diii_d_public_test.npz",
+  "bytes": 2967287097,
+  "sha256": "7b39cdc94ec8b95b2c89dfbee4c0fcd3db4898e2671ac3e0ac136efed5b5d704",
+  "mast_preserved": true,
+  "non_target_files_preserved": [
+    ".gitattributes",
+    "mast_public_test.npz"
+  ],
+  "pinned_read_token_download_verified": true,
+  "pointer_path": "submissions/submission_pointer_20260923T095615Z.zip",
+  "pointer_bytes": 267,
+  "pointer_sha256": "4145b07925a0e5f6783c147bdbe4e4d21844822b04d4394bf8c085d5cb086de5",
+  "token_values_recorded": false
+}

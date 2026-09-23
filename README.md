@@ -225,7 +225,26 @@ the artifact, full input identity, float32 format, held-70 recipe parity and bui
 A verified Challenge1-only root ZIP is also prepared locally; its archive SHA, entry CRC,
 extracted NPZ identity, official format reference and access audit are in
 [`results/challenge1_offline_zip_20260923.json`](results/challenge1_offline_zip_20260923.json).
-It has no MAST component or public leaderboard score and was not uploaded.
+That offline ZIP has no MAST component and was not uploaded.
+The DIII-D NPZ has now been uploaded alone to the existing private Hugging Face dataset, which
+also contains MAST predictions. The pinned file was downloaded through the read token and matched
+the local SHA-256; non-target files were unchanged. The small pointer ZIP and redacted receipt are
+recorded in [`results/private_hf_candidate_20260923.json`](results/private_hf_candidate_20260923.json).
+For a later revision, use `plan` to check the local candidate and `preflight` after placing
+distinct fine-grained `HF_WRITE_TOKEN` and `HF_READ_TOKEN` in the gitignored mode-600 `.env`.
+The publisher accepts no token on the command line:
+
+```bash
+.venv/bin/python tools/publish_private_candidate.py plan
+.venv/bin/python tools/publish_private_candidate.py preflight
+.venv/bin/python tools/publish_private_candidate.py publish
+```
+
+`publish` uploads only `diii_d_public_test.npz` to the existing private
+`pshishkin/fusion-eq-predictions` dataset and checks the pinned LFS identity, unchanged MAST file
+and a full read-token download before creating `submissions/submission_pointer_*.zip`.
+The ZIP contains a root `manifest.json` with the read credential, so keep it out of Git. It does
+not upload to Codabench; the candidate has no new public leaderboard score.
 
 The completed fast magnetics screen is documented in
 [`experiments/fast-signal-diagnostic.md`](experiments/fast-signal-diagnostic.md) and
