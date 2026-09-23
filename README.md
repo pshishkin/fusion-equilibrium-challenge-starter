@@ -139,6 +139,10 @@ truth-assisted native-score margin despite an accurate compressed normal displac
 remaining four base fits and correction learner were not run; the original evaluation tail and
 internal gate stayed out of all training and this pilot. The pilot code remains reproducible from
 its frozen campaign, but no deployable OOF correction was selected.
+A separately [preregistered full-normal diagnostic](experiments/oof-full-normal-diagnostic.json)
+retains all scorer-contour normal components on the same TRAIN pilot to check whether K8
+truncation removed important local detail. It is a mechanism comparison, not a new learner fit
+or a reopened score gate.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

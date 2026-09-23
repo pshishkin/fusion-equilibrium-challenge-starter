@@ -1,0 +1,55 @@
+{
+  "name": "same100-oof-full-normal-vs-K8-truth-assisted-diagnostic",
+  "date_utc": "2026-09-23",
+  "status": "Preregistered before any full-normal truth-target processing or native score; this diagnostic does not reopen the failed K8 learner gate",
+  "question": "Did discarding normal-displacement Fourier modes above K8 remove scorer-relevant local contour detail, or does the fixed additive/profile operation have too little score headroom even with all 512 true normal components on these OOF TRAIN shots?",
+  "old_campaign": "runs/oof-normal-k8-5fold-20260923",
+  "helper_sha256": "cc89561268327c40e62cc45a9b2e2464bca3b2b1e5f18ab4c9ddac318f4264a2",
+  "pilot_ordered_names_sha256": "8363384de1d2125166049a88425db370cea04ab051b38031f92e5622d57652bd",
+  "pilot_shots": 100,
+  "pilot_full_frames": 21667,
+  "native_scorer_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+  "native_scorer_source_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+  "pinned_inputs": {
+    "old_campaign_manifest": {
+      "path": "runs/oof-normal-k8-5fold-20260923/campaign.json",
+      "sha256": "2ed48f0cbd4ffda8fedf3fc24198be176a6d27eb58a3dda8d89d02ed0f987f6d"
+    },
+    "old_files_manifest": {
+      "path": "runs/oof-normal-k8-5fold-20260923/files.json",
+      "sha256": "e8733030d09d237691ba94e93f4b65f57268cf2efe689b01c697f7691422e621"
+    },
+    "fold0_artifact": {
+      "path": "runs/oof-normal-k8-5fold-20260923/fold0/base.joblib",
+      "sha256": "bf5035bfd83a2602981ef7def6b96911c259a22d15138f978f29bd638c0e066d"
+    },
+    "source_prediction": {
+      "path": "runs/oof-normal-k8-5fold-20260923/pilot/source.npz",
+      "sha256": "66df3227393032305d36f716d7fbdc9b11075341a55e0aa3fa9123181d55bb6e"
+    },
+    "source_native_metrics": {
+      "path": "runs/oof-normal-k8-5fold-20260923/pilot/source.metrics.json",
+      "sha256": "c3310fb97be7a15e842c313f0e078597ed4e300e71d9266db5030337731d337f"
+    },
+    "k8_result": {
+      "path": "results/oof_normal_k8_pilot_20260923.json",
+      "sha256": "e75d7896c03185371ff19f885bd482ce923fff296ecdda00f6b0f4cb23e02ea2"
+    },
+    "profile_family": {
+      "path": "experiments/geometry-additive-source-li-compensation-v3.json",
+      "sha256": "712feb996fe94b6c4b88931f496a308e1cab157684befa5eb68cc916eb80aad0"
+    }
+  },
+  "construction": {
+    "scope": "Only the identical first100 original-TRAIN fold0-OOF shots and all their 21,667 full frames from the old K8 pilot. Their true scorer-native LCFS may be read for this truth-assisted diagnostic. The internal gate200, original evaluation tail70 and public shots may not be read or scored. No new model is fitted.",
+    "same_normal_target": "Use the same scorer-native source/true 512-point contours, canonical max-R source roll, minimum-squared cyclic true correspondence and outward unit physical normal. Let d_i=((C_true_matched_i-C_pred_i) dot n_i). The existing K8 arm reconstructs d from Fourier DC plus modes1..8. The new arm retains d_i for ALL 512 points and sets u_i=d_i*n_i, rolled back into original scorer indexing. Do not insert tangential displacement or the full 2D matched C_true−C_pred vector.",
+    "same_map_and_profile": "Use the unchanged old correct_map_from_displacement: every-eighth TPS control, axis and edge anchors, boundary taper, Gaussian contour shell fixed at two minimum grid spacings, lambda1 and float32 output. Apply the same fixed nine-a spatial interior source-li compensation targeting li of the ORIGINAL source ψ, never true li. No width, lambda, TPS, profile grid, fallback, smoothing, weight, frame or shot changes.",
+    "preflight": "Hash and verify old campaign, artifact, source NPZ, native source JSON, K8 result and pinned profile family. Verify exact100 ordered filenames/frame counts, each parquet size/SHA and no overlap with gate200/tail70. Freeze an isolated source snapshot and all hashes before touching true LCFS. Abort on missing/nonfinite contour or malformed map with shot/frame context, without dropping a frame."
+  },
+  "scoring_and_readout": {
+    "native_scorer": "Score the one newly sealed full-normal float32 NPZ through the untouched pinned local_score on exactly the old100 ordered files. Reuse the byte-pinned source native JSON as matched control; it scored the exact same source NPZ and filenames with that scorer. Report S, R2psi, R2qb, raw D_LCFS, Consistency, all seven functional R2, failure fractions, full-normal per-shot max/p95 normal movement and stage times. Submitted q95/betaN arrays must be byte-identical to the old source.",
+    "comparison": "Report full-minus-source native S beside the already measured K8-minus-source +0.000438 on the same100. Compare both to the original +0.002600 K8 investment margin only as a diagnostic yardstick, not a new go gate or retroactive rescue of K8.",
+    "interpretation": "If the full-normal arm also misses +0.002600, this fixed normal/additive/profile family has insufficient investment headroom on these OOF TRAIN shots. If full-normal substantially exceeds K8, high-frequency normal detail matters for this family; any learned 512-target model needs a separate preregistered capacity/cost study. Neither outcome guarantees a public-fold effect or authorizes folds1-4, learner fitting, tail70 scoring or submission."
+  },
+  "resource_estimate_not_measurement": "One full-normal map/profile build should be on the order of the measured K8 build 757.45s on CPU24, plus about 69s native score and source snapshot/preflight. Record actual wall and concurrency; keep process group/log watchable."
+}

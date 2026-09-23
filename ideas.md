@@ -35,7 +35,8 @@ The [fivefold out-of-fold K8 normal-residual pilot](results/oof_normal_k8_pilot_
 tested that route with a genuinely held-out base prediction, but its truth-assisted map missed
 the frozen investment margin. The fixed K8 learner branch stopped before fitting a correction
 model. A separate full-normal, non-Fourier diagnostic would test whether high-frequency normal
-detail explains the K8 pilot's low native effect; it must be frozen before measurement.
+detail explains the K8 pilot's low native effect; its [fixed spec](experiments/oof-full-normal-diagnostic.json)
+is now frozen before measurement. It cannot retroactively pass the K8 learner gate.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the
