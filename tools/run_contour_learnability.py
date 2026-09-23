@@ -12,6 +12,8 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
+import sys
 import time
 from collections import Counter
 from pathlib import Path
@@ -38,7 +40,7 @@ from tools.contour_learnability import (
 )
 from tools.geometry_map_smoke import NumericalInfeasibility, _frozen_modules
 from tools.geometry_source_li_compensation import _compensate_frame
-from tools.historical_compare import _save, score
+from tools.historical_compare import _save
 
 ROOT = Path(__file__).resolve().parent.parent
 REVIEW_SPEC = ROOT / "experiments/contour-displacement-learnability-review.json"
@@ -184,15 +186,23 @@ def _run_context(output: Path) -> tuple[dict[str, Any], dict[str, Any], Path, Pa
 
 
 def _scorer_spec(origin: Path, spec: dict[str, Any]) -> dict[str, Any]:
-    evaluator = spec["evaluation"]
+    # baseline_model imports the vendored scorer before this helper runs. Its five
+    # numerical modules are byte-identical to the old native scorer; insist on that
+    # identity, then use their already imported, frozen campaign paths here.
     keys = {
-        "local_score_py_sha256", "derive_py_sha256", "lcfs_py_sha256",
+        "derive_py_sha256", "lcfs_py_sha256",
         "contour_py_sha256", "o_point_py_sha256", "common_py_sha256",
     }
     old = json.loads((origin / "experiments/geometry-map-additive-contour-v3.json")
                      .read_text())["scoring"]
+    for key in keys:
+        name = key.removesuffix("_py_sha256")
+        path = ROOT / "fusion_scoring" / f"{name}.py"
+        if file_hash(path) != old[key]:
+            raise ValueError(f"{path}: vendored scorer SHA differs from pinned native scorer")
     return {"scorer_provenance": {
-        "root": str((origin / evaluator["frozen_scorer_root"]).resolve()),
+        "root": str(ROOT.resolve()),
+        "local_score_py_sha256": file_hash(ROOT / "local_score.py"),
         **{key: old[key] for key in keys},
     }}
 
@@ -603,7 +613,17 @@ def score_evaluation(output: Path, jobs: int) -> None:
     for label in expected:
         started_one = time.perf_counter()
         metrics = output / f"{label}.metrics.json"
-        score(output / f"{label}.npz", files_json, data, metrics, jobs, scorer_root)
+        command = [
+            sys.executable, "-m", "tools.historical_compare", "score",
+            "--prediction", str(output / f"{label}.npz"),
+            "--files-json", str(files_json),
+            "--data-dir", str(data),
+            "--metrics-json", str(metrics),
+            "--jobs", str(jobs),
+            "--scorer-root", str(scorer_root),
+        ]
+        subprocess.run(command, check=True, cwd=ROOT,
+                       env={**os.environ, "PYTHONPATH": str(ROOT)})
         scored = json.loads(metrics.read_text())
         if scored["files"] != manifest["files"][35:]:
             raise ValueError(f"{metrics}: native scorer filename order differs")
