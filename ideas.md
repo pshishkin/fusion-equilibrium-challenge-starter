@@ -21,8 +21,9 @@ TRAIN-frame rays. A single centroid-origin positive-radius chart is not valid fo
 contour in this sample; no log-radius PCA or learner was fitted.
 The [true-O-point ray gate](experiments/direct-contour-opoint-star-review.json) tests one
 physically distinct origin on the same TRAIN-only probes without changing the failed centroid
-threshold. Its result, and whether the axis can later be predicted from allowed inputs, remain
-unmeasured.
+threshold. Its [result](results/direct_contour_opoint_20260923.json) also failed on genuine
+multi-intersection rays. The single-origin star-shaped family is closed before any axis/log-radius
+learner; no further origin is chosen on these probes.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

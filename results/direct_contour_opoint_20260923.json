@@ -1,0 +1,322 @@
+{
+  "classification": "strict_true_O_point_star_shaped_gate_failed",
+  "collinear_ambiguous_rays": 0,
+  "date_utc": "2026-09-23",
+  "deduplication_diagnosis": "Each of nine first failing rays has three positive radii separated by at least 174 times the frozen shared-vertex deduplication tolerance, with zero deduplicated hits on those rays. These are distinct physical intersections, not endpoint roundoff.",
+  "exactly_one_positive_intersection_rays": 153591,
+  "frames": 300,
+  "frozen_manifest_sha256": "7cbed1476939fc9da5541d995505fa7eca9d9969153a2bf362ade24330465a16",
+  "frozen_per_frame_record_sha256": "16c9825d702701c85bf4fb9fd0eab19124075a23fd5641fa581ba206ae33d5c9",
+  "frozen_run": "runs/direct-contour-opoint-20260923",
+  "frozen_runner_sha256": "abd614c3c708eb97596fce23985e2c98ec628b01bed3c3ed2ae1568a20f0a52c",
+  "frozen_source_file_count": 128,
+  "half_bin_shifted_rays": 153600,
+  "minimum_positive_radius_m": 0.4023323305959465,
+  "multiple_intersection_rays": 9,
+  "name": "true-O-point-origin-star-shapedness-gate",
+  "no_log_radius_PCA_third_train_sample_direct_model_fit_validation_or_reserved_eval70_access": true,
+  "pathological_train_frames": [
+    {
+      "O_point_RZ_m": [
+        1.7446452150339833,
+        -0.02751076894943338
+      ],
+      "O_point_edge_distance_m": 0.47972221347637284,
+      "O_point_inside": true,
+      "O_point_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_2b18735002.parquet",
+      "first_pathology": {
+        "angle_index": 160,
+        "angle_radians": 1.9696313316451632,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.2262106743324828,
+          1.2266744447596152,
+          1.2447567260187273
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 27,
+      "minimum_first_pathology_radii_gap_m": 0.000463770427132415,
+      "minimum_gap_over_tau": 174.59623893540106,
+      "minimum_positive_radius_m": 0.47972405369825794,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "O_point_RZ_m": [
+        1.759514707102712,
+        0.005785592053882633
+      ],
+      "O_point_edge_distance_m": 0.48640334405233215,
+      "O_point_inside": true,
+      "O_point_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_847ea9092f.parquet",
+      "first_pathology": {
+        "angle_index": 353,
+        "angle_radians": 4.338097668140593,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.239340605495084,
+          1.271469461058679,
+          1.28493478169163
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 221,
+      "minimum_first_pathology_radii_gap_m": 0.013465320632950917,
+      "minimum_gap_over_tau": 5069.306279637429,
+      "minimum_positive_radius_m": 0.4864059573839539,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "O_point_RZ_m": [
+        1.7714383506755194,
+        -0.03637688222792586
+      ],
+      "O_point_edge_distance_m": 0.5168638928981787,
+      "O_point_inside": true,
+      "O_point_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_9fc5d2b15a.parquet",
+      "first_pathology": {
+        "angle_index": 159,
+        "angle_radians": 1.9573594853420782,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.2247443376411917,
+          1.2631580387327528,
+          1.2767817892754623
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 184,
+      "minimum_first_pathology_radii_gap_m": 0.013623750542709478,
+      "minimum_gap_over_tau": 5128.950588028879,
+      "minimum_positive_radius_m": 0.5168648109594774,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "O_point_RZ_m": [
+        1.7248453710023623,
+        -0.037633019089282835
+      ],
+      "O_point_edge_distance_m": 0.5549800376388838,
+      "O_point_inside": true,
+      "O_point_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_816d379f9a.parquet",
+      "first_pathology": {
+        "angle_index": 352,
+        "angle_radians": 4.325825821837508,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.2505782325633357,
+          1.2889204540407109,
+          1.2938535932974302
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 308,
+      "minimum_first_pathology_radii_gap_m": 0.004933139256719343,
+      "minimum_gap_over_tau": 1857.1851717527863,
+      "minimum_positive_radius_m": 0.554988015741871,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "O_point_RZ_m": [
+        1.756461530200727,
+        0.08133362793801117
+      ],
+      "O_point_edge_distance_m": 0.4928430566381136,
+      "O_point_inside": true,
+      "O_point_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_d415ca017c.parquet",
+      "first_pathology": {
+        "angle_index": 360,
+        "angle_radians": 4.424000592262189,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.232913890432969,
+          1.2408427594512692,
+          1.2687887769763935
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 91,
+      "minimum_first_pathology_radii_gap_m": 0.007928869018300144,
+      "minimum_gap_over_tau": 2984.9913418722003,
+      "minimum_positive_radius_m": 0.49284593056947895,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "O_point_RZ_m": [
+        1.7456657099325517,
+        0.0834373495815519
+      ],
+      "O_point_edge_distance_m": 0.4999951322331968,
+      "O_point_inside": true,
+      "O_point_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_d415ca017c.parquet",
+      "first_pathology": {
+        "angle_index": 361,
+        "angle_radians": 4.4362724385652745,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.225374028806184,
+          1.2741243563071105,
+          1.2766575724086886
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 164,
+      "minimum_first_pathology_radii_gap_m": 0.002533216101578084,
+      "minimum_gap_over_tau": 953.6830678939571,
+      "minimum_positive_radius_m": 0.4999969350446271,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "O_point_RZ_m": [
+        1.6254666184145086,
+        0.08676707132122342
+      ],
+      "O_point_edge_distance_m": 0.5089585973057732,
+      "O_point_inside": true,
+      "O_point_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_2d4e942712.parquet",
+      "first_pathology": {
+        "angle_index": 342,
+        "angle_radians": 4.2031073588066565,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.168382757370784,
+          1.2417769520761441,
+          1.2468310457537324
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 25,
+      "minimum_first_pathology_radii_gap_m": 0.005054093677588245,
+      "minimum_gap_over_tau": 1902.7210354707422,
+      "minimum_positive_radius_m": 0.5089593708335678,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "O_point_RZ_m": [
+        1.7345305347887672,
+        0.08731073996078555
+      ],
+      "O_point_edge_distance_m": 0.506547827960791,
+      "O_point_inside": true,
+      "O_point_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_3a8449a2ae.parquet",
+      "first_pathology": {
+        "angle_index": 360,
+        "angle_radians": 4.424000592262189,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.2341492145159567,
+          1.2717290734867386,
+          1.2824004514335838
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 163,
+      "minimum_first_pathology_radii_gap_m": 0.01067137794684525,
+      "minimum_gap_over_tau": 4017.4671448927684,
+      "minimum_positive_radius_m": 0.5065502372226233,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    },
+    {
+      "O_point_RZ_m": [
+        1.7091476173006677,
+        -0.030650779820886882
+      ],
+      "O_point_edge_distance_m": 0.6036873820444973,
+      "O_point_inside": true,
+      "O_point_strictly_inside": true,
+      "collinear_ambiguous_angles": 0,
+      "exactly_one_positive_intersection_angles": 511,
+      "file": "d3d_shot_ac9573e5c4.parquet",
+      "first_pathology": {
+        "angle_index": 352,
+        "angle_radians": 4.325825821837508,
+        "collinear_segments": 0,
+        "positive_hit_radii_m": [
+          1.1537315865249194,
+          1.1758864341798847,
+          1.1788590942146984
+        ],
+        "unique_positive_hits": 3
+      },
+      "frame": 159,
+      "minimum_first_pathology_radii_gap_m": 0.002972660034813668,
+      "minimum_gap_over_tau": 1119.1210809219112,
+      "minimum_positive_radius_m": 0.603696485682597,
+      "multiple_intersection_angles": 1,
+      "physical_tau_m": 2.656245231628418e-06,
+      "shared_vertex_duplicate_hits_deduplicated": 0,
+      "zero_intersection_angles": 0
+    }
+  ],
+  "preregistration": "experiments/direct-contour-opoint-star-review.json",
+  "preregistration_sha256": "31509dbac39d6f8958841b29135fc8606fdeb9035920f01cdc412680852fc31d",
+  "prior_train_sample_manifest_sha256": "67f8e51cea30938e8cf95458c5dc2656a997763087742029a6e27957c1cfe812",
+  "scorer_source_sha256": {
+    "common_py_sha256": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+    "contour_py_sha256": "20bebb7546cd665c1993bbb47c653f697f39c31414175126e551756f05001efc",
+    "derive_py_sha256": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+    "diii_d_envelope_npz_sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1",
+    "lcfs_py_sha256": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+    "local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "o_point_py_sha256": "531f8dc24f54e7cd1516fa365fd412e4421d1c086d170682c00ba964304315e4"
+  },
+  "shots": 100,
+  "source_commit": "b57e68b",
+  "strictly_inside_true_O_points": 300,
+  "timing_seconds": {
+    "prepare": 1.0012305270065553,
+    "probe": 4.403358758019749,
+    "sum": 5.404589285026304
+  },
+  "train_sample_ordered_names_sha256": "ed1a198f536d3b48c13422a1c86b22e6d4e04cee45890304ae263ab599e606d7",
+  "verdict": "The scorer-native true O-point also fails the strict single-origin star-shapedness gate. Close this one-chart star-shaped family without retuning angle/tolerance/origin on the same probes. No native S or public effect was measured.",
+  "zero_intersection_rays": 0
+}

@@ -215,8 +215,13 @@ A separately [frozen O-point-origin gate](experiments/direct-contour-opoint-star
 uses the scorer-native magnetic axis of each true TRAIN map as its one alternative polar origin,
 with unchanged rays and strict all-or-none threshold. This is a target construction only: a
 future direct model would have to predict that axis from permitted inputs, and the existing
-best11 predicted axis is excluded from fitting to avoid in-sample leakage. No O-point result or
-log-radius basis fit is yet claimed.
+best11 predicted axis is excluded from fitting to avoid in-sample leakage. The
+[train-only result](results/direct_contour_opoint_20260923.json) found all **300** true O-points
+strictly inside but **9 of 153,600** shifted rays on nine frames crossed the LCFS three times;
+the other 153,591 had one intersection, with none missing or collinear. Those radii were at least
+**174×** farther apart than the fixed vertex-deduplication tolerance. The strict gate failed,
+closing this simple one-origin star-shaped family before log-radius PCA, a third TRAIN sample,
+model fitting or any use of the reserved tail.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

@@ -3,6 +3,18 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — true magnetic O-point as fixed polar LCFS origin:**
+On the same **100 compact TRAIN shots/300 fixed frames**, the scorer-native O-point of each true
+ψ map replaced the polygon centroid; the 512 shifted ray angles and tolerances were unchanged
+and frozen before measurement. All **300** O-points lay strictly inside, yet **9 of 153,600**
+rays on nine frames had three distinct positive LCFS intersections. The other **153,591** had
+exactly one, with no missing or collinear rays. The narrowest distinct radius gap was **174×**
+the predeclared shared-vertex tolerance, so this is genuine local concavity, not an endpoint
+artifact. Preparation took **1.00 s** and the CPU probe **4.40 s**. Verdict: the one-O-point
+positive-radius chart fails its strict gate, closing this simple star-shaped branch before any
+log-radius PCA, third TRAIN sample, learner fit, evaluation-tail score or public submission.
+[Frozen sample, scorer identities and nine pathological frames](results/direct_contour_opoint_20260923.json).
+
 **2026-09-23 UTC — fixed centroid-ray star-shapedness of scorer-native LCFS:**
 The same **100 compact TRAIN shots/300 fixed frames** supplied true scorer LCFS polygons; the
 half-bin-shifted 512-ray construction froze its centroid, intersection and shared-vertex rules

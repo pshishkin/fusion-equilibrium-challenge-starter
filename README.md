@@ -117,8 +117,10 @@ the true boundary once, but four train-frame rays crossed it three times; a sing
 chart around the true contour centroid therefore failed its strict gate. No log-radius PCA,
 correction model, score-tail access or public prediction followed.
 A separate [train-only O-point-origin gate](experiments/direct-contour-opoint-star-review.json)
-is frozen to test one physically defined alternative ray origin. Its O-point comes from true ψ
-only as a supervised geometry target; it has no model fit or reserved-tail access.
+has now [completed](results/direct_contour_opoint_20260923.json). Some true boundaries also
+intersect rays from the magnetic O-point more than once, so this single-origin positive-radius
+chart stopped before a log-radius PCA or direct model fit. The O-point came from true ψ only as
+a TRAIN-target geometry diagnostic; the reserved tail was untouched.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly
