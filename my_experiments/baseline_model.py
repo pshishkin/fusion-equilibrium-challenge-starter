@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import json
 import os
 import sys
 import time
@@ -1100,7 +1101,8 @@ def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
 def train(share: str, val_share: str, local_data_dir: Path, config: str,
           params_path: Path = DEFAULT_PARAMS_PATH, jobs: int = 0, salt: int | None = None,
           only: list[str] | None = None, sets: list[str] | None = None,
-          fit_mode: str = "validation") -> Artifact:
+          fit_mode: str = "validation", explicit_files_manifest: Path | None = None,
+          explicit_fold: int | None = None) -> Artifact:
     """Fit every enabled model of params.yaml on the head of the split, and save them together.
 
     Both shares are `"shots"` or `"shots/frames"` (see parse_share). `val_share` is the window
@@ -1115,6 +1117,10 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     if fit_mode not in ("validation", "fixed_steps"):
         raise ValueError(f"fit_mode is {fit_mode!r}; expected 'validation' or 'fixed_steps'")
     fixed_steps = fit_mode == "fixed_steps"
+    if (explicit_files_manifest is None) != (explicit_fold is None):
+        raise ValueError("explicit_files_manifest and explicit_fold must be supplied together")
+    if explicit_files_manifest is not None and not fixed_steps:
+        raise ValueError(f"{explicit_files_manifest}: explicit OOF files require fixed_steps")
     from my_experiments.data_check import check_dataset
     params: Params = load_params(params_path, salt, only, sets)
     if params.position_metric is not None:
@@ -1151,16 +1157,51 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         print(f"Holdout: {len(holdout)} shots ({params.holdout_share:.1%}) reserved from the "
               f"SALT-0 order and excluded from this fit, so models fitted under different salts "
               f"can be scored on the same untouched shots")
-    files, val_files = split_train_val(all_files, shot_share, val_shot_share,
-                                       allow_empty_validation=fixed_steps)
+    oof_files: list[Path] = []
+    if explicit_files_manifest is None:
+        files, val_files = split_train_val(all_files, shot_share, val_shot_share,
+                                           allow_empty_validation=fixed_steps)
+    else:
+        from my_experiments.oof_split import select_fit_files
+        from toolkit.records import file_hash
+
+        assert explicit_fold is not None
+        expected_manifest_sha = os.environ.get("FUSION_OOF_MANIFEST_SHA256")
+        actual_manifest_sha = file_hash(explicit_files_manifest)
+        if expected_manifest_sha != actual_manifest_sha:
+            raise ValueError(f"{explicit_files_manifest}: SHA256 {actual_manifest_sha}, "
+                             f"expected frozen {expected_manifest_sha!r}")
+        if (params.split_salt != 0 or params.holdout_share != 0.01
+                or shot_share != 0.80 or frame_share != 1.0
+                or val_shot_share != 0):
+            raise ValueError(f"{explicit_files_manifest}: explicit OOF split requires "
+                             "salt=0, holdout_share=0.01, train=0.80/1.0 and val=0/1.0; "
+                             f"got salt={params.split_salt}, holdout={params.holdout_share}, "
+                             f"train={share}, val={val_share}")
+        if set(params.models) != {"mlp"}:
+            raise ValueError(f"{explicit_files_manifest}: enabled models "
+                             f"{sorted(params.models)}, expected ['mlp']")
+        manifest = json.loads(explicit_files_manifest.read_text())
+        files, oof_files, reserved = select_fit_files(
+            explicit_files_manifest, ordered, Path(manifest["reference_artifact"]),
+            Path(manifest["spec_path"]), params_path, int(explicit_fold))
+        if [path.name for path in reserved] != [path.name for path in holdout]:
+            raise ValueError(f"{explicit_files_manifest}: reserved tail files "
+                             f"{len(reserved)}, expected exact holdout {len(holdout)}")
+        val_files = []
     if not files:
         raise ValueError(f"training split has {len(files)} files, expected at least 1")
     if not fixed_steps and not val_files:
         raise ValueError(f"validation split has {len(val_files)} files, expected at least 1")
     if fixed_steps:
-        print(f"Fixed-step refit on {len(files)} shots ({shot_share:.1%} of {len(all_files)}, "
-              f"{frame_share:.0%} of their frames), with no validation block, head of the "
-              f"sha1-ordered list")
+        if explicit_files_manifest is None:
+            print(f"Fixed-step refit on {len(files)} shots ({shot_share:.1%} of "
+                  f"{len(all_files)}, {frame_share:.0%} of their frames), with no "
+                  "validation block, head of the sha1-ordered list")
+        else:
+            print(f"Fixed-step OOF fold {explicit_fold}: fitting {len(files)} shots, "
+                  f"excluding {len(oof_files)} own OOF shots, {len(holdout)} reserved "
+                  "tail shots and the 200-shot native gate; zero validation shots")
     else:
         print(f"Training on {len(files)} shots ({shot_share:.1%} of {len(all_files)}, "
               f"{frame_share:.0%} of their frames), validating on {len(val_files)} "
@@ -1539,6 +1580,12 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         "holdout_files": [p.name for p in holdout],
         "holdout_share": params.holdout_share,
     }
+    if explicit_files_manifest is not None:
+        artifact["split_mode"] = "explicit_fivefold_oof_fixed_steps"
+        artifact["oof_fold"] = explicit_fold
+        artifact["oof_files"] = [path.name for path in oof_files]
+        artifact["oof_manifest_sha256"] = actual_manifest_sha
+        artifact["train_share"] = len(files) / (len(files) + len(oof_files))
     if position_plan is not None:
         artifact["position_metric"] = position_plan.diagnostics
     out.parent.mkdir(parents=True, exist_ok=True)

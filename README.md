@@ -131,8 +131,13 @@ predeclared score gate despite valid predictions. The reserved evaluation tail w
 this model, and no public prediction was changed. This validation window was used for model
 selection, so the result is an investment decision rather than independent confirmation.
 A separate [fivefold out-of-fold normal-residual proposal](experiments/oof-normal-contour-mlp-review.json)
-is under protocol review; it has no fitted base or correction model and leaves the reserved tail
-for evaluation only.
+has a [frozen-list builder](tools/oof_normal_pilot.py), a guarded
+[fixed-step fold selector](my_experiments/oof_split.py) and an
+[allowed-shot auxiliary-cache preparer](tools/oof_aux_cache.py). These are implementation
+preparation, not a fitted model or a score. The original evaluation tail and the separate
+internal gate are excluded from every proposed base fit. Once the code review passes, the
+campaign can be frozen with `python -m tools.oof_normal_pilot prepare --run runs/oof-normal-pilot --jobs 4`;
+its recorded fit command is not executed by preparation.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

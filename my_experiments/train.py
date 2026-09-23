@@ -52,6 +52,11 @@ def main() -> int:
     ap.add_argument("--fit-mode", choices=("validation", "fixed_steps"), default="validation",
                     help="validation uses the adjacent block for checkpoint selection; fixed_steps "
                          "requires --val-share 0/1.0 and keeps the last step")
+    ap.add_argument("--explicit-files-manifest", type=Path,
+                    help="frozen fivefold OOF filename manifest; requires fixed_steps, "
+                         "--explicit-fold and FUSION_OOF_MANIFEST_SHA256")
+    ap.add_argument("--explicit-fold", type=int,
+                    help="zero-based fold in --explicit-files-manifest, 0..4")
     ap.add_argument("--params", type=Path, default=DEFAULT_PARAMS_PATH,
                     help=f"model zoo and its hyper-parameters (default {DEFAULT_PARAMS_PATH.name})")
     ap.add_argument("--jobs", type=int, default=0,
@@ -77,7 +82,8 @@ def main() -> int:
     args = ap.parse_args()
 
     train(args.share, args.val_share, args.local_data_dir, args.config, args.params,
-          args.jobs, args.salt, args.only, args.sets, args.fit_mode)
+          args.jobs, args.salt, args.only, args.sets, args.fit_mode,
+          args.explicit_files_manifest, args.explicit_fold)
     return 0
 
 

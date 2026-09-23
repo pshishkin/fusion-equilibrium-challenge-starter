@@ -1,0 +1,30 @@
+{
+  "classification": "focused_ordinary_training_path_cpu_bit_parity_before_oof_fit",
+  "date_utc": "2026-09-23",
+  "purpose": "Verify that adding the explicit OOF filename branch leaves the ordinary validation training path bit-identical when no explicit manifest is supplied.",
+  "reference_source": {
+    "git_head_before_oof_code": "710c502",
+    "my_experiments/baseline_model.py_sha256": "95cc2ea754a8326d4d40588a7301b3e87df4d1e79e39eacea1df698d1551f14a",
+    "my_experiments/train.py": "git show 710c502:my_experiments/train.py"
+  },
+  "new_source": {
+    "my_experiments/baseline_model.py_sha256": "a922f817eedb1cb2774e76b8675da5f94a1777b3831c8b6bce156e1f36275d24",
+    "my_experiments/train.py": "working-tree explicit OOF CLI branch"
+  },
+  "method": "Two isolated source snapshots were copied from the same working tree; the reference snapshot substituted only the two pre-OOF training files from Git 710c502. Both ran the same five-step CPU ordinary-validation fit on the same salt-0 70 TRAIN and 70 validation shots, with the same compact effective YAML reduced to one MLP, CPU, hidden sizes [32,32], head hidden 16, batch 256, five steps, evaluation each step, no early stopping, jobs4. They shared only the verified cache producer/dependency identity. A target-stripped input row from the first validation shot was predicted through each independently loaded artifact.",
+  "observed": {
+    "train_shots": 70,
+    "validation_shots": 70,
+    "compared_input_shot": "d3d_shot_dfdea15fc9.parquet",
+    "artifact_sha256_reference": "9c1ba7e5ea0abe2a14573bf1a062d9a245b4310c0e14b9fa5f05bf92660dce7a",
+    "artifact_sha256_new": "9c1ba7e5ea0abe2a14573bf1a062d9a245b4310c0e14b9fa5f05bf92660dce7a",
+    "prediction_bytes_identical": {
+      "psirz": true,
+      "q95": true,
+      "betaN": true
+    },
+    "wall_seconds_reference": 81.04339515700121,
+    "wall_seconds_new": 81.01846926001599
+  },
+  "limit": "This is a focused default-path regression on a small CPU fit, not a claim that CPU and production CUDA fits have identical weights or that an OOF pilot has run."
+}
