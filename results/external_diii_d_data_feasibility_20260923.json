@@ -1,0 +1,43 @@
+{
+  "date_utc": "2026-09-23",
+  "name": "primary-source-external-DIII-D-data-feasibility-scan",
+  "classification": "no_verified_ready_disjoint_labeled_corpus",
+  "method": "Read-only primary-source web review. No archive data, model weights, large files, competition private labels or credentials were downloaded or accessed.",
+  "sources": [
+    {
+      "url": "https://fusion-equilibrium-challenge.sophelio.io/faq/",
+      "observation": "The organizers explicitly permit public tokamak archives and OMFIT-produced equilibrium tables if disclosed in the methods report. Permission to use external public data does not establish its availability or disjointness."
+    },
+    {
+      "url": "https://fusion-equilibrium-challenge.sophelio.io/data/",
+      "observation": "The competition describes 7,041 labeled DIII-D train shots and 874 public inputs, but says machine shot numbers are not part of the released dataset; its blind private fold is withheld. Exact identity-based overlap checking against an outside shot-number list cannot be done from the public release alone."
+    },
+    {
+      "url": "https://meetings-archive.aps.org/dpp/2022/pp11/58/",
+      "observation": "The EFIT-AI project described an approximately 2,500-discharge DIII-D 2019 database with magnetics-only, magnetics-plus-MSE, and some kinetic equilibrium reconstructions. This establishes potentially relevant labeled equilibria, not an accessible challenge-matching download."
+    },
+    {
+      "url": "https://efit-ai.gitlab.io/efitai_database/database.html",
+      "observation": "Official utility documentation demonstrates validating and extracting equilibria from local HDF5 paths. It does not provide a verified public corpus manifest, direct bulk-download endpoint, 21 allowed actuator-current and Thomson-field mapping, or data license for those HDF5 files."
+    },
+    {
+      "url": "https://gitlab.com/efit-ai/efitai_database",
+      "observation": "The official GitLab project identifies itself as utilities for database creation, validation, manipulation, extraction and analysis; it is not itself verified to host the equilibrium corpus."
+    },
+    {
+      "url": "https://d3dfusion.org/become-a-user/",
+      "observation": "DIII-D describes research-data access as open but controlled through institutional user agreements and program accounts. That route is not an immediate public-download path."
+    },
+    {
+      "url": "https://openfusiontoolkit.github.io/OpenFUSIONToolkit/docs/v26.6/doc_tMaker_DIIID_ex2.html",
+      "observation": "The Open FUSION Toolkit DIII-D page is a solver example based on a gEQDSK equilibrium; it does not document a shot-level corpus with matching allowed currents, Thomson inputs and EFIT ψ labels."
+    }
+  ],
+  "missing_before_use": [
+    "An official accessible shot/file manifest and clear data license for a genuinely external labeled DIII-D corpus.",
+    "A demonstrated per-shot schema with the challenge-permitted 21 current signals, Thomson profiles, EFIT time grid and ψ targets in compatible units and time bases.",
+    "An auditable disjointness proof against all competition train, public and private shots; hidden machine identifiers make public shot-number comparison insufficient. An organizer-provided crosswalk or equivalent authoritative overlap check would be needed."
+  ],
+  "cheap_future_feasibility_gate": "Inspect an official manifest/schema/license and a few metadata-only sample records; stop if any required input/label or disjointness proof is unavailable. Do not bulk-download or fit first.",
+  "verdict": "No external source found in this bounded primary-source review can presently be treated as a clean disjoint supervised training set. No public-score improvement is inferred."
+}

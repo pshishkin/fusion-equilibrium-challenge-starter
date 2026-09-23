@@ -183,6 +183,18 @@ no extra rank, threshold or repair was selected on those shots. This closes the 
 low-dimensional absolute-contour branch before any full target cache or learner fit. The scorer
 tail 70 and validation 1,338 were not read. The exact disjoint samples, failing frame and timing
 are in the result record.
+On the one non-simple held TRAIN frame, the unprojected PCA64 contour crossed itself at
+**R 1.371973 m, Z −1.060385 m**. The fitted mean contour was simple, but the first fixed
+mean-line point that removed the crossing, **t=0.875**, raised Hausdorff error from
+**0.203 to 0.556 grid cells**, above the half-cell gate. Later line points were worse.
+This [single-frame topology diagnostic](results/direct_contour_pca_topology_20260923.json)
+closes that constrained projection without reading a third sample or changing thresholds.
+
+A [read-only official-source external-data audit](results/external_diii_d_data_feasibility_20260923.json)
+found that external archives are permitted with disclosure, and EFIT-AI describes potentially
+relevant DIII-D equilibria, but did not verify a downloadable corpus with the matching permitted
+currents/Thomson/ψ schema, a clear data license and a shot-disjointness proof against the
+competition's hidden identifiers. Nothing external was downloaded or fitted; no gain is claimed.
 
 The submission builder's former float16 flux cast has a measured deterministic score cost on
 this same 70-shot tail. The local/stream writer and blend/cache path now preserve float32 and

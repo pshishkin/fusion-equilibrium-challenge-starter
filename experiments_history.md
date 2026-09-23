@@ -3,6 +3,24 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — can a fixed mean-line projection rescue one failed PCA contour?**
+Read-only on the sole non-simple held TRAIN frame, PCA64 had one crossing between polygon
+segments 349 and 357 at **(R,Z)=(1.371973,−1.060385) m**. Its fitted PCA mean was simple and
+in-grid. Along the fixed line from reconstruction toward that mean, the first simple polygon
+at **t=0.875** raised scorer-native physical Hausdorff error **0.005393 → 0.014768 m**
+(**0.203 → 0.556 grid cells**), beyond the earlier half-cell gate; every later dyadic point was
+worse. Verdict: a topology repair of this constrained form loses too much geometry. No third
+TRAIN sample, model fit, evaluation-tail score or gate relaxation. The result says nothing about
+all topology-preserving methods. [Frozen basis and nine-point diagnosis](results/direct_contour_pca_topology_20260923.json).
+
+**2026-09-23 UTC — official-source external DIII-D data feasibility, no model run:**
+The challenge permits public external tokamak archives with disclosure, and EFIT-AI describes
+2019 DIII-D reconstructions. The official material reviewed did not yield a verified public
+shot-level download with the challenge's allowed currents, Thomson profiles and ψ labels, a
+data license, and proof of disjointness from anonymous public/private competition shots.
+Verdict: no external supervised corpus can be treated as ready for this fork on current evidence;
+no large files or labels were downloaded. [Primary links and missing gates](results/external_diii_d_data_feasibility_20260923.json).
+
 **2026-09-23 UTC — disjoint TRAIN-shot physical-contour PCA gate:**
 One full-SVD PCA basis was fit to 300 fixed scorer-native LCFS contours from the first 100
 compact TRAIN shots. A separate next 100 TRAIN shots/300 fixed frames measured two predeclared

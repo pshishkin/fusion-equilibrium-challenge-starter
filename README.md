@@ -102,6 +102,12 @@ has now [completed](results/direct_contour_pca_20260923.json). It recovered the 
 contours more accurately than smooth Fourier, but neither fixed rank met both the boundary and
 topology gates. This low-dimensional branch stopped before a correction-learner fit or use of the
 reserved evaluation tail.
+A [single TRAIN-frame topology diagnosis](results/direct_contour_pca_topology_20260923.json)
+found that moving the failed PCA contour toward its valid mean removed the crossing only after
+the boundary error exceeded the fixed gate; it did not reopen this branch.
+An [official-source external-data review](results/external_diii_d_data_feasibility_20260923.json)
+found no verified, downloadable labeled DIII-D corpus with matching inputs and a provable
+non-overlap with all competition folds. No outside data were downloaded or fitted.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

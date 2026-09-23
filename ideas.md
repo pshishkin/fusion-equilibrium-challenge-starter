@@ -12,6 +12,9 @@ that high L² retention does not preserve the localized separatrix detail measur
 The separately frozen [physical-PCA gate](results/direct_contour_pca_20260923.json) did capture
 that detail at its larger fixed rank, but one held-TRAIN contour self-intersected; the combined
 geometry/topology gate failed. Do not choose another rank or weaken topology on these same shots.
+The [fixed mean-line repair check](results/direct_contour_pca_topology_20260923.json) removed the
+one crossing only after worsening the true contour distance past the earlier gate. No third sample
+or new direct-contour fit is planned from these probes.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

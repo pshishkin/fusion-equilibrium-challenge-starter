@@ -1,0 +1,50 @@
+{
+  "date_utc": "2026-09-23",
+  "name": "train-only-PCA64-single-crossing-topology-diagnosis",
+  "classification": "fixed_mean-line_topology_projection_fails_distance_gate",
+  "parent_result": "results/direct_contour_pca_20260923.json",
+  "parent_result_sha256": "e196f27a31b7350e286636c3ffd89705eb34721837e3156a8cebf9cb7e348957",
+  "frozen_PCA_basis": "runs/direct-contour-pca-20260923/contour_pca64.joblib",
+  "frozen_PCA_basis_sha256": "ced3b85b01c88ff056edcb492c9e3e282b14e9736843a2a6ff32c7b621181cf1",
+  "train_shot": "d3d_shot_32a1349aa6.parquet",
+  "train_shot_sha256": "5986c457f3f091653aa6593b78941cc0e96e164f601f1f98a4013fc8d1cceeec",
+  "train_frame_index": 131,
+  "full_shot_frames": 263,
+  "source_of_truth_contour": "Frozen scorer-native LCFS extraction from efit_psirz of this compact TRAIN shot only; no validation or reserved evaluation-tail label was read.",
+  "construction": "Let C64 be the fixed 64-component PCA reconstruction and Cmean its fitted physical 512-point mean contour. Diagnose only C(t)=Cmean+t*(C64-Cmean) for frozen dyadic t values [1,0.875,0.75,0.625,0.5,0.375,0.25,0.125,0]. No basis refit, rank search, native S score or candidate selection occurred.",
+  "minimum_grid_spacing_m": 0.02656245231628418,
+  "half_cell_gate_m": 0.01328122615814209,
+  "mean_contour": {
+    "simple_polygon": true,
+    "within_physical_grid": true,
+    "symmetric_hausdorff_to_true_m": 0.11674232289830104,
+    "crossing_count": 0
+  },
+  "original_PCA64_reconstruction": {
+    "simple_polygon": false,
+    "within_physical_grid": true,
+    "symmetric_hausdorff_to_true_m": 0.005392820089010592,
+    "crossing_count": 1,
+    "crossing_segments_zero_based": [349, 357],
+    "crossing_physical_RZ_m": [1.3719733836028438, -1.0603854348994388],
+    "fraction_along_each_segment": [0.5609667968261421, 0.38159327112496366]
+  },
+  "fixed_line_diagnostic": [
+    {"t": 1.0, "simple_polygon": false, "within_physical_grid": true, "symmetric_hausdorff_to_true_m": 0.005392820089010592, "hausdorff_grid_cells": 0.203024},
+    {"t": 0.875, "simple_polygon": true, "within_physical_grid": true, "symmetric_hausdorff_to_true_m": 0.014767864, "hausdorff_grid_cells": 0.555968},
+    {"t": 0.75, "simple_polygon": true, "within_physical_grid": true, "symmetric_hausdorff_to_true_m": 0.028919406, "hausdorff_grid_cells": 1.088733},
+    {"t": 0.625, "simple_polygon": true, "within_physical_grid": true, "symmetric_hausdorff_to_true_m": 0.043284073, "hausdorff_grid_cells": 1.629521},
+    {"t": 0.5, "simple_polygon": true, "within_physical_grid": true, "symmetric_hausdorff_to_true_m": 0.057593455, "hausdorff_grid_cells": 2.168228},
+    {"t": 0.375, "simple_polygon": true, "within_physical_grid": true, "symmetric_hausdorff_to_true_m": 0.071854249, "hausdorff_grid_cells": 2.705106},
+    {"t": 0.25, "simple_polygon": true, "within_physical_grid": true, "symmetric_hausdorff_to_true_m": 0.086100147, "hausdorff_grid_cells": 3.241423},
+    {"t": 0.125, "simple_polygon": true, "within_physical_grid": true, "symmetric_hausdorff_to_true_m": 0.100479481, "hausdorff_grid_cells": 3.782764},
+    {"t": 0.0, "simple_polygon": true, "within_physical_grid": true, "symmetric_hausdorff_to_true_m": 0.11674232289830104, "hausdorff_grid_cells": 4.395013}
+  ],
+  "first_simple_line_point": {
+    "t": 0.875,
+    "hausdorff_m": 0.014767864,
+    "excess_over_half_cell_gate_m": 0.00148663784185791
+  },
+  "diagnostic_wall_seconds_observed_exec": 1.159528828,
+  "verdict": "A line toward the valid PCA mean can remove this one self-crossing, but its first fixed simple point already exceeds the predeclared half-cell distance gate. Do not open a third 100-shot sample, fit a direct contour learner, loosen the topology/distance gate or tune PCA rank on these data. This is one constrained projection negative, not a theorem that all topology-preserving contour models fail."
+}
