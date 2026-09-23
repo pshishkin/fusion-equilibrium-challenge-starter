@@ -44,11 +44,12 @@ hashes, selected-frame counts, wall times and stop decision are in
 `results/direct_full_contour_stage2_20260923.json`; the distinct truth-assisted mechanism result
 is in `results/direct_full_contour_stage0_20260923.json`. The validation200 window is selection-only
 and was seen by both compact-source and contour-model early stopping.
-A separate fivefold out-of-fold normal-residual [review protocol](experiments/oof-normal-contour-mlp-review.json)
-now has guarded fold selection, source-freeze/pilot and allowed-shot cache preparation code. It
-still has no fitted base or correction model and no measured score. The last 200 original
-validation shots are excluded from every proposed base fit as the internal native gate; the
-original tail70 remains evaluation-only. Full code review is required before the first GPU fit.
+A separate fivefold out-of-fold normal-residual [protocol](experiments/oof-normal-contour-mlp-review.json)
+was frozen and stopped after its first fold. K8 captured most normal-displacement energy, but its
+truth-assisted full-map [native pilot](results/oof_normal_k8_pilot_20260923.json) missed the
+predeclared score margin; the remaining four base fits and correction learner were not run.
+The last 200 original validation shots were excluded from the base fit as the internal native
+gate, and the original tail70 remained evaluation-only. No public artifact changed.
 A focused five-step CPU comparison of the ordinary path before and after the explicit-file change
 produced byte-identical artifacts and predictions; see
 `results/oof_default_path_parity_20260923.json`. This checks compatibility, not the proposed OOF

@@ -199,7 +199,7 @@ learner may use the remaining 6,971 shots with a declared train/validation split
 residual against a base model, its supervised residuals need genuinely out-of-fold base predictions;
 alternatively, learn an absolute truth target from permitted inputs alone and use the base
 prediction only after learner inference.
-For the proposed fivefold residual route, the original last 200 validation shots are an internal
+For a fivefold residual route, the original last 200 validation shots are an internal
 gate and must be absent from every base fold's train and validation lists as well as the correction
 learner's gradient/checkpoint lists. Explicit base fit lists are accepted only in fixed-step mode
 with zero validation, a frozen manifest hash and exact filename proofs against the compact

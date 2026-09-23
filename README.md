@@ -133,11 +133,12 @@ selection, so the result is an investment decision rather than independent confi
 A separate [fivefold out-of-fold normal-residual proposal](experiments/oof-normal-contour-mlp-review.json)
 has a [frozen-list builder](tools/oof_normal_pilot.py), a guarded
 [fixed-step fold selector](my_experiments/oof_split.py) and an
-[allowed-shot auxiliary-cache preparer](tools/oof_aux_cache.py). These are implementation
-preparation, not a fitted model or a score. The original evaluation tail and the separate
-internal gate are excluded from every proposed base fit. Once the code review passes, the
-campaign can be frozen with `python -m tools.oof_normal_pilot prepare --run runs/oof-normal-pilot --jobs 4`;
-its recorded fit command is not executed by preparation.
+[allowed-shot auxiliary-cache preparer](tools/oof_aux_cache.py). The first
+[out-of-fold K8 pilot](results/oof_normal_k8_pilot_20260923.json) failed its fixed
+truth-assisted native-score margin despite an accurate compressed normal displacement. The
+remaining four base fits and correction learner were not run; the original evaluation tail and
+internal gate stayed out of all training and this pilot. The pilot code remains reproducible from
+its frozen campaign, but no deployable OOF correction was selected.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

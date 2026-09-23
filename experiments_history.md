@@ -3,6 +3,25 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — fivefold OOF compact-MLP K8 normal-contour pilot, stopped after fold 0:**
+One frozen fold-0 MLP trained for exactly **33,000** steps on **5,416** allowed shots and
+**1,200,575** full frames, excluding its own **1,355** OOF shots, the separate 200-shot native
+gate and the original 70-shot evaluation tail. Its first **100** original-TRAIN OOF shots
+(**21,667** full frames) supplied a truth-assisted K8 normal-displacement pilot. K8 retained
+**0.957341** of pooled normal energy, with median low-pass residual **0.000889 m** against a
+**0.026562 m** minimum grid spacing, so its representation gate passed. The unchanged native
+source scored **S 0.991298**; the K8 truth-assisted additive map with input-only source-li
+compensation scored **0.991736**, just **+0.000438** against a frozen **+0.002600** investment
+margin. D_LCFS improved **0.013430 → 0.008043**, while Consistency fell
+**0.969871 → 0.969525**; li R² fell **0.938689 → 0.884688**. Submitted q95/βN arrays were
+byte-identical and the native scorer reported zero LCFS or derived failures. Building/verifying
+the allowed-only 6,771-shot auxiliary cache took **1,065.49 s**, the base fit **214.7 s**
+(optimizer **77.6 s**), map/profile construction **757.45 s**, and the two native scorer passes
+**69.00/69.25 s**. Verdict: this fixed K8 branch failed before the other four base fits, the
+correction learner, original tail70 or any public artifact. The pilot is on TRAIN shots with a
+base prediction that did not train on them; it does not prove all contour learners lack headroom.
+[Frozen files, hashes, full native fields and timing](results/oof_normal_k8_pilot_20260923.json).
+
 **2026-09-23 UTC — input-only full-coordinate LCFS MLP, one frozen fit:**
 The predeclared Stage-0 truth-assisted gate passed, so one 209→512×3→1024 MLP trained on
 **5,633** compact TRAIN shots (**249,737** thinned frames) with **1,338** validation shots

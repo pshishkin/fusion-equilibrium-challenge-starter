@@ -31,10 +31,11 @@ passed, but the one [input-only Stage-2 fit and native validation](results/direc
 failed its score gate. This fixed full-coordinate target and MLP recipe is closed; the reserved
 evaluation tail was not opened. A different learner needs its own leakage-safe train/validation
 protocol and must not infer a gain from the earlier truth-assisted gate.
-The [fivefold out-of-fold normal-residual proposal](experiments/oof-normal-contour-mlp-review.json)
-is one such unmeasured route: base predictions for each supervised residual would come from an
-MLP trained without that shot. Its pilot and score gates are declared before any fit; they are not
-claims of a gain.
+The [fivefold out-of-fold K8 normal-residual pilot](results/oof_normal_k8_pilot_20260923.json)
+tested that route with a genuinely held-out base prediction, but its truth-assisted map missed
+the frozen investment margin. The fixed K8 learner branch stopped before fitting a correction
+model. A separate full-normal, non-Fourier diagnostic would test whether high-frequency normal
+detail explains the K8 pilot's low native effect; it must be frozen before measurement.
 
 The September fast-magnetics and temporal-convolution screens have been measured. Their original
 frozen specs and same-shot verdicts are recorded in `experiments_history.md`; neither changed the

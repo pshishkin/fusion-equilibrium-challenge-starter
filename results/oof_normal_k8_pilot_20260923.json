@@ -1,0 +1,146 @@
+{
+  "cache": {
+    "allowed_cache_sha256": "ab08a34ed8d6fccfc273b46c666d832b9c61e792a339cabf0437bc5c12951049",
+    "allowed_full_frames": 1501368,
+    "allowed_parquet_sha256_verified_shots": 6771,
+    "allowed_shots": 6771,
+    "fold0_cache_sha256": "8e4a92f4a028997fe4f977f964b6347b4625bfb5a1e6038574f6911abd82c0c7",
+    "fold0_fit_frames": 1200575,
+    "fold0_fit_shots": 5416,
+    "ready_sha256": "c4ad9d14954d4a1d02c0d4132becc4bca3983e567c7fadf62d6a4561e982a861"
+  },
+  "classification": "fivefold_oof_k8_normal_first100_train_pilot_failed_margin_gate",
+  "date_utc": "2026-09-23",
+  "decision": "stop_after_fold0_pilot; do not fit folds1-4, correction MLP or score reserved evaluation70; no public artifact change",
+  "fit": {
+    "artifact_sha256": "bf5035bfd83a2602981ef7def6b96911c259a22d15138f978f29bd638c0e066d",
+    "fixed_last_step": 33000,
+    "own_oof_shots": 1355,
+    "ready_sha256": "6b2145c0498b5e2c2ed8cd7ff53e01aac29f17b72f0bc46edf9df2de351e2fd5",
+    "source_target_stripped_inference_smoke": "passed finite float32 on first pilot shot",
+    "validation_files": 0
+  },
+  "interpretation": "The 17-coordinate K8 representation accurately captures this pilot normal displacement, but applying even its true TRAIN contour target through the fixed map/profile operation yielded only a small native S improvement below the predeclared investment margin. Better contour distance was offset by degraded li and \u03c8/Consistency. This closes this fixed OOF K8 correction recipe, not all boundary learning. The pilot was measured on original TRAIN shots with a held-out base prediction, not independent confirmation or a public score.",
+  "observed_wall_seconds": {
+    "allowed_cache_build_and_full_sha_verification": 1065.4934580719855,
+    "campaign_prepare": 1.983895665005548,
+    "fold0_fit_worker_rounded": 214.7,
+    "fold0_optimizer_logged_rounded": 77.6,
+    "pilot_native_scorer_oracle": 69.24505569800385,
+    "pilot_native_scorer_source": 69.00055017502746,
+    "pilot_prediction_truth_assisted_map_build": 757.4518308140105,
+    "pilot_total": 895.6997351419996
+  },
+  "pilot": {
+    "median_lowpass_rms_m": 0.0008885415361612459,
+    "minimum_grid_spacing_m": 0.02656245231628418,
+    "native_delta_S": 0.00043799999999993844,
+    "native_investment_threshold": 0.0026,
+    "native_source": {
+      "S": 0.991298,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 0.0,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 0.0,
+      "consistency": 0.969871,
+      "dlcfs": 0.01343,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 100,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.971623,
+        "Z_axis": 0.961098,
+        "kappa": 0.962926,
+        "li": 0.938689,
+        "tri_bot": 0.989048,
+        "tri_top": 0.990864,
+        "volume": 0.974848
+      },
+      "r2_each": {
+        "betaN": 0.995003,
+        "q95": 0.990198
+      },
+      "r2_psi": 0.999594,
+      "r2_psi_per_shot_mean": 0.999483,
+      "r2_psi_unflipped": 0.999594,
+      "r2_qb": 0.992601,
+      "ref_lcfs_dropped": 0
+    },
+    "native_truth_assisted_K8_additive_source_li": {
+      "S": 0.991736,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 0.0,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 0.0,
+      "consistency": 0.969525,
+      "dlcfs": 0.008043,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 100,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.971623,
+        "Z_axis": 0.961113,
+        "kappa": 0.984869,
+        "li": 0.884688,
+        "tri_bot": 0.992142,
+        "tri_top": 0.993433,
+        "volume": 0.998806
+      },
+      "r2_each": {
+        "betaN": 0.995003,
+        "q95": 0.990198
+      },
+      "r2_psi": 0.999537,
+      "r2_psi_per_shot_mean": 0.999409,
+      "r2_psi_unflipped": 0.999537,
+      "r2_qb": 0.992601,
+      "ref_lcfs_dropped": 0
+    },
+    "native_zero_lcfs_and_consistency_failures": true,
+    "normal_energy_retained": 0.9573412605306058,
+    "normal_energy_threshold": 0.8,
+    "overall_pilot_passed": false,
+    "raw_result_sha256": "ee60c268c3a0f7c71f5bd406794bf96281b2e2a67c89f7c2b22cbe6b299f0d2f",
+    "representation_gate_passed": true,
+    "source_prediction_sha256": "66df3227393032305d36f716d7fbdc9b11075341a55e0aa3fa9123181d55bb6e",
+    "submitted_scalar_arrays_byte_identical": true,
+    "truth_assisted_prediction_sha256": "e307b3b7e7647062acdc45f93473d9d83bd159865d4359b370ce32a3c33073bc"
+  },
+  "protocol": {
+    "allowed_shots": 6771,
+    "campaign": "runs/oof-normal-k8-5fold-20260923",
+    "campaign_sha256": "2ed48f0cbd4ffda8fedf3fc24198be176a6d27eb58a3dda8d89d02ed0f987f6d",
+    "effective_yaml_sha256": "a9ed14468b399d7a13f7e38025d36bbb83a621813608a235fa2efe15251bac37",
+    "files_manifest_sha256": "e8733030d09d237691ba94e93f4b65f57268cf2efe689b01c697f7691422e621",
+    "frozen_source_bundle_sha256": "5ca3947f92644f8e3a7fb8642076b2c9ec2c5cc351bc549e5a48c2be31cbd1ab",
+    "held_native_gate_shots": 200,
+    "native_scorer_source_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "no_gate_or_tail_shot_fit_or_pilot_target": true,
+    "pilot_full_frames": 21667,
+    "pilot_ordered_names_sha256": "8363384de1d2125166049a88425db370cea04ab051b38031f92e5622d57652bd",
+    "pilot_train_oof_shots": 100,
+    "reserved_evaluation_shots": 70,
+    "review_spec": "experiments/oof-normal-contour-mlp-review.json",
+    "review_spec_sha256": "adeafcc8fe26041acea552cd108f4b7b878bb63fd51fa250da017b07bfbdb167"
+  }
+}
