@@ -114,8 +114,10 @@ def prepare(spec_path: Path, output: Path, jobs: int | None = None) -> Path:
     if jobs is not None:
         spec["jobs"] = jobs
     allowed = {"name", "params", "profile", "salts", "arms", "jobs"}
-    if set(spec) != allowed:
-        raise ValueError(f"{spec_path}: keys {sorted(spec)}, expected {sorted(allowed)}")
+    cross_keys = {"manifest", "manifest_sha256", "review", "review_sha256"}
+    if set(spec) not in (allowed, allowed | cross_keys):
+        raise ValueError(f"{spec_path}: keys {sorted(spec)}, expected {sorted(allowed)} "
+                         f"or {sorted(allowed | cross_keys)}")
     if not re.fullmatch(r"[a-z0-9_-]+", spec["name"]):
         raise ValueError(f"{spec_path}: invalid campaign name {spec['name']!r}")
     if not isinstance(spec["jobs"], int) or spec["jobs"] < 1:
@@ -126,16 +128,28 @@ def prepare(spec_path: Path, output: Path, jobs: int | None = None) -> Path:
     profile = profiles[spec["profile"]]
     required_profile = {"train", "validation", "score", "purpose"}
     extra_profile = set(profile) - required_profile
-    if not required_profile <= set(profile) or extra_profile - {"fit_mode"}:
+    if not required_profile <= set(profile) or extra_profile - {"fit_mode", "selection"}:
         raise ValueError(
             f"{PROFILES}: profile {spec['profile']!r} keys {sorted(profile)}, "
-            f"expected {sorted(required_profile)} with optional fit_mode"
+            f"expected {sorted(required_profile)} with optional fit_mode or selection"
         )
     if "fit_mode" in profile and profile["fit_mode"] != "fixed_steps":
         raise ValueError(
             f"{PROFILES}: profile {spec['profile']!r} fit_mode={profile['fit_mode']!r}, "
             "expected fixed_steps"
         )
+    if "selection" in profile and profile["selection"] != "cross_salt_exact":
+        raise ValueError(f"{PROFILES}: unknown selection {profile['selection']!r}")
+    cross_salt = profile.get("selection") == "cross_salt_exact"
+    if cross_salt != (cross_keys <= set(spec)):
+        raise ValueError(f"{spec_path}: cross_salt_exact profile requires frozen "
+                         "manifest and preregistration hashes")
+    if cross_salt and (spec["salts"] != [1, 2, 3, 4]
+                       or profile["train"] != "0.80/1.0"
+                       or profile["validation"] != "0.19/1.0"
+                       or profile["score"] != 0.01):
+        raise ValueError(f"{spec_path}: cross-salt salts/shares differ from the "
+                         "pre-registered four-salt production protocol")
     if not spec["salts"] or len(set(spec["salts"])) != len(spec["salts"]):
         raise ValueError(f"{spec_path}: salts must be nonempty and unique")
     if any(type(s) is not int or s < 0 for s in spec["salts"]):
@@ -144,6 +158,19 @@ def prepare(spec_path: Path, output: Path, jobs: int | None = None) -> Path:
     if not names or len(set(names)) != len(names):
         raise ValueError(f"{spec_path}: arm names must be nonempty and unique")
     params_path = (spec_path.parent / spec["params"]).resolve()
+    if cross_salt:
+        review_path = (spec_path.parent / spec["review"]).resolve()
+        review = read_json(review_path)
+        if (file_hash(review_path) != spec["review_sha256"]
+                or file_hash(params_path) != review["accepted_params_sha256"]
+                or review["manifest_sha256"] != spec["manifest_sha256"]):
+            raise ValueError(f"{spec_path}: preregistration, accepted params or "
+                             "filename manifest hash differs")
+        if (len(spec["arms"]) != 1 or spec["arms"][0] != {
+                "name": "base", "only": ["mlp", "seq"],
+                "set": ["split.holdout_share=0.01"],
+                "score_models": ["ensemble"]}):
+            raise ValueError(f"{spec_path}: cross-salt model arm differs from frozen recipe")
     runs = []
     for salt in spec["salts"]:
         for arm in spec["arms"]:
@@ -179,6 +206,21 @@ def prepare(spec_path: Path, output: Path, jobs: int | None = None) -> Path:
                 }
             )
     hashes = {str(p.relative_to(ROOT)): file_hash(p) for p in source_files()}
+    if cross_salt:
+        manifest_path = (spec_path.parent / spec["manifest"]).resolve()
+        manifest_rel = str(manifest_path.relative_to(ROOT))
+        hashes[manifest_rel] = file_hash(manifest_path)
+        spec["manifest"] = manifest_rel
+        manifest = read_json(manifest_path)
+        if hashes[manifest_rel] != spec["manifest_sha256"]:
+            raise ValueError(f"{manifest_path}: filename manifest SHA256 differs from "
+                             "preregistration")
+        review_rel = str(review_path.relative_to(ROOT))
+        hashes[review_rel] = file_hash(review_path)
+        spec["review"] = review_rel
+        if (len(manifest["score_files"]) != 70
+                or set(manifest["salts"]) != {"1", "2", "3", "4"}):
+            raise ValueError(f"{manifest_path}: expected 70 common score files and salts 1..4")
     identity = {
         "spec": spec,
         "protocol": profile,
@@ -365,6 +407,23 @@ def execute(campaign: Path, data: Path) -> None:
         if environment() != identity["environment"]:
             raise ValueError(f"{campaign}: Python environment changed; prepare a new campaign")
         dataset = check_dataset(data)
+        if identity["protocol"].get("selection") == "cross_salt_exact":
+            ready_path = campaign / "aux_cache_ready.json"
+            ready = read_json(ready_path)
+            manifest_rel = identity["spec"]["manifest"]
+            if (ready["source_hash"] != meta["source_hash"]
+                    or ready["manifest_sha256"] != identity["source"][manifest_rel]
+                    or ready["dataset_identity"] != dataset
+                    or ready["allowed_shots"] != 6971
+                    or len(ready["blocks"]) != 8):
+                raise ValueError(f"{ready_path}: source, manifest, dataset or eight "
+                                 "cache blocks differ from the frozen campaign")
+            if file_hash(Path(ready["union_cache_path"])) != ready["union_cache_sha256"]:
+                raise ValueError(f"{ready_path}: verified allowed-shot source cache changed")
+            for block in ready["blocks"]:
+                path = Path(block["cache_path"])
+                if file_hash(path) != block["cache_sha256"]:
+                    raise ValueError(f"{path}: composed cache SHA256 differs from {ready_path}")
         for run in identity["runs"]:
             folder = campaign / run["name"]
             if completed(folder, meta["source_hash"]):
@@ -387,6 +446,9 @@ def execute(campaign: Path, data: Path) -> None:
                 "--params",
                 str(folder / "params.yaml"),
                 *(["--fit-mode", protocol["fit_mode"]] if "fit_mode" in protocol else []),
+                *(["--cross-salt-manifest", str(campaign / "source" /
+                                                identity["spec"]["manifest"]),
+                   "--on-holdout"] if protocol.get("selection") == "cross_salt_exact" else []),
                 "--jobs",
                 str(identity["spec"]["jobs"]),
                 "--local-data-dir",
@@ -407,6 +469,11 @@ def execute(campaign: Path, data: Path) -> None:
                 OPENBLAS_NUM_THREADS="4",
                 MKL_NUM_THREADS="4",
             )
+            if protocol.get("selection") == "cross_salt_exact":
+                manifest_rel = identity["spec"]["manifest"]
+                env["FUSION_CROSS_SALT_MANIFEST_SHA256"] = identity["source"][manifest_rel]
+                manifest = read_json(campaign / "source" / manifest_rel)
+                env["FUSION_REFERENCE_ARTIFACT"] = str(ROOT / manifest["reference_artifact"])
             # A failed attempt is retained; never mistake its previous metrics for success.
             (folder / "metrics.json").unlink(missing_ok=True)
             log = folder / f"{time.time_ns()}-run.log"

@@ -270,6 +270,10 @@ A candidate's individual score, replacement effect and contribution when ADDED t
 ensemble are different measurements. Report the baseline, candidate and augmented ensemble on the
 same unseen shots with explicit artifact weights. A cross-salt ensemble requires a common holdout
 excluded before every fit; the ordinary per-salt tail is not enough.
+When a cross-salt fit consumes all non-heldout shots, declare exact train and validation filename
+lists in a frozen manifest and verify their counts, hashes and disjointness before data loading.
+Score the same common filenames in a fixed order through native scoring, with a decoded-arithmetic
+control and unchanged scalar blocks stated explicitly before a blend.
 Truth-assisted corrections built from labeled ψ are mechanism probes only. Score their actual
 corrected map arrays through the unmodified native scorer, with independent submitted scalars
 unchanged; never override LCFS or derived-function outputs or package those arrays as a public

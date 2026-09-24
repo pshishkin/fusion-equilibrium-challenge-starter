@@ -1102,7 +1102,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
           params_path: Path = DEFAULT_PARAMS_PATH, jobs: int = 0, salt: int | None = None,
           only: list[str] | None = None, sets: list[str] | None = None,
           fit_mode: str = "validation", explicit_files_manifest: Path | None = None,
-          explicit_fold: int | None = None) -> Artifact:
+          explicit_fold: int | None = None,
+          cross_salt_manifest: Path | None = None) -> Artifact:
     """Fit every enabled model of params.yaml on the head of the split, and save them together.
 
     Both shares are `"shots"` or `"shots/frames"` (see parse_share). `val_share` is the window
@@ -1119,6 +1120,9 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     fixed_steps = fit_mode == "fixed_steps"
     if (explicit_files_manifest is None) != (explicit_fold is None):
         raise ValueError("explicit_files_manifest and explicit_fold must be supplied together")
+    if cross_salt_manifest is not None and (fixed_steps or explicit_files_manifest is not None):
+        raise ValueError(f"{cross_salt_manifest}: cross-salt exact roles require ordinary "
+                         "validation and cannot be combined with explicit OOF files")
     if explicit_files_manifest is not None and not fixed_steps:
         raise ValueError(f"{explicit_files_manifest}: explicit OOF files require fixed_steps")
     from my_experiments.data_check import check_dataset
@@ -1158,7 +1162,30 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
               f"SALT-0 order and excluded from this fit, so models fitted under different salts "
               f"can be scored on the same untouched shots")
     oof_files: list[Path] = []
-    if explicit_files_manifest is None:
+    if cross_salt_manifest is not None:
+        from my_experiments.cross_salt_split import select_fit_files as select_cross_salt_files
+        from toolkit.records import file_hash
+
+        if (params.split_salt not in (1, 2, 3, 4) or params.holdout_share != 0.01
+                or shot_share != 0.80 or val_shot_share != 0.19
+                or frame_share != 1.0 or val_frame_share != 1.0
+                or set(params.models) != {"mlp", "seq"}):
+            raise ValueError(f"{cross_salt_manifest}: expected salt 1..4, holdout 0.01, "
+                             "shares 0.80/1.0 and 0.19/1.0, models mlp+seq; got "
+                             f"salt={params.split_salt}, holdout={params.holdout_share}, "
+                             f"shares={share}/{val_share}, models={sorted(params.models)}")
+        reference = os.environ.get("FUSION_REFERENCE_ARTIFACT")
+        if reference is None:
+            raise ValueError(f"{cross_salt_manifest}: FUSION_REFERENCE_ARTIFACT is unset")
+        files, val_files, reserved = select_cross_salt_files(
+            cross_salt_manifest, ordered,
+            sorted_shots(local_data_dir, config, 0), Path(reference),
+            Path(__file__).resolve().parent / "diii_d_dataset.json", params.split_salt)
+        if [path.name for path in reserved] != [path.name for path in holdout]:
+            raise ValueError(f"{cross_salt_manifest}: selected holdout "
+                             f"{len(reserved)} differs from reserved holdout {len(holdout)}")
+        cross_salt_manifest_sha = file_hash(cross_salt_manifest)
+    elif explicit_files_manifest is None:
         files, val_files = split_train_val(all_files, shot_share, val_shot_share,
                                            allow_empty_validation=fixed_steps)
     else:
@@ -1580,6 +1607,11 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         "holdout_files": [p.name for p in holdout],
         "holdout_share": params.holdout_share,
     }
+    if cross_salt_manifest is not None:
+        artifact["split_mode"] = "cross_salt_exact_validation"
+        artifact["cross_salt_manifest_sha256"] = cross_salt_manifest_sha
+        artifact["train_share"] = len(files) / len(all_files)
+        artifact["val_share"] = len(val_files) / len(all_files)
     if explicit_files_manifest is not None:
         artifact["split_mode"] = "explicit_fivefold_oof_fixed_steps"
         artifact["oof_fold"] = explicit_fold

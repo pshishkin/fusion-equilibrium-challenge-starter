@@ -32,6 +32,12 @@ Historical explanations and negative results remain in `experiments_history.md`,
   Its full enabled ensemble has no fresh score. It retains the accepted configuration including the static auxiliary
   head and `cons_split`. Its sequence learning-rate schedule is `none`. The historical cosine
   result below is a candidate to verify against this control, not silently reapply.
+- **Pending new diversity screen:** The fixed [four-salt preregistration](experiments/cross-salt-four-review.json)
+  and [filename manifest](experiments/cross-salt-four-manifest.json) reserve the original salt-0
+  evaluation tail before all fits. Each new salt retains the ordinary production train and
+  validation shot counts, with one MLP and one sequence member. Its fixed float32 blend and
+  investment rule were declared before training; no effect or public result has been measured.
+  This is distinct from, and cannot reproduce, the historical six-salt submission.
 
 ## Latest recorded evidence
 

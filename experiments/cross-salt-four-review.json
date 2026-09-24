@@ -1,0 +1,55 @@
+{
+  "name": "four-salt-float32-diversity",
+  "classification": "pre-registered new collection, not a reconstruction of submission 915662",
+  "amendment": {
+    "previous_spec_sha256": "ca4cc271284114b8cb37a43ffc39eaab1ed3be393ba887e40c681ac41dcd5059",
+    "reason": "Add a decoded old-member control through the mixed candidate's float64 arithmetic path, distinct from the already scored native old anchor; compare the candidate against this matched control. No result has been measured or model fitted under this campaign."
+  },
+  "date_utc": "2026-09-24",
+  "purpose": "Measure whether four additional split-salt MLP/sequence pairs improve the existing float32 ensemble on one common unseen 70-shot tail.",
+  "manifest": "experiments/cross-salt-four-manifest.json",
+  "manifest_sha256": "7237173d46d5c020cb5767918175e992d1d2cfc8c2bef5e1c377e0e629a6f273",
+  "reference_artifact": "runs/compact-production-9301af36275620f7/base_s0/baseline.joblib",
+  "reference_artifact_sha256": "ffb4158f0dbda2cc842462234a33f75e5a492faa0b33581a497c75d1e12037f8",
+  "accepted_params": "baselines/iteration.params.yaml",
+  "accepted_params_sha256": "ff5b15c0c4497c802cace0d36a7308181f21cc9eaa9d832df4cd7950c7b1917d",
+  "fit": {
+    "salts": [1, 2, 3, 4],
+    "each_salt_train_shots": 5633,
+    "each_salt_validation_shots": 1338,
+    "common_untouched_score_shots": 70,
+    "frames": "All frames of every selected shot",
+    "models": ["mlp", "seq"],
+    "seed_each_model": 0,
+    "stopping": "Ordinary validation-selected checkpoints; all hyperparameters except split.salt and split.holdout_share=0.01 are unchanged from the accepted YAML.",
+    "guard": "Rebuild and hash every salt-specific filename role list from the complete pinned 7,041-shot corpus before fitting; reject changed corpus, overlap with the original salt-0 70, changed model config, count mismatch or source mismatch.",
+    "gpu_lanes": 1,
+    "cache": "Verify producer, dependency and input hashes; prepare all 6,971 allowed full-shot auxiliary blocks once, then atomically compose salt-specific train and validation caches from exact blocks. Never alias an old cache key."
+  },
+  "evaluation": {
+    "score_files": "The 70 names in manifest.score_files, in that exact salt-0 order; no member may have them in train_files or val_files.",
+    "source_predictions": "Each artifact predicts mlp and seq separately through its own verified frozen source; decode maps and submitted scalars before any mixing.",
+    "old_control": "runs/historical-five-geometry-20260922/historical_psi_eleven_qb_eight.npz",
+    "old_control_sha256": "a1495ccb3391d92945eba73c645c1109ac0b5a73ae97726165b8e6f29fe1b2ef",
+    "old_control_native_S": 0.99508,
+    "matched_decoded_old_control": "Rebuild old eleven decoded maps from the six pinned source NPZs at weights 5:1:1:1:2:1, divide by 11 and cast once from float64 to float32. Pass the prior-eight scalar block through the same float64-to-float32 output path. Score this row separately from the saved old native anchor and report maximum per-field array difference and every native-term difference.",
+    "new_block": "Eight new decoded member predictions, equal weight 1/8 for psirz, q95 and betaN.",
+    "mixed_candidate": "For psirz, combine the six pre-existing decoded map sources at weights 5:1:1:1:2:1 divided by 22 and each new member at weight 1/16; for q95 and betaN, use one half of the existing prior-eight scalar block and one sixteenth of each new member. Accumulate in float64 and cast each output array exactly once to float32.",
+    "fixed_weights": true,
+    "native_scorer": "Pin the scorer from runs/geometry-loss-screen-4a5516b9b1684353/source and score the saved old native anchor, the matched decoded old control, all eight individual members, the new-eight block and the one fixed mixed candidate on the same exact 70 filenames: twelve rows total. Preserve native JSON and all seven functional terms and failure counts.",
+    "no_search": "No weights, members, hyperparameters or scored files will be selected using these reused 70 shots."
+  },
+  "investment_gate": {
+    "mixed_minus_matched_decoded_old_S_at_least": 0.0015,
+    "native_failure_count_may_increase": false,
+    "effect": "Only if the fixed candidate meets both criteria, review a separately validated full public float32 prediction and pointer; no Hugging Face mutation or submission is authorized by this screen."
+  },
+  "interpretation": "The original 70-shot tail has already informed earlier ensemble selection, so its paired differences are diagnostic and do not establish independent or public-fold improvement. The historical six-salt submission has unavailable fitted members and weights.",
+  "cost_estimate": {
+    "warm_worker_seconds_per_two_model_salt": 1187,
+    "four_salt_gpu_lane_minutes": 79,
+    "one_time_allowed_auxiliary_cache_minutes": "Approximately 18-20, subject to producer identity and host load",
+    "prediction_and_native_score_minutes": "Approximately 15-30 for twelve predeclared rows",
+    "total_wall_hours": "Approximately 2-2.5 with one GPU lane, warm shot cache and no failures; estimate, not a measured duration"
+  }
+}

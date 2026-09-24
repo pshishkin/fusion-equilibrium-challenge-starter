@@ -48,6 +48,9 @@ def main(argv: list[str]) -> int:
                              f"any flags.\n\n{__doc__}")
     passthrough = list(argv[3:])
     score_options: list[str] = []
+    if "--on-holdout" in passthrough:
+        passthrough.remove("--on-holdout")
+        score_options.append("--on-holdout")
     for flag in ("--metrics-json", "--local-data-dir", "--config"):
         if flag in passthrough:
             i = passthrough.index(flag)

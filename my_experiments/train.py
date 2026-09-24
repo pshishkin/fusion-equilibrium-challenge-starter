@@ -57,6 +57,10 @@ def main() -> int:
                          "--explicit-fold and FUSION_OOF_MANIFEST_SHA256")
     ap.add_argument("--explicit-fold", type=int,
                     help="zero-based fold in --explicit-files-manifest, 0..4")
+    ap.add_argument("--cross-salt-manifest", type=Path,
+                    help="frozen exact 5633/1338/70 cross-salt roles for validation-mode fit; "
+                         "requires FUSION_CROSS_SALT_MANIFEST_SHA256 and "
+                         "FUSION_REFERENCE_ARTIFACT")
     ap.add_argument("--params", type=Path, default=DEFAULT_PARAMS_PATH,
                     help=f"model zoo and its hyper-parameters (default {DEFAULT_PARAMS_PATH.name})")
     ap.add_argument("--jobs", type=int, default=0,
@@ -83,7 +87,7 @@ def main() -> int:
 
     train(args.share, args.val_share, args.local_data_dir, args.config, args.params,
           args.jobs, args.salt, args.only, args.sets, args.fit_mode,
-          args.explicit_files_manifest, args.explicit_fold)
+          args.explicit_files_manifest, args.explicit_fold, args.cross_salt_manifest)
     return 0
 
 

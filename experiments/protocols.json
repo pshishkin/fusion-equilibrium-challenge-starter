@@ -18,6 +18,13 @@
     "score": 0.01,
     "purpose": "Current Makefile production data protocol"
   },
+  "cross-salt-production": {
+    "train": "0.80/1.0",
+    "validation": "0.19/1.0",
+    "score": 0.01,
+    "selection": "cross_salt_exact",
+    "purpose": "Four new salts, each exact 5633 train plus 1338 validation with the original salt-0 70-shot tail sealed"
+  },
   "refit-production": {
     "train": "0.99/1.0",
     "validation": "0/1.0",

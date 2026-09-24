@@ -548,6 +548,19 @@ identical shots through the real scorer. `comparison.json` distinguishes replace
 addition delta. Every artifact participates in the overlap check. Cross-salt members require a
 common holdout reserved before fitting; `--on-holdout` selects it. Ordinary salt tails cannot make
 an existing cross-salt blend locally scorable. Candidate selection and confirmation must be separate.
+The new [four-salt campaign](experiments/cross-salt-four.json) uses an
+[exact filename manifest](experiments/cross-salt-four-manifest.json) to retain the original
+evaluation tail and full production train/validation counts under each new salt; its
+[preregistered blend](experiments/cross-salt-four-review.json) is pending measurement. Prepare
+and execute it through `my_experiments.run`; the separate verified auxiliary-cache prewarm must
+finish before execution. It is a new float32 collection, not a reconstruction of the historical
+six-salt submission.
+Prepare the campaign with `python -m my_experiments.run prepare experiments/cross-salt-four.json`.
+From its frozen `source/` directory, run `python -m tools.cross_salt_aux_cache` with
+`--campaign`, `--data-dir`, `--reference-artifact` and `--jobs 24`, setting `FUSION_AUX_CACHE`
+to the workspace cache. Then `python -m my_experiments.run execute <campaign> --data-dir <dataset>`
+resumes verified salts in one GPU lane. Cache preparation checks every allowed input hash and
+publishes exact per-salt target blocks before execution accepts the campaign.
 Use `--source-campaign runs/<candidate-campaign>` to score through the candidate's verified frozen
 evaluator source after the working tree changes. The runner checks the candidate completion source
 hash and saves the live comparison controller separately.

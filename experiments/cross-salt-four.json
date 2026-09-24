@@ -1,0 +1,19 @@
+{
+  "name": "cross-salt-four",
+  "params": "../baselines/iteration.params.yaml",
+  "profile": "cross-salt-production",
+  "manifest": "cross-salt-four-manifest.json",
+  "manifest_sha256": "7237173d46d5c020cb5767918175e992d1d2cfc8c2bef5e1c377e0e629a6f273",
+  "review": "cross-salt-four-review.json",
+  "review_sha256": "7263384b8dfcc90aaefdd2d43e51659fbaec79a74824b4a0adb53823148ebcb3",
+  "salts": [1, 2, 3, 4],
+  "jobs": 24,
+  "arms": [
+    {
+      "name": "base",
+      "only": ["mlp", "seq"],
+      "set": ["split.holdout_share=0.01"],
+      "score_models": ["ensemble"]
+    }
+  ]
+}
