@@ -293,6 +293,10 @@ declared training shots. Prediction features must run through the target-strippe
 test that poisoned EFIT target fields are never accessed. Keep entire shots together across a
 learner split, freeze representation and regularization before fitting, and require the same
 source-map bit identity when the predicted displacement is zero.
+For a learned correction transferred between separately fitted base artifacts, decode each base
+with its own PCA and target scaler first. Train the correction in physical map units, fit any
+correction-input scaler only on its declared OOF training shots, and verify exact zero-correction
+map and submitted-scalar bits. Never mix fold-specific coefficients or scalers at transfer time.
 
 When a replacement member comes from another artifact, keep the unchanged members fixed and score
 both the original-member control and the replacement through the same decoded-map averaging path.

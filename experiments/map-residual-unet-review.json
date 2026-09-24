@@ -1,0 +1,66 @@
+{
+  "name": "oof-physical-map-residual-unet-single-pilot",
+  "date_utc": "2026-09-24",
+  "amendment": {
+    "previous_spec_sha256": "eddd4d1e0603cdbf493c3825adb77aa30817a0b4937265189588054866cf9fa8",
+    "reason": "Correct the finite-difference coordinate labels before implementation or real-data processing: scorer-native psi is indexed [Z,R], with axis 0 = Z and axis 1 = R. No model, weight, gate or shot role changed."
+  },
+  "classification": "pre-registered review before model code, target extraction, CUDA fit or native gate score",
+  "question": "Can one input-only, zero-initialized spatial correction learn useful flux-map residuals from truly OOF source maps and transfer unchanged to a foreign base fit and a two-base decoded mean?",
+  "prior_and_scope": {
+    "negative_prior": "The B10 fold0-source-conditioned 84-feature plus 52-PCA-residual heads moved sealed gate200 S only 0.989576 to 0.989913/0.989924. The older direct full-map mapnet was materially worse than the compact MLP, and the truth-assisted full-normal plus input-only li guard gained only 0.001846 on 100 TRAIN OOF shots. This U-Net is a different spatial architecture and physical target, not an evidence-backed prediction of top-three gain.",
+    "distinct_mechanism": "Condition convolutional filters on the decoded source psi map and predict a full physical 65x65 residual. Unlike B10, no fold0 PCA components or TargetScaler coordinates enter the correction output; this permits a fixed head to act on independently decoded fold1 maps. The 84 allowed current/Thomson features enter under a head-owned training-only scaler.",
+    "no_sweep": "One architecture, seed, training duration, loss, li threshold and set of native gates. Do not tune after inspecting any gate200 score, loss trace or fallback count."
+  },
+  "frozen_references": {
+    "oof_campaign": "runs/oof-normal-k8-5fold-20260923",
+    "oof_campaign_sha256": "2ed48f0cbd4ffda8fedf3fc24198be176a6d27eb58a3dda8d89d02ed0f987f6d",
+    "oof_source_bundle_sha256": "5ca3947f92644f8e3a7fb8642076b2c9ec2c5cc351bc549e5a48c2be31cbd1ab",
+    "oof_files_manifest_sha256": "e8733030d09d237691ba94e93f4b65f57268cf2efe689b01c697f7691422e621",
+    "fold0_artifact": "runs/oof-normal-k8-5fold-20260923/fold0/base.joblib",
+    "fold0_artifact_sha256": "bf5035bfd83a2602981ef7def6b96911c259a22d15138f978f29bd638c0e066d",
+    "prior_fold0_gate_source": "runs/b10-matched-heads-20260923/gate_predictions/source.npz",
+    "prior_fold0_gate_source_sha256": "4cc12e8fb7dfed328e0dbece8645c6fb956054810a89c9c8e7979a27e02a4f6a",
+    "prior_fold0_gate_native_json_sha256": "8171d31764f314829a6a83722fb0ad51ed67766ef72a3e587d31d808ba6fa78b",
+    "dataset_manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420",
+    "dependency_lock_sha256": "563b20ed6ec89475fdb1d97e3b782f7f04c650d08c06c19a60ba85894a12e415",
+    "native_scorer_bundle": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "native_scorer_bundle_sha256": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+    "model_yaml": "baselines/map-residual-unet.params.yaml",
+    "model_yaml_sha256": "9f0608b444a478af0f568cd13746b355fed8c6e5164b761691e9af849a532500"
+  },
+  "shot_roles": {
+    "head_training": "Exactly fold0's 1,355 OOF shot filenames in files.json, ordered SHA 037ff7f422bc72c5ea4af51ad49ff3c9a4b13fb945222e796b2360399116356e. All are absent from fold0 base train_files and val_files. They contain 300,793 full EFIT frames. Keep the identical fixed 0.2 per-shot frame indices for source map, true map and selected input features; expected 60,171 kept frames before reading maps. All 1,355 shots feed gradients; no head early stopping.",
+    "sealed_gate": "Exactly the last 200 original compact validation filenames in files.json, ordered SHA 66cce2f0c082fb687cf4788e328c4916135036a69595e439e10e62e05b31709e, 43,142 full frames. Excluded from every base fit and head train, normalization, energy constants and checkpoint. Predict from target-stripped rows and seal NPZs before native scoring reads labels.",
+    "reserved_evaluation": "The original salt-0 70-shot tail, ordered SHA d3a7e1c1dbdd9ab5e185278271d2f06d246de5f9e93fa86a9391e01eb9c25bc6, remains unopened for this pilot even if internal gates pass; a separate review is required.",
+    "fold1_conditional": "Only if fold0 gate passes, fit the existing frozen OOF fold1 MLP for exactly 33,000 fixed last steps on its manifest complement of 5,417 shots with no validation. Its own OOF fold, gate200 and tail70 are excluded. Reuse the verified fold1 auxiliary target cache only after producer, dependency and input hashes match. Never refit or alter fold0."
+  },
+  "target_and_inference": {
+    "feature_producer": "Call frozen baseline_model.features_for_row and build_inputs with fold0's pinned feature/coil plan to select the same 84 permitted features on every source, including fold1 and mean2. Fit one head-owned StandardScaler on the 1,355 OOF training shots only; append source-psi minimum and log source range before that scaler. Do not use either base artifact's X scaler to feed the head.",
+    "target_stripping": "For each training shot, compute the fold0 base prediction on a slim row with EFIT target fields deleted or poisoned; read efit_psirz only in the separate supervised target branch. For gate200, request only input columns and prove no target column is accessed before sealed prediction NPZs are written. Per-shot work uses toolkit.parallel.pimap and preserves declared order.",
+    "source_normalization": "For each finite float32 source map frame, let m=min_grid psi and s=max_grid psi-m. Require finite s and s > 1024*float32_epsilon*max(1,max_grid abs(psi)); otherwise fail with filename, frame and measured/required range. The map channel is (psi-m)/s. Fixed R/Z coordinate channels and the scorer's DIII-D envelope mask are the other three channels; head tabular conditioning includes m and log(s). No true map statistic enters an inference feature.",
+    "supervised_target": "For the exact kept frames only, target T=(true_psi-source_psi)/s, a physical-map residual normalized by source-only range. Train on true EFIT flux in the declared 1,355 OOF shots only. No PCA50 projection, target scaler transform, stored LCFS, scorer-derived truth scalar or true q95/betaN is a learner target or input.",
+    "network": "Four U-Net levels with channels 16/32/64/128, two 3x3 group-norm-8/GELU convolutions per level, average-pool-2 downsampling, bilinear upsampling to the exact skip tensor shape, skip concatenation and one zero-initialized 1x1 residual output. The 86 standardized tabular values pass through a fixed 86->128->256 GELU projection that supplies one 128-channel bottleneck FiLM scale and shift. The output is one normalized 65x65 residual. No batch-statistic normalization or auto device choice.",
+    "zero_control": "At initialization and for an explicitly all-zero predicted residual, return the original float32 psi bytes exactly, including signed zeros, and original q95/betaN bytes exactly. Nonzero correction computes source_float64+s_float64*predicted_normalized_delta_float64 and casts once to float32, with no clipping or source-model coefficient-space mixing.",
+    "fold_transfer": "Decode fold0 and fold1 independently through their own PCA and TargetScaler. For mean2, average their decoded float32 psi/q95/betaN arrays once in float64 and cast once to float32; then treat that physical mean as another source map. Apply exactly the same head, head-owned feature scaler, loss-trained weights, normalization, output scale and li guard to fold0, fold1 and mean2."
+  },
+  "loss_and_training": {
+    "yaml_is_authoritative": "All architecture and optimizer values come from the frozen model_yaml_sha256 above. Seed 0, equal-shot then uniform-frame batches of 32, AdamW lr 0.0003/weight_decay 0.0001, gradient-norm clip 1, exactly 10,000 optimizer updates on CUDA, no scheduler, EMA, validation checkpoint or alternate seed; retain the last update.",
+    "weighted_value": "Let E=predicted_normalized_delta-T on a kept training frame and w=2 inside the pinned scorer envelope, 1 outside. V(E) is the mean of w*E^2 over the 65x65 grid. Aggregate by equal mean over retained frames within each shot, then equal mean over all 1,355 shots; stochastic batches sample shots uniformly and frames uniformly.",
+    "physical_gradient": "Scorer-native psi and E are indexed [Z,R], axis 0 = Z and axis 1 = R. For each E, D_R E[z,r]=(E[z,r+1]-E[z,r])/(R[r+1]-R[r]) on z=0..64,r=0..63; D_Z E[z,r]=(E[z+1,r]-E[z,r])/(Z[z+1]-Z[z]) on z=0..63,r=0..64. There is no boundary padding. Each edge weight is the arithmetic mean of the two adjacent pixel weights. G(E)=0.5*(mean(w_R*(D_R E)^2)+mean(w_Z*(D_Z E)^2)); aggregate with the same equal-shot rule as V.",
+    "fixed_normalizers": "Compute tau_V=V(T) and tau_G=G(T) over the training shots only, with the exact formulas above. Both must be finite and strictly positive. The single fixed loss is V(E)/tau_V + G(E)/tau_G (the numerical value and gradient weights are each exactly 1). This makes zero-output initial terms equal to 1 without choosing a gradient-strength knob from gate scores. Record the two frozen normalizers, source SHA and target-cache SHA before optimizer step 1."
+  },
+  "input_only_li_guard": {
+    "threshold": 0.05,
+    "operation": "For each source/candidate physical map, extract each map's own scorer-native LCFS and li without true psi. If both li values are finite and |li_candidate-li_source|>0.05 dimensionless, replace the entire candidate psi frame with the exact source float32 bytes. If source or candidate LCFS/li is nonfinite, use the exact source bytes and count a separate source-invalid or candidate-invalid fallback reason. Never alter submitted q95/betaN. No frame is omitted or silently clipped.",
+    "fallback_gate": "All fallback reasons together may cover at most 2% of gate frames for each source path. Count frames, shots, reasons and original/corrected li differences. Score actual guarded map arrays through the unmodified native scorer; reject any increase in psi nonfiniteness, LCFS failure, overall consistency failure or any one of seven per-functional failure rates."
+  },
+  "stages_and_gates": {
+    "preflight": "Freeze complete source/YAML/spec, dataset and filename hashes before supervised extraction. Focused synthetic CPU tests prove source-only normalization, map/feature/target frame alignment, zero map/scalar byte identity, loss stencils/normalizers, invalid-map fail-fast and poisoned-target inference. On the RTX3090, run a synthetic 50-step forward/backward CUDA throughput and peak-memory smoke with exact batch/model/loss; abort before real-data cache/fit if estimated 10,000-step runtime exceeds 90 minutes or peak allocated memory exceeds 18 GiB. This is a resource gate only, not a model search.",
+    "fold0": "After one frozen head fit, seal full-frame fold0 source and guarded candidate predictions for the exact gate200. Score both through the same pinned native local_score and report S, R2psi, R2qb, raw D_LCFS, Consistency, all seven functional R2, failure fractions, fallback and stage walls. Pass only if guarded-minus-source S >= +0.003000, q95/betaN bits are unchanged, fallback <=2% and no native failure rate increases. Otherwise STOP; do not fit fold1, score tail70 or tune.",
+    "foreign_and_mean2": "Only after fold0 passes, fit the one frozen fold1 base. Seal gate200 fold1 source/guarded and decoded equal-mean2 source/guarded. Score those four fixed rows through the same scorer; require guarded-minus-foreign-fold1 S >= +0.003000 AND guarded-minus-mean2 S >= +0.001500, each with exact source scalars, fallback <=2% and no extra native failure rates. No post-gate weight, scale, feature or threshold choice. If either fails, STOP.",
+    "tail_policy": "Even if all internal gates pass, neither the old best11 collection nor the original 70-shot tail is part of this experiment. Report transfer and request a separate decision before any final evaluation or public prediction."
+  },
+  "resource_estimate_not_measurement": "The 1,355 OOF shots hold 300,793 full frames; identical 0.2 thinning retains 60,171 frames. Paired source/truth float32 maps are about 2.03 GB before residual/input/cache overhead. Input hash verification, source inference and atomic cache construction may take 5-15 minutes CPU; fixed U-Net CUDA fit is unmeasured and provisionally 20-60 minutes pending exact synthetic throughput smoke. Fold0 gate correction, li guard and two native passes may take 5-10 minutes. Conditional fold1 base fit is about 215 seconds from the observed fold0 worker, with four additional native passes/inference about 10-25 minutes. One GPU fit at a time, process groups and watchable logs. Budget roughly 0.5-2 hours if stopped at fold0 or 1-2.5 hours if transfer is reached; record actual walls and cache sizes.",
+  "uncertainty": "The gate200 has been reused in other project selection work, and the fixed 33,000 base steps were selected historically using it. Passing a gate would be investment evidence only, not statistically independent confirmation or proof of public gain. B10's low source-relative gains and earlier mapnet/contour nulls make failure more likely than success."
+}

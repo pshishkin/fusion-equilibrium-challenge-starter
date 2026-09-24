@@ -1,0 +1,51 @@
+# One fixed physical-map residual pilot. This is not a production model recipe.
+source:
+  model: fold0_oof_mlp
+  selected_input_width: 84
+  input_feature_width: 86  # 84 allowed selected inputs + source psi minimum + log source range
+  map_shape: [65, 65]
+  shot_frame_share: 0.2
+  source_range_min_float32_ulps: 1024
+
+model:
+  input_channels: 4  # source-normalized psi, physical R, physical Z, envelope mask
+  encoder_channels: [16, 32, 64, 128]
+  norm: group_norm
+  norm_groups: 8
+  activation: gelu
+  conv_kernel: 3
+  downsample: average_pool_2
+  upsample: bilinear_align_corners_false_to_skip_shape
+  feature_embedding: 128
+  bottleneck_film: true
+  output_channels: 1
+  zero_output_init: true
+
+loss:
+  envelope_inside_weight: 2.0
+  envelope_outside_weight: 1.0
+  value_weight: 1.0
+  gradient_weight: 1.0
+  gradient_stencil: physical_forward_difference_no_padding
+  normalization: equal_shot_training_initial_residual_energy
+
+train:
+  seed: 0
+  batch_frames: 32
+  max_steps: 10000
+  optimizer: adamw
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  gradient_clip_norm: 1.0
+  scheduler: none
+  checkpoint: last_step
+  torch_threads: 4
+  log_every_steps: 500
+  device: cuda
+
+inference:
+  delta_li_source_fallback_threshold: 0.05
+  max_fallback_fraction: 0.02
+  scalar_policy: exact_source_float32_bits
+  zero_delta_policy: exact_source_psi_bits
+  output_dtype: float32

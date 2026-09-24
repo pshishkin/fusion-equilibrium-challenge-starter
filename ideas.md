@@ -1,5 +1,16 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
+**2026-09-24 — one physical-map residual U-Net pilot is pre-registered, with a low prior:**
+The [fixed review](experiments/map-residual-unet-review.json) and
+[model YAML](baselines/map-residual-unet.params.yaml) use only genuinely out-of-fold source
+predictions and allowed inputs to learn a full decoded flux-map correction. Prior source-conditioned
+PCA-residual and direct-map models were weak, so this is a bounded test of spatial inductive bias,
+not a forecast of top-three gain. The sealed internal gate requires a material native-score gain,
+input-only li fallback below its fixed cap and transfer to a separately fitted base before the
+reserved evaluation tail or older ensemble could be considered. The
+[synthetic correctness/resource check](results/map_residual_unet_preflight_20260924.json) passed;
+it did not read competition labels or score a prediction. No U-Net gain is measured yet.
+
 **2026-09-23 — deployable boundary correction remains open beyond the fixed Ridge screen:**
 The truth-assisted contour correction and source-li compensation establish local mechanism
 headroom, but the single preregistered [input-only K8/Ridge screen](results/contour_learnability_screen_20260923.json)

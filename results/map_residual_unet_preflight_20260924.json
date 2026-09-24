@@ -1,0 +1,28 @@
+{
+  "classification": "synthetic_only_map_residual_unet_cuda_correctness_and_resource_gate",
+  "date_utc": "2026-09-24",
+  "model_core_source_sha256": "937948caff44eaf2762b4ae44ecc06ed9832c369c9a3f0518495d68db91cffe7",
+  "model_yaml_path": "baselines/map-residual-unet.params.yaml",
+  "model_yaml_sha256": "9f0608b444a478af0f568cd13746b355fed8c6e5164b761691e9af849a532500",
+  "review_spec_path": "experiments/map-residual-unet-review.json",
+  "review_spec_sha256": "ab682bdd36c4df66d2f1dff8dcceda990a3c7e75de6e7f18ab6cc2a173b47dbe",
+  "scope": "Resource feasibility only; not a native score or evidence of map correction gain.",
+  "synthetic_measurement": {
+    "batch": 32,
+    "classification": "synthetic_only_fixed_unet_cuda_resource_gate",
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "last_synthetic_loss": 0.2074967473745346,
+    "mask_sha256": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1",
+    "measured_seconds": 0.43236900100600906,
+    "measured_updates": 50,
+    "params_sha256": "9f0608b444a478af0f568cd13746b355fed8c6e5164b761691e9af849a532500",
+    "peak_allocated_bytes": 341344256,
+    "projected_10000_step_seconds": 86.47380020120181,
+    "real_data_read": false,
+    "resource_gate_passed": true,
+    "torch_version": "2.5.1+cu124",
+    "warmup_updates": 5
+  },
+  "synthetic_receipt_sha256": "c52b23e66f230deb530b7605b3ee3bc29b127ced181bb9d3daf9ab052723b95a",
+  "unit_checks": "Known affine physical-gradient field, zero-output exact float32 source-map bits, finite backward gradient and source-map range error passed; no competition targets used."
+}
