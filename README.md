@@ -162,6 +162,9 @@ The bounded pilot implementation has an [input-only waveform sidecar](tools/b10_
 [matched residual heads](tools/b10_head_model.py) and a [native-score gate](tools/b10_gate.py).
 Its exact model settings live in [the fixed YAML](baselines/b10-two-rate-info-gate.params.yaml).
 These files prepare one comparison; they do not establish a gain or replace the shipped ensemble.
+The [matched native gate](results/b10_matched_information_gate_20260923.json) is now measured:
+the raw waveform branch was indistinguishable from its low-pass control and far below its fixed
+investment margin. No production two-rate sequence model was fitted.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

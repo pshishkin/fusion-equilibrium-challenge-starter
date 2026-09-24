@@ -3,6 +3,34 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-23 UTC — matched two-rate raw waveform information gate, closed before full GRU:**
+The input-only support audit passed, so one frozen fold0 OOF source predicted **1,355** target
+training shots and **200** sealed native-gate shots. Three equal-capacity residual heads ran
+**4,000** fixed CUDA steps each: EFIT-reconstructed low-pass windows at seeds 0 and 1, and actual
+anti-aliased 0.5 ms waveform windows at seed 0. All used the same selected 84 frame features,
+base 52 outputs, train-only raw scaler and 41×21 window CNN; only the waveform values or A/A seed
+changed. On the identical **200 gate shots/43,142 frames**, native S was **0.989576** for the
+unchanged fold0 MLP, **0.989913** low-pass seed0, **0.989188** low-pass seed1 and **0.989924**
+raw seed0. Raw minus matched low-pass was **+0.000011**, against frozen **+0.002600** and the
+**0.001450** twice-A/A-noise hurdle. Raw and low-pass seed0 had identical reported R²ψ
+**0.999647** and raw D_LCFS **0.013679**; the tiny raw difference came from Consistency
+**0.961628 → 0.961692** against q95/βN **0.994331 → 0.994315**. No extra native failures.
+The fixed class breakdown also stayed tiny: raw-minus-control **+0.000013** on the 0.05 ms
+**136-shot/29,024-frame** subset, **+0.000007** on the 0.5 ms **64-shot/14,118-frame** subset.
+These subset R² denominators differ and are not summed to recover aggregate S.
+
+Input-only raw/low-pass sidecars took **200.27 s** and **2.08 GB** compressed; OOF target plus
+gate input cache **582.29 s**, train-only shared-scaler memmaps **17.00 s**. The three optimizer
+fits took **21.75/21.58/21.42 s**. Sealing gate predictions took **87.11 s**, and the four
+aggregate plus eight preregistered rate-class native scorer passes **1,123.29 s** total.
+Verdict: the subframe waveform shape supplied no material information beyond its matched
+low-frequency reconstruction under this fixed probe, far below optimizer variation. The
+20-ms shot-GRU already in the ensemble and the old D11 variance audit are consistent with this
+null; neither alone proves all waveform models impossible. No full two-rate GRU, threshold/window
+sweep, original evaluation-tail score or public action followed. The gate200 has been used in
+other project experiments, so this is selection evidence rather than independent confirmation.
+[All native fields, shot/source hashes and stage timings](results/b10_matched_information_gate_20260923.json).
+
 **2026-09-23 UTC — B10 two-rate raw-input support gate before any target or model:**
 The frozen first-fold OOF residual-head plan named **1,355** training and **200** sealed-gate
 shots, **343,935** full EFIT frames altogether, and excluded the original tail70. The input-only

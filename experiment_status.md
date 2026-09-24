@@ -76,7 +76,11 @@ scientific protocol.
 The bounded pilot's raw/low-pass sidecar, genuinely OOF target cache, three fixed matched heads
 and aggregate/rate-class native scorer path are implemented under `tools/b10_*.py`, with settings
 in `baselines/b10-two-rate-info-gate.params.yaml`. Their source and HP must be frozen in a new
-campaign before any supervised target extraction or fit. No model result is claimed yet.
+campaign before any supervised target extraction or fit. The frozen campaign and
+[matched native result](results/b10_matched_information_gate_20260923.json) are complete: raw
+subframe windows barely changed S relative to the equal-capacity low-pass control, well within
+the measured A/A seed difference. The fixed gate failed; no full two-rate GRU or reserved-tail
+evaluation followed.
 A focused five-step CPU comparison of the ordinary path before and after the explicit-file change
 produced byte-identical artifacts and predictions; see
 `results/oof_default_path_parity_20260923.json`. This checks compatibility, not the proposed OOF

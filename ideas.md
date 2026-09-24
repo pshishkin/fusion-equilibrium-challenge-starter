@@ -45,7 +45,9 @@ reopened gain claim. The first gate is input-only clock/support completeness ove
 training and validation shots; no tail70 file is used.
 That [input-only support preflight](results/b10_raw_support_20260923.json) passed, without
 measuring whether the extra waveform shape predicts any equilibrium error. The matched
-raw-versus-low-pass native gate remains the actual decision point.
+raw-versus-low-pass [native gate](results/b10_matched_information_gate_20260923.json) then found
+only a negligible raw benefit under equal-capacity controls, much smaller than optimizer
+variation. The bounded two-rate branch is closed before a full sequence model fit.
 The [single fixed li discrepancy guard](results/oof_li_guard_20260923.json) was then measured:
 it recovered much of li and some native score but still failed the frozen investment margin.
 This closes the constrained contour-normal operation on the TRAIN-only OOF pilot. A new path
