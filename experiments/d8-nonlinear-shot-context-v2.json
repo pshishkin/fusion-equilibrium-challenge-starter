@@ -1,0 +1,64 @@
+{
+  "amendment": "Add tested helper and exact model-YAML SHA, plus resolved shot-role hashes; no change to 1100/255 split, ExtraTrees/Ridge values or internal/native gates.",
+  "amends_spec": "experiments/d8-nonlinear-shot-context-review.json",
+  "amends_spec_sha256": "f93759d668290a59df80834c22ceff561a7e51ddea7d970f0288546ccf5a59bd",
+  "date_utc": "2026-09-23",
+  "effective_params_path": "baselines/d8-nonlinear-shot-context.params.yaml",
+  "effective_params_sha256": "3565d8c0cc738681f521f93ae5167bf3d9b5cba6995094965c13111d0061ac29",
+  "fixed_models_without_search": {
+    "linear_control": "One deterministic sklearn Ridge(alpha=1000.0, fit_intercept=true) on the same standardized1100 input rows and 52 targets, corresponding to the old D8's strongest fixed shrinkage. Also report the zero/fit-mean baseline. No CV alpha search, alternate tree depth, output weighting or seed sweep.",
+    "nonlinear": "One sklearn ExtraTreesRegressor with n_estimators=256, max_depth=10, min_samples_leaf=5, max_features=0.7, bootstrap=false, random_state=0 and n_jobs=4, fitting all 52 outputs jointly on the same 1100 standardized input rows. These are fixed design values, not tuned by held255 or gate200. ExtraTrees directly models nonlinear cross-feature interactions with only one row per shot and avoids a high-capacity per-frame/GPU fit on 1100 examples.",
+    "saved_state": "Freeze the exact source/config, scaler and fitted model hashes. Keep the internal255 targets sealed until both model predictions have been emitted; no target-derived feature, shot filtering or missing-value imputation. Abort on nonfinite input or target with shot name and counts."
+  },
+  "frozen_inputs_and_roles": {
+    "B10_sealed_cache_manifest": "runs/b10-matched-heads-20260923/manifest.json",
+    "B10_sealed_cache_manifest_sha256": "1a7a2e691283fc56ae6f43096ea0a95a71d957d184a410bc3318a597efa65f1f",
+    "B10_source_gate200_native_json": "runs/b10-matched-heads-20260923/gate_predictions/source.metrics.json",
+    "B10_source_gate200_native_json_sha256": "8171d31764f314829a6a83722fb0ad51ed67766ef72a3e587d31d808ba6fa78b",
+    "B10_source_gate200_prediction": "runs/b10-matched-heads-20260923/gate_predictions/source.npz",
+    "B10_source_gate200_prediction_sha256": "4cc12e8fb7dfed328e0dbece8645c6fb956054810a89c9c8e7979a27e02a4f6a",
+    "B10_target_and_gate_source_cache": "runs/b10-matched-heads-20260923/targets_and_base_ready.json",
+    "B10_target_and_gate_source_cache_sha256": "82df5f3061f64feb7c861eeaee137fba3d38dadf8013148e194a5457d7c5a604",
+    "OOF_filename_manifest": "runs/oof-normal-k8-5fold-20260923/files.json",
+    "OOF_filename_manifest_sha256": "e8733030d09d237691ba94e93f4b65f57268cf2efe689b01c697f7691422e621",
+    "OOF_training_universe": "All 1355 fold0 OOF shots, hash 037ff7f422bc72c5ea4af51ad49ff3c9a4b13fb945222e796b2360399116356e, 300793 full EFIT frames. Their source model train_files and val_files contain none of these shots. No base-model residual from a source's own training shot is used.",
+    "base_artifact": "runs/oof-normal-k8-5fold-20260923/fold0/base.joblib",
+    "base_artifact_sha256": "bf5035bfd83a2602981ef7def6b96911c259a22d15138f978f29bd638c0e066d",
+    "native_local_score_py_sha256": "4fb7b4ec9fecb9400b1ca39d563357b58c05befd2648ef69c8d2b4d5b835dfde",
+    "native_scorer_root": "runs/geometry-loss-screen-4a5516b9b1684353/source",
+    "reserved_evaluation": "Original salt-0 tail70, hash d3a7e1c1dbdd9ab5e185278271d2f06d246de5f9e93fa86a9391e01eb9c25bc6. It remains unopened for summary extraction, fit, validation and this native screen.",
+    "sealed_native_gate_if_internal_passes": "The 200 shots excluded from every OOF base fit, hash 66cce2f0c082fb687cf4788e328c4916135036a69595e439e10e62e05b31709e, 43142 frames. The nonlinear/Ridge regressor never fits, validates, scales or selects on these. This subset has been reused by previous project experiments, so native results are selection-only. Gate labels are read only by pinned native scorer after candidate predictions are sealed.",
+    "shot_level_fit_split": "Sort the 1355 OOF filenames by SHA256 of the UTF-8 string 'd8-nonlinear-v1:' + filename; take the first1100 complete shots for fit (ordered-names hash 573443750ff579b5785b0ba647382508352014ef5a09bfc4debe1f4e4dbf3dd5, 244043 frames) and the last255 for one internal validation (hash 7accf5b89312f2ef12ea87192dec85e52d0ebf26593b49e08ad185d74321540a, 56750 frames). Freeze exact lists/hashes before processing labels. No shot crosses roles."
+  },
+  "helper_sha256": "0157e6c9c0b8198ad8bf8b4ef2d5580f7f29bddf9546bcbcbcc9bef5b90dd023",
+  "internal_gate_before_any_native_score": {
+    "fail": "If the 0.25 internal gate fails, record its null, source and timing; stop before constructing any gate200 corrected maps or invoking native scorer. Do not tune tree size, features, split or threshold on held255.",
+    "metric": "Use sklearn.metrics.explained_variance_score on the 255 held shots, multioutput='variance_weighted', with sample_weight equal to each held shot's full EFIT-frame count. Report unweighted and frame-weighted explained variance for ExtraTrees, Ridge and fit-mean controls plus per-target summaries. This is a supervised diagnostic of shot-mean residual learnability, NOT the competition metric; no custom S or custom R2 implementation is added.",
+    "pass": "Continue ONLY if ExtraTrees frame-weighted explained variance is finite and >=0.25 on the fixed held255. The old D8 Ridge gate used the same 0.25 investment floor. Ridge and mean are reported controls, not selection knobs. Do not add an undefined li/kappa direction requirement: scorer-native li/kappa labels for this exact OOF scope are not already cached as an independent gate."
+  },
+  "name": "D8-fixed-nonlinear-whole-shot-residual-information-gate-v2",
+  "one_native_gate_only_if_internal_passes": {
+    "prediction": "On each sealed gate200 INPUT-ONLY row, compute the same 169 shot summary, apply the train1100 scaler and ExtraTrees to produce one constant scaled52 residual per shot. Add it to EVERY frame of that shot's saved fold0 source using the frozen artifact TargetScaler/PCA residual decoder, with exactly one float32 map/scalar cast. A zero residual must reproduce all source bytes; finite output and q95/betaN shapes must be verified. No true gate field may be requested before predictions are sealed.",
+    "promotion_rule": "Only candidate-minus-source native S >=+0.002600 with no increased native failures warrants root review of a new deployable whole-shot model. This is an investment screen on reused validation data, not public-fold confirmation, and does not authorize fitting on the reserved70 or an upload. A failure closes this fixed nonlinear D8 arm without model/HP/split retries.",
+    "scorer": "Score this one candidate through the untouched pinned native local_score on the exact gate200 filenames, using the already scored and hashed B10 fold0 source native JSON as control. Report S, R2psi, R2qb, raw D_LCFS, Consistency, all seven functional R2, native failures, exact filename/prediction/model hashes and stage wall times. Do not score Ridge or ensemble mixtures as extra candidates."
+  },
+  "prior_and_limit": {
+    "interpretation": "A train-only result is an investment screen, not evidence of a +0.0014 public gain. A shot-constant correction may be too crude even if mean residual prediction is positive. No hyperparameter search or model-family sweep is implied.",
+    "old_D8_native_scope": "The old 169-summary Ridge on 1000/338 historical early-stopping validation shots had explained variance +0.005938 unweighted and -0.022983 frame-weighted, far below its +0.25 gate. It used an old five-member base whose validation labels had influenced early stopping. This new test uses a genuinely OOF compact MLP source and a different nonlinear multioutput regressor; the old negative is a strong prior, not a theorem about all nonlinear context.",
+    "old_D8_result": "results/d8_whole_shot_20260922.json",
+    "old_D8_result_sha256": "1b7b015ff25f7c8cdb0bad15e811a54397d676790413bedfda02f376194ad548"
+  },
+  "question": "Can nonlinear interactions among allowed whole-shot input summaries predict the mean physical-map/scalar residual of an OOF base model where the earlier linear D8 Ridge could not?",
+  "resource_estimate_not_measurement": "Reuse the existing OOF target and source caches (no new base fit). Extracting 169 summaries and shot-mean targets for 1355 shots should take at most a few CPU minutes; ExtraTrees256 trees x52 outputs on1100 rows may take 1-5 minutes CPU4 and Ridge seconds. If the internal gate passes, constructing 200 corrected maps and one native scorer pass has the already measured order of a few minutes. Resolve actual cgroup/pids and log every stage; estimates are not results.",
+  "role_hashes": {
+    "fit1100": "573443750ff579b5785b0ba647382508352014ef5a09bfc4debe1f4e4dbf3dd5",
+    "held255": "7accf5b89312f2ef12ea87192dec85e52d0ebf26593b49e08ad185d74321540a"
+  },
+  "shot_summary_and_target": {
+    "input_169": "For each shot, compute population mean and population standard deviation over ALL of its frozen selected84 frame features in B10's per-shot cache, plus the input-only duration efit_times[-1]-efit_times[0] in milliseconds; a one-frame shot has exactly 0 ms duration. No true \u03c8, stored LCFS, q95/betaN, li or other EFIT target is an input. Assert source feature width84 and summary width169, finite, exact shot/frame alignment and input parquet/producer hashes. StandardScaler for 169 inputs is fit only on the1100 fitting shots, then applied without refit to held255/gate200.",
+    "target_52": "For each fitting/held shot only, take the mean over all its full frames of the existing B10 cached 52-dimensional TRUE-minus-OOF-source residual in the fold0 artifact's frozen TargetScaler coordinates. This uses true \u03c8/q95/betaN only for declared OOF training/held255 labels. Every shot contributes one row to both regressors; held-shot frame count is used only in the prespecified validation metric, not to fit a model.",
+    "zero_control": "A deterministic zero-residual predictor returns the saved float32 source \u03c8/q95/betaN bytes exactly; no source-map PCA round-trip or scalar recast is allowed for this control."
+  },
+  "status": "Frozen executable scope before per-shot input summary/target processing, ExtraTrees/Ridge fit, held255 metric or native gate200 score",
+  "uncertainty": "The old D8 near-zero and negative frame-weighted explained variance plus the existing bidirectional GRU make a >=+0.0014 public effect unlikely. This one fixed nonlinear gate is justified only as a cheap check of a genuinely different shot-context interaction class; it cannot be read as a forecast or as confirmation if it passes."
+}

@@ -151,20 +151,17 @@ run as a consequence.
 A [single fixed input-only li guard](experiments/oof-li-guard-v2.json) on those saved TRAIN-shot
 maps [recovered much of the li loss](results/oof_li_guard_20260923.json), but still failed its
 predeclared native-score investment margin. No threshold search, new fit or public action followed.
-A [two-rate waveform information gate](experiments/b10-two-rate-information-gate-v3.json)
-is preregistered as a separate, low-prior input hypothesis. The
-[input-only preflight](tools/b10_raw_support.py) first checks the raw clocks, units and full
-window support on allowed shots, before target extraction or any new model fit. That
-[support gate passed](results/b10_raw_support_20260923.json); the matched models still have no
-score. An unsupported raw bin would have ended the fixed pilot rather than being silently filled.
-The bounded pilot implementation has an [input-only waveform sidecar](tools/b10_waveforms.py),
-[OOF residual target producer](tools/b10_targets.py), [train-only assembly](tools/b10_assemble.py),
-[matched residual heads](tools/b10_head_model.py) and a [native-score gate](tools/b10_gate.py).
-Its exact model settings live in [the fixed YAML](baselines/b10-two-rate-info-gate.params.yaml).
-These files prepare one comparison; they do not establish a gain or replace the shipped ensemble.
-The [matched native gate](results/b10_matched_information_gate_20260923.json) is now measured:
-the raw waveform branch was indistinguishable from its low-pass control and far below its fixed
-investment margin. No production two-rate sequence model was fitted.
+The [two-rate waveform pilot](experiments/b10-two-rate-information-gate-v4.json) passed its
+[input-only raw-support audit](results/b10_raw_support_20260923.json), but the matched
+[native gate](results/b10_matched_information_gate_20260923.json) found no material advantage
+over a low-pass waveform control. Its [sidecar](tools/b10_waveforms.py),
+[OOF target producer](tools/b10_targets.py), [matched heads](tools/b10_head_model.py) and
+[fixed YAML](baselines/b10-two-rate-info-gate.params.yaml) remain reproducible; no production
+two-rate sequence model was fitted or added to the ensemble.
+A [fixed nonlinear whole-shot information gate](experiments/d8-nonlinear-shot-context-v2.json)
+is prepared separately. It reuses genuinely out-of-fold base predictions and asks whether
+allowed shot summaries predict a mean residual; a held-shot diagnostic must pass before any
+native score or model claim.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

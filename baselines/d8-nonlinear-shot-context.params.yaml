@@ -1,0 +1,12 @@
+# One fixed nonlinear D8 shot-mean residual information gate; no hyperparameter search.
+extra_trees:
+  n_estimators: 256
+  max_depth: 10
+  min_samples_leaf: 5
+  max_features: 0.7
+  bootstrap: false
+  random_state: 0
+  n_jobs: 4
+ridge:
+  alpha: 1000.0
+  fit_intercept: true

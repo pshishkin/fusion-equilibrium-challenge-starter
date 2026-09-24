@@ -65,22 +65,24 @@ A [separate fixed source-fallback li guard](experiments/oof-li-guard-v2.json) wa
 input-only fallback nearly restored source li and improved over the unguarded truth-assisted
 map, but the predeclared native-score investment margin was not reached. This contour-normal
 branch is closed without a threshold sweep, additional fit, original-tail score or public action.
-A separate [two-rate raw-waveform information gate](experiments/b10-two-rate-information-gate-v3.json)
-is planned because it would test a different permitted input source. Historical raw-signal
-screens make its prior weak. The input-only clock/support [preflight](results/b10_raw_support_20260923.json)
-passed with all selected input parquets verified; no raw target cache, paired head or native gate
-score has yet run. The complete preflight has an explicit stop on unsupported raw windows. Its
+A separate [two-rate raw-waveform information gate](experiments/b10-two-rate-information-gate-v4.json)
+tested a different permitted input source. Historical raw-signal screens made its prior weak;
+the input-only clock/support [preflight](results/b10_raw_support_20260923.json) passed. Its
 [first filename-hash preflight](results/b10_prepare_hash_preflight_20260923.json) caught a copied
 digest typo before any raw file was read; the v3 amendment preserves that failure and the unchanged
 scientific protocol.
-The bounded pilot's raw/low-pass sidecar, genuinely OOF target cache, three fixed matched heads
+The frozen pilot's raw/low-pass sidecar, genuinely OOF target cache, three fixed matched heads
 and aggregate/rate-class native scorer path are implemented under `tools/b10_*.py`, with settings
-in `baselines/b10-two-rate-info-gate.params.yaml`. Their source and HP must be frozen in a new
-campaign before any supervised target extraction or fit. The frozen campaign and
+in `baselines/b10-two-rate-info-gate.params.yaml`. The campaign and
 [matched native result](results/b10_matched_information_gate_20260923.json) are complete: raw
 subframe windows barely changed S relative to the equal-capacity low-pass control, well within
 the measured A/A seed difference. The fixed gate failed; no full two-rate GRU or reserved-tail
 evaluation followed.
+A distinct [nonlinear whole-shot residual gate](experiments/d8-nonlinear-shot-context-v2.json)
+is now implemented with one fixed ExtraTrees model, a deterministic Ridge control, OOF shot-role
+proofs and a sealed internal validation rule. It reuses existing OOF target/input caches; no
+model has yet been fitted or scored under this new protocol. The held-shot diagnostic is required
+before any native score on gate200.
 A focused five-step CPU comparison of the ordinary path before and after the explicit-file change
 produced byte-identical artifacts and predictions; see
 `results/oof_default_path_parity_20260923.json`. This checks compatibility, not the proposed OOF
