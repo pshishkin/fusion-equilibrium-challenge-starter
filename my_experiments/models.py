@@ -672,6 +672,8 @@ class TorchMLPModel(TargetModel):
     # validation loss costs one matrix multiply. It gets its own, much coarser cadence, and the
     # patience is still counted in steps.
     composite_every_steps: int = 2000
+    # Training-only augmentation: N(0, sd^2) added to the standardized inputs of every batch.
+    input_noise: float = 0.0
     _state: dict[str, np.ndarray] | None = field(default=None, init=False, repr=False)
     _n_in: int = field(default=0, init=False, repr=False)
     _n_out: int = field(default=0, init=False, repr=False)
@@ -1056,6 +1058,8 @@ class TorchMLPModel(TargetModel):
             for idx in batch_indices():
                 ib = torch.as_tensor(idx, device=dev)
                 xb, yb = Xt[ib], Yt[ib]
+                if self.input_noise:
+                    xb = xb + self.input_noise * torch.randn_like(xb)
                 opt.zero_grad()
                 out = net(xb)
                 if factors_t is None:

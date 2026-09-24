@@ -1103,7 +1103,8 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
           only: list[str] | None = None, sets: list[str] | None = None,
           fit_mode: str = "validation", explicit_files_manifest: Path | None = None,
           explicit_fold: int | None = None,
-          cross_salt_manifest: Path | None = None) -> Artifact:
+          cross_salt_manifest: Path | None = None,
+          kfold: str | None = None) -> Artifact:
     """Fit every enabled model of params.yaml on the head of the split, and save them together.
 
     Both shares are `"shots"` or `"shots/frames"` (see parse_share). `val_share` is the window
@@ -1162,7 +1163,27 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
               f"SALT-0 order and excluded from this fit, so models fitted under different salts "
               f"can be scored on the same untouched shots")
     oof_files: list[Path] = []
-    if cross_salt_manifest is not None:
+    if kfold is not None:
+        # K-fold cross-validation over the WHOLE corpus: fold i scores every K-th shot of the
+        # sha1 order, and the other K-1 folds are split 9:1 into training and early stopping.
+        # The shares and the salt-0 holdout are not used; the scored fold is the holdout.
+        if (fixed_steps or explicit_files_manifest is not None
+                or cross_salt_manifest is not None):
+            raise ValueError(f"kfold {kfold!r} cannot be combined with fixed_steps, explicit "
+                             "OOF files or cross-salt roles")
+        fold_text, _, k_text = kfold.partition("/")
+        fold, k = int(fold_text), int(k_text)
+        if not 0 <= fold < k or k < 2:
+            raise ValueError(f"kfold {kfold!r}: expected 'i/K' with 0 <= i < K and K >= 2")
+        holdout = [p for j, p in enumerate(ordered) if j % k == fold]
+        rest = [p for j, p in enumerate(ordered) if j % k != fold]
+        val_files = rest[::10]
+        files = [p for j, p in enumerate(rest) if j % 10 != 0]
+        all_files = rest
+        shot_share, val_shot_share = len(files) / len(ordered), len(val_files) / len(ordered)
+        print(f"K-fold {fold}/{k}: scoring {len(holdout)} shots, training on {len(files)}, "
+              f"early stopping on {len(val_files)}")
+    elif cross_salt_manifest is not None:
         from my_experiments.cross_salt_split import select_fit_files as select_cross_salt_files
         from toolkit.records import file_hash
 
@@ -1607,6 +1628,10 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         "holdout_files": [p.name for p in holdout],
         "holdout_share": params.holdout_share,
     }
+    if kfold is not None:
+        artifact["split_mode"] = "kfold_validation"
+        artifact["kfold"] = kfold
+        artifact["holdout_share"] = len(holdout) / len(ordered)
     if cross_salt_manifest is not None:
         artifact["split_mode"] = "cross_salt_exact_validation"
         artifact["cross_salt_manifest_sha256"] = cross_salt_manifest_sha

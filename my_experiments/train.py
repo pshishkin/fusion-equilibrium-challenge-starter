@@ -61,6 +61,10 @@ def main() -> int:
                     help="frozen exact 5633/1338/70 cross-salt roles for validation-mode fit; "
                          "requires FUSION_CROSS_SALT_MANIFEST_SHA256 and "
                          "FUSION_REFERENCE_ARTIFACT")
+    ap.add_argument("--kfold", metavar="I/K",
+                    help="score fold I of K (every K-th shot of the salt's sha1 order, recorded "
+                         "as the holdout); the rest is split 9:1 into training and early "
+                         "stopping. Shares are ignored")
     ap.add_argument("--params", type=Path, default=DEFAULT_PARAMS_PATH,
                     help=f"model zoo and its hyper-parameters (default {DEFAULT_PARAMS_PATH.name})")
     ap.add_argument("--jobs", type=int, default=0,
@@ -87,7 +91,8 @@ def main() -> int:
 
     train(args.share, args.val_share, args.local_data_dir, args.config, args.params,
           args.jobs, args.salt, args.only, args.sets, args.fit_mode,
-          args.explicit_files_manifest, args.explicit_fold, args.cross_salt_manifest)
+          args.explicit_files_manifest, args.explicit_fold, args.cross_salt_manifest,
+          args.kfold)
     return 0
 
 

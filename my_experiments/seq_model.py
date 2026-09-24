@@ -276,6 +276,12 @@ class TorchSeqModel(TargetModel):
     # Decay of an exponential moving average of the WEIGHTS, judged beside the live ones at every
     # evaluation; the fit keeps whichever validates better, so it can only help or tie. 0.0 is off.
     ema_decay: float
+    # Training-only augmentation. `input_noise` adds N(0, sd^2) to the standardized inputs of
+    # every training batch. `crop_min_frames` > 0 trains on a random contiguous window of each
+    # shot, at least that many frames long (or the whole shot if shorter); validation and
+    # inference always see whole shots.
+    input_noise: float = 0.0
+    crop_min_frames: int = 0
     _state: dict[str, np.ndarray] | None = field(default=None, init=False, repr=False)
     _ema_wins: int = field(default=0, init=False, repr=False)
     _n_in: int = field(default=0, init=False, repr=False)
@@ -459,7 +465,7 @@ class TorchSeqModel(TargetModel):
         Yvt = torch.from_numpy(np.ascontiguousarray(Y_val, dtype=np.float32)).to(dev)
 
         def batch_loss(Xs: Any, Ys: Any, starts_: np.ndarray, lengths_: np.ndarray,
-                       ids: np.ndarray) -> tuple[Any, int]:
+                       ids: np.ndarray, noise: float = 0.0) -> tuple[Any, int]:
             """Summed squared error over the VALID frames of one batch, and how many there were.
 
             Summed and divided by the true frame count rather than averaged per shot: a mean over
@@ -470,6 +476,8 @@ class TorchSeqModel(TargetModel):
             idx = torch.from_numpy(rows).to(dev)
             keep = torch.from_numpy(mask).to(dev)
             xb, yb = Xs[idx], Ys[idx]
+            if noise:
+                xb = xb + noise * torch.randn_like(xb)
             pred = net(xb, torch.from_numpy(lengths_[ids]))
             if self.loss == "mse":
                 el = (pred - yb) ** 2
@@ -495,6 +503,10 @@ class TorchSeqModel(TargetModel):
                 opt, T_max=t_max, eta_min=self.learning_rate * self.lr_final_factor)
 
         rng = np.random.default_rng(self.seed)
+        rng_aug = np.random.default_rng(self.seed + 7919)
+        if self.input_noise < 0 or self.crop_min_frames < 0:
+            raise ValueError(f"torch_seq: input_noise {self.input_noise} and crop_min_frames "
+                             f"{self.crop_min_frames} must be >= 0")
         order, cursor = rng.permutation(len(lengths)), 0
 
         def next_batch() -> np.ndarray:
@@ -525,7 +537,16 @@ class TorchSeqModel(TargetModel):
         for step in range(1, self.max_steps + 1):
             opt.zero_grad()
             with torch.autocast("cuda", enabled=use_amp):
-                total, n = batch_loss(Xt, Yt, starts, lengths, next_batch())
+                ids = next_batch()
+                if self.crop_min_frames:
+                    full = lengths[ids]
+                    lo = np.minimum(self.crop_min_frames, full)
+                    crop_len = rng_aug.integers(lo, full + 1)
+                    crop_start = starts[ids] + rng_aug.integers(0, full - crop_len + 1)
+                    total, n = batch_loss(Xt, Yt, crop_start, crop_len, np.arange(len(ids)),
+                                          self.input_noise)
+                else:
+                    total, n = batch_loss(Xt, Yt, starts, lengths, ids, self.input_noise)
             # `total` is a SUM over frames and the targets are metric-scaled, so the loss is large
             # while the gradient is small — exactly the regime where fp16 underflows unscaled.
             scaler.scale(total / n).backward()
