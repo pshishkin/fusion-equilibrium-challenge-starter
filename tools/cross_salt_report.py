@@ -133,6 +133,11 @@ def report(campaign: Path, data_dir: Path, predict_jobs: int, score_jobs: int) -
             or run.digest(meta["identity"]["source"]) != meta["source_hash"]
             or scorer_meta["source_hash"] != grid["scorer_source_hash"]):
         raise ValueError(f"{campaign}: old anchor, candidate or scorer source identity differs")
+    incomplete = [salt for salt in SALTS
+                  if not run.completed(campaign / f"base_s{salt}", meta["source_hash"])]
+    if incomplete:
+        raise ValueError(f"{campaign}: salts {incomplete} are incomplete; "
+                         "predict only after all four fits and automatic checks finish")
     controller_hashes = _freeze_controller(campaign)
     _isolated_source_import(source, ("my_experiments.baseline_model",))
     _isolated_source_import(scorer_root, ("local_score", "machines"))
