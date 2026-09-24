@@ -1,0 +1,172 @@
+{
+  "campaign": {
+    "dataset_identity": {
+      "bytes": 93425197716,
+      "config": "diii_d_train",
+      "files": 7041,
+      "manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420",
+      "revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+      "verification": "names_sizes_parquet_markers"
+    },
+    "frozen_source_file_count": 158,
+    "manifest_sha256": "a8e8fe9ee331543401dc0d65214cb4f8293b2643377c190c2f8ec60f398f8803",
+    "path": "runs/map-residual-unet-20260924",
+    "scorer_functional_sha256": {
+      "fusion_scoring/common.py": "dedabfba8e13273300090956b50ccc077a06e16bcef6a1dbbd096ed5198630f8",
+      "fusion_scoring/derive.py": "0484e6331634ada3ff7990d0fef3207021d13b3723ba2e20ab362ccabb36cab0",
+      "fusion_scoring/lcfs.py": "71130f63962f0ec4e34c86470b9292b53730578fae28666399ef02fcbeeb0cb8",
+      "fusion_scoring/masks/d3d_envelope.npz": "5fc7f52a8b253db94020b46f20bd299560a799bc0135a1eda0c611b8001a07f1"
+    },
+    "source_bundle_sha256": "2ae9a213a7637793ac3c99d28af93cc2a912a7be1af7d69582da7e5f5293b21e"
+  },
+  "classification": "one_fixed_oof_physical_map_unet_fold0_native_gate_failed",
+  "date_utc": "2026-09-24",
+  "decision": "STOP after fixed fold0 gate: tiny +0.000029 native gain is far below required +0.003000. Do not fit fold1, score mean2, open original tail70, apply to old best11, build public prediction or mutate Hugging Face.",
+  "frozen_input_and_target_evidence": {
+    "checkpoint_sha256": "2c33ed861c9343d5748a5e5bb4f45cd7532b1843e3087132b0f6efe386016a74",
+    "fit_steps": 10000,
+    "gate_source_ready_sha256": "c9b27d0f09bf949c3ce0f7f1e07e251bafd4b3211de7224d27df997f0db5ff30",
+    "guarded_ready_sha256": "5e1250953377ea11a9c1379a03dc503e05ca1e9fdb9403e4a1ba52a8ef33ce0f",
+    "peak_cuda_allocated_bytes": 341937152,
+    "source_artifact_sha256": "bf5035bfd83a2602981ef7def6b96911c259a22d15138f978f29bd638c0e066d",
+    "source_prediction_prior_bit_identical_arrays": 600,
+    "train_assembly_sha256": "87bc7733907dcf55badb6ad73997ce6d0ef5a2e0cf078e7d5ef9c1eb42a2e6b2",
+    "train_cache_ready_sha256": "5bfcfcdb265bc68b3e07b287ed51209182123d7bf43ae5cbdf54db68c348a779",
+    "train_only_scaler_sha256": "89da817a2859ecbbb0feafae4b148e1fbf8225d858cd426279f8f9b931a9fcdf",
+    "train_only_tau_gradient": 0.0008023477540969713,
+    "train_only_tau_value": 0.00015761693604798935
+  },
+  "interpretation": "This rejects the one fixed physical-map U-Net recipe on a reused internal gate200, not every spatial residual model; no independent confirmation or public score.",
+  "model_yaml_path": "baselines/map-residual-unet.params.yaml",
+  "model_yaml_sha256": "9f0608b444a478af0f568cd13746b355fed8c6e5164b761691e9af849a532500",
+  "native_gate": {
+    "delta_S": 2.8999999999945736e-05,
+    "fallback_fraction": 0.008321357377961152,
+    "fallback_frames": 359,
+    "fallback_reasons": {
+      "abs_li_change_over_threshold": 359,
+      "candidate_lcfs_invalid": 0,
+      "candidate_li_invalid": 0,
+      "source_lcfs_invalid": 0,
+      "source_li_invalid": 0
+    },
+    "gate_result_sha256": "5a961ae189b10e8ae4a97d026577f9d15fde6127236893e9216a373feb9e91df",
+    "guarded": {
+      "S": 0.989605,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 2.3e-05,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 3e-06,
+      "consistency": 0.960398,
+      "dlcfs": 0.01439,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 200,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.963911,
+        "Z_axis": 0.966357,
+        "kappa": 0.922555,
+        "li": 0.942811,
+        "tri_bot": 0.979021,
+        "tri_top": 0.984621,
+        "volume": 0.963511
+      },
+      "r2_each": {
+        "betaN": 0.994748,
+        "q95": 0.994063
+      },
+      "r2_psi": 0.999643,
+      "r2_psi_per_shot_mean": 0.999457,
+      "r2_psi_unflipped": 0.999643,
+      "r2_qb": 0.994405,
+      "ref_lcfs_dropped": 0
+    },
+    "guarded_metrics_sha256": "cb6d460e1e23c595f197e183e8d29ffed23baeaf2892cfe8df29aff34ebdacae",
+    "guarded_prediction_sha256": "6b6e6d1d4688c1a132cf384f9a71c8894e99087942d7df4f38b2c1e246a96941",
+    "no_extra_native_failures": true,
+    "passed": false,
+    "required_delta_S": 0.003,
+    "scorer_bundle_sha256": "c428f63fc38aa2f46a8c49a2c76ac1892ca8b65e99d9da1c87a0a16a1b478c87",
+    "source": {
+      "S": 0.989576,
+      "cons_fail_each": {
+        "R_axis": 0.0,
+        "Z_axis": 0.0,
+        "kappa": 0.0,
+        "li": 2.3e-05,
+        "tri_bot": 0.0,
+        "tri_top": 0.0,
+        "volume": 0.0
+      },
+      "cons_fail_frac": 3e-06,
+      "consistency": 0.960405,
+      "dlcfs": 0.014579,
+      "lcfs_fail_frac": 0.0,
+      "n_shots": 200,
+      "n_shots_missing": 0,
+      "psi_nonfinite_frac": 0.0,
+      "psi_sign": 1,
+      "psi_sign_flipped": false,
+      "psi_sign_probe_disagrees": false,
+      "r2_cons_each": {
+        "R_axis": 0.962393,
+        "Z_axis": 0.965977,
+        "kappa": 0.924696,
+        "li": 0.942613,
+        "tri_bot": 0.979562,
+        "tri_top": 0.98576,
+        "volume": 0.961837
+      },
+      "r2_each": {
+        "betaN": 0.994748,
+        "q95": 0.994063
+      },
+      "r2_psi": 0.999622,
+      "r2_psi_per_shot_mean": 0.99943,
+      "r2_psi_unflipped": 0.999622,
+      "r2_qb": 0.994405,
+      "ref_lcfs_dropped": 0
+    },
+    "source_metrics_sha256": "8171d31764f314829a6a83722fb0ad51ed67766ef72a3e587d31d808ba6fa78b",
+    "source_prediction_sha256": "4cc12e8fb7dfed328e0dbece8645c6fb956054810a89c9c8e7979a27e02a4f6a",
+    "submitted_scalar_arrays_bit_identical": 400
+  },
+  "review_spec_path": "experiments/map-residual-unet-review.json",
+  "review_spec_sha256": "ab682bdd36c4df66d2f1dff8dcceda990a3c7e75de6e7f18ab6cc2a173b47dbe",
+  "roles": {
+    "gate_full_frames": 43142,
+    "gate_or_tail_shots_read_for_training": 0,
+    "gate_ordered_sha256": "66cce2f0c082fb687cf4788e328c4916135036a69595e439e10e62e05b31709e",
+    "gate_shots": 200,
+    "gate_target_columns_requested_for_source": [],
+    "reserved_tail_ordered_sha256": "d3a7e1c1dbdd9ab5e185278271d2f06d246de5f9e93fa86a9391e01eb9c25bc6",
+    "reserved_tail_shots": 70,
+    "training_full_frames": 300793,
+    "training_kept_frames": 60171,
+    "training_oof_ordered_sha256": "037ff7f422bc72c5ea4af51ad49ff3c9a4b13fb945222e796b2360399116356e",
+    "training_oof_shots": 1355
+  },
+  "timing_seconds": {
+    "campaign_prepare": 1.7161395329749212,
+    "fit_worker_total": 94.18585031598923,
+    "fixed_10000_step_fit": 92.56374675797997,
+    "gate_guarded_map_and_li": 270.53733472002205,
+    "gate_input_only_source": 78.78021806001198,
+    "native_guarded_scorer": 138.3113722279959,
+    "native_source_scorer": 139.55152468400775,
+    "synthetic_cuda_measurement": 0.43236900100600906,
+    "train_assembly": 12.169496342015918,
+    "train_cache": 502.63863392701023,
+    "two_native_rows_total": 324.882157576998
+  }
+}

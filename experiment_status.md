@@ -44,12 +44,15 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Latest recorded evidence
 
-One [physical-map residual U-Net pilot](experiments/map-residual-unet-review.json) is now
-pre-registered against the genuinely out-of-fold first base and a sealed internal gate. The
-[synthetic CUDA and arithmetic preflight](results/map_residual_unet_preflight_20260924.json)
-passed; it reads no competition targets and says nothing about model quality. Real-data target
-construction, fitting and native gate scoring have not yet produced a result. The original
-salt-0 70-shot evaluation tail remains unopened for this pilot, and no public artifact changed.
+The one [physical-map residual U-Net pilot](experiments/map-residual-unet-review.json) is now
+[measured and closed at fold0](results/map_residual_unet_fold0_20260924.json). Its genuinely OOF
+source/true-map fit and input-only li guard passed identity and numerical checks, but the fixed
+native gate improved only negligibly against the same sealed 200 shots and missed the declared
+investment margin. No fold1 base, two-source mean or older-collection correction was fitted or
+scored. The original salt-0 70-shot evaluation tail remained unopened for this pilot, and no
+public artifact changed. The separate
+[synthetic CUDA/resource check](results/map_residual_unet_preflight_20260924.json) remains
+correctness evidence, not a model-quality result.
 
 The fixed full-coordinate input-only contour MLP passed its truth-assisted Stage-0 mechanism
 screen, then failed the predeclared Stage-2 native validation score gate. Its sole frozen fit used

@@ -3,6 +3,33 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-24 UTC — one OOF physical-map residual U-Net, stopped at its first native gate:**
+The [frozen review](experiments/map-residual-unet-review.json) used a single input-only,
+zero-initialized 65×65 U-Net to correct decoded fold0 source maps in physical flux units. The base
+had genuinely held out all **1,355** correction-training shots; source and EFIT truth were aligned
+on **60,171** fixed kept frames from **300,793** full frames. The last **200** original validation
+shots/**43,142** frames were excluded from both base and correction training; the original tail70
+was untouched. All **600** regenerated source ψ/q95/βN arrays on gate200 matched the pinned
+prior fold0 source bit for bit. One fixed **10,000-step** seed-0 CUDA fit kept its last weights.
+The input-only |li_candidate−li_source|>0.05 guard copied exact source maps on
+**359/43,142 frames (0.832%)**, below its 2% cap; q95/βN remained byte-identical and no native
+failure rate increased.
+
+On the same sealed gate200, native **S 0.989576 → 0.989605**, only **+0.000029** against the
+predeclared **+0.003000** first gate. R²ψ rose **0.999622→0.999643** and raw LCFS distance fell
+**0.014579→0.014390**, but Consistency **0.960405→0.960398** and kappa R²
+**0.924696→0.922555** did not support a useful geometry gain; q95/βN R² stayed **0.994405**.
+The fold0 control exactly reproduced its prior native score. This one spatial residual recipe is
+closed before the conditional fold1 fit and mean2 transfer; it does not refute all spatial models.
+No original tail70, old best11 or public artifact was touched.
+
+The SHA-verified OOF source/target cache took **502.64 s**, train-only array assembly **12.17 s**,
+the CUDA optimizer **92.56 s** (0.318 GiB peak allocation), input-only gate-source preparation
+**78.78 s**, guarded inference/li extraction **270.54 s**, and both native passes plus final
+checks **324.88 s**. The sequential measured pipeline from cache through gate was about
+**1,283.19 s (21 min 23 s)**, excluding separate synthetic preflight and source freeze.
+[Full native terms, all role/source/cache hashes, fallback counts and timings](results/map_residual_unet_fold0_20260924.json).
+
 **2026-09-24 UTC — new four-salt float32 diversity collection, no gain:**
 The [frozen protocol](experiments/cross-salt-four-review.json) trained one seed-0 MLP and one
 seed-0 sequence model at each of salts 1–4, with the original salt-0 70-shot tail excluded from

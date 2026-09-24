@@ -537,7 +537,9 @@ live checkout.
 The bounded [physical-map residual U-Net review](experiments/map-residual-unet-review.json) and
 [fixed YAML](baselines/map-residual-unet.params.yaml) define a separate OOF source-correction
 pilot. Its [synthetic arithmetic/CUDA preflight](results/map_residual_unet_preflight_20260924.json)
-passed, but no real-data model result exists yet. A frozen campaign must be prepared through
+passed, and its [real-data fold0 gate](results/map_residual_unet_fold0_20260924.json) then
+failed the declared investment threshold, so the transfer stage was not run. A frozen campaign
+is prepared through
 `tools.map_residual_campaign` before `tools.map_residual_data` may read supervised OOF targets;
 `tools.map_residual_train` fits one last-step U-Net, and `tools.map_residual_gate` applies the
 input-only li guard and native internal gates. The reserved evaluation tail and public prediction
