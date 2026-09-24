@@ -44,14 +44,14 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Latest recorded evidence
 
-One [source-origin polar representation gate](experiments/polar-source-origin-review.json) has
-been frozen before true-map processing. Its
-[selection manifest](experiments/polar-source-origin-samples.json) fixes disjoint first and third
-OOF TRAIN-shot samples and three frame indices per shot from existing input-only metadata. The
-first gate tests whether the input-only source contour centroid supports a true-contour polar
-target; if it passes, one PCA64 basis is checked for topology and physical Hausdorff on the
-third sample. No polar result, learner fit, internal native score or original-tail evaluation has
-been measured yet.
+The [source-origin polar representation gate](experiments/polar-source-origin-review.json) is
+[measured and closed](results/polar_source_origin_20260924.json). The first OOF TRAIN sample had
+no hard source-origin failures or input-only source fallbacks, so the fixed PCA64 basis was
+evaluated on the preselected, disjoint third OOF TRAIN sample. Every resulting polygon was
+simple and in-grid, but scorer-native point-set Hausdorff missed both predeclared distance limits.
+The uncompressed outer-star-envelope construction already carried nearly all that distance;
+increasing PCA rank on these measured shots is not the answer. No contour learner, native S,
+gate200, original evaluation tail or public artifact was touched.
 
 The one [physical-map residual U-Net pilot](experiments/map-residual-unet-review.json) is now
 [measured and closed at fold0](results/map_residual_unet_fold0_20260924.json). Its genuinely OOF

@@ -1,0 +1,304 @@
+{
+  "campaign": {
+    "dataset_identity": {
+      "bytes": 93425197716,
+      "config": "diii_d_train",
+      "files": 7041,
+      "manifest_sha256": "355649d71122a638472e1044f0060dfbaeee1f842101f59c53ab7a3f7f73d420",
+      "revision": "1e280905b85f2a6fdde7e06fca8cf3a1edf447cb",
+      "verification": "names_sizes_parquet_markers"
+    },
+    "fold0_artifact_sha256": "bf5035bfd83a2602981ef7def6b96911c259a22d15138f978f29bd638c0e066d",
+    "manifest_sha256": "d4b36452ba65c2e1109f2e69f4710b6332c8dd07f24c97cc1e791b4beea1c0af",
+    "path": "runs/polar-source-origin-20260924",
+    "source_bundle_sha256": "f0342d546a47a8ed93758227667650b665b59940f0b045c829969608b2240731",
+    "source_file_count": 160
+  },
+  "classification": "fixed_source_centroid_outer_polar_PCA64_TRAIN_representation_gate_failed",
+  "date_utc": "2026-09-24",
+  "decision": "STOP: first source-origin topology gate passed, but one fixed PCA64 star-envelope representation failed both scorer-native all-frame Hausdorff limits on a disjoint third100 TRAIN sample. No learner, native S evaluation, gate200 or original tail70 read, public model or upload.",
+  "first_gate": {
+    "PCA64_basis_sha256": "37d7938e013b6a109071c3598caf6ad059b16f425ee9af3d5ff73d051fa0fd87",
+    "PCA64_fit_rows": 300,
+    "counts": {
+      "hard_frames": 0,
+      "hard_reasons": {},
+      "multiple_hit_true_frames": 6,
+      "multiple_hit_true_rays": 6,
+      "source_only_fallback_frames": 0,
+      "source_only_fallback_reasons": {}
+    },
+    "multi_hit_outer_envelope_hausdorff_m": {
+      "max": 0.02703703885634165,
+      "median": 0.019168791805069932,
+      "p95": 0.025529927003690972
+    },
+    "passed": true,
+    "result_sha256": "dd6bc4fe90826a093d0ee3d25018ba4b067f83e7889e8934fee1ba3565459be5",
+    "source_hausdorff_m": {
+      "max": 0.1268342652650777,
+      "median": 0.014890603108858941,
+      "p95": 0.050847741618003886
+    },
+    "source_to_true_centroid_distance_m": {
+      "max": 0.03732929827346564,
+      "median": 0.004099273276139395,
+      "p95": 0.013130357275309534
+    },
+    "timing_seconds": {
+      "PCA64_fit": 0.016768246015999466,
+      "extract_and_ray": 19.447005552006885,
+      "first_stage_wall": 19.65141128798132
+    },
+    "uncompressed_outer_envelope_hausdorff_m": {
+      "max": 0.040221937090001623,
+      "median": 0.013451009049083175,
+      "p95": 0.021055816790740225
+    }
+  },
+  "full_per_frame_evidence_sha256": {
+    "first_contours": "6a4738bb2345f9858c20a09a4c706646a5c2469afb649c2e72819021ad69f6b7",
+    "first_frames": "039f3443eafc2f28bb70b93ceff8278fdc6d2cabd30e07fef3a7b3653d907305",
+    "third_contours": "f8eb3e02e2349c35c5d7a8acf3b168e29b5f2c68e47a59892cf1107cb534f0af",
+    "third_frames": "1e2a21f7bbf6bf0da7d89698b60a1f6562c70d952bc7d621e7e2351b90857bb2",
+    "third_reconstructions": "6010ccd785872a52f851b0e7bf91167b2e0f9417541aa7b6562e7a7f2aa80916"
+  },
+  "interpretation": "PCA compression added little error relative to the uncompressed outer star envelope. The fixed source-origin angular 512-point representation itself has a large point-set Hausdorff cost; this does not refute every polar chart or continuous-curve metric, but no ray/origin/rank change on these measured samples is licensed.",
+  "review_spec_path": "experiments/polar-source-origin-review.json",
+  "review_spec_sha256": "adc22d72c6a46a4c94e91a6cab31ada425d932a9484112a5e5631ef447a7bf2e",
+  "roles": {
+    "first100_ordered_names_sha256": "8363384de1d2125166049a88425db370cea04ab051b38031f92e5622d57652bd",
+    "first100_probes": 300,
+    "first100_shots": 100,
+    "gate200_shots_used": 0,
+    "reserved_tail70_shots_used": 0,
+    "third100_ordered_names_sha256": "e2d5b9913c3f3579c79077e3af1325427e6e75da0c6853631dd2a0ae39d41455",
+    "third100_probes": 300,
+    "third100_shots": 100
+  },
+  "selection_manifest_path": "experiments/polar-source-origin-samples.json",
+  "selection_manifest_sha256": "255a9cb02ecc5dee7adbc7e02d566a07d847eacb597297ccc9e6f292c30dded8",
+  "third_gate": {
+    "PCA64_minus_uncompressed_outer_envelope_m": {
+      "frames_PCA_worse": 131,
+      "mean": 8.792100199447513e-05,
+      "median": -3.1594845511480514e-05,
+      "p95": 0.0011926395700561667
+    },
+    "accepted_in_grid_polygons": 300,
+    "accepted_simple_polygons": 300,
+    "fallback_frames": 0,
+    "hard_and_multiple_hit_counts": {
+      "hard_frames": 0,
+      "hard_reasons": {},
+      "multiple_hit_true_frames": 3,
+      "multiple_hit_true_rays": 4,
+      "source_only_fallback_frames": 0,
+      "source_only_fallback_reasons": {}
+    },
+    "local_X_point_like_proxy_true_vertex_errors": {
+      "highest_curvature_26_vertices": {
+        "per_frame_max_m": {
+          "max": 0.0405292811379662,
+          "median": 0.009655378580568995,
+          "p95": 0.016619152155387142
+        },
+        "per_frame_p95_m": {
+          "max": 0.03173590091451149,
+          "median": 0.007609137525633108,
+          "p95": 0.012151526384404778
+        }
+      },
+      "lower_vertical_decile": {
+        "per_frame_max_m": {
+          "max": 0.0405292811379662,
+          "median": 0.011003659066764619,
+          "p95": 0.018197810991322675
+        },
+        "per_frame_p95_m": {
+          "max": 0.03020828380716551,
+          "median": 0.008646448606701655,
+          "p95": 0.013563480833987448
+        }
+      },
+      "upper_vertical_decile": {
+        "per_frame_max_m": {
+          "max": 0.030591461172180413,
+          "median": 0.00681637096761781,
+          "p95": 0.01697477560237678
+        },
+        "per_frame_p95_m": {
+          "max": 0.019992361661152817,
+          "median": 0.006212562967342693,
+          "p95": 0.012467563111377866
+        }
+      }
+    },
+    "minimum_grid_spacing_m": 0.02656245231628418,
+    "multi_hit_reconstruction_hausdorff_m": {
+      "max": 0.022283868259931092,
+      "median": 0.021757358203259254,
+      "p95": 0.02223121725426391
+    },
+    "passed": false,
+    "reconstruction_hausdorff_cells": {
+      "max": 1.525810970138462,
+      "median": 0.47630464112711446,
+      "p95": 0.7633876253542782
+    },
+    "reconstruction_hausdorff_m": {
+      "max": 0.0405292811379662,
+      "median": 0.012651819317963827,
+      "p95": 0.020277447397314425
+    },
+    "required_median_cells": 0.25,
+    "required_p95_cells": 0.5,
+    "result_sha256": "6c97abeae1e9ef25f0ef2f21108a8f91b25b2a656de8405623896b57a4927c9a",
+    "source_contour_hausdorff_m": {
+      "max": 0.27109774558635863,
+      "median": 0.016442423943342232,
+      "p95": 0.05503573294407924
+    },
+    "source_only_and_output_fallback_reasons": {},
+    "source_to_true_centroid_distance_m": {
+      "max": 0.18875137940413636,
+      "median": 0.004646503646427151,
+      "p95": 0.022518742104553187
+    },
+    "timing_seconds": {
+      "PCA_and_local_geometry": 8.735101377009414,
+      "extract_and_ray": 21.547247734008124,
+      "third_stage_wall": 30.466198777983664
+    },
+    "uncompressed_outer_envelope_hausdorff_cells": {
+      "max": 1.5154133210342142,
+      "median": 0.4768629276420495,
+      "p95": 0.7476792891372013
+    },
+    "uncompressed_outer_envelope_hausdorff_m": {
+      "max": 0.040253094079433165,
+      "median": 0.012666648776895613,
+      "p95": 0.019860195465580162
+    },
+    "worst_directed_points": [
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.0405292811379662,
+        "file": "d3d_shot_3cbb2af6dc.parquet",
+        "frame": 78,
+        "physical_RZ_m": [
+          1.3712964288482163,
+          -1.1453725373624999
+        ],
+        "vertex_index": 253
+      },
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.03339231532414001,
+        "file": "d3d_shot_e46b54eb46.parquet",
+        "frame": 86,
+        "physical_RZ_m": [
+          1.9282567286050212,
+          -1.0497134209608914
+        ],
+        "vertex_index": 286
+      },
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.03231171410864294,
+        "file": "d3d_shot_e46b54eb46.parquet",
+        "frame": 48,
+        "physical_RZ_m": [
+          2.0312654574020264,
+          -0.995599562432582
+        ],
+        "vertex_index": 289
+      },
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.030591461172180413,
+        "file": "d3d_shot_a0a738db89.parquet",
+        "frame": 25,
+        "physical_RZ_m": [
+          1.144958265512805,
+          1.1082441724006131
+        ],
+        "vertex_index": 14
+      },
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.026540037049264237,
+        "file": "d3d_shot_5b1502412f.parquet",
+        "frame": 217,
+        "physical_RZ_m": [
+          1.4831936067772211,
+          -1.14697700555947
+        ],
+        "vertex_index": 251
+      },
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.025571582567871128,
+        "file": "d3d_shot_279bb0ac8d.parquet",
+        "frame": 10,
+        "physical_RZ_m": [
+          1.117453338295734,
+          1.0904036575983733
+        ],
+        "vertex_index": 11
+      },
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.022884403507572253,
+        "file": "d3d_shot_d9920d478c.parquet",
+        "frame": 35,
+        "physical_RZ_m": [
+          1.299972833290819,
+          -1.2161107391417474
+        ],
+        "vertex_index": 237
+      },
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.02267622936551167,
+        "file": "d3d_shot_b6551f9aac.parquet",
+        "frame": 258,
+        "physical_RZ_m": [
+          1.253268137206611,
+          -1.1741506897963154
+        ],
+        "vertex_index": 237
+      },
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.022283868259931092,
+        "file": "d3d_shot_2aab07a9c2.parquet",
+        "frame": 27,
+        "physical_RZ_m": [
+          1.3713747770422,
+          -1.24821015051889
+        ],
+        "vertex_index": 247
+      },
+      {
+        "direction": "true_to_reconstruction",
+        "distance_m": 0.021757358203259254,
+        "file": "d3d_shot_ccddef3b30.parquet",
+        "frame": 26,
+        "physical_RZ_m": [
+          1.297905554921175,
+          -1.168162834228215
+        ],
+        "vertex_index": 245
+      }
+    ]
+  },
+  "timing_seconds": {
+    "first_stage": 19.65141128798132,
+    "note": "Prepare process wall is the command observation and includes source copy/import; manifest preflight is its internal timer. First and third stages are frozen worker timers, sequential, with no GPU.",
+    "prepare_first_third_process_total_observed": 53.18980862796498,
+    "prepare_manifest_preflight": 0.23641101500834338,
+    "prepare_process_wall_observed": 3.072198562,
+    "third_stage": 30.466198777983664
+  }
+}

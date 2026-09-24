@@ -536,7 +536,9 @@ live checkout.
 
 The [source-origin polar contour gate](experiments/polar-source-origin-review.json) is a
 TRAIN-only representation check, with exact shot/frame roles in its
-[selection manifest](experiments/polar-source-origin-samples.json). Prepare a frozen campaign
+[selection manifest](experiments/polar-source-origin-samples.json). Its
+[measured third-sample Hausdorff gate](results/polar_source_origin_20260924.json) failed despite
+valid topology, so no contour learner followed. Prepare a frozen campaign
 through `tools.diagnose_polar_source_origin prepare`, then run its `first` gate; the `third`
 PCA64 check is allowed only if `first` passes. The ray origin is extracted from the input-only
 base prediction. True multi-hit rays create a fixed outer-envelope training target and are

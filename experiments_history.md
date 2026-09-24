@@ -3,6 +3,30 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-24 UTC — source-centroid polar LCFS representation, topology pass then distance fail:**
+The [fixed TRAIN-only protocol](experiments/polar-source-origin-review.json) used the physical
+centroid of each input-only fold0 source-map LCFS as the one angular-ray origin. Exact selected
+first and third **100-shot/300-frame** OOF TRAIN samples were frozen from input-only metadata,
+with an unused intervening 100-shot block. For rays crossing a nonstar true contour more than
+once, the supervised target was always the **outermost** positive radius; truth never selected an
+inference fallback. On the first sample, **0 hard failures and 0 source-only fallbacks** occurred;
+six frames had one multi-hit ray each. One unwhitened PCA64 fit used all 300 viable log-radius
+vectors. On the disjoint third sample, **0 hard failures, 0 fallbacks**, and all 300 reconstructed
+polygons were simple and inside the physical grid; three frames had four multi-hit true rays.
+
+The scorer-native point-set symmetric Hausdorff on **all 300 third-sample frames** was
+**median 0.4763 / p95 0.7634 minimum grid cells**, above the predeclared **0.25 / 0.50** limits.
+Even the **uncompressed** true outer-star envelope had **0.4769 / 0.7477 cells**; PCA64 added
+almost no median error. The source-contour centroid differed from the true contour centroid by
+median/p95 **0.00465 / 0.02252 m**. The worst directed point was **0.04053 m** from the
+reconstructed contour at **(R,Z)=(1.37130,−1.14537) m**, in a lower-extremal region; lower,
+upper and highest-curvature local proxies are recorded without calling them a true X-point.
+The first stage took **19.65 s** and the third **30.47 s**, after **3.07 s** frozen preparation.
+Verdict: close this single fixed source-origin/512-angle/PCA64 chart before any learner. The
+distance is already in the star-envelope/angular point sampling, not a missing PCA mode; no
+ray/origin/rank retune on these samples. No gate200, original tail70, native S or public action.
+[Per-frame evidence hashes, all geometry and timing](results/polar_source_origin_20260924.json).
+
 **2026-09-24 UTC — one OOF physical-map residual U-Net, stopped at its first native gate:**
 The [frozen review](experiments/map-residual-unet-review.json) used a single input-only,
 zero-initialized 65×65 U-Net to correct decoded fold0 source maps in physical flux units. The base
