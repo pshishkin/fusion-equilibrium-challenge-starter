@@ -13,6 +13,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import joblib
+
 from my_experiments import run
 from toolkit import records
 from toolkit.records import file_hash, write_json
@@ -151,6 +153,17 @@ def report(campaign: Path, data_dir: Path, predict_jobs: int, score_jobs: int) -
             raise ValueError(f"{folder}: fit and own holdout score are incomplete")
         artifact = folder / "baseline.joblib"
         complete = json.loads((folder / "complete.json").read_text())
+        fitted: dict[str, Any] = joblib.load(artifact)
+        salt_roles = manifest["salts"][str(salt)]
+        if (fitted["train_files"] != salt_roles["train_files"]
+                or fitted["val_files"] != salt_roles["validation_files"]
+                or set(fitted["holdout_files"]) != set(names)
+                or fitted.get("split_mode") != "cross_salt_exact_validation"
+                or fitted.get("cross_salt_manifest_sha256") != file_hash(manifest_path)
+                or fitted.get("source_sha256") != meta["source_hash"]
+                or set(fitted["models"]) != set(MODELS)):
+            raise ValueError(f"{artifact}: train/validation/holdout/model/source identity "
+                             "differs from the frozen four-salt manifest")
         for model in MODELS:
             name = f"s{salt}_{model}"
             output = predictions / f"{name}.npz"
