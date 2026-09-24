@@ -1,13 +1,5 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
-**2026-09-24 — a new fixed float32 split-salt diversity screen is pending:**
-The [four-salt preregistration](experiments/cross-salt-four-review.json) and
-[exact filename manifest](experiments/cross-salt-four-manifest.json) fix four new MLP/sequence
-pairs, a common original salt-0 evaluation tail and one equal-block decoded blend with the
-existing local ensemble. This is a new collection with no measured effect yet, not a recreation
-of the unavailable historical six-salt submission. The reused tail can screen an investment but
-cannot independently confirm generalization or predict the public score.
-
 **2026-09-23 — deployable boundary correction remains open beyond the fixed Ridge screen:**
 The truth-assisted contour correction and source-li compensation establish local mechanism
 headroom, but the single preregistered [input-only K8/Ridge screen](results/contour_learnability_screen_20260923.json)

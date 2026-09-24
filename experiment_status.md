@@ -32,12 +32,15 @@ Historical explanations and negative results remain in `experiments_history.md`,
   Its full enabled ensemble has no fresh score. It retains the accepted configuration including the static auxiliary
   head and `cons_split`. Its sequence learning-rate schedule is `none`. The historical cosine
   result below is a candidate to verify against this control, not silently reapply.
-- **Pending new diversity screen:** The fixed [four-salt preregistration](experiments/cross-salt-four-review.json)
-  and [filename manifest](experiments/cross-salt-four-manifest.json) reserve the original salt-0
-  evaluation tail before all fits. Each new salt retains the ordinary production train and
-  validation shot counts, with one MLP and one sequence member. Its fixed float32 blend and
-  investment rule were declared before training; no effect or public result has been measured.
-  This is distinct from, and cannot reproduce, the historical six-salt submission.
+- **Four new split salts measured, no promotion:** The [fixed protocol](experiments/cross-salt-four-review.json)
+  excluded the original salt-0 evaluation tail from all eight new member fits and stopping.
+  The new eight-member block and its single 50/50 float32 blend were scored on the same 70 shots
+  as the existing best local block. The mixed candidate was effectively tied but slightly lower
+  than the bit-identical decoded/native control and missed the declared investment gate; no
+  public candidate or Hugging Face update followed. Member, block and per-term native scores,
+  exact filenames, cache/source hashes and stage times are in
+  [results/cross_salt_four_20260924.json](results/cross_salt_four_20260924.json). This new
+  collection cannot reproduce the historical six-salt submission.
 
 ## Latest recorded evidence
 
@@ -438,10 +441,11 @@ verified. A concise score/timing index is `results/overnight_summary_20260923.md
    ψ is float32; q95 and βN changed as float32 predictions too. Thus the two files differ beyond
    export precision, but these unlabeled differences do not explain a score or identify the
    exact artifact submitted as 915662. See `results/old_vs_new_private_hf_20260923.json`.
-2. A trustworthy generalization check for this adaptively selected collection needs shots held
-   out **before every member fit**. The repeatedly scored salt-0 tail and a new ordinary split
-   salt do not create an independent dataset for these existing artifacts; confirmation would
-   require a predeclared common holdout and new fits, or an actual public leaderboard evaluation.
+2. A trustworthy generalization check for the adaptively selected old collection needs shots
+   held out **before every member fit and selection decision**. The new four-salt fits excluded the
+   original tail70, but old collection selection had already reused those same shots, so their
+   mixed score is an investment diagnostic rather than independent confirmation. A fresh
+   predeclared holdout for all members or an actual public leaderboard evaluation would be needed.
 3. If the original September six-salt submission artifacts and weights become available, verify
    their hashes and inference code against submission 915662. The recovered August five-member
    artifact is a useful local control but is not the verified submitted collection.

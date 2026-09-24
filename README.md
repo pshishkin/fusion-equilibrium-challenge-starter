@@ -551,7 +551,8 @@ an existing cross-salt blend locally scorable. Candidate selection and confirmat
 The new [four-salt campaign](experiments/cross-salt-four.json) uses an
 [exact filename manifest](experiments/cross-salt-four-manifest.json) to retain the original
 evaluation tail and full production train/validation counts under each new salt; its
-[preregistered blend](experiments/cross-salt-four-review.json) is pending measurement. Prepare
+[preregistered blend](experiments/cross-salt-four-review.json) has been
+[measured](results/cross_salt_four_20260924.json) and was not promoted. Prepare
 and execute it through `my_experiments.run`; the separate verified auxiliary-cache prewarm must
 finish before execution. It is a new float32 collection, not a reconstruction of the historical
 six-salt submission.

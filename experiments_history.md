@@ -3,6 +3,35 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-24 UTC — new four-salt float32 diversity collection, no gain:**
+The [frozen protocol](experiments/cross-salt-four-review.json) trained one seed-0 MLP and one
+seed-0 sequence model at each of salts 1–4, with the original salt-0 70-shot tail excluded from
+every fit and validation stop. Each salt used exactly **5,633 train + 1,338 validation** shots;
+the scorer saw the identical **70 shots/14,830 frames** in the original salt-0 order. The new
+eight-member block scored **S 0.994693**. The one declared 50/50 decoded-map and q95/βN blend
+with the existing local collection scored **0.995072**, against **0.995080** for the native and
+reconstructed matched control: **ΔS −0.000008**, far below the +0.001500 investment gate.
+Reconstruction matched the old anchor bit for bit across all 210 arrays. The mixed candidate
+improved R²ψ **0.999855→0.999860**, R²qb **0.997165→0.997189**, and LCFS distance
+**0.009378→0.009357**, but Consistency fell **0.982616→0.982531**. No native failure rate rose.
+
+| New member | Salt 1 | Salt 2 | Salt 3 | Salt 4 |
+|---|---:|---:|---:|---:|
+| MLP S | 0.992920 | 0.991877 | 0.991894 | 0.991843 |
+| Sequence S | 0.990950 | 0.991581 | 0.989774 | 0.991794 |
+
+The one-time verified auxiliary preparation took **1,102.26 s**. The four fit/automatic-completion
+workers took **1,334.88 / 1,877.89 / 1,466.33 / 1,498.56 s** sequentially; within those, MLP
+fits totaled **994.2 s** and sequence fits **4,386.6 s**. Eight member predictions took
+**181.75 s**, fixed block construction **41.34 s**, and twelve native scorer passes **640.64 s**;
+the complete comparison worker took **868.25 s**. The measured preparation, fit and comparison
+stages sum to about **2 h 15 min 48 s**, with no concurrent GPU fit. Four automatic per-salt
+completion scores were produced by the runner but were not inspected or used for selection.
+The same tail has already been used for earlier collection decisions, so these paired scores
+are a diagnostic, not independent confirmation or a public result. No public artifact or private
+repository file was changed. [Full native terms, all old/new member scores, role and source
+hashes, and exact stage times](results/cross_salt_four_20260924.json).
+
 **2026-09-24 UTC — fixed nonlinear D8 whole-shot residual gate, stopped before native score:**
 The frozen fold0 base excluded all **1,355** OOF shots, so one ExtraTrees model and a Ridge
 control could fit shot-level mean residuals without in-sample base predictions. The deterministic
