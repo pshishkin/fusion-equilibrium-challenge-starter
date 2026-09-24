@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import time
@@ -12,7 +14,9 @@ from pathlib import Path
 from typing import Any
 
 from my_experiments import run
+from toolkit import records
 from toolkit.records import file_hash, write_json
+from tools import cross_salt_blend, historical_compare
 from tools.cross_salt_blend import build
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,6 +35,75 @@ def _call(command: list[str], cwd: Path, env: dict[str, str]) -> float:
     started = time.perf_counter()
     subprocess.run(command, cwd=cwd, env=env, check=True)
     return time.perf_counter() - started
+
+
+def _fit_stages(folder: Path) -> dict[str, float]:
+    metrics = json.loads((folder / "metrics.json").read_text())
+    status = json.loads((folder / "status.json").read_text())
+    text = Path(status["log"]).read_text(errors="replace")
+    individual: dict[str, float] = {}
+    for model in MODELS:
+        values = re.findall(rf"\b{model}: fitted in ([0-9.]+) s", text)
+        if len(values) != 1:
+            raise ValueError(f"{status['log']}: fitted {model} timing rows {len(values)}, "
+                             "expected one")
+        individual[f"{model}_fit"] = float(values[0])
+    timing = metrics["timing_seconds"]
+    if status["state"] != "scored" or timing["train"] < sum(individual.values()):
+        raise ValueError(f"{folder}: worker status or train/individual fit timing differs")
+    return {
+        "worker_wall": status["wall_s"],
+        "train_including_data_and_preparation": timing["train"],
+        "score_own_holdout_ensemble": timing["score"],
+        "other_train_read_preparation": timing["train"] - sum(individual.values()),
+        **individual,
+    }
+
+
+def _freeze_controller(campaign: Path) -> dict[str, str]:
+    """Retain exact live orchestration bytes separately from the evaluator snapshot."""
+    sources = {
+        "cross_salt_report.py": Path(__file__),
+        "cross_salt_blend.py": Path(cross_salt_blend.__file__),
+        "historical_compare.py": Path(historical_compare.__file__),
+        "run.py": Path(run.__file__),
+        "records.py": Path(records.__file__),
+    }
+    folder = campaign / "comparison_controller"
+    folder.mkdir(exist_ok=True)
+    hashes: dict[str, str] = {}
+    for name, source in sources.items():
+        target = folder / name
+        digest = file_hash(source)
+        if target.exists():
+            if file_hash(target) != digest:
+                raise ValueError(f"{target}: frozen comparison controller differs from {source}")
+        else:
+            shutil.copyfile(source, target)
+            if file_hash(target) != digest:
+                raise ValueError(f"{target}: copied comparison controller hash differs")
+        hashes[name] = digest
+    write_json(folder / "controller.json", {
+        "classification": "live_comparison_controller_copied_before_predictions_or_score",
+        "files_sha256": hashes,
+    })
+    return hashes
+
+
+def _isolated_source_import(source: Path, modules: tuple[str, ...]) -> None:
+    command = [sys.executable, "-I", "-c",
+               "import importlib, pathlib, sys; "
+               "root=pathlib.Path(sys.argv[1]).resolve(); sys.path.insert(0,str(root)); "
+               "mods=[importlib.import_module(x) for x in sys.argv[2:]]; "
+               "assert all(pathlib.Path(x.__file__).resolve().is_relative_to(root) for x in mods)",
+               str(source), *modules]
+    environment = dict(os.environ)
+    environment.pop("PYTHONPATH", None)
+    result = subprocess.run(command, cwd="/tmp", env=environment,
+                            capture_output=True, text=True, check=False)
+    if result.returncode:
+        raise RuntimeError(f"{source}: isolated import of {modules} failed "
+                           f"with code {result.returncode}: {result.stderr[-500:]}")
 
 
 def report(campaign: Path, data_dir: Path, predict_jobs: int, score_jobs: int) -> None:
@@ -52,9 +125,15 @@ def report(campaign: Path, data_dir: Path, predict_jobs: int, score_jobs: int) -
     old_scalar = ROOT / "runs/historical-five-geometry-20260922/historical_positive_stack.npz"
     old_anchor = ROOT / review["evaluation"]["old_control"]
     scorer_root = ROOT / "runs/geometry-loss-screen-4a5516b9b1684353/source"
+    scorer_meta = run.verify_source(scorer_root.parent)
+    grid = json.loads(grid_path.read_text())
     if (file_hash(old_anchor) != review["evaluation"]["old_control_sha256"]
-            or run.digest(meta["identity"]["source"]) != meta["source_hash"]):
-        raise ValueError(f"{campaign}: original anchor or campaign source identity differs")
+            or run.digest(meta["identity"]["source"]) != meta["source_hash"]
+            or scorer_meta["source_hash"] != grid["scorer_source_hash"]):
+        raise ValueError(f"{campaign}: old anchor, candidate or scorer source identity differs")
+    controller_hashes = _freeze_controller(campaign)
+    _isolated_source_import(source, ("my_experiments.baseline_model",))
+    _isolated_source_import(scorer_root, ("local_score", "machines"))
     env = dict(os.environ)
     env.pop("PYTHONPATH", None)
     env.update({
@@ -84,6 +163,7 @@ def report(campaign: Path, data_dir: Path, predict_jobs: int, score_jobs: int) -
                     raise ValueError(f"{output}: existing prediction provenance differs")
                 prediction_seconds[name] = record["prediction_seconds"]
                 continue
+            print(f"Predicting frozen new member {name}", flush=True)
             prediction_seconds[name] = _call([
                 sys.executable, "-u", "-m", "tools.historical_compare", "predict",
                 "--source-root", str(source), "--artifact", str(artifact),
@@ -123,6 +203,7 @@ def report(campaign: Path, data_dir: Path, predict_jobs: int, score_jobs: int) -
                 raise ValueError(f"{output}: existing native score provenance differs")
             score_seconds[name] = 0.0
             continue
+        print(f"Native scoring fixed row {name}", flush=True)
         score_seconds[name] = _call([
             sys.executable, "-u", "-m", "tools.historical_compare", "score",
             "--prediction", str(prediction), "--files-json", str(files_json),
@@ -145,6 +226,8 @@ def report(campaign: Path, data_dir: Path, predict_jobs: int, score_jobs: int) -
         "classification": "new_four_salt_reused_tail_diagnostic_not_historical_six_salt",
         "campaign": str(campaign),
         "campaign_source_sha256": meta["source_hash"],
+        "scorer_source_sha256": scorer_meta["source_hash"],
+        "live_controller_sha256": controller_hashes,
         "manifest_sha256": file_hash(manifest_path),
         "prereg_sha256": file_hash(source / meta["identity"]["spec"]["review"]),
         "files_json_sha256": file_hash(files_json),
@@ -163,6 +246,10 @@ def report(campaign: Path, data_dir: Path, predict_jobs: int, score_jobs: int) -
             "max_abs": blocks["old_decoded_vs_native_max_abs"],
         },
         "timing_seconds": {
+            "auxiliary_prewarm": json.loads(
+                (campaign / "aux_cache_ready.json").read_text())["elapsed_seconds"],
+            "fit_stages": {str(salt): _fit_stages(campaign / f"base_s{salt}")
+                           for salt in SALTS},
             "predictions": prediction_seconds,
             "fixed_blocks": blocks["elapsed_seconds"],
             "native_scoring": score_seconds,

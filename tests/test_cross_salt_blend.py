@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
 
 from tools.cross_salt_blend import _decoded_block
+from tools.cross_salt_report import _fit_stages
 
 
 class CrossSaltBlendTest(unittest.TestCase):
@@ -33,6 +37,21 @@ class CrossSaltBlendTest(unittest.TestCase):
         candidates.append(np.ones(3, dtype=np.float32))
         with self.assertRaisesRegex(ValueError, "shapes differ"):
             _decoded_block(arrays, candidates, None)
+
+    def test_worker_stage_times_are_read_from_native_log(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            log = folder / "run.log"
+            log.write_text("mlp: fitted in 12.5 s, best step 3\n"
+                           "seq: fitted in 30.0 s, best step 4\n")
+            (folder / "metrics.json").write_text(json.dumps({
+                "timing_seconds": {"train": 60.0, "score": 15.0}}))
+            (folder / "status.json").write_text(json.dumps({
+                "state": "scored", "wall_s": 76.0, "log": str(log)}))
+            result = _fit_stages(folder)
+            self.assertEqual(result["mlp_fit"], 12.5)
+            self.assertEqual(result["seq_fit"], 30.0)
+            self.assertEqual(result["other_train_read_preparation"], 17.5)
 
 
 if __name__ == "__main__":
