@@ -14,6 +14,7 @@ import numpy as np
 TE_THR = (30.0, 50.0, 100.0, 200.0, 500.0)
 NE_THR = (0.5e19, 1e19, 2e19, 4e19)
 Z_GRID = np.arange(0.0, 0.851, 0.05)
+R_GRID = np.arange(1.66, 2.101, 0.04)
 MAX_DT_MS = 10.0
 
 
@@ -37,7 +38,7 @@ def frame_features(row: Any) -> np.ndarray:
     chord_Z = np.asarray(row["thomson_chord_Z"], dtype=np.float64)
     out = []
     for key, prefix, coords, grid in (("thomson_core", "TS_core", chord_Z, Z_GRID),
-                                      ("thomson_edge", "TS_tangential", chord_R, None)):
+                                      ("thomson_edge", "TS_tangential", chord_R, R_GRID)):
         te = np.stack([np.asarray(x, dtype=np.float64) for x in row[f"{key}_Te"]])
         ne = np.stack([np.asarray(x, dtype=np.float64) for x in row[f"{key}_ne"]])
         times = np.asarray(row[f"{key}_times"], dtype=np.float64)

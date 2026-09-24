@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Serial job queue for K-fold runs (one fit at a time: a full-corpus fit peaks near 64 GB).
+# Serial job queue for K-fold runs. Memory policy: at most one fit (/tmp/fusion_train.lock, peak
+# 46-77 GB) and one analysis job (/tmp/fusion_analysis.lock, 20-30 GB) at any moment.
 # Each line of the queue file: <campaign_dir> <fold> <K> <params> <only models,comma> [--set ...]
 # Lines are consumed in order; a line whose fold artifact and oof.npz exist is skipped.
 set -uo pipefail
@@ -16,12 +17,12 @@ while true; do
   fi
   if [ ! -f "$d/baseline.joblib" ]; then
     set -f
-    FUSION_ARTIFACT=$d/baseline.joblib uv run python my_experiments/train.py --params "$params" \
+    FUSION_ARTIFACT=$d/baseline.joblib flock /tmp/fusion_train.lock uv run python my_experiments/train.py --params "$params" \
       --only ${only//,/ } --kfold "$f/$K" --jobs 24 $rest > "$d/train.log" 2>&1
     set +f
   fi
   if [ -f "$d/baseline.joblib" ] && [ ! -f "$d/oof.npz" ]; then
-    uv run python tools/cv_oof.py dump "$d/baseline.joblib" "$d/oof.npz" --jobs 24 > "$d/dump.log" 2>&1
+    flock /tmp/fusion_analysis.lock uv run python tools/cv_oof.py dump "$d/baseline.joblib" "$d/oof.npz" --jobs 24 > "$d/dump.log" 2>&1
   fi
   if [ -f "$d/oof.npz" ]; then echo "DONE $line $(date)"; else echo "FAILED $line $(date)"; fi
   # drop the consumed line

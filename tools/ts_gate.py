@@ -64,8 +64,16 @@ def main() -> int:
     ok = np.isfinite(true).all(1) & np.isfinite(pred).all(1)
     if args.max_shots:
         ok &= shot < args.max_shots
-    base = np.column_stack([X, pred])[ok]
-    full = np.column_stack([base, ts[ok]])
+    def varying(a: np.ndarray) -> np.ndarray:
+        cols = [j for j in range(a.shape[1]) if len(np.unique(a[np.isfinite(a[:, j]), j])) > 1]
+        return a[:, cols]
+
+    base = varying(np.column_stack([X, pred])[ok])
+    tsk = ts[ok]
+    # Grid points no shot ever covers are all-NaN; a constant column carries nothing either.
+    keep = [j for j in range(tsk.shape[1]) if len(np.unique(tsk[np.isfinite(tsk[:, j]), j])) > 1]
+    print(f"Thomson geometry columns kept {len(keep)} of {tsk.shape[1]}")
+    full = np.column_stack([base, tsk[:, keep]])
     resid = (true - pred)[ok]
     groups = shot[ok]
     print(f"frames {ok.sum()} of {len(ok)}, base features {base.shape[1]}, "

@@ -1095,7 +1095,19 @@ def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
         # 2849 segments in a production log.
         bar.set_postfix(frames=sum(len(x) for x in X_parts), refresh=False)
     lengths = np.array([len(x) for x in X_parts], dtype=np.int64)
-    return (np.concatenate(X_parts), np.concatenate(Y_parts), np.concatenate(S_parts), lengths)
+    # The flux block is the one that matters (17.6 GiB at full production): np.concatenate would
+    # hold every part AND the result at once, doubling the peak. Fill a preallocated array and free
+    # each part as it is copied instead; the result is identical.
+    kinds = {(p.dtype, p.shape[1:]) for p in Y_parts}
+    if len(kinds) != 1:
+        raise ValueError(f"flux parts disagree in dtype/shape: {sorted(map(str, kinds))[:3]}")
+    Y = np.empty((int(lengths.sum()), *Y_parts[0].shape[1:]), dtype=Y_parts[0].dtype)
+    at = 0
+    for i, part in enumerate(Y_parts):
+        Y[at:at + len(part)] = part
+        at += len(part)
+        Y_parts[i] = None  # type: ignore[call-overload]
+    return np.concatenate(X_parts), Y, np.concatenate(S_parts), lengths
 
 
 def train(share: str, val_share: str, local_data_dir: Path, config: str,
