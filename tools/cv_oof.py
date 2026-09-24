@@ -125,7 +125,52 @@ def decode(fold_dir: Path, weights: dict[str, float], jobs: int,
     return files, out
 
 
+REF_CACHE = Path(__file__).resolve().parent.parent / "runs" / "ref_cache"
+
+
+def _cached_refs(files: list[Path]) -> Any:
+    """Wrap local_score._map so ground-truth references are computed once per file list.
+
+    References (LCFS contours and the seven functionals of the TRUE maps) do not depend on the
+    prediction, and they are half the cost of a native pass. They are keyed by the ordered file
+    names and the scorer version, and every other call of `_map` is passed straight through.
+    """
+    import hashlib
+
+    key = hashlib.sha256(json.dumps([local_score.SCORING_VERSION,
+                                     [f.name for f in files]]).encode()).hexdigest()[:24]
+    path = REF_CACHE / f"refs_{key}.joblib"
+    original = local_score._map
+
+    def wrapped(fn: Any, tasks: list, jobs: int, desc: str) -> list:
+        if fn is not local_score._ref_task:
+            return original(fn, tasks, jobs, desc)
+        if path.exists():
+            refs = joblib.load(path)
+            if len(refs) != len(tasks):
+                raise ValueError(f"{path}: {len(refs)} cached references, {len(tasks)} shots")
+            print(f"  references loaded from {path.name}")
+            return refs
+        refs = original(fn, tasks, jobs, desc)
+        REF_CACHE.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        joblib.dump(refs, tmp)
+        tmp.rename(path)
+        return refs
+
+    return original, wrapped
+
+
 def score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) -> dict[str, Any]:
+    original, wrapped = _cached_refs(files)
+    local_score._map = wrapped
+    try:
+        return _score_fold(files, payload, jobs)
+    finally:
+        local_score._map = original
+
+
+def _score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(dir="/tmp") as tmp:
         pred, metrics = Path(tmp) / "pred.npz", Path(tmp) / "metrics.json"
         np.savez(pred, **payload)

@@ -1179,18 +1179,27 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
         # K-fold cross-validation over the WHOLE corpus: fold i scores every K-th shot of the
         # sha1 order, and the other K-1 folds are split 9:1 into training and early stopping.
         # The shares and the salt-0 holdout are not used; the scored fold is the holdout.
-        if (fixed_steps or explicit_files_manifest is not None
-                or cross_salt_manifest is not None):
-            raise ValueError(f"kfold {kfold!r} cannot be combined with fixed_steps, explicit "
-                             "OOF files or cross-salt roles")
-        fold_text, _, k_text = kfold.partition("/")
+        if explicit_files_manifest is not None or cross_salt_manifest is not None:
+            raise ValueError(f"kfold {kfold!r} cannot be combined with explicit OOF files or "
+                             "cross-salt roles")
+        spec, _, frac_text = kfold.partition("@")
+        fold_text, _, k_text = spec.partition("/")
         fold, k = int(fold_text), int(k_text)
+        train_fraction = float(frac_text) if frac_text else 1.0
+        if not 0 < train_fraction <= 1:
+            raise ValueError(f"kfold {kfold!r}: training fraction must be in (0, 1]")
         if not 0 <= fold < k or k < 2:
             raise ValueError(f"kfold {kfold!r}: expected 'i/K' with 0 <= i < K and K >= 2")
         holdout = [p for j, p in enumerate(ordered) if j % k == fold]
         rest = [p for j, p in enumerate(ordered) if j % k != fold]
         val_files = rest[::10]
         files = [p for j, p in enumerate(rest) if j % 10 != 0]
+        # 'i/K@f' keeps the head fraction f of the training shots (learning-curve runs); the
+        # scored fold and the early-stopping shots are unchanged.
+        files = files[:round(len(files) * train_fraction)]
+        if fixed_steps:
+            # No early stopping: the validation shots join training, the fold is still scored.
+            files, val_files = rest[:round(len(rest) * train_fraction)], []
         all_files = rest
         shot_share, val_shot_share = len(files) / len(ordered), len(val_files) / len(ordered)
         print(f"K-fold {fold}/{k}: scoring {len(holdout)} shots, training on {len(files)}, "

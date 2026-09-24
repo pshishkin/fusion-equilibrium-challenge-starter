@@ -64,7 +64,8 @@ def main() -> int:
     ap.add_argument("--kfold", metavar="I/K",
                     help="score fold I of K (every K-th shot of the salt's sha1 order, recorded "
                          "as the holdout); the rest is split 9:1 into training and early "
-                         "stopping. Shares are ignored")
+                         "stopping. Shares are ignored. 'I/K@F' trains on the head fraction F of the "
+                         "training shots, for learning curves")
     ap.add_argument("--params", type=Path, default=DEFAULT_PARAMS_PATH,
                     help=f"model zoo and its hyper-parameters (default {DEFAULT_PARAMS_PATH.name})")
     ap.add_argument("--jobs", type=int, default=0,

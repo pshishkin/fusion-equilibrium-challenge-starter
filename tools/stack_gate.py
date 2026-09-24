@@ -35,6 +35,11 @@ def main() -> int:
     ap.add_argument("--iters", type=int, default=300)
     ap.add_argument("--jobs", type=int, default=24)
     ap.add_argument("--out", default="oof_stack.npz")
+    ap.add_argument("--context", action="store_true",
+                    help="add temporal context of the stage-1 blend: previous/next frame "
+                         "differences, shot mean and relative frame position")
+    ap.add_argument("--member-feats", action="store_true",
+                    help="also give stage 2 every member's own targets, not only the blend")
     args = ap.parse_args()
     from sklearn.ensemble import HistGradientBoostingRegressor
     from sklearn.model_selection import GroupKFold
@@ -59,8 +64,19 @@ def main() -> int:
     cols = list(range(args.k)) + [n, n + 1]
     truth = np.column_stack([true_coef[:, :args.k], S])
     resid = truth - stage1[:, cols]
-    feats = np.column_stack([X, stage1]).astype(np.float32)
+    parts = [X, stage1]
+    if args.member_feats:
+        parts += [z[f"targets_{m}"] for m in w]
     shot = np.repeat(np.arange(len(lengths)), lengths)
+    if args.context:
+        starts = np.concatenate([[0], np.cumsum(lengths)[:-1]])
+        pos = np.arange(len(shot)) - starts[shot]
+        prev = np.where(pos > 0, np.arange(len(shot)) - 1, np.arange(len(shot)))
+        nxt = np.where(pos < lengths[shot] - 1, np.arange(len(shot)) + 1, np.arange(len(shot)))
+        sums = np.add.reduceat(stage1, starts, axis=0)
+        parts += [stage1 - stage1[prev], stage1[nxt] - stage1, (sums / lengths[:, None])[shot],
+                  (pos / np.maximum(lengths[shot] - 1, 1))[:, None], lengths[shot][:, None]]
+    feats = np.column_stack(parts).astype(np.float32)
     corrected = stage1.copy()
     for j, c in enumerate(cols):
         y = resid[:, j]
