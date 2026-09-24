@@ -44,6 +44,15 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Latest recorded evidence
 
+One [source-origin polar representation gate](experiments/polar-source-origin-review.json) has
+been frozen before true-map processing. Its
+[selection manifest](experiments/polar-source-origin-samples.json) fixes disjoint first and third
+OOF TRAIN-shot samples and three frame indices per shot from existing input-only metadata. The
+first gate tests whether the input-only source contour centroid supports a true-contour polar
+target; if it passes, one PCA64 basis is checked for topology and physical Hausdorff on the
+third sample. No polar result, learner fit, internal native score or original-tail evaluation has
+been measured yet.
+
 The one [physical-map residual U-Net pilot](experiments/map-residual-unet-review.json) is now
 [measured and closed at fold0](results/map_residual_unet_fold0_20260924.json). Its genuinely OOF
 source/true-map fit and input-only li guard passed identity and numerical checks, but the fixed

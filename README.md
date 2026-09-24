@@ -534,6 +534,15 @@ live checkout.
 
 ### Candidate quality and contribution to the ensemble
 
+The [source-origin polar contour gate](experiments/polar-source-origin-review.json) is a
+TRAIN-only representation check, with exact shot/frame roles in its
+[selection manifest](experiments/polar-source-origin-samples.json). Prepare a frozen campaign
+through `tools.diagnose_polar_source_origin prepare`, then run its `first` gate; the `third`
+PCA64 check is allowed only if `first` passes. The ray origin is extracted from the input-only
+base prediction. True multi-hit rays create a fixed outer-envelope training target and are
+charged against the original true contour; they never choose an inference fallback. This gate
+does not fit a prediction model or open the reserved evaluation tail.
+
 The bounded [physical-map residual U-Net review](experiments/map-residual-unet-review.json) and
 [fixed YAML](baselines/map-residual-unet.params.yaml) define a separate OOF source-correction
 pilot. Its [synthetic arithmetic/CUDA preflight](results/map_residual_unet_preflight_20260924.json)

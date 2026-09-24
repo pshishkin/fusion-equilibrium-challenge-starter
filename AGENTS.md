@@ -297,6 +297,11 @@ For a learned correction transferred between separately fitted base artifacts, d
 with its own PCA and target scaler first. Train the correction in physical map units, fit any
 correction-input scaler only on its declared OOF training shots, and verify exact zero-correction
 map and submitted-scalar bits. Never mix fold-specific coefficients or scalers at transfer time.
+In a supervised representation diagnostic, an inference fallback may depend only on source
+inputs or the produced candidate, never on whether a TRUE contour fits the chosen chart. A
+nonrepresentable truth is a hard feasibility failure, or a fixed supervised approximation whose
+error is measured against the original truth on every declared frame. Count all explicit source
+fallbacks and include them in geometry summaries; do not silently omit hard frames.
 
 When a replacement member comes from another artifact, keep the unchanged members fixed and score
 both the original-member control and the replacement through the same decoded-map averaging path.

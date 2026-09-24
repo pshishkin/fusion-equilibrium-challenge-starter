@@ -1,5 +1,17 @@
 # DIII-D / Challenge 1 — ideas, ranked
 
+**2026-09-24 — one train-only source-origin polar contour representation gate is pending:**
+The [frozen review](experiments/polar-source-origin-review.json) and
+[exact input-only sample manifest](experiments/polar-source-origin-samples.json) test whether
+scorer-native TRUE contours can be represented from an origin available at inference: the
+predicted source-map LCFS centroid. Multiple true ray crossings use one fixed outer-star-envelope
+target, with their actual geometry error measured, never a truth-conditioned fallback. Only
+source/output-detectable faults can use an explicit counted source fallback. One PCA64 basis and
+a disjoint third TRAIN-only sample have fixed topology, Hausdorff and fallback gates; no learner
+or native score is part of this diagnostic. Prior direct-contour learning failed despite valid
+polygons, so a representation pass would remain a necessary condition rather than evidence of a
+leaderboard gain.
+
 **2026-09-23 — deployable boundary correction remains open beyond the fixed Ridge screen:**
 The truth-assisted contour correction and source-li compensation establish local mechanism
 headroom, but the single preregistered [input-only K8/Ridge screen](results/contour_learnability_screen_20260923.json)
