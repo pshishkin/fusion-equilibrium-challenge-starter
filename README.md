@@ -159,9 +159,9 @@ over a low-pass waveform control. Its [sidecar](tools/b10_waveforms.py),
 [fixed YAML](baselines/b10-two-rate-info-gate.params.yaml) remain reproducible; no production
 two-rate sequence model was fitted or added to the ensemble.
 A [fixed nonlinear whole-shot information gate](experiments/d8-nonlinear-shot-context-v2.json)
-is prepared separately. It reuses genuinely out-of-fold base predictions and asks whether
-allowed shot summaries predict a mean residual; a held-shot diagnostic must pass before any
-native score or model claim.
+reused genuinely out-of-fold base predictions. Its
+[held-shot result](results/d8_nonlinear_shot_context_20260924.json) failed the prerequisite
+explained-variance gate, so no corrected map or native gate score was built.
 
 **Challenge 2 — MAST scores `S_MAST = 0.5566` on the leaderboard, `G_ratio = 0.560`, from zero.**
 Not a transferred model: a free-boundary Grad-Shafranov solve, with the coil field computed exactly

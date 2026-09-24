@@ -48,11 +48,10 @@ measuring whether the extra waveform shape predicts any equilibrium error. The m
 raw-versus-low-pass [native gate](results/b10_matched_information_gate_20260923.json) then found
 only a negligible raw benefit under equal-capacity controls, much smaller than optimizer
 variation. The bounded two-rate branch is closed before a full sequence model fit.
-A [single nonlinear D8 shot-context gate](experiments/d8-nonlinear-shot-context-v2.json)
-remains unmeasured. It asks a different, narrowly testable question from the failed linear
-aggregate Ridge: can nonlinear input-only shot summaries predict the mean OOF map/scalar residual?
-Its disjoint held-shot diagnostic must pass before a native score; prior linear evidence gives it
-a low probability of becoming a top-three route.
+The [single nonlinear D8 shot-context gate](results/d8_nonlinear_shot_context_20260924.json)
+failed its held-shot predictive threshold, as the earlier linear aggregate screen had. No native
+score was justified. A genuinely different deployable model or clean new information source is
+still needed for a credible top-three route; this fixed shot-summary residual arm is closed.
 The [single fixed li discrepancy guard](results/oof_li_guard_20260923.json) was then measured:
 it recovered much of li and some native score but still failed the frozen investment margin.
 This closes the constrained contour-normal operation on the TRAIN-only OOF pilot. A new path

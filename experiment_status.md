@@ -79,10 +79,9 @@ subframe windows barely changed S relative to the equal-capacity low-pass contro
 the measured A/A seed difference. The fixed gate failed; no full two-rate GRU or reserved-tail
 evaluation followed.
 A distinct [nonlinear whole-shot residual gate](experiments/d8-nonlinear-shot-context-v2.json)
-is now implemented with one fixed ExtraTrees model, a deterministic Ridge control, OOF shot-role
-proofs and a sealed internal validation rule. It reuses existing OOF target/input caches; no
-model has yet been fitted or scored under this new protocol. The held-shot diagnostic is required
-before any native score on gate200.
+used one fixed ExtraTrees model and a deterministic Ridge control on genuinely OOF shots. Its
+[held-shot diagnostic](results/d8_nonlinear_shot_context_20260924.json) failed before any
+gate200 candidate map or native score was built; the original evaluation tail stayed unopened.
 A focused five-step CPU comparison of the ordinary path before and after the explicit-file change
 produced byte-identical artifacts and predictions; see
 `results/oof_default_path_parity_20260923.json`. This checks compatibility, not the proposed OOF

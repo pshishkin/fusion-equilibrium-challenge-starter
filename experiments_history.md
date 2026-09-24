@@ -3,6 +3,22 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-24 UTC — fixed nonlinear D8 whole-shot residual gate, stopped before native score:**
+The frozen fold0 base excluded all **1,355** OOF shots, so one ExtraTrees model and a Ridge
+control could fit shot-level mean residuals without in-sample base predictions. The deterministic
+shot-hash split assigned **1,100 shots/244,043 frames** to fit and **255/56,750** to a single
+internal check. Input-only features were the 84 selected frame-feature means, 84 population
+standard deviations and shot duration; the target was the per-shot mean of the already cached
+scaled 52-dimensional true-minus-OOF-source residual. ExtraTrees was fixed at 256 trees, depth
+10 and leaf minimum 5; Ridge fixed alpha 1000. On held255, sklearn frame-count-weighted,
+variance-weighted explained variance was **−0.084938** for ExtraTrees, **−0.071716** for Ridge
+and effectively **0** for the fit-mean control. The nonlinear arm missed its predeclared **+0.25**
+gate. Input summary extraction took **4.17 s**, both CPU fits **0.53 s**, complete gate
+**5.30 s**. Verdict: stop before any corrected gate200 map or native score; no original tail70
+or public action. The old linear D8 had also failed, and this fixed nonlinear interaction
+probe did not rescue that aggregate representation. It does not refute all models with global
+shot context. [Exact roles, hashes, per-output metrics and timing](results/d8_nonlinear_shot_context_20260924.json).
+
 **2026-09-23 UTC — matched two-rate raw waveform information gate, closed before full GRU:**
 The input-only support audit passed, so one frozen fold0 OOF source predicted **1,355** target
 training shots and **200** sealed native-gate shots. Three equal-capacity residual heads ran
