@@ -561,6 +561,9 @@ From its frozen `source/` directory, run `python -m tools.cross_salt_aux_cache` 
 to the workspace cache. Then `python -m my_experiments.run execute <campaign> --data-dir <dataset>`
 resumes verified salts in one GPU lane. Cache preparation checks every allowed input hash and
 publishes exact per-salt target blocks before execution accepts the campaign.
+After all four fits complete, `python -m tools.cross_salt_report` with `--campaign` and
+`--data-dir` builds the declared float32 blocks and scores the twelve fixed rows through the
+pinned native scorer. Its report checks every member artifact and filename before blending.
 Use `--source-campaign runs/<candidate-campaign>` to score through the candidate's verified frozen
 evaluator source after the working tree changes. The runner checks the candidate completion source
 hash and saves the live comparison controller separately.
