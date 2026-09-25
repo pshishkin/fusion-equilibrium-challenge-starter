@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from cv_oof import _fold_files, score_fold
+from stage2_models import CatBoostStage2
 from my_experiments import baseline_model as B
 
 
@@ -119,9 +120,14 @@ def linear_blend(t: dict[str, Any], W: np.ndarray) -> np.ndarray:
     return sum(W[i] * m for i, m in enumerate(t["members_T"]))
 
 
-def fit_stage2(F: np.ndarray, R: np.ndarray, iters: int, every: int) -> list[Any]:
+GBM = "sklearn"
+
+
+def fit_stage2(F: np.ndarray, R: np.ndarray, iters: int, every: int) -> Any:
     from sklearn.ensemble import HistGradientBoostingRegressor
     rows = np.arange(0, len(F), every)
+    if GBM == "catboost":
+        return CatBoostStage2(iters).fit(F[rows], R[rows])
     models = []
     for j in range(R.shape[1]):
         m = HistGradientBoostingRegressor(max_iter=iters, learning_rate=0.05, max_leaf_nodes=31,
@@ -132,7 +138,9 @@ def fit_stage2(F: np.ndarray, R: np.ndarray, iters: int, every: int) -> list[Any
     return models
 
 
-def apply_stage2(models: list[Any], F: np.ndarray) -> np.ndarray:
+def apply_stage2(models: Any, F: np.ndarray) -> np.ndarray:
+    if isinstance(models, CatBoostStage2):
+        return models.predict(F)
     return np.column_stack([m.predict(F) for m in models])
 
 
@@ -176,11 +184,14 @@ def main() -> int:
     ap.add_argument("--jobs", type=int, default=16)
     ap.add_argument("--no-score", action="store_true")
     ap.add_argument("--no-context", action="store_true")
+    ap.add_argument("--gbm", choices=("sklearn", "catboost"), default="sklearn")
     ap.add_argument("--disagreement", action="store_true")
     ap.add_argument("--linear", action="store_true",
                     help="fit per-coefficient member weights on the other folds' OOF first; the "
                          "GBM then learns the residual of that linear blend")
     args = ap.parse_args()
+    global GBM
+    GBM = args.gbm
     args.out.mkdir(parents=True, exist_ok=True)
     folds = [int(x) for x in args.folds.split(",")]
     members = args.members.split(",")
@@ -277,7 +288,7 @@ def main() -> int:
         joblib.dump(models, args.out / "models_all.joblib")
         (args.out / "config.json").write_text(json.dumps(
             {"members": members, "linear": args.linear, "context": not args.no_context,
-             "disagreement": args.disagreement}, indent=1))
+             "disagreement": args.disagreement, "gbm": args.gbm}, indent=1))
     return 0
 
 
