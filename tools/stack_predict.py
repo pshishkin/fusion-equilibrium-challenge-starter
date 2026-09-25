@@ -25,7 +25,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from experiments import DEFAULT_LOCAL_DATA_DIR
 from my_experiments import baseline_model as B
-from stack_cv import apply_stage2, features, project
+import json
+
+from stack_cv import apply_stage2, features, linear_blend, member_targets, project
 from toolkit.parallel import pmap, resolve_jobs
 
 
@@ -66,6 +68,11 @@ def main() -> int:
     basis = {"pca": base_art["pca"], "coil": base_art["coil"]}
     k = basis["pca"].n_components
     models = joblib.load(args.stack / "models_all.joblib")
+    cfg_path = args.stack / "config.json"
+    cfg = (json.loads(cfg_path.read_text()) if cfg_path.exists()
+           else {"linear": False, "context": True, "disagreement": False})
+    W = joblib.load(args.stack / "linear_all.joblib") if cfg["linear"] else None
+    print(f"stage 2 config: {cfg}")
     bounds = np.concatenate([[0], np.cumsum(lengths)])
     folds = [int(x) for x in args.folds.split(",")]
     acc_maps = np.zeros((len(X), 65, 65), dtype=np.float64)
@@ -92,8 +99,13 @@ def main() -> int:
             maps_blend += np.float32(w) * maps
             del maps
         t = {"X": X, "lengths": lengths, "member_coef": coefs, "member_qb": qbs}
-        F, stage1 = features(t, weights)
-        delta = apply_stage2(models, F)
+        F, stage1 = features(t, weights, cfg["context"], cfg["disagreement"])
+        if W is not None:
+            t["members_T"] = member_targets(t)
+            shift = linear_blend(t, W) - stage1
+            delta = apply_stage2(models, np.column_stack([F, stage1 + shift])) + shift
+        else:
+            delta = apply_stage2(models, F)
         for a in range(0, len(X), 20000):
             b = min(a + 20000, len(X))
             c1 = stage1[a:b, :k]

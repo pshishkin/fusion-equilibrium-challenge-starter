@@ -1063,6 +1063,15 @@ def _read_training_shot(path: Path,
     return feats[rows], psi[rows], scal[rows]
 
 
+def _chunked_std(a: FloatArray, rows: int = 50000) -> float:
+    """Population std of a large array without numpy's whole-array temporary."""
+    total = sum(float(a[i:i + rows].sum(dtype=np.float64)) for i in range(0, len(a), rows))
+    mean = total / a.size
+    sq = sum(float(np.square(a[i:i + rows].astype(np.float64) - mean).sum())
+             for i in range(0, len(a), rows))
+    return float(np.sqrt(sq / a.size))
+
+
 def _read_task(args: tuple) -> tuple[FloatArray, FloatArray, FloatArray]:
     return _read_training_shot(*args)
 
@@ -1332,6 +1341,11 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # BEFORE any decomposition: the metric scores total psi, so the balance the target scaling
     # strikes between psi and the scalars must not move when the target becomes a residual.
     # By sums rather than by materializing (Y - m), which would be a 550 MB float64 temporary.
+    # The reader pool's 24 workers keep their memory until released; free it before the heavy
+    # whole-array steps below (it is also released later, which is then a no-op).
+    from toolkit.parallel import release as _release_pool
+    _release_pool()
+
     psi_total = float(Y.sum(dtype=np.float64))
     psi_sumsq = float(np.einsum("ijk,ijk->", Y, Y, dtype=np.float64))
     psi_ss_tot = (psi_sumsq - psi_total ** 2 / Y.size) / len(Y)
@@ -1348,7 +1362,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
             for lo in range(0, len(Yi), 4096):
                 Yi[lo:lo + 4096] -= coil_flux(plan, Xi[lo:lo + 4096]).astype(Yi.dtype)
         print(f"  targets are now the plasma part alone: psi std "
-              f"{np.sqrt(psi_ss_tot / Y[0].size):.4f} -> {Y.std():.4f} Wb/rad")
+              f"{np.sqrt(psi_ss_tot / Y[0].size):.4f} -> {_chunked_std(Y):.4f} Wb/rad")
 
     # Every preprocessing step is fitted on the training frames alone and merely applied to the
     # validation ones: a scaler or a PCA that had seen the validation set would make early stopping

@@ -22,7 +22,7 @@ while true; do
     set +f
   fi
   if [ -f "$d/baseline.joblib" ] && [ ! -f "$d/oof.npz" ]; then
-    flock /tmp/fusion_analysis.lock uv run python tools/cv_oof.py dump "$d/baseline.joblib" "$d/oof.npz" --jobs 24 > "$d/dump.log" 2>&1
+    uv run python tools/cv_oof.py dump "$d/baseline.joblib" "$d/oof.npz" --jobs 24 > "$d/dump.log" 2>&1
   fi
   if [ -f "$d/oof.npz" ]; then echo "DONE $line $(date)"; else echo "FAILED $line $(date)"; fi
   # drop the consumed line
