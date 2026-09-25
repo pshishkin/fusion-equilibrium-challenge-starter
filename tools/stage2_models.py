@@ -22,7 +22,7 @@ class CatBoostStage2:
             raise ValueError(f"residual column with zero spread: {np.flatnonzero(self.scale <= 0)}")
         self.model = CatBoostRegressor(loss_function="MultiRMSE", iterations=self.iters,
                                        learning_rate=self.lr, depth=self.depth, task_type="GPU",
-                                       devices="0", verbose=0, boosting_type="Plain",
+                                       devices="0", verbose=0, boosting_type="Plain", gpu_ram_part=0.3,
                                        random_seed=0)
         self.model.fit(F, R / self.scale)
         return self
