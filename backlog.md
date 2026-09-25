@@ -51,6 +51,27 @@ scores or errors cannot be features: the test set has no truth to compute them f
 
 Run as `stack_cv` variants on `runs/cv5` against `runs/stackcv_base`, paired per fold.
 
+### `stack-weight-envelope` — user's idea, 2026-09-25: fewer, smoother linear weights
+
+Measured per-coefficient weights (mlp+seq, four fold fits, sd ≤ 0.05): mlp/seq ≈ 0.62/0.38 and
+sum ≈ 1.00 over c0–29, then the sum shrinks — 0.78 over c30–39, 0.54 over c40–49, 0.25 at c49;
+q95 0.84/0.16, betaN 0.94/0.06. Neighbouring coefficients get nearly the same weights, so 50
+free weights per member is more freedom than the data asks for. With many members, free
+per-coefficient no-intercept least squares will start producing large opposite-signed weights
+that cancel (collinear members), i.e. noise.
+
+Variants to try, each against free per-coefficient lstsq on the same folds:
+- **Envelope / basis:** each member's weight as a smooth function of the coefficient index
+  (a few basis functions, e.g. piecewise-linear knots or a low-order polynomial in the index),
+  so a member has ~5 parameters instead of 50.
+- **Blocks:** one weight per member per block (e.g. c0–9, 10–19, 20–29, 30–39, 40–49, q95, βN).
+- **Factorised:** a member weight shared by all coefficients times a per-coefficient shrinkage
+  (w_m · s_j), i.e. "how much to trust each model" and "how much to shrink each component"
+  estimated separately.
+- **Regularisation:** ridge towards equal weights, non-negativity, and/or a smoothness penalty on
+  adjacent coefficients' weights.
+Priority rises as the member library grows (conv, lstm, p70, second-seed mlp, fixed-cosine refits).
+
 **PRIORITY, set by the user 2026-08-25: the three `aux` variations come first.** They are the only
 entries aimed at where the TEST SET says the loss is — `li` at R2 0.960156 and `kappa` at 0.965434,
 together 6.6x the gap to first place. Everything else on this list is a general-purpose knob acting
