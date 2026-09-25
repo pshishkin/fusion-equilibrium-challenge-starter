@@ -1,0 +1,12 @@
+{
+ "variant": "float32",
+ "candidate": "submit_stack_base",
+ "date_utc": "2026-09-25",
+ "final_npz": {
+  "path": "runs/submit_stack_base/diii_d_public_test.npz",
+  "bytes": 3270008146,
+  "sha256": "953cc64c99f5d25c7c380192032c35272905b18281c2fe5ac2c80fe5a376426c",
+  "shots": 874,
+  "dtype": "float32 for psirz, q95 and betaN"
+ }
+}
