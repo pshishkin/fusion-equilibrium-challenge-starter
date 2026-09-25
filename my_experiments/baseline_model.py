@@ -1067,6 +1067,17 @@ def _read_task(args: tuple) -> tuple[FloatArray, FloatArray, FloatArray]:
     return _read_training_shot(*args)
 
 
+def _read_task_lean(args: tuple) -> tuple[FloatArray, FloatArray]:
+    """Ensure the shot's cache entry exists and return only its features and scalars.
+
+    The flux is the heavy array (21 GiB at full production). Shipping it back through the pool
+    held every shot's copy in the parent's result list on top of the final array, and took a
+    full-corpus fit past 75 GB; the parent now fills its array from the memory-mapped cache.
+    """
+    feats, _, scal = _read_training_shot(*args)
+    return feats, scal
+
+
 def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
                 jobs: int = 0) -> tuple[FloatArray, FloatArray, FloatArray, npt.NDArray[np.int64]]:
     """Every kept frame of every shot, concatenated: features, psi, the two scalar targets — and
@@ -1076,37 +1087,44 @@ def _read_shots(files: list[Path], desc: str, frame_share: float = 1.0,
     cannot be fitted without it. It is returned always rather than on request: a boundary that is
     computed only when someone asks is a boundary that can be wrong for everyone else.
 
-    Shots are independent, so this is the easiest parallelism in the repo: parquet decode plus
-    interpolation, one process per shot, results collected in order so the frame order does not
-    depend on the core count.
+    Shots are independent, so decoding runs one process per shot; the workers return features
+    and scalars only, and the flux is then copied from the per-shot cache straight into one
+    preallocated array, so the flux exists once in memory rather than twice.
     """
     n = resolve_jobs(jobs, len(files))
     tasks = [(path, frame_share) for path in files]
-    X_parts, Y_parts, S_parts = [], [], []
-    bar = tqdm(pimap(_read_task, tasks, n), total=len(files), **bar_kwargs(SHOT_EVERY),
+    X_parts, S_parts = [], []
+    bar = tqdm(pimap(_read_task_lean, tasks, n), total=len(files), **bar_kwargs(SHOT_EVERY),
                desc=desc if n == 1 else f"{desc} x{n}", unit="shot")
-    for feats, psi, scal in bar:
+    for feats, scal in bar:
         X_parts.append(feats)
-        Y_parts.append(psi)
         S_parts.append(scal)
-        # Frames accumulate in the postfix: it shows both the sample size and that progress is
-        # alive, without a line per shot. refresh=False or it redraws the bar on EVERY shot and
-        # defeats the thinning that keeps a teed log readable — measured, it was 2835 of the
-        # 2849 segments in a production log.
         bar.set_postfix(frames=sum(len(x) for x in X_parts), refresh=False)
     lengths = np.array([len(x) for x in X_parts], dtype=np.int64)
-    # The flux block is the one that matters (17.6 GiB at full production): np.concatenate would
-    # hold every part AND the result at once, doubling the peak. Fill a preallocated array and free
-    # each part as it is copied instead; the result is identical.
-    kinds = {(p.dtype, p.shape[1:]) for p in Y_parts}
-    if len(kinds) != 1:
-        raise ValueError(f"flux parts disagree in dtype/shape: {sorted(map(str, kinds))[:3]}")
-    Y = np.empty((int(lengths.sum()), *Y_parts[0].shape[1:]), dtype=Y_parts[0].dtype)
+    code = _shot_code_key()
+
+    def keep(n_frames: int) -> npt.NDArray[np.intp]:
+        return thin_frames(n_frames, frame_share)
+
+    Y: FloatArray | None = None
     at = 0
-    for i, part in enumerate(Y_parts):
-        Y[at:at + len(part)] = part
-        at += len(part)
-        Y_parts[i] = None  # type: ignore[call-overload]
+    for path, n_rows in zip(files, lengths, strict=True):
+        hit = shot_cache.load(path, code, keep)
+        if hit is None:
+            raise ValueError(f"{path.name}: shot cache entry missing right after it was built")
+        psi = hit[1]
+        if len(psi) != n_rows:
+            raise ValueError(f"{path.name}: cached flux has {len(psi)} kept frames, features "
+                             f"{n_rows}")
+        if Y is None:
+            Y = np.empty((int(lengths.sum()), *psi.shape[1:]), dtype=psi.dtype)
+        elif psi.shape[1:] != Y.shape[1:] or psi.dtype != Y.dtype:
+            raise ValueError(f"{path.name}: flux {psi.dtype}{psi.shape[1:]} against "
+                             f"{Y.dtype}{Y.shape[1:]}")
+        Y[at:at + n_rows] = psi
+        at += n_rows
+    if Y is None:
+        raise ValueError("no shots to read")
     return np.concatenate(X_parts), Y, np.concatenate(S_parts), lengths
 
 

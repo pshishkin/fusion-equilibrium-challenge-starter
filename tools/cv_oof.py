@@ -171,7 +171,7 @@ def score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) -> 
 
 
 def _score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) -> dict[str, Any]:
-    with tempfile.TemporaryDirectory(dir="/tmp") as tmp:
+    with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent.parent / "runs") as tmp:
         pred, metrics = Path(tmp) / "pred.npz", Path(tmp) / "metrics.json"
         np.savez(pred, **payload)
         local_score.main(["--source", "local", "--config", HF_TRAIN_CONFIG,
