@@ -83,15 +83,40 @@ def fold_table(fold_dir: Path, members: list[str], basis: dict[str, Any],
             "decoders": decoders}
 
 
-def features(t: dict[str, Any], weights: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    coef = sum(w * c for w, c in zip(weights, t["member_coef"], strict=True))
-    qb = sum(w * q for w, q in zip(weights, t["member_qb"], strict=True))
-    stage1 = np.column_stack([coef, qb])
-    parts = [t["X"], stage1]
-    for c, q in zip(t["member_coef"], t["member_qb"], strict=True):
-        parts.append(np.column_stack([c, q]))
-    parts += context_features(stage1, t["lengths"])
+def member_targets(t: dict[str, Any]) -> list[np.ndarray]:
+    """Each member's (global coefficients | q95, betaN), (N, 52)."""
+    return [np.column_stack([c, q]) for c, q in zip(t["member_coef"], t["member_qb"], strict=True)]
+
+
+def features(t: dict[str, Any], weights: np.ndarray, context: bool = True,
+             disagreement: bool = False) -> tuple[np.ndarray, np.ndarray]:
+    members = member_targets(t)
+    stage1 = sum(w * m for w, m in zip(weights, members, strict=True))
+    parts = [t["X"], stage1, *members]
+    if disagreement:
+        # Trees cannot form a difference of two columns; an uncertainty proxy has to be given.
+        for i in range(len(members)):
+            for j in range(i + 1, len(members)):
+                d = members[i] - members[j]
+                parts += [d, np.abs(d)]
+    if context:
+        parts += context_features(stage1, t["lengths"])
     return np.column_stack(parts).astype(np.float32), stage1
+
+
+def fit_linear(tables: list[dict[str, Any]]) -> np.ndarray:
+    """(M, 52) no-intercept least-squares member weights per target column, on OOF frames."""
+    M = len(tables[0]["members_T"])
+    W = np.empty((M, tables[0]["truth"].shape[1]))
+    for j in range(W.shape[1]):
+        A = np.concatenate([np.column_stack([m[:, j] for m in t["members_T"]]) for t in tables])
+        y = np.concatenate([t["truth"][:, j] for t in tables])
+        W[:, j] = np.linalg.lstsq(A, y, rcond=None)[0]
+    return W
+
+
+def linear_blend(t: dict[str, Any], W: np.ndarray) -> np.ndarray:
+    return sum(W[i] * m for i, m in enumerate(t["members_T"]))
 
 
 def fit_stage2(F: np.ndarray, R: np.ndarray, iters: int, every: int) -> list[Any]:
@@ -150,6 +175,11 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--jobs", type=int, default=16)
     ap.add_argument("--no-score", action="store_true")
+    ap.add_argument("--no-context", action="store_true")
+    ap.add_argument("--disagreement", action="store_true")
+    ap.add_argument("--linear", action="store_true",
+                    help="fit per-coefficient member weights on the other folds' OOF first; the "
+                         "GBM then learns the residual of that linear blend")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     folds = [int(x) for x in args.folds.split(",")]
@@ -178,9 +208,11 @@ def main() -> int:
             del tt
         assert t is not None
         del t["Y"]
-        F, stage1 = features(t, weights)
+        F, stage1 = features(t, weights, not args.no_context, args.disagreement)
         t["F"], t["stage1"] = F, stage1
-        t["R"] = np.column_stack([t["true_coef"], t["S"]]) - stage1
+        t["truth"] = np.column_stack([t["true_coef"], t["S"]])
+        t["members_T"] = member_targets(t)
+        t["R"] = t["truth"] - stage1
         tables[k] = t
         print(f"fold {k}: {len(F)} frames, {F.shape[1]} features", flush=True)
     report = {"members": members, "weights": weights.tolist(), "iters": args.iters,
@@ -188,12 +220,24 @@ def main() -> int:
     for k in folds:
         others = [j for j in folds if j != k]
         t0 = time.time()
-        models = fit_stage2(np.concatenate([tables[j]["F"] for j in others]),
-                            np.concatenate([tables[j]["R"] for j in others]),
+        # `shift` moves the equal-weight stage 1 to the linear blend; zero without --linear.
+        shifts = {}
+        if args.linear:
+            W = fit_linear([tables[j] for j in others])
+            joblib.dump(W, args.out / f"linear_fold{k}.joblib")
+            for j in folds:
+                shifts[j] = linear_blend(tables[j], W) - tables[j]["stage1"]
+        else:
+            shifts = {j: 0.0 for j in folds}
+        Fo = np.concatenate([np.column_stack([tables[j]["F"], tables[j]["stage1"] + shifts[j]])
+                             if args.linear else tables[j]["F"] for j in others])
+        models = fit_stage2(Fo, np.concatenate([tables[j]["R"] - shifts[j] for j in others]),
                             args.iters, args.every)
+        del Fo
         joblib.dump(models, args.out / f"models_fold{k}.joblib")
         t = tables[k]
-        delta = apply_stage2(models, t["F"])
+        Fk = (np.column_stack([t["F"], t["stage1"] + shifts[k]]) if args.linear else t["F"])
+        delta = apply_stage2(models, Fk) + shifts[k]
         expl = 1 - ((t["R"] - delta) ** 2).mean(0) / (t["R"] ** 2).mean(0)
         print(f"fold {k}: stage 2 fitted in {time.time() - t0:.0f} s; explained "
               f"median {np.median(expl):+.3f}", flush=True)
@@ -207,15 +251,33 @@ def main() -> int:
             del corr
             (rb,), (rc,) = mb["results"].values(), mc["results"].values()
             entry |= {"base": rb, "stacked": rc}
+            if args.linear:
+                lin = corrected_payload(t, t["stage1"], np.broadcast_to(shifts[k], delta.shape),
+                                        weights, basis)
+                (rl,) = score_fold(t["files"], lin, args.jobs)["results"].values()
+                del lin
+                entry["linear_only"] = rl
+                print(f"fold {k}: S linear-only {rl['S']:.6f}", flush=True)
             print(f"fold {k}: S base {rb['S']:.6f} stacked {rc['S']:.6f} "
                   f"delta {rc['S'] - rb['S']:+.6f}", flush=True)
         report["folds"][k] = entry
         (args.out / "report.json").write_text(json.dumps(report, indent=1, default=float))
     if len(folds) == 5:
-        models = fit_stage2(np.concatenate([tables[j]["F"] for j in folds]),
-                            np.concatenate([tables[j]["R"] for j in folds]),
-                            args.iters, args.every)
+        if args.linear:
+            W = fit_linear([tables[j] for j in folds])
+            joblib.dump(W, args.out / "linear_all.joblib")
+            shifts = {j: linear_blend(tables[j], W) - tables[j]["stage1"] for j in folds}
+            Fa = np.concatenate([np.column_stack([tables[j]["F"], tables[j]["stage1"] + shifts[j]])
+                                 for j in folds])
+            Ra = np.concatenate([tables[j]["R"] - shifts[j] for j in folds])
+        else:
+            Fa = np.concatenate([tables[j]["F"] for j in folds])
+            Ra = np.concatenate([tables[j]["R"] for j in folds])
+        models = fit_stage2(Fa, Ra, args.iters, args.every)
         joblib.dump(models, args.out / "models_all.joblib")
+        (args.out / "config.json").write_text(json.dumps(
+            {"members": members, "linear": args.linear, "context": not args.no_context,
+             "disagreement": args.disagreement}, indent=1))
     return 0
 
 

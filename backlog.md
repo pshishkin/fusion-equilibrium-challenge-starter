@@ -35,6 +35,22 @@ moves it, and the reason is written in its row.
 
 ## Open, ranked
 
+### `stack-linear-then-gbm`, `stack-disagreement`, `stack-no-context` — user's ideas, 2026-09-25
+
+Context: the cross-fold GBM second stage (`tools/stack_cv.py`) measured +0.00040 ± 0.00018 over
+five folds (mlp+seq, early-stopped members) and +0.0006 on public (944488 → 944108). Per-model
+scores or errors cannot be features: the test set has no truth to compute them from.
+
+1. **`stack-linear-then-gbm`.** Fit the member weights linearly on OOF first (shared, or one per
+   coefficient: a cheap no-intercept regression), then train the GBM on the residual of that
+   weighted blend, so the trees do not spend capacity on what a linear map already solves.
+2. **`stack-disagreement`.** Give the trees `mlp − seq` and `|mlp − seq|` per coefficient
+   explicitly: an uncertainty proxy that trees cannot compute from the two columns themselves.
+3. **`stack-no-context`.** Drop the temporal-context block from `stack_cv`: it did not help on
+   fold 0 (stack3 ≈ stack2) and costs noise and fit time.
+
+Run as `stack_cv` variants on `runs/cv5` against `runs/stackcv_base`, paired per fold.
+
 **PRIORITY, set by the user 2026-08-25: the three `aux` variations come first.** They are the only
 entries aimed at where the TEST SET says the loss is — `li` at R2 0.960156 and `kappa` at 0.965434,
 together 6.6x the gap to first place. Everything else on this list is a general-purpose knob acting

@@ -1437,8 +1437,15 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
 
     # One target matrix for every model: [PCA coefficients | q95 | betaN]. Fitting the flux map
     # and the two scalars jointly is what makes the models interchangeable and averageable.
-    Tgt = np.hstack([np.asarray(pca.transform(Y), dtype=np.float64), S])
-    Tgt_val = (np.hstack([np.asarray(pca.transform(Yv), dtype=np.float64), Sv])
+    # Chunked: TargetPCA.transform casts its whole input to float64, which for a full-data fit is
+    # a 42 GiB copy beside the 21 GiB float32 flux, and was the 63 GB cgroup OOM of 2026-09-25.
+    def transform(maps: FloatArray) -> FloatArray:
+        return np.concatenate([np.asarray(pca.transform(maps[a:a + 50000]), dtype=np.float64)
+                               for a in range(0, len(maps), 50000)]
+                              or [np.empty((0, params.n_pca))])
+
+    Tgt = np.hstack([transform(Y), S])
+    Tgt_val = (np.hstack([transform(Yv), Sv])
                if not fixed_steps else np.empty((0, params.n_pca + S.shape[1]),
                                                   dtype=np.float64))
     # A9: the seven scored functionals as EXTRA columns. `predict_row` reads only the first
