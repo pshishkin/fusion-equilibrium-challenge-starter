@@ -51,7 +51,9 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--base-out", type=Path)
     ap.add_argument("--max-shots", type=int, default=0)
-    ap.add_argument("--jobs", type=int, default=16)
+    ap.add_argument("--jobs", type=int, default=30)
+    ap.add_argument("--linear-only", action="store_true",
+                    help="apply only the stage's linear member weights, not its GBM")
     args = ap.parse_args()
     files = sorted((Path(DEFAULT_LOCAL_DATA_DIR) / "data" / args.config).glob("*.parquet"))
     if args.max_shots:
@@ -72,7 +74,9 @@ def main() -> int:
     cfg = (json.loads(cfg_path.read_text()) if cfg_path.exists()
            else {"linear": False, "context": True, "disagreement": False})
     W = joblib.load(args.stack / "linear_all.joblib") if cfg["linear"] else None
-    print(f"stage 2 config: {cfg}")
+    if args.linear_only and W is None:
+        raise ValueError(f"{args.stack}: --linear-only needs a stage fitted with --linear")
+    print(f"stage 2 config: {cfg}, linear only: {args.linear_only}")
     bounds = np.concatenate([[0], np.cumsum(lengths)])
     folds = [int(x) for x in args.folds.split(",")]
     acc_maps = np.zeros((len(X), 65, 65), dtype=np.float64)
@@ -103,7 +107,8 @@ def main() -> int:
         if W is not None:
             t["members_T"] = member_targets(t)
             shift = linear_blend(t, W) - stage1
-            delta = apply_stage2(models, np.column_stack([F, stage1 + shift])) + shift
+            delta = (shift if args.linear_only else
+                     apply_stage2(models, np.column_stack([F, stage1 + shift])) + shift)
         else:
             delta = apply_stage2(models, F)
         for a in range(0, len(X), 20000):

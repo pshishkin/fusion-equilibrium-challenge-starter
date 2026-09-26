@@ -188,7 +188,9 @@ def _score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) ->
                     model: str | None = None) -> list[dict]:
         if len(shots) != len(files):
             raise ValueError(f"scorer loaded {len(shots)} shots, payload holds {len(files)}")
-        return [{"psirz": payload[f"shot_{i:04d}_psirz"].astype(np.float64),
+        # float32 as stored: score_shot promotes each shot to float64 inside its worker, so
+        # the parent never holds a float64 copy of the whole fold (10 GB).
+        return [{"psirz": payload[f"shot_{i:04d}_psirz"],
                  "q95": payload[f"shot_{i:04d}_q95"].astype(np.float64),
                  "betaN": payload[f"shot_{i:04d}_betaN"].astype(np.float64)}
                 for i in range(len(shots))]
