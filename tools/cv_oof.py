@@ -171,13 +171,33 @@ def score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) -> 
 
 
 def _score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) -> dict[str, Any]:
-    with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent.parent / "runs") as tmp:
-        pred, metrics = Path(tmp) / "pred.npz", Path(tmp) / "metrics.json"
-        np.savez(pred, **payload)
-        local_score.main(["--source", "local", "--config", HF_TRAIN_CONFIG,
-                          "--files", *map(str, files), "--pred", str(pred),
-                          "--jobs", str(jobs), "--metrics-json", str(metrics)])
-        return json.loads(metrics.read_text())
+    """Native score of an in-memory payload.
+
+    The scorer reads predictions through `local_score.predict`, which loads an .npz; writing a
+    5 GB file single-threaded and reading it back cost minutes per pass, so `predict` is swapped
+    for one that serves the same arrays from memory. The .npz path it is given is never opened.
+    """
+    original = local_score.predict
+
+    def from_memory(shots: list[dict], mode: str, pred_npz: Path | None,
+                    model: str | None = None) -> list[dict]:
+        if len(shots) != len(files):
+            raise ValueError(f"scorer loaded {len(shots)} shots, payload holds {len(files)}")
+        return [{"psirz": payload[f"shot_{i:04d}_psirz"].astype(np.float64),
+                 "q95": payload[f"shot_{i:04d}_q95"].astype(np.float64),
+                 "betaN": payload[f"shot_{i:04d}_betaN"].astype(np.float64)}
+                for i in range(len(shots))]
+
+    local_score.predict = from_memory
+    try:
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent.parent / "runs") as tmp:
+            metrics = Path(tmp) / "metrics.json"
+            local_score.main(["--source", "local", "--config", HF_TRAIN_CONFIG,
+                              "--files", *map(str, files), "--pred", str(Path(tmp) / "unused.npz"),
+                              "--jobs", str(jobs), "--metrics-json", str(metrics)])
+            return json.loads(metrics.read_text())
+    finally:
+        local_score.predict = original
 
 
 def score(campaign: Path, spec: str, jobs: int, out: Path | None, oof_name: str,

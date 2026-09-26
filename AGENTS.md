@@ -364,6 +364,17 @@ five times over and gave back most of the speed-up.
 
 New per-shot loops go through `pimap`, not through a private pool.
 
+**Write for the whole machine from the first draft (user's rule, 2026-09-26).** The box has 32
+cores, one 24 GB GPU and 121 GB RAM, and a job that pins one core for hours while the rest idle
+is a bug, not a detail. Before running anything long, decide where it runs: array math and
+model fitting on the GPU when a GPU path exists (torch, CatBoost `task_type="GPU"`), per-shot or
+per-fold work through `pimap` with every free core, BLAS without an artificial thread cap. Avoid
+single-threaded detours such as writing a multi-GB file only to read it back (hand arrays over
+in memory), and whole-array temporaries (`astype(float64)`, `.std()`, `np.concatenate` of a
+list of parts) on the 20 GB flux: chunk them. Heavy jobs run as `systemd-run --user` units with
+`MemoryMax`, so an OOM kills the job, not the session; share the GPU deliberately (CatBoost
+`gpu_ram_part`) with whatever trains beside it.
+
 Optional fast magnetics columns live in a full-shot sidecar keyed by explicit artifact-owned YAML
 descriptors, producer/dependency identity and each pinned source parquet hash. They must not
 invalidate or silently alter the 208-column base shot cache. A centered window outside a raw
