@@ -1,10 +1,18 @@
 # DIII-D: current experiment status
 
-Updated 2026-09-24 (Moscow). This is the current index, not another experiment history.
+Updated 2026-09-26 (Moscow). This is the current index, not another experiment history.
 Historical explanations and negative results remain in `experiments_history.md`, `backlog.md`,
 `ideas.md`, and `single_model_results.md`. Their old "running" labels are historical.
 
 ## Public submissions and iteration control
+
+- **Current best public, 2026-09-26:** **946828 `submit_fc10_stack` S 0.9951** — ten fixcos
+  5-fold members (80% fits), per-column linear weights plus a CatBoost residual stage fitted
+  cross-fold (`tools/stack_cv.py`, `runs/stackcv_fc10`). **946814 `submit_full_fc2_stack` 0.9950**
+  is mlp+seq refitted on 100% of the shots (five seeds) under the fc2 stage, +0.0003 over the
+  same members at 80% (946020, 0.994738). Leaderboard top 3 at that time: 0.9959 / 0.9958 /
+  0.9957. The protocol, every CV and public number and what was refuted are in the 2026-09-25/26
+  entry of `experiments_history.md`. Everything below this item predates the 5-fold protocol.
 
 - **Latest public submission:** Codabench f16 flux-only probe **941187** by `pshishkin` scored
   DIII-D **S 0.993731** on 874 public shots and ranked **11th of 69** in the 2026-09-23

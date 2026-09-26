@@ -30,6 +30,12 @@ before adding code under `my_experiments/`.
 
 ## Where this stands
 
+**2026-09-26:** public **0.9951** (submission 946828): a whole-corpus 5-fold protocol
+(`--kfold`, `tools/cv_oof.py`), fixed-step cosine members, a ten-member library and a cross-fold
+linear + CatBoost stack (`tools/stack_cv.py`, applied by `tools/stack_predict.py`, packaged by
+`runs/build_submit.sh`); all-data refits add +0.0003. See `experiment_status.md` and the
+2026-09-25/26 entry of `experiments_history.md`. The paragraphs below describe the earlier lane.
+
 **Challenge 1 — current public submission:** Codabench submission 941187 by `pshishkin` has been
 scored. Its controlled flux-precision comparison with the previous float32 submission 941038
 and the earlier six-salt-labelled submission 915662

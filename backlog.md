@@ -37,6 +37,11 @@ moves it, and the reason is written in its row.
 
 ### `stack-linear-then-gbm`, `stack-disagreement`, `stack-no-context` — user's ideas, 2026-09-25
 
+**DONE 2026-09-26, all three adopted.** Linear-then-GBM is the production stage: on fixcos fc2
+base 0.992735 → linear 0.993096 → +GBM 0.993244 (5 folds), public 946020 0.994738. Disagreement
+enters as each member's deviation from the blend plus the spread (pairwise was quadratic in
+members and ran out of memory at ten). Context features did not help on fold 0 and are off.
+
 Context: the cross-fold GBM second stage (`tools/stack_cv.py`) measured +0.00040 ± 0.00018 over
 five folds (mlp+seq, early-stopped members) and +0.0006 on public (944488 → 944108). Per-model
 scores or errors cannot be features: the test set has no truth to compute them from.

@@ -3,6 +3,72 @@
 > Current baseline, protocol and status: [experiment_status.md](experiment_status.md).
 > Historical dates, running labels and superseded verdicts below are retained as evidence.
 
+**2026-09-25/26 (Moscow) — whole-corpus 5-fold CV, fixed-cosine members, a cross-fold stack,
+a ten-member library and all-data refits; public 0.99394 → 0.9951 (8th of the board):**
+
+*Protocol.* `train.py --kfold i/5` splits all 7045 DIII-D shots into five folds of 1409; each
+member is fitted on four folds, `tools/cv_oof.py dump` stores its out-of-fold (OOF) targets and
+`cv_oof.py score` scores any blend of them natively per fold. Every number below is a mean of
+five per-fold native S unless marked fold 0. `--kfold all` fits on every shot (fixed steps
+only) for submissions.
+
+*Members.* Early-stopped mlp+seq (the old recipe) averaged **0.991224**. **fixcos** — fixed
+steps on all non-fold shots (no validation carve-out), cosine lr to 0.01x, mlp 77000 / GRU seq
+41000 / conv 60000 / lstm 35000 steps — averaged **0.992735 (+0.00151, 5/5 folds)**. 0.7x and
+1.5x the schedule were both worse on fold 0 (0.992860, 0.992773 vs 0.992966); constant-lr fixed
+steps was 0.991442. Refuted on fold 0: input noise on the mlp (sd 0.05: 0.98758, 0.15: 0.97925
+vs 0.99186 alone) and on the seq (blend 0.991514/0.991235 vs 0.991926), random-crop
+augmentation of the seq (0.992598 blend, a +0.0007 that did not survive as a fixcos member),
+and the Thomson-geometry gate (`tools/ts_gate.py`: adding the profile-geometry block explained
+less held-out residual than without it on 6 of 7 scalars). Training on half the data raised
+1-S by 1.28x (mlp fold 0: 0.98964 vs 0.99186), a learning-curve exponent of about 0.36.
+
+*The stack* (`tools/stack_cv.py`). Every member's decoded map is projected on one common basis
+(fold 0's PCA-50 and coil field) so coefficients are comparable across folds. Stage 1: per
+coefficient, no-intercept least-squares member weights fitted on the OTHER folds' OOF. Stage 2:
+a CatBoost MultiRMSE (GPU) on the residual `truth - linear blend`, features = inputs, stage-1
+coefficients, each member's deviation from the blend and the member spread; its prediction is
+added in map space, `psi = sum_m psi_m / M + PCA^-1(c_lin + delta) - PCA^-1(c_eq)`, so detail
+outside the basis is kept. Evaluation is honest: fold k's stage is fitted on folds != k.
+
+| library | base (equal) | linear only | linear + GBM |
+|---|---|---|---|
+| mlp+seq, early-stopped, GBM only (sklearn) | 0.991224 | — | 0.991624 |
+| same, linear + pairwise disagreement (sklearn) | 0.991224 | 0.991647 | 0.991693 |
+| fixcos mlp+seq (fc2) | 0.992735 | 0.993096 | 0.993244 |
+| fixcos + conv (fc3) | 0.993375 | 0.993552 | 0.993683 |
+| ten fixcos members (fc10), fold 0 only | 0.993739 | 0.994524 | 0.994591 |
+
+The linear stage carries most of the gain (weights differ strongly by column: conv/attn hold
+the high-order psi components, the mlps q95 and betaN); the GBM adds +0.00013-0.00015 on top.
+The temporal-context features did not help (fold 0) and were dropped; pairwise disagreement is
+quadratic in members, replaced by the deviation-from-blend form.
+
+*Public (Codabench, 874 shots).* ES 5-fold no stack 944488 **0.9937**; its stack 944108
+**0.994317**; fixcos fc2 linear only 946349 **0.994416**; fixcos fc2 linear+GBM 946020
+**0.994738**; the same plus the old best11 blend 946010 0.994628 (the old models now HURT);
+fc10 linear+GBM 946828 **0.9951**; fc2 refitted on 100% data (5 seeds) with fc2's 80% stage
+946814 **0.9950**.
+
+*80% vs 100%.* A 5-fold submission averages the five fold models (each on 80% of the shots);
+an all-data submission averages five seeds fitted on 100%, stored as fold0-4 so the same
+`stack_predict` applies the stage fitted on the 80% OOF to them. Same members and stage:
+**0.994738 → 0.9950 (+0.0003)**, as much as the whole GBM stage, in line with the learning
+curve. Two all-data members about match ten 80% members, and the two gains should add: the
+library is being refitted on all data (`runs/full_*`).
+
+*Weight envelope proxy* (`tools/stack_linear_variants.py`, exact held-out MSE from sufficient
+statistics): free per-column weights overfit psi — equal weights have 0.3% lower in-basis psi
+MSE — while ridge towards equal weights (penalty 1e-3 x trace) cuts psi MSE 1.0% and betaN 5%
+on 5/5 folds; blocks, polynomial envelopes and factorised weights do not help. Native scoring
+of the ridge variants is running.
+
+*Infrastructure lessons.* Heavy jobs run as systemd user units with MemoryMax (the OOM killer
+twice took the whole session down); a 5 GB npz round trip, float64 copies of 42 GB and a
+single-threaded full-row parquet read (8 min a scoring pass, now 10 s by reading six columns in
+parallel) were the costs; member projection onto the common basis is now algebraic (50x50
+products instead of decoded 4225-pixel maps: a fold loads in seconds).
+
 **2026-09-24 UTC — source-centroid polar LCFS representation, topology pass then distance fail:**
 The [fixed TRAIN-only protocol](experiments/polar-source-origin-review.json) used the physical
 centroid of each input-only fold0 source-map LCFS as the one angular-ray origin. Exact selected
