@@ -98,6 +98,10 @@ Free per-column weights OVERFIT on psi: equal weights beat them there on average
 `ridgecv_*` choose it by inner leave-one-fold-out. Native scoring of free / ridge1e-4 /
 ridgecv_block / ridgecv_col / equal running (`runs/linvar_fc10/`).
 
+**Native, 2026-09-26** (linear stage only, 10 members, 5 folds): free **0.994092**, ridge1e-4
+0.994107 (+0.000015, 5/5), **ridgecv_block 0.994141 (+0.000049, 5/5 folds)**. Adopted:
+`stack_cv --linear-variant ridgecv_block`.
+
 ### `stack-basis-70` — 2026-09-26: a 70-component common basis for the stack
 
 `stack_cv` projects every member onto fold 0's 50-component PCA; weights and the GBM act on those
