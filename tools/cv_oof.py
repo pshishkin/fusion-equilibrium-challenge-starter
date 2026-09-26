@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import local_score
 from experiments import DEFAULT_LOCAL_DATA_DIR, HF_TRAIN_CONFIG
 from my_experiments import baseline_model as B
+from toolkit.parallel import pmap, resolve_jobs
 
 
 def _fold_files(art: dict[str, Any]) -> list[Path]:
@@ -175,6 +176,22 @@ def score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) -> 
         local_score._map = original
 
 
+SCORED_COLUMNS = ["efit_psirz", "efit_q95", "efit_beta_n", "source", "efit_grid_R", "efit_grid_Z"]
+
+
+def _read_scored_shot(path: Path) -> dict:
+    """The scorer's shot dict from only the columns scoring reads. `row` (the inference inputs,
+    most of a 100 MB row) is left empty: `predict` is served from memory and never reads it."""
+    import pandas as pd
+    row = pd.read_parquet(path, columns=SCORED_COLUMNS).iloc[0]
+    return {"row": {}, "psi": local_score._as_psi_stack(row["efit_psirz"]),
+            "q95": np.asarray(row["efit_q95"], dtype=np.float64),
+            "betaN": np.asarray(row["efit_beta_n"], dtype=np.float64),
+            "machine": str(row["source"]),
+            "grid_R": np.asarray(row["efit_grid_R"], dtype=np.float64),
+            "grid_Z": np.asarray(row["efit_grid_Z"], dtype=np.float64)}
+
+
 def _score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) -> dict[str, Any]:
     """Native score of an in-memory payload.
 
@@ -195,7 +212,17 @@ def _score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) ->
                  "betaN": payload[f"shot_{i:04d}_betaN"].astype(np.float64)}
                 for i in range(len(shots))]
 
+    def read_parallel(n_shots: int, skip: int, local_data_dir: Path, config: str,
+                      paths: list[Path] | None = None,
+                      model_specs: tuple[str | None, ...] = ()) -> list[dict]:
+        # The scorer reads its shots one parquet at a time: 8 minutes a pass on a busy box.
+        if paths is None or model_specs:
+            raise ValueError("parallel shot reading serves explicit file lists in pred mode only")
+        return pmap(_read_scored_shot, paths, resolve_jobs(jobs, len(paths)))
+
+    original_load = local_score.load_shots_local
     local_score.predict = from_memory
+    local_score.load_shots_local = read_parallel
     try:
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent.parent / "runs") as tmp:
             metrics = Path(tmp) / "metrics.json"
@@ -205,6 +232,7 @@ def _score_fold(files: list[Path], payload: dict[str, np.ndarray], jobs: int) ->
             return json.loads(metrics.read_text())
     finally:
         local_score.predict = original
+        local_score.load_shots_local = original_load
 
 
 def score(campaign: Path, spec: str, jobs: int, out: Path | None, oof_name: str,
