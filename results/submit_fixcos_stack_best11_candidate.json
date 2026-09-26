@@ -1,0 +1,10 @@
+{
+ "variant": "float32",
+ "candidate": "submit_fixcos_stack_best11",
+ "final_npz": {
+  "path": "runs/submit_fixcos_stack_best11/diii_d_public_test.npz",
+  "bytes": 3270008146,
+  "sha256": "5e07c5697d2a03aed0bf8385f4196617817f83ef8b0c3711578762d6828e200c",
+  "shots": 874
+ }
+}

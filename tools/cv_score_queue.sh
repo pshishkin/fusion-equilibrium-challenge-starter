@@ -7,7 +7,7 @@ while true; do
   [ -z "$line" ] && { sleep 60; continue; }
   read -r camp f blend out <<<"$line"
   echo "START $line $(date)"
-  flock /tmp/fusion_analysis.lock uv run python tools/cv_oof.py score "$camp" --blend "$blend" --folds "$f" --jobs 16 --json "$out" $([ "$blend" = stack ] && echo --oof-name oof_stack.npz) 2>&1 | grep -E "^blend|^  S|Error" || echo "FAILED $line"
+  flock /tmp/fusion_analysis.lock uv run python tools/cv_oof.py score "$camp" --blend "$blend" --folds "$f" --jobs 30 --json "$out" $([ "$blend" = stack ] && echo --oof-name oof_stack.npz) 2>&1 | grep -E "^blend|^  S|Error" || echo "FAILED $line"
   python3 - "$q" "$line" <<'PY'
 import sys
 q, line = sys.argv[1], sys.argv[2]

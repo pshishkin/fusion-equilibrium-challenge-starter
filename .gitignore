@@ -62,3 +62,4 @@ submission_*/
 
 # Immutable local experiment snapshots, fits, logs and per-run JSON metrics.
 runs/
+catboost_info/
