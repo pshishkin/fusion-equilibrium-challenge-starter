@@ -72,6 +72,27 @@ Variants to try, each against free per-coefficient lstsq on the same folds:
   adjacent coefficients' weights.
 Priority rises as the member library grows (conv, lstm, p70, second-seed mlp, fixed-cosine refits).
 
+**Proxy result 2026-09-26** (`tools/stack_linear_variants.py`, 10 fixcos members, 50-component
+basis; exact held-out MSE from per-column sufficient statistics, fit on four folds, error on the
+fifth; ratios to `free`, mean over five folds; `runs/linvar_fc10_proxy/`):
+
+| variant | psi MSE | q95 | betaN | psi folds better |
+|---|---|---|---|---|
+| equal | 0.99691 | 1.36519 | 1.25051 | 2/5 |
+| nnls | 0.99971 | 0.99900 | 0.99520 | 5/5 |
+| block10 / block50 | 1.00089 / 1.00072 | 1 | 1 | 3/5 |
+| poly3 | 1.00159 | 1 | 1 | 1/5 |
+| smooth1e-4 | 0.99823 | 1 | 1 | 4/5 |
+| ridge1e-4 | 0.99464 | 0.99553 | 0.98832 | 5/5 |
+| **ridge1e-3** | **0.98975** | 1.01880 | **0.94739** | 5/5 |
+| ridge1e-2 | 0.99089 | 1.22804 | 0.96777 | 4/5 |
+
+Free per-column weights OVERFIT on psi: equal weights beat them there on average. Tying weights
+(blocks, polynomial envelopes, factorised) does not help; shrinking towards equal weights does, by
+1% of in-basis psi MSE and 5% of betaN. The best penalty differs per column (q95 wants less), so
+`ridgecv_*` choose it by inner leave-one-fold-out. Native scoring of free / ridge1e-4 /
+ridgecv_block / ridgecv_col / equal running (`runs/linvar_fc10/`).
+
 ### `stack-basis-70` — 2026-09-26: a 70-component common basis for the stack
 
 `stack_cv` projects every member onto fold 0's 50-component PCA; weights and the GBM act on those

@@ -27,7 +27,8 @@ from experiments import DEFAULT_LOCAL_DATA_DIR
 from my_experiments import baseline_model as B
 import json
 
-from stack_cv import apply_stage2, features, linear_blend, member_targets, project
+from stack_cv import (apply_stage2, features, linear_blend, load_basis, member_targets,
+                      project)
 from toolkit.parallel import pmap, resolve_jobs
 
 
@@ -66,16 +67,15 @@ def main() -> int:
     weights = (np.array([float(x) for x in args.weights.split(",")]) if args.weights
                else np.full(len(members), 1.0 / len(members)))
     weights = weights / weights.sum()
-    base_art = joblib.load(args.campaign / "fold0" / "baseline.joblib")
-    basis = {"pca": base_art["pca"], "coil": base_art["coil"]}
-    k = basis["pca"].n_components
-    models = joblib.load(args.stack / "models_all.joblib")
     cfg_path = args.stack / "config.json"
     cfg = (json.loads(cfg_path.read_text()) if cfg_path.exists()
            else {"linear": False, "context": True, "disagreement": False})
+    basis = load_basis(args.campaign, Path(cfg["basis_from"]) if cfg.get("basis_from") else None)
+    k = basis["pca"].n_components
     W = joblib.load(args.stack / "linear_all.joblib") if cfg["linear"] else None
     if args.linear_only and W is None:
         raise ValueError(f"{args.stack}: --linear-only needs a stage fitted with --linear")
+    models = None if args.linear_only else joblib.load(args.stack / "models_all.joblib")
     print(f"stage 2 config: {cfg}, linear only: {args.linear_only}")
     bounds = np.concatenate([[0], np.cumsum(lengths)])
     folds = [int(x) for x in args.folds.split(",")]

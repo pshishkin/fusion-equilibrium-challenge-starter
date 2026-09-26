@@ -84,6 +84,34 @@ def fold_table(fold_dir: Path, members: list[str], basis: dict[str, Any],
             "decoders": decoders}
 
 
+def load_fold(campaign: Path, members: list[str], k: int, basis: dict[str, Any],
+              jobs: int) -> dict[str, Any]:
+    """fold_table of fold k over members given as 'name' (this campaign) or 'dir:name' (the same
+    fold of another campaign, which must hold exactly the same files)."""
+    t = None
+    for m in members:
+        src, _, name = m.rpartition(":")
+        d = (Path(src) if src else campaign) / f"fold{k}"
+        tt = fold_table(d, [name], basis, jobs)
+        if t is None:
+            t = tt
+            continue
+        if [f.name for f in tt["files"]] != [f.name for f in t["files"]]:
+            raise ValueError(f"{d}: fold {k} files differ")
+        t["member_coef"] += tt["member_coef"]
+        t["member_qb"] += tt["member_qb"]
+        t["decoders"] += tt["decoders"]
+        del tt
+    assert t is not None
+    return t
+
+
+def load_basis(campaign: Path, basis_from: Path | None) -> dict[str, Any]:
+    """The common basis: fold 0's PCA and coil field of `basis_from`, else of the campaign."""
+    art = joblib.load((basis_from or campaign) / "fold0" / "baseline.joblib")
+    return {"pca": art["pca"], "coil": art["coil"]}
+
+
 def member_targets(t: dict[str, Any]) -> list[np.ndarray]:
     """Each member's (global coefficients | q95, betaN), (N, 52)."""
     return [np.column_stack([c, q]) for c, q in zip(t["member_coef"], t["member_qb"], strict=True)]
@@ -129,11 +157,39 @@ def linear_blend(t: dict[str, Any], W: np.ndarray) -> np.ndarray:
 GBM = "sklearn"
 
 
-def fit_stage2(F: np.ndarray, R: np.ndarray, iters: int, every: int) -> Any:
+def target_scale(mode: str, truth: np.ndarray, R: np.ndarray) -> np.ndarray | None:
+    """Per-column divisors of the stage-2 residual; None means each column's own spread.
+
+    `metric` weighs the columns as the composite does, as TargetScaler does for the base models:
+    one divisor for the whole psi block (orthonormal basis, so the summed coefficient error is
+    the pixel error), each scalar on its own variance, the blocks as W_PSI against W_QB / 2. The
+    psi total variance is the in-basis spread about the mean image, an under-estimate of the
+    scorer's flat-mean SS_tot, so psi is weighted somewhat above the composite's ratio. `geo` is
+    the geometric mean of `std` and `metric`: the high-order columns count, but less.
+    """
+    if mode == "std":
+        return None
+    from common import W_PSI, W_QB
+    k = truth.shape[1] - 2
+    metric = np.empty(truth.shape[1])
+    metric[:k] = np.sqrt(truth[:, :k].var(0).sum() / W_PSI)
+    metric[k:] = np.sqrt(truth[:, k:].var(0) / (W_QB / 2))
+    if mode == "metric":
+        return metric
+    std = R.std(0)
+    return np.sqrt(metric / np.sqrt((metric ** 2).mean()) * std / np.sqrt((std ** 2).mean()))
+
+
+TARGET_SCALE = "std"
+
+
+def fit_stage2(F: np.ndarray, R: np.ndarray, iters: int, every: int,
+               truth: np.ndarray | None = None) -> Any:
     from sklearn.ensemble import HistGradientBoostingRegressor
     rows = np.arange(0, len(F), every)
     if GBM == "catboost":
-        return CatBoostStage2(iters).fit(F[rows], R[rows])
+        scale = None if truth is None else target_scale(TARGET_SCALE, truth, R)
+        return CatBoostStage2(iters, scale=scale).fit(F[rows], R[rows])
     models = []
     for j in range(R.shape[1]):
         m = HistGradientBoostingRegressor(max_iter=iters, learning_rate=0.05, max_leaf_nodes=31,
@@ -189,18 +245,30 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--jobs", type=int, default=16)
     ap.add_argument("--no-score", action="store_true")
+    ap.add_argument("--eval-folds", default="",
+                    help="folds to fit and score a held-out stage for (default: all --folds)")
+    ap.add_argument("--stacked-only", action="store_true",
+                    help="score only the corrected blend, not the base and linear references")
     ap.add_argument("--no-context", action="store_true")
     ap.add_argument("--gbm", choices=("sklearn", "catboost"), default="sklearn")
     ap.add_argument("--disagreement", action="store_true")
     ap.add_argument("--disagreement-mean", action="store_true",
                     help="disagreement as each member's deviation from the blend plus the "
                          "spread: linear in the member count instead of all pairs")
+    ap.add_argument("--target-scale", default="std",
+                    help="std, metric or geo (see target_scale); a comma list fits each in turn "
+                         "on the same tables, the first being the stage's own")
+    ap.add_argument("--basis-from", type=Path,
+                    help="campaign whose fold 0 PCA is the common basis (default: the campaign)")
     ap.add_argument("--linear", action="store_true",
                     help="fit per-coefficient member weights on the other folds' OOF first; the "
                          "GBM then learns the residual of that linear blend")
     args = ap.parse_args()
-    global GBM
-    GBM = args.gbm
+    global GBM, TARGET_SCALE
+    scales = args.target_scale.split(",")
+    if set(scales) - {"std", "metric", "geo"}:
+        raise ValueError(f"--target-scale {args.target_scale!r}")
+    GBM, TARGET_SCALE = args.gbm, scales[0]
     if args.disagreement_mean:
         args.disagreement = "mean"
     args.out.mkdir(parents=True, exist_ok=True)
@@ -209,26 +277,10 @@ def main() -> int:
     weights = (np.array([float(x) for x in args.weights.split(",")]) if args.weights
                else np.full(len(members), 1.0 / len(members)))
     weights = weights / weights.sum()
-    base_art = joblib.load(args.campaign / "fold0" / "baseline.joblib")
-    basis = {"pca": base_art["pca"], "coil": base_art["coil"]}
+    basis = load_basis(args.campaign, args.basis_from)
     tables = {}
     for k in folds:
-        # A member is 'name' (this campaign) or 'dir:name' (same fold of another campaign).
-        t = None
-        for m in members:
-            src, _, name = m.rpartition(":")
-            d = (Path(src) if src else args.campaign) / f"fold{k}"
-            tt = fold_table(d, [name], basis, args.jobs)
-            if t is None:
-                t = tt
-                continue
-            if [f.name for f in tt["files"]] != [f.name for f in t["files"]]:
-                raise ValueError(f"{d}: fold {k} files differ")
-            t["member_coef"] += tt["member_coef"]
-            t["member_qb"] += tt["member_qb"]
-            t["decoders"] += tt["decoders"]
-            del tt
-        assert t is not None
+        t = load_fold(args.campaign, members, k, basis, args.jobs)
         del t["Y"]
         F, stage1 = features(t, weights, not args.no_context, args.disagreement)
         t["F"], t["stage1"] = F, stage1
@@ -239,7 +291,8 @@ def main() -> int:
         print(f"fold {k}: {len(F)} frames, {F.shape[1]} features", flush=True)
     report = {"members": members, "weights": weights.tolist(), "iters": args.iters,
               "every": args.every, "folds": {}}
-    for k in folds:
+    eval_folds = [int(x) for x in args.eval_folds.split(",")] if args.eval_folds else folds
+    for k in eval_folds:
         others = [j for j in folds if j != k]
         t0 = time.time()
         # `shift` moves the equal-weight stage 1 to the linear blend; zero without --linear.
@@ -256,26 +309,37 @@ def main() -> int:
         Fo = np.concatenate([np.column_stack([tables[j]["F"][::ev],
                                               (tables[j]["stage1"] + shifts[j])[::ev]])
                              if args.linear else tables[j]["F"][::ev] for j in others])
-        models = fit_stage2(Fo, np.concatenate([(tables[j]["R"] - shifts[j])[::ev]
-                                                for j in others]), args.iters, 1)
-        del Fo
-        joblib.dump(models, args.out / f"models_fold{k}.joblib")
+        Ro = np.concatenate([(tables[j]["R"] - shifts[j])[::ev] for j in others])
+        To = np.concatenate([tables[j]["truth"][::ev] for j in others])
         t = tables[k]
         Fk = (np.column_stack([t["F"], t["stage1"] + shifts[k]]) if args.linear else t["F"])
-        delta = apply_stage2(models, Fk) + shifts[k]
-        expl = 1 - ((t["R"] - delta) ** 2).mean(0) / (t["R"] ** 2).mean(0)
-        print(f"fold {k}: stage 2 fitted in {time.time() - t0:.0f} s; explained "
-              f"median {np.median(expl):+.3f}", flush=True)
-        entry: dict[str, Any] = {"explained": expl.tolist()}
-        if not args.no_score:
+        entry: dict[str, Any] = {}
+        # Several target scalings share one table load; the first is the stage's own.
+        for i, scale in enumerate(scales):
+            TARGET_SCALE = scale
+            tag = "" if i == 0 else f"_{scale}"
+            models = fit_stage2(Fo, Ro, args.iters, 1, To)
+            joblib.dump(models, args.out / f"models{tag}_fold{k}.joblib")
+            delta = apply_stage2(models, Fk) + shifts[k]
+            expl = 1 - ((t["R"] - delta) ** 2).mean(0) / (t["R"] ** 2).mean(0)
+            print(f"fold {k} [{scale}]: stage 2 fitted in {time.time() - t0:.0f} s; explained "
+                  f"median {np.median(expl):+.3f}", flush=True)
+            entry[f"explained{tag}"] = expl.tolist()
+            if not args.no_score:
+                corr = corrected_payload(t, t["stage1"], delta, weights, basis)
+                (rc,) = score_fold(t["files"], corr, args.jobs)["results"].values()
+                del corr
+                entry[f"stacked{tag}"] = rc
+                print(f"fold {k} [{scale}]: S stacked {rc['S']:.6f}", flush=True)
+            report["folds"][k] = entry
+            (args.out / "report.json").write_text(json.dumps(report, indent=1, default=float))
+        del Fo, Ro, To
+        if not args.no_score and not args.stacked_only:
+            rc = entry["stacked"]
             base = corrected_payload(t, t["stage1"], np.zeros_like(delta), weights, basis)
-            mb = score_fold(t["files"], base, args.jobs)
+            (rb,) = score_fold(t["files"], base, args.jobs)["results"].values()
             del base
-            corr = corrected_payload(t, t["stage1"], delta, weights, basis)
-            mc = score_fold(t["files"], corr, args.jobs)
-            del corr
-            (rb,), (rc,) = mb["results"].values(), mc["results"].values()
-            entry |= {"base": rb, "stacked": rc}
+            entry["base"] = rb
             if args.linear:
                 lin = corrected_payload(t, t["stage1"], np.broadcast_to(shifts[k], delta.shape),
                                         weights, basis)
@@ -287,7 +351,8 @@ def main() -> int:
                   f"delta {rc['S'] - rb['S']:+.6f}", flush=True)
         report["folds"][k] = entry
         (args.out / "report.json").write_text(json.dumps(report, indent=1, default=float))
-    if len(folds) == 5:
+    if len(folds) == 5 and not args.eval_folds:
+        TARGET_SCALE = scales[0]
         if args.linear:
             W = fit_linear([tables[j] for j in folds])
             joblib.dump(W, args.out / "linear_all.joblib")
@@ -300,11 +365,14 @@ def main() -> int:
         else:
             Fa = np.concatenate([tables[j]["F"][::args.every] for j in folds])
             Ra = np.concatenate([tables[j]["R"][::args.every] for j in folds])
-        models = fit_stage2(Fa, Ra, args.iters, 1)
+        models = fit_stage2(Fa, Ra, args.iters, 1,
+                            np.concatenate([tables[j]["truth"][::args.every] for j in folds]))
         joblib.dump(models, args.out / "models_all.joblib")
         (args.out / "config.json").write_text(json.dumps(
             {"members": members, "linear": args.linear, "context": not args.no_context,
-             "disagreement": args.disagreement, "gbm": args.gbm}, indent=1))
+             "disagreement": args.disagreement, "gbm": args.gbm,
+             "target_scale": scales[0],
+             "basis_from": str(args.basis_from) if args.basis_from else None}, indent=1))
     return 0
 
 
