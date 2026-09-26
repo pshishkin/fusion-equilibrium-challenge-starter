@@ -74,8 +74,8 @@ def fold_table(fold_dir: Path, members: list[str], basis: dict[str, Any],
             b = min(a + 20000, len(X))
             maps[a:b] = (art["pca"].inverse_transform(T[a:b, :n]).reshape(-1, 65, 65)
                          + B.coil_flux(art["coil"], X[a:b]))
-        member_coef.append(project(maps, X, basis))
-        member_qb.append(T[:, n:n + 2])
+        member_coef.append(project(maps, X, basis).astype(np.float32))
+        member_qb.append(T[:, n:n + 2].astype(np.float32))
         del maps
     decoders = [(art, z, m) for m in members]
     true_coef = project(Y, X, basis)
@@ -108,7 +108,7 @@ def features(t: dict[str, Any], weights: np.ndarray, context: bool = True,
                 parts += [d, np.abs(d)]
     if context:
         parts += context_features(stage1, t["lengths"])
-    return np.column_stack(parts).astype(np.float32), stage1
+    return np.column_stack([np.asarray(p, dtype=np.float32) for p in parts]), stage1
 
 
 def fit_linear(tables: list[dict[str, Any]]) -> np.ndarray:
@@ -251,10 +251,13 @@ def main() -> int:
                 shifts[j] = linear_blend(tables[j], W) - tables[j]["stage1"]
         else:
             shifts = {j: 0.0 for j in folds}
-        Fo = np.concatenate([np.column_stack([tables[j]["F"], tables[j]["stage1"] + shifts[j]])
-                             if args.linear else tables[j]["F"] for j in others])
-        models = fit_stage2(Fo, np.concatenate([tables[j]["R"] - shifts[j] for j in others]),
-                            args.iters, args.every)
+        # Rows are thinned per fold BEFORE concatenation: the full four-fold table is never built.
+        ev = args.every
+        Fo = np.concatenate([np.column_stack([tables[j]["F"][::ev],
+                                              (tables[j]["stage1"] + shifts[j])[::ev]])
+                             if args.linear else tables[j]["F"][::ev] for j in others])
+        models = fit_stage2(Fo, np.concatenate([(tables[j]["R"] - shifts[j])[::ev]
+                                                for j in others]), args.iters, 1)
         del Fo
         joblib.dump(models, args.out / f"models_fold{k}.joblib")
         t = tables[k]
@@ -289,13 +292,15 @@ def main() -> int:
             W = fit_linear([tables[j] for j in folds])
             joblib.dump(W, args.out / "linear_all.joblib")
             shifts = {j: linear_blend(tables[j], W) - tables[j]["stage1"] for j in folds}
-            Fa = np.concatenate([np.column_stack([tables[j]["F"], tables[j]["stage1"] + shifts[j]])
+            ev = args.every
+            Fa = np.concatenate([np.column_stack([tables[j]["F"][::ev],
+                                                  (tables[j]["stage1"] + shifts[j])[::ev]])
                                  for j in folds])
-            Ra = np.concatenate([tables[j]["R"] - shifts[j] for j in folds])
+            Ra = np.concatenate([(tables[j]["R"] - shifts[j])[::ev] for j in folds])
         else:
-            Fa = np.concatenate([tables[j]["F"] for j in folds])
-            Ra = np.concatenate([tables[j]["R"] for j in folds])
-        models = fit_stage2(Fa, Ra, args.iters, args.every)
+            Fa = np.concatenate([tables[j]["F"][::args.every] for j in folds])
+            Ra = np.concatenate([tables[j]["R"][::args.every] for j in folds])
+        models = fit_stage2(Fa, Ra, args.iters, 1)
         joblib.dump(models, args.out / "models_all.joblib")
         (args.out / "config.json").write_text(json.dumps(
             {"members": members, "linear": args.linear, "context": not args.no_context,
