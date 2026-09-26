@@ -158,8 +158,20 @@ def features(t: dict[str, Any], weights: np.ndarray, context: bool = True,
     return np.column_stack([np.asarray(p, dtype=np.float32) for p in parts]), stage1
 
 
+LINEAR_VARIANT = "free"
+
+
 def fit_linear(tables: list[dict[str, Any]]) -> np.ndarray:
-    """(M, 52) no-intercept least-squares member weights per target column, on OOF frames."""
+    """(M, 52) no-intercept member weights per target column, on OOF frames: least squares, or
+    the named variant of tools/stack_linear_variants.py (e.g. ridgecv_block)."""
+    if LINEAR_VARIANT != "free":
+        from stack_linear_variants import fold_stats, variants
+        k = tables[0]["truth"].shape[1] - 2
+        fit = variants(k, len(tables[0]["members_T"]))[LINEAR_VARIANT]
+        for t in tables:
+            if "stats" not in t:
+                t["stats"] = fold_stats(t["members_T"], t["truth"])
+        return fit([t["stats"] for t in tables])
     M = len(tables[0]["members_T"])
     W = np.empty((M, tables[0]["truth"].shape[1]))
     for j in range(W.shape[1]):
@@ -279,6 +291,8 @@ def main() -> int:
                          "on the same tables, the first being the stage's own")
     ap.add_argument("--basis-from", type=Path,
                     help="campaign whose fold 0 PCA is the common basis (default: the campaign)")
+    ap.add_argument("--linear-variant", default="free",
+                    help="weight fit of the linear stage, a tools/stack_linear_variants.py name")
     ap.add_argument("--linear", action="store_true",
                     help="fit per-coefficient member weights on the other folds' OOF first; the "
                          "GBM then learns the residual of that linear blend")
@@ -288,6 +302,8 @@ def main() -> int:
     if set(scales) - {"std", "metric", "geo"}:
         raise ValueError(f"--target-scale {args.target_scale!r}")
     GBM, TARGET_SCALE = args.gbm, scales[0]
+    global LINEAR_VARIANT
+    LINEAR_VARIANT = args.linear_variant
     if args.disagreement_mean:
         args.disagreement = "mean"
     args.out.mkdir(parents=True, exist_ok=True)
@@ -390,7 +406,7 @@ def main() -> int:
         (args.out / "config.json").write_text(json.dumps(
             {"members": members, "linear": args.linear, "context": not args.no_context,
              "disagreement": args.disagreement, "gbm": args.gbm,
-             "target_scale": scales[0],
+             "target_scale": scales[0], "linear_variant": args.linear_variant,
              "basis_from": str(args.basis_from) if args.basis_from else None}, indent=1))
     return 0
 
