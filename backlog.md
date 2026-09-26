@@ -101,8 +101,14 @@ ridgecv_block / ridgecv_col / equal running (`runs/linvar_fc10/`).
 **Native, 2026-09-26** (linear stage only, 10 members, 5 folds): free **0.994092**, ridge1e-4
 0.994107 (+0.000015, 5/5), **ridgecv_block 0.994141 (+0.000049, 5/5 folds)**. Adopted:
 `stack_cv --linear-variant ridgecv_block`.
+Reference: equal weights 0.993844; ridgecv_col 0.994142 (same as block, more parameters).
 
 ### `stack-basis-70` — 2026-09-26: a 70-component common basis for the stack
+
+**CONFIRMED 2026-09-27** (`stack_linear_variants.py --basis-from runs/fc_p70`, 10 members, linear
+stage only, native, 5 folds): free weights 0.994092 → **0.994142** (+0.000050, 5/5 folds);
+ridgecv_block 0.994141 → **0.994192** (+0.000051, 5/5). Ridge and the wider basis ADD: +0.000100
+over basis-50 free. `stack_cv --basis-from runs/fc_p70`; `stack_predict` reads it from config.
 
 `stack_cv` projects every member onto fold 0's 50-component PCA; weights and the GBM act on those
 50 coefficients (+q95/betaN). Detail beyond them — including PCA-70's components 51–70, which is
