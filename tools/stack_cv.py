@@ -56,28 +56,57 @@ def project(maps: np.ndarray, X: np.ndarray, basis: dict[str, Any]) -> np.ndarra
     return out
 
 
-def fold_table(fold_dir: Path, members: list[str], basis: dict[str, Any],
-               jobs: int) -> dict[str, Any]:
-    """Everything stage 2 needs for one fold: inputs, per-member global coefs + qb, truth."""
-    art = joblib.load(fold_dir / "baseline.joblib")
-    files = _fold_files(art)
-    z = np.load(fold_dir / "oof.npz")
-    if list(z["files"]) != [f.name for f in files]:
-        raise ValueError(f"{fold_dir}: oof.npz order differs from the artifact holdout")
-    X, Y, S, lengths = B._read_shots(files, f"reading {fold_dir.name}", 1.0, jobs)
+def project_targets(T: np.ndarray, art: dict[str, Any], X: np.ndarray,
+                    basis: dict[str, Any]) -> np.ndarray:
+    """`project` of the maps a member's targets decode to, without decoding them.
+
+    decode = T C_a + mu_a + coil_a(X); project = (map - coil_b(X) - mu_b) C_b'. Both PCAs are
+    plain (unwhitened) sklearn PCAs and both coil fields are linear in the same signal columns, so
+    the composition is (T C_a + mu_a - mu_b) C_b' + X[:, idx] (maps_a - maps_b) C_b': products
+    with 50-wide matrices instead of 4225-pixel maps. Equal to the decoded path up to float32
+    rounding of the maps, which that path stores.
+    """
+    pa, pb = art["pca"].pca, basis["pca"].pca
+    if pa.whiten or pb.whiten or not np.array_equal(art["coil"]["index"], basis["coil"]["index"]):
+        raise ValueError("fast projection needs unwhitened PCAs and one coil signal index")
     n = int(art["n_pca"])
-    member_coef, member_qb = [], []
-    for m in members:
+    Cb = pb.components_.astype(np.float64)
+    A = pa.components_.astype(np.float64) @ Cb.T
+    off = (pa.mean_ - pb.mean_) @ Cb.T
+    D = (art["coil"]["maps"].reshape(len(art["coil"]["index"]), -1).astype(np.float64)
+         - basis["coil"]["maps"].reshape(len(basis["coil"]["index"]), -1)) @ Cb.T
+    idx = art["coil"]["index"]
+    return (T[:, :n].astype(np.float64) @ A + off
+            + X[:, idx].astype(np.float64) @ D).astype(np.float32)
+
+
+def fold_table(fold_dirs: list[Path], members: list[str], basis: dict[str, Any],
+               jobs: int) -> dict[str, Any]:
+    """Everything stage 2 needs for one fold: inputs, per-member global coefs + qb, truth.
+
+    Member i is `members[i]` of the artifact in `fold_dirs[i]`; every artifact must score the
+    same files. The fold is read and the truth projected once.
+    """
+    arts: dict[Path, tuple[dict[str, Any], Any]] = {}
+    for d in dict.fromkeys(fold_dirs):
+        art = joblib.load(d / "baseline.joblib")
+        z = np.load(d / "oof.npz")
+        if list(z["files"]) != [f.name for f in _fold_files(art)]:
+            raise ValueError(f"{d}: oof.npz order differs from the artifact holdout")
+        arts[d] = (art, z)
+    files = _fold_files(arts[fold_dirs[0]][0])
+    for d, (art, _) in arts.items():
+        if [f.name for f in _fold_files(art)] != [f.name for f in files]:
+            raise ValueError(f"{d}: scored files differ from {fold_dirs[0]}")
+    X, Y, S, lengths = B._read_shots(files, f"reading {fold_dirs[0].name}", 1.0, jobs)
+    member_coef, member_qb, decoders = [], [], []
+    for d, m in zip(fold_dirs, members, strict=True):
+        art, z = arts[d]
+        n = int(art["n_pca"])
         T = z[f"targets_{m}"]
-        maps = np.empty((len(X), 65, 65), dtype=np.float32)
-        for a in range(0, len(X), 20000):
-            b = min(a + 20000, len(X))
-            maps[a:b] = (art["pca"].inverse_transform(T[a:b, :n]).reshape(-1, 65, 65)
-                         + B.coil_flux(art["coil"], X[a:b]))
-        member_coef.append(project(maps, X, basis).astype(np.float32))
+        member_coef.append(project_targets(T, art, X, basis))
         member_qb.append(T[:, n:n + 2].astype(np.float32))
-        del maps
-    decoders = [(art, z, m) for m in members]
+        decoders.append((art, z, m))
     true_coef = project(Y, X, basis)
     return {"files": files, "X": X, "Y": Y, "S": S, "lengths": lengths,
             "member_coef": member_coef, "member_qb": member_qb, "true_coef": true_coef,
@@ -88,22 +117,12 @@ def load_fold(campaign: Path, members: list[str], k: int, basis: dict[str, Any],
               jobs: int) -> dict[str, Any]:
     """fold_table of fold k over members given as 'name' (this campaign) or 'dir:name' (the same
     fold of another campaign, which must hold exactly the same files)."""
-    t = None
+    dirs, names = [], []
     for m in members:
         src, _, name = m.rpartition(":")
-        d = (Path(src) if src else campaign) / f"fold{k}"
-        tt = fold_table(d, [name], basis, jobs)
-        if t is None:
-            t = tt
-            continue
-        if [f.name for f in tt["files"]] != [f.name for f in t["files"]]:
-            raise ValueError(f"{d}: fold {k} files differ")
-        t["member_coef"] += tt["member_coef"]
-        t["member_qb"] += tt["member_qb"]
-        t["decoders"] += tt["decoders"]
-        del tt
-    assert t is not None
-    return t
+        dirs.append((Path(src) if src else campaign) / f"fold{k}")
+        names.append(name)
+    return fold_table(dirs, names, basis, jobs)
 
 
 def load_basis(campaign: Path, basis_from: Path | None) -> dict[str, Any]:
