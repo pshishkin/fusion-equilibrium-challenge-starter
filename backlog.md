@@ -80,6 +80,18 @@ where p70's reliable D_LCFS gain lives — enters only through the equal-weight 
 never re-weighted. Use a 70-component basis (e.g. runs/fc_p70/fold0's PCA, via a --basis-from
 option) so the stage has 72 outputs; compare paired per fold with the 50-component stage.
 
+### `stack-metric-weighted-target` — 2026-09-26: weight the stage-2 targets by their score value
+
+The GBM target is R = c_true − c_lin: the true map projected on the common basis plus true
+q95/betaN, minus the linear blend. CatBoost MultiRMSE is fitted on R with every column divided
+by its own standard deviation, so all 52 outputs weigh the same. The score does not: R²ψ is
+dominated by the large low-order components, D_LCFS and Consistency depend on boundary shape
+(to which high-order components contribute), q95/betaN enter directly. Weight the columns by
+the metric instead — e.g. the Jacobian-based target scaling the base models already train with
+(`target_scaler`, W_PSI / W_CONS / W_QB) — either by rescaling R before MultiRMSE or through
+per-output weights. Compare paired per fold with the standardised stage; pair with
+`stack-basis-70`.
+
 **PRIORITY, set by the user 2026-08-25: the three `aux` variations come first.** They are the only
 entries aimed at where the TEST SET says the loss is — `li` at R2 0.960156 and `kappa` at 0.965434,
 together 6.6x the gap to first place. Everything else on this list is a general-purpose knob acting
