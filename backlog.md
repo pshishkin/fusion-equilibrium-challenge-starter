@@ -72,6 +72,14 @@ Variants to try, each against free per-coefficient lstsq on the same folds:
   adjacent coefficients' weights.
 Priority rises as the member library grows (conv, lstm, p70, second-seed mlp, fixed-cosine refits).
 
+### `stack-basis-70` — 2026-09-26: a 70-component common basis for the stack
+
+`stack_cv` projects every member onto fold 0's 50-component PCA; weights and the GBM act on those
+50 coefficients (+q95/betaN). Detail beyond them — including PCA-70's components 51–70, which is
+where p70's reliable D_LCFS gain lives — enters only through the equal-weight map average (1/M),
+never re-weighted. Use a 70-component basis (e.g. runs/fc_p70/fold0's PCA, via a --basis-from
+option) so the stage has 72 outputs; compare paired per fold with the 50-component stage.
+
 **PRIORITY, set by the user 2026-08-25: the three `aux` variations come first.** They are the only
 entries aimed at where the TEST SET says the loss is — `li` at R2 0.960156 and `kappa` at 0.965434,
 together 6.6x the gap to first place. Everything else on this list is a general-purpose knob acting
