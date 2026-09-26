@@ -49,6 +49,11 @@ def _fold_files(art: dict[str, Any]) -> list[Path]:
 
 def dump(artifact: Path, out: Path, jobs: int) -> None:
     art = joblib.load(artifact)
+    if not art["holdout_files"]:
+        # An all-data fit scores nothing; the marker lets a queue treat the job as complete.
+        np.savez(out, all_data=np.array(True))
+        print(f"{artifact}: all-data fit, no scored fold; wrote marker {out}")
+        return
     files = _fold_files(art)
     X, _, S, lengths = B._read_shots(files, "reading scored fold", 1.0, jobs)
     Xs = art["scaler"].transform(B.build_inputs(art["coil"], X))

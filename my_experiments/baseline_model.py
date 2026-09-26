@@ -1210,15 +1210,23 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
             raise ValueError(f"kfold {kfold!r} cannot be combined with explicit OOF files or "
                              "cross-salt roles")
         spec, _, frac_text = kfold.partition("@")
+        if spec == "all" or spec.endswith("/all"):
+            # Every labelled shot trains; nothing is scored. Only meaningful with fixed steps.
+            if not fixed_steps:
+                raise ValueError("kfold 'all' trains on every shot and needs fit_mode fixed_steps")
+            spec = "0/1"
         fold_text, _, k_text = spec.partition("/")
         fold, k = int(fold_text), int(k_text)
+        if k == 1:
+            holdout, rest = [], list(ordered)
         train_fraction = float(frac_text) if frac_text else 1.0
         if not 0 < train_fraction <= 1:
             raise ValueError(f"kfold {kfold!r}: training fraction must be in (0, 1]")
-        if not 0 <= fold < k or k < 2:
+        elif not 0 <= fold < k:
             raise ValueError(f"kfold {kfold!r}: expected 'i/K' with 0 <= i < K and K >= 2")
-        holdout = [p for j, p in enumerate(ordered) if j % k == fold]
-        rest = [p for j, p in enumerate(ordered) if j % k != fold]
+        else:
+            holdout = [p for j, p in enumerate(ordered) if j % k == fold]
+            rest = [p for j, p in enumerate(ordered) if j % k != fold]
         val_files = rest[::10]
         files = [p for j, p in enumerate(rest) if j % 10 != 0]
         # 'i/K@f' keeps the head fraction f of the training shots (learning-curve runs); the
