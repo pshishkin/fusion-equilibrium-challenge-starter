@@ -1217,11 +1217,11 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
             spec = "0/1"
         fold_text, _, k_text = spec.partition("/")
         fold, k = int(fold_text), int(k_text)
-        if k == 1:
-            holdout, rest = [], list(ordered)
         train_fraction = float(frac_text) if frac_text else 1.0
         if not 0 < train_fraction <= 1:
             raise ValueError(f"kfold {kfold!r}: training fraction must be in (0, 1]")
+        if k == 1:
+            holdout, rest = [], list(ordered)
         elif not 0 <= fold < k:
             raise ValueError(f"kfold {kfold!r}: expected 'i/K' with 0 <= i < K and K >= 2")
         else:

@@ -90,12 +90,18 @@ def member_targets(t: dict[str, Any]) -> list[np.ndarray]:
 
 
 def features(t: dict[str, Any], weights: np.ndarray, context: bool = True,
-             disagreement: bool = False) -> tuple[np.ndarray, np.ndarray]:
+             disagreement: bool | str = False) -> tuple[np.ndarray, np.ndarray]:
     members = member_targets(t)
     stage1 = sum(w * m for w, m in zip(weights, members, strict=True))
     parts = [t["X"], stage1, *members]
-    if disagreement:
+    if disagreement == "mean":
+        # Linear in the member count: each member's deviation from the blend, and the spread.
+        for m in members:
+            parts.append(m - stage1)
+        parts.append(np.std(np.stack(members), axis=0))
+    elif disagreement:
         # Trees cannot form a difference of two columns; an uncertainty proxy has to be given.
+        # All pairs: quadratic in the member count (15 pairs x 104 columns for six members).
         for i in range(len(members)):
             for j in range(i + 1, len(members)):
                 d = members[i] - members[j]
@@ -186,12 +192,17 @@ def main() -> int:
     ap.add_argument("--no-context", action="store_true")
     ap.add_argument("--gbm", choices=("sklearn", "catboost"), default="sklearn")
     ap.add_argument("--disagreement", action="store_true")
+    ap.add_argument("--disagreement-mean", action="store_true",
+                    help="disagreement as each member's deviation from the blend plus the "
+                         "spread: linear in the member count instead of all pairs")
     ap.add_argument("--linear", action="store_true",
                     help="fit per-coefficient member weights on the other folds' OOF first; the "
                          "GBM then learns the residual of that linear blend")
     args = ap.parse_args()
     global GBM
     GBM = args.gbm
+    if args.disagreement_mean:
+        args.disagreement = "mean"
     args.out.mkdir(parents=True, exist_ok=True)
     folds = [int(x) for x in args.folds.split(",")]
     members = args.members.split(",")
