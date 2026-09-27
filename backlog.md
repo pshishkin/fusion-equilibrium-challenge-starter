@@ -118,6 +118,12 @@ option) so the stage has 72 outputs; compare paired per fold with the 50-compone
 
 ### `stack-metric-weighted-target` — 2026-09-26: weight the stage-2 targets by their score value
 
+**NOT ADOPTED 2026-09-27** (`stack_cv --target-scale std,metric,geo`, 10 members, basis 50, free
+linear stage, folds 0-2, stacked S): std 0.994542 / 0.994361 / 0.993872 (mean 0.994258);
+metric 0.994530 / 0.994428 / 0.993881 (0.994280, +0.000021, 2/3); geo 0.994516 / 0.994394 /
+0.993907 (0.994272, +0.000014, 2/3). Within noise, and metric/geo fit 2.5x/5x slower. The GBM
+itself adds only +0.000075 over the linear stage here (0.994183 on the same folds).
+
 The GBM target is R = c_true − c_lin: the true map projected on the common basis plus true
 q95/betaN, minus the linear blend. CatBoost MultiRMSE is fitted on R with every column divided
 by its own standard deviation, so all 52 outputs weigh the same. The score does not: R²ψ is
