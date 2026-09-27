@@ -16,8 +16,8 @@ failed=$(systemctl --user list-units 'fusion-*' --failed --no-legend --plain | a
 
 systemctl --user is-active -q ${WATCHDOG_TRAIN_UNIT:-fusion-train} || problems+=("fusion-train (training queue) is not running")
 
-oom=$(journalctl -k --since "-65min" --no-pager 2>/dev/null | grep -i "killed process" | tail -3)
-[ -n "$oom" ] && problems+=("kernel OOM kills in the last hour: $oom")
+oom=$(journalctl -k --since "-16min" --no-pager 2>/dev/null | grep -i "killed process" | tail -3)
+[ -n "$oom" ] && problems+=("kernel OOM kills in the last 15 min: $oom")
 
 queued=$(grep -v '^#' runs/queue.txt 2>/dev/null | grep -cv '^\s*$')
 last=$(grep -a -E '^(START|DONE|queue empty)' runs/queue.log | tail -1)
