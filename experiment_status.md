@@ -6,7 +6,12 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
-- **Current best public, 2026-09-27:** **947586 `submit_full5b70_stack` S 0.995191** — mlp,
+- **Current best public, 2026-09-27 17:17:** **948230 `submit_full11_stack` S 0.995291**
+  (R2_psi 0.999866): eleven members refitted on 100% (five seeds each), basis-70 ridgecv_block +
+  CatBoost stage fitted on their 80% OOF (`runs/stackcv_fc11r70`); +0.00010 over five members.
+  Board at 17:30: heavy4evy 0.9963, kimsunjoong 0.9961, anulum fortis 0.9960, shansiming 0.9957,
+  dmitryzhevn 0.9956, dgaytanv 0.9954, **pshishkin 0.9953 (7th)**.
+- **Earlier, 2026-09-27 morning:** **947586 `submit_full5b70_stack` S 0.995191** — mlp,
   seq, conv, lstm, attn each refitted on 100% of the shots (five seeds), basis-70 ridgecv_block
   linear stage + CatBoost (`runs/stackcv_fc5r70`). Same members: basis-50 stack 947607 0.995131
   (basis-70 +0.00006, CV said +0.00005); basis-70 linear only 947579 0.994984 (GBM +0.00021 on
