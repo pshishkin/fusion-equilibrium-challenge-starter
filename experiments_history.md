@@ -57,6 +57,11 @@ an all-data submission averages five seeds fitted on 100%, stored as fold0-4 so 
 curve. Two all-data members about match ten 80% members, and the two gains should add: the
 library is being refitted on all data (`runs/full_*`).
 
+*Update 2026-09-27, public (exact S from the detailed results):* 946814 full fc2 0.994951;
+946828 fc10 80% 0.995091; 947607 full5 basis-50 0.995131; 947579 full5 basis-70 linear only
+0.994984; **947586 full5 basis-70 linear+GBM 0.995191**. The basis-70 and ridge stage gains
+measured on CV transfer to public, and the GBM is worth twice on public what it is on CV.
+
 *Weight envelope proxy* (`tools/stack_linear_variants.py`, exact held-out MSE from sufficient
 statistics): free per-column weights overfit psi — equal weights have 0.3% lower in-basis psi
 MSE — while ridge towards equal weights (penalty 1e-3 x trace) cuts psi MSE 1.0% and betaN 5%

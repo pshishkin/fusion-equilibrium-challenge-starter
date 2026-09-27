@@ -6,7 +6,13 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
-- **Current best public, 2026-09-26:** **946828 `submit_fc10_stack` S 0.9951** — ten fixcos
+- **Current best public, 2026-09-27:** **947586 `submit_full5b70_stack` S 0.995191** — mlp,
+  seq, conv, lstm, attn each refitted on 100% of the shots (five seeds), basis-70 ridgecv_block
+  linear stage + CatBoost (`runs/stackcv_fc5r70`). Same members: basis-50 stack 947607 0.995131
+  (basis-70 +0.00006, CV said +0.00005); basis-70 linear only 947579 0.994984 (GBM +0.00021 on
+  public vs about +0.0001 on CV). Two full members 946814 0.994951 → five 0.995131 (+0.00018).
+  R2_psi 0.999864, D_LCFS 0.009688, Consistency 0.983497.
+- **Previous best, 2026-09-26:** **946828 `submit_fc10_stack` S 0.9951** — ten fixcos
   5-fold members (80% fits), per-column linear weights plus a CatBoost residual stage fitted
   cross-fold (`tools/stack_cv.py`, `runs/stackcv_fc10`). **946814 `submit_full_fc2_stack` 0.9950**
   is mlp+seq refitted on 100% of the shots (five seeds) under the fc2 stage, +0.0003 over the
