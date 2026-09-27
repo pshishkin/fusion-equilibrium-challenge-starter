@@ -103,6 +103,29 @@ ridgecv_block / ridgecv_col / equal running (`runs/linvar_fc10/`).
 `stack_cv --linear-variant ridgecv_block`.
 Reference: equal weights 0.993844; ridgecv_col 0.994142 (same as block, more parameters).
 
+### `boundary-aware-basis` — user's question 2026-09-27: a decomposition attentive to the boundary and the seven, instead of PCA
+
+**Tried before, in five forms, all on the old early-stopped single-salt protocol:**
+- `shaped-basis` (a basis weighted toward the envelope/boundary): **REFUTED 2026-09-01**, -0.000272
+  on 3/3 salts, and it lost exactly in Consistency (-0.00099) — the reweighted directions are
+  less predictable from the magnetics.
+- `learned-basis` (encoder trained on psi AND the seven): **closed by a bound** — a direct
+  features -> seven-scalars net reached mean R2 0.9778 against 0.9761 via the map, so any
+  representation could win at most 0.00055; the 50-dim bottleneck itself cost 0.0002.
+- `upconv-decoder` / `mapnet` (no PCA, a learned decoder): built and scored; the blend search
+  dropped mapnet from every salt.
+- `basis-diversity` (n_pca = 30 as an extra member): its errors correlated 0.625 with the PCA-50
+  members, MORE than seeds do (0.602) — no diversity.
+- polar/star LCFS contour representations (2026-09-23/24): closed at their geometry gates.
+
+**Why it may deserve a second look now:** that bound is stale. Today's ensemble reaches mean R2_cons
+~0.984 on public (948230), ABOVE the 0.9778 the "representation-free limit" measured then — the
+limit was one net on less data, not a property of the features. The unrun cheap diagnostic from
+`learned-basis` still stands: is the stack's coefficient error concentrated in directions that a
+rotation of the basis could avoid (a basis ordered by PREDICTABILITY rather than variance), or
+isotropic? It needs only the OOF tables `stack_cv` already builds. And the PCA-70 members being
+trained now (conv/attn p70) test the adjacent question — more components, not different ones.
+
 ### `cons-scalar-stage` — 2026-09-27: a third stage aimed at the seven derived scalars
 
 Consistency is 68% of 1 - S (public 948230: kappa 0.9745, li 0.9682, R_axis 0.9813). Gate
