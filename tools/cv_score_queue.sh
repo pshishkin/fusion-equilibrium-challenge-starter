@@ -6,6 +6,8 @@ while true; do
   line=$(grep -v '^\s*$' "$q" | head -1) || true
   [ -z "$line" ] && { sleep 60; continue; }
   read -r camp f blend out <<<"$line"
+  # A line may be queued before its model is trained: wait for the fold's OOF dump.
+  [ "$blend" != stack ] && [ ! -f "$camp/fold$f/oof.npz" ] && { sleep 60; continue; }
   echo "START $line $(date)"
   flock /tmp/fusion_analysis.lock uv run python tools/cv_oof.py score "$camp" --blend "$blend" --folds "$f" --jobs 30 --json "$out" $([ "$blend" = stack ] && echo --oof-name oof_stack.npz) 2>&1 | grep -E "^blend|^  S|Error" || echo "FAILED $line"
   python3 - "$q" "$line" <<'PY'
