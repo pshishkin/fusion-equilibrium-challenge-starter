@@ -103,6 +103,24 @@ ridgecv_block / ridgecv_col / equal running (`runs/linvar_fc10/`).
 `stack_cv --linear-variant ridgecv_block`.
 Reference: equal weights 0.993844; ridgecv_col 0.994142 (same as block, more parameters).
 
+### `member-capacity` — 2026-09-28: wider/deeper members, fold 0 single-model screen
+
+Native S on fold 0, one seed each (single-net sd is about 0.001, so these are signals only):
+
+| member | S | vs base | Cons | D_LCFS |
+|---|---|---|---|---|
+| conv (fc_conv) | 0.991982 | | 0.97545 | 0.01192 |
+| conv trunk [1024,1024] | **0.992607** | **+0.00063** | 0.97552 | 0.01135 |
+| conv seq_hidden 512 | 0.991273 | -0.00071 | 0.97020 | 0.01300 |
+| conv 12 dilated layers | 0.991796 | -0.00019 | 0.97488 | 0.01193 |
+| mlp (cv5_fixcos) | 0.992842 | | 0.97391 | 0.01178 |
+| mlp [1024,1024] | 0.993106 | +0.00026 | 0.97628 | 0.01087 |
+| mlp [512,512,512] | 0.993133 | +0.00029 | 0.97599 | 0.01106 |
+| mlp [1024,1024,1024] | 0.992908 | +0.00007 | 0.97602 | 0.01081 |
+
+A wider per-frame trunk helps; a wider or deeper sequence mixer does not. Folds 1-4 of conv
+trunk1024, mlp 1024 and mlp 3x512 queued: a paired 5-fold verdict, and three new stack members.
+
 ### `boundary-aware-basis` — user's question 2026-09-27: a decomposition attentive to the boundary and the seven, instead of PCA
 
 **Tried before, in five forms, all on the old early-stopped single-salt protocol:**
