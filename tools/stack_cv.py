@@ -212,6 +212,7 @@ def target_scale(mode: str, truth: np.ndarray, R: np.ndarray) -> np.ndarray | No
 
 
 TARGET_SCALE = "std"
+GBM_DEPTH, GBM_LR = 6, 0.08
 
 
 def fit_stage2(F: np.ndarray, R: np.ndarray, iters: int, every: int,
@@ -220,7 +221,7 @@ def fit_stage2(F: np.ndarray, R: np.ndarray, iters: int, every: int,
     rows = np.arange(0, len(F), every)
     if GBM == "catboost":
         scale = None if truth is None else target_scale(TARGET_SCALE, truth, R)
-        return CatBoostStage2(iters, scale=scale).fit(F[rows], R[rows])
+        return CatBoostStage2(iters, depth=GBM_DEPTH, lr=GBM_LR, scale=scale).fit(F[rows], R[rows])
     models = []
     for j in range(R.shape[1]):
         m = HistGradientBoostingRegressor(max_iter=iters, learning_rate=0.05, max_leaf_nodes=31,
@@ -271,6 +272,8 @@ def main() -> int:
                     help="comma list; 'dir:name' takes a member from another campaign's fold")
     ap.add_argument("--weights", default="", help="comma list, default equal")
     ap.add_argument("--iters", type=int, default=300)
+    ap.add_argument("--depth", type=int, default=6, help="CatBoost tree depth")
+    ap.add_argument("--lr", type=float, default=0.08, help="CatBoost learning rate")
     ap.add_argument("--every", type=int, default=2, help="train on every Nth frame")
     ap.add_argument("--folds", default="0,1,2,3,4")
     ap.add_argument("--out", type=Path, required=True)
@@ -302,8 +305,8 @@ def main() -> int:
     if set(scales) - {"std", "metric", "geo"}:
         raise ValueError(f"--target-scale {args.target_scale!r}")
     GBM, TARGET_SCALE = args.gbm, scales[0]
-    global LINEAR_VARIANT
-    LINEAR_VARIANT = args.linear_variant
+    global LINEAR_VARIANT, GBM_DEPTH, GBM_LR
+    LINEAR_VARIANT, GBM_DEPTH, GBM_LR = args.linear_variant, args.depth, args.lr
     if args.disagreement_mean:
         args.disagreement = "mean"
     args.out.mkdir(parents=True, exist_ok=True)
