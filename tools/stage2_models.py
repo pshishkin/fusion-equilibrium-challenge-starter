@@ -1,6 +1,7 @@
 """Second-stage model classes, importable so pickled stage-2 models load in any script."""
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import numpy as np
@@ -29,7 +30,7 @@ class CatBoostStage2:
             raise ValueError(f"residual column with zero spread: {np.flatnonzero(self.scale <= 0)}")
         self.model = CatBoostRegressor(loss_function="MultiRMSE", iterations=self.iters,
                                        learning_rate=self.lr, depth=self.depth, task_type="GPU",
-                                       devices="0", verbose=0, boosting_type="Plain", gpu_ram_part=0.3,
+                                       devices="0", verbose=0, boosting_type="Plain", gpu_ram_part=float(os.environ.get("FUSION_GPU_RAM_PART", "0.3")),
                                        random_seed=0)
         self.model.fit(F, R / self.scale)
         return self

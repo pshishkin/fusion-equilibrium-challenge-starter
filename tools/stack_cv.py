@@ -281,6 +281,8 @@ def main() -> int:
     ap.add_argument("--no-score", action="store_true")
     ap.add_argument("--eval-folds", default="",
                     help="folds to fit and score a held-out stage for (default: all --folds)")
+    ap.add_argument("--all-only", action="store_true",
+                    help="fit only the all-fold stage a submission applies (no held-out folds)")
     ap.add_argument("--stacked-only", action="store_true",
                     help="score only the corrected blend, not the base and linear references")
     ap.add_argument("--no-context", action="store_true")
@@ -329,7 +331,8 @@ def main() -> int:
         print(f"fold {k}: {len(F)} frames, {F.shape[1]} features", flush=True)
     report = {"members": members, "weights": weights.tolist(), "iters": args.iters,
               "every": args.every, "folds": {}}
-    eval_folds = [int(x) for x in args.eval_folds.split(",")] if args.eval_folds else folds
+    eval_folds = ([] if args.all_only else
+                  [int(x) for x in args.eval_folds.split(",")] if args.eval_folds else folds)
     for k in eval_folds:
         others = [j for j in folds if j != k]
         t0 = time.time()
