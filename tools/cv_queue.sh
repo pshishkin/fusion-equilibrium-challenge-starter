@@ -8,7 +8,12 @@ queue=$1
 cd /home/pavel/fusion-equilibrium-challenge-starter
 while true; do
   line=$(grep -v '^#' "$queue" | grep -v '^\s*$' | head -1) || true
-  [ -z "$line" ] && { echo "queue empty $(date)"; exit 0; }
+  # An empty queue waits for lines rather than exiting: an exited unit left the GPU idle for hours.
+  if [ -z "$line" ]; then
+    [ -z "${idle:-}" ] && echo "queue empty $(date)"
+    idle=1; sleep 60; continue
+  fi
+  idle=
   read -r camp f K params only rest <<<"$line"
   d=$camp/fold$f; mkdir -p "$d"
   echo "START $line $(date)"
