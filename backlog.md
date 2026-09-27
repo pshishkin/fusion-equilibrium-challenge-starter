@@ -103,6 +103,28 @@ ridgecv_block / ridgecv_col / equal running (`runs/linvar_fc10/`).
 `stack_cv --linear-variant ridgecv_block`.
 Reference: equal weights 0.993844; ridgecv_col 0.994142 (same as block, more parameters).
 
+### `cons-scalar-stage` — 2026-09-27: a third stage aimed at the seven derived scalars
+
+Consistency is 68% of 1 - S (public 948230: kappa 0.9745, li 0.9682, R_axis 0.9813). Gate
+(`tools/cons_residual_gate.py`, 11 members, basis-70 ridge linear map, per-scalar HistGBM on the
+stack features predicting `truth - map scalar`, four folds -> fifth; `runs/consgate_fc11/`):
+
+| scalar | map R2_cons | gain if applied exactly | folds |
+|---|---|---|---|
+| kappa | 0.963-0.970 | +0.0015 to +0.0026 | 5/5 |
+| volume | 0.980-0.988 | +0.0009 to +0.0034 | 5/5 |
+| Z_axis | 0.984-0.990 | +0.0006 to +0.0017 | 5/5 |
+| tri_top / tri_bot | 0.988-0.993 | +0.0001 to +0.0005 | 5/5 |
+| li | 0.960-0.970 | -0.0010 to +0.0024 | 3/5 |
+| R_axis | 0.976-0.984 | about 0 | - |
+
+**Ceiling dS +0.000181 (per fold +0.000148/243/133/109/271, 5/5)**, for the linear map and a
+perfect transfer of the scalar corrections into the map; the GBM stage already takes part of it
+and a Jacobian-based map correction realises only part of the rest. li and R_axis — the two
+largest losses — are NOT predictable from these features. Realistic gain about +0.0001 for a
+per-frame Jacobian of the contour scalars (expensive: finite differences through LCFS
+extraction). Parked behind cheaper ideas.
+
 ### `stack-gbm-capacity` — 2026-09-27: more CatBoost iterations
 
 11 members, basis-70 ridgecv_block linear stage, folds 0-2, stacked S (`runs/gbmt_*`):
