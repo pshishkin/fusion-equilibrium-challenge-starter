@@ -103,6 +103,13 @@ ridgecv_block / ridgecv_col / equal running (`runs/linvar_fc10/`).
 `stack_cv --linear-variant ridgecv_block`.
 Reference: equal weights 0.993844; ridgecv_col 0.994142 (same as block, more parameters).
 
+### `stack-gbm-capacity` — 2026-09-27: more CatBoost iterations
+
+11 members, basis-70 ridgecv_block linear stage, folds 0-2, stacked S (`runs/gbmt_*`):
+300 iterations 0.994575 / 0.994432 / 0.993965; **1000 iterations 0.994592 / 0.994498 / 0.994010
+(+0.000043, 3/3)**, fit 3x longer (~20 min a fold). Adopted (`--iters 1000`). Depth 8 needs 18 GB
+of GPU and cannot run beside a training job; not measured.
+
 ### `stack-basis-70` — 2026-09-26: a 70-component common basis for the stack
 
 **CONFIRMED 2026-09-27** (`stack_linear_variants.py --basis-from runs/fc_p70`, 10 members, linear
