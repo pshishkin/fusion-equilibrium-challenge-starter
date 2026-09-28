@@ -318,10 +318,19 @@ def main() -> int:
                else np.full(len(members), 1.0 / len(members)))
     weights = weights / weights.sum()
     basis = load_basis(args.campaign, args.basis_from)
+    thin_early = args.all_only and args.no_context and args.every > 1
     tables = {}
     for k in folds:
         t = load_fold(args.campaign, members, k, basis, args.jobs)
         del t["Y"]
+        if thin_early:
+            # The all-fold fit reads every `every`-th row only: thin before the feature table is
+            # built, which halves the peak memory. Held-out scoring needs every row, so this is
+            # restricted to --all-only without context features (they need whole shots).
+            r = slice(None, None, args.every)
+            t["X"], t["S"], t["true_coef"] = t["X"][r], t["S"][r], t["true_coef"][r]
+            t["member_coef"] = [c[r] for c in t["member_coef"]]
+            t["member_qb"] = [q[r] for q in t["member_qb"]]
         F, stage1 = features(t, weights, not args.no_context, args.disagreement)
         t["F"], t["stage1"] = F, stage1
         t["truth"] = np.column_stack([t["true_coef"], t["S"]])
@@ -398,16 +407,17 @@ def main() -> int:
             W = fit_linear([tables[j] for j in folds])
             joblib.dump(W, args.out / "linear_all.joblib")
             shifts = {j: linear_blend(tables[j], W) - tables[j]["stage1"] for j in folds}
-            ev = args.every
+            ev = 1 if thin_early else args.every
             Fa = np.concatenate([np.column_stack([tables[j]["F"][::ev],
                                                   (tables[j]["stage1"] + shifts[j])[::ev]])
                                  for j in folds])
             Ra = np.concatenate([(tables[j]["R"] - shifts[j])[::ev] for j in folds])
         else:
-            Fa = np.concatenate([tables[j]["F"][::args.every] for j in folds])
-            Ra = np.concatenate([tables[j]["R"][::args.every] for j in folds])
+            ev = 1 if thin_early else args.every
+            Fa = np.concatenate([tables[j]["F"][::ev] for j in folds])
+            Ra = np.concatenate([tables[j]["R"][::ev] for j in folds])
         models = fit_stage2(Fa, Ra, args.iters, 1,
-                            np.concatenate([tables[j]["truth"][::args.every] for j in folds]))
+                            np.concatenate([tables[j]["truth"][::ev] for j in folds]))
         joblib.dump(models, args.out / "models_all.joblib")
         (args.out / "config.json").write_text(json.dumps(
             {"members": members, "linear": args.linear, "context": not args.no_context,
