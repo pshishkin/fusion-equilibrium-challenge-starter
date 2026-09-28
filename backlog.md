@@ -138,7 +138,12 @@ round: mlp 4x512, conv trunk 3x512, attn trunk 1024.
 **Round 2, 2026-09-28** (single member vs its base, native, folds 0-3; fold 4 scoring): **attn trunk
 [1024,1024] +0.00075 (4/4)** — the largest; mlp [512]x4 +0.00036 (4/4, below 3x512's +0.00051);
 conv trunk [512]x3 +0.00012 (2/4). Sequence members gain from a wider per-frame trunk, not from a
-deeper one. Queued: full-data attn t1024; GRU, LSTM and attn-PCA70 with the 1024 trunk (80%, 5 folds). Folds 1-4 of conv
+deeper one. Queued: full-data attn t1024; GRU, LSTM and attn-PCA70 with the 1024 trunk (80%, 5 folds).
+
+**Round 3, 2026-09-28:** the 1024 trunk helps every sequence member — attn +0.00064 (5/5), GRU
++0.00053 (4/4 scored), LSTM +0.00100 (2/3 scored, one fold -0.00009). Full-data GRU, LSTM and
+attn-PCA70 t1024 queued with a 22-member submission pipeline (`runs/full22.sh`); stack check
+18 -> 22 members running (`runs/linvar_fc22`). Next: conv-PCA70 t1024, mlp-PCA70 3x512. Folds 1-4 of conv
 trunk1024, mlp 1024 and mlp 3x512 queued: a paired 5-fold verdict, and three new stack members.
 
 ### `boundary-aware-basis` — user's question 2026-09-27: a decomposition attentive to the boundary and the seven, instead of PCA
