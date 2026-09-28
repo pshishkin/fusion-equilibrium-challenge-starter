@@ -133,7 +133,12 @@ A wider per-frame trunk helps; a wider or deeper sequence mixer does not.
 **+0.00051 (5/5)**; conv trunk [1024,1024] +0.00031 (4/5); mlp [1024,1024] +0.00022 (4/5). As stack
 members: 15 -> 18 members (+ these three) linear ridge basis-70 **0.994223 -> 0.994346 (+0.000123,
 5/5)** — the largest library gain since the fixed-cosine recipe. Full-data versions queued; next
-round: mlp 4x512, conv trunk 3x512, attn trunk 1024. Folds 1-4 of conv
+round: mlp 4x512, conv trunk 3x512, attn trunk 1024.
+
+**Round 2, 2026-09-28** (single member vs its base, native, folds 0-3; fold 4 scoring): **attn trunk
+[1024,1024] +0.00075 (4/4)** — the largest; mlp [512]x4 +0.00036 (4/4, below 3x512's +0.00051);
+conv trunk [512]x3 +0.00012 (2/4). Sequence members gain from a wider per-frame trunk, not from a
+deeper one. Queued: full-data attn t1024; GRU, LSTM and attn-PCA70 with the 1024 trunk (80%, 5 folds). Folds 1-4 of conv
 trunk1024, mlp 1024 and mlp 3x512 queued: a paired 5-fold verdict, and three new stack members.
 
 ### `boundary-aware-basis` — user's question 2026-09-27: a decomposition attentive to the boundary and the seven, instead of PCA
