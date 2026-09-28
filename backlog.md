@@ -127,7 +127,13 @@ Native S on fold 0, one seed each (single-net sd is about 0.001, so these are si
 | mlp [512,512,512] | 0.993133 | +0.00029 | 0.97599 | 0.01106 |
 | mlp [1024,1024,1024] | 0.992908 | +0.00007 | 0.97602 | 0.01081 |
 
-A wider per-frame trunk helps; a wider or deeper sequence mixer does not. Folds 1-4 of conv
+A wider per-frame trunk helps; a wider or deeper sequence mixer does not.
+
+**5-fold verdict, 2026-09-28** (single member, native, paired per fold): mlp [512,512,512]
+**+0.00051 (5/5)**; conv trunk [1024,1024] +0.00031 (4/5); mlp [1024,1024] +0.00022 (4/5). As stack
+members: 15 -> 18 members (+ these three) linear ridge basis-70 **0.994223 -> 0.994346 (+0.000123,
+5/5)** — the largest library gain since the fixed-cosine recipe. Full-data versions queued; next
+round: mlp 4x512, conv trunk 3x512, attn trunk 1024. Folds 1-4 of conv
 trunk1024, mlp 1024 and mlp 3x512 queued: a paired 5-fold verdict, and three new stack members.
 
 ### `boundary-aware-basis` — user's question 2026-09-27: a decomposition attentive to the boundary and the seven, instead of PCA
