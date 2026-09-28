@@ -103,6 +103,15 @@ ridgecv_block / ridgecv_col / equal running (`runs/linvar_fc10/`).
 `stack_cv --linear-variant ridgecv_block`.
 Reference: equal weights 0.993844; ridgecv_col 0.994142 (same as block, more parameters).
 
+### `seq-members-pca70` — user's idea 2026-09-27: conv and attn trained on PCA-70
+
+Linear ridgecv_block stage, basis 70, native, 5 folds (`runs/linvar_fc13`, `runs/linvar_fc15`):
+13 members 0.994553 / 0.994357 / 0.993910 / 0.994134 / 0.994012 (mean **0.994193**); + conv_p70 and
+attn_p70 0.994577 / 0.994384 / 0.993945 / 0.994153 / 0.994057 (mean **0.994223, +0.000030, 5/5**).
+For scale: the three extra SEEDS before them (attnseed1, convseed2, attnseed2) moved 10 -> 13
+members by +0.000001 — seeds are saturated, a different target is not. Adopted; full-data
+versions (`runs/full_conv_p70`, `runs/full_attn_p70`, five seeds each) queued.
+
 ### `member-capacity` — 2026-09-28: wider/deeper members, fold 0 single-model screen
 
 Native S on fold 0, one seed each (single-net sd is about 0.001, so these are signals only):
