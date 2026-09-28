@@ -6,7 +6,13 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
-- **Current best public, 2026-09-27 17:17:** **948230 `submit_full11_stack` S 0.995291**
+- **Current best public, 2026-09-28 16:49:** **950254 `submit_full18_stack` S 0.995494** (R2_psi
+  0.999875, R2_qb 0.997131, D_LCFS 0.009161, Consistency 0.984547): 18 full-data members (13 +
+  conv/attn PCA-70 + conv trunk1024, mlp 1024, mlp 3x512), basis-70 ridge + CatBoost 1000 iterations;
+  +0.000203 over full11. Board 2026-09-28 22:00: heavy4evy 0.9963, kimsunjoong 0.9962, anulum
+  fortis 0.9960, dmitryzhevn 0.9959, dgaytanv 0.9957, shansiming 0.9957, seantang 0.9956,
+  **pshishkin 0.9955 (8th)**.
+- **Earlier, 2026-09-27 17:17:** **948230 `submit_full11_stack` S 0.995291**
   (R2_psi 0.999866): eleven members refitted on 100% (five seeds each), basis-70 ridgecv_block +
   CatBoost stage fitted on their 80% OOF (`runs/stackcv_fc11r70`); +0.00010 over five members.
   Board at 17:30: heavy4evy 0.9963, kimsunjoong 0.9961, anulum fortis 0.9960, shansiming 0.9957,
