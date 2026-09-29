@@ -32,7 +32,10 @@ for _ in 1 2 3; do
   sleep 10
 done
 start_age=$(( $(date +%s) - $(stat -c %Y runs/queue.log) ))
-if [ "$util" -lt 5 ] && [ "$queued" -gt 0 ] && [ "$start_age" -gt 900 ]; then
+# A job's CPU phases (reading shots, the OOF dump) leave the GPU idle for minutes: not a stall
+# while a fit or dump process younger than 90 minutes is alive.
+busy=$(ps -eo etimes=,args= | awk '/my_experiments\/train.py|cv_oof.py dump/ && !/awk/ && $1 < 5400' | head -1)
+if [ "$util" -lt 5 ] && [ "$queued" -gt 0 ] && [ "$start_age" -gt 900 ] && [ -z "$busy" ]; then
   problems+=("GPU idle (max ${util}% over 20 s) with $queued queued jobs; queue.log untouched for $((start_age / 60)) min")
 fi
 # A job running far longer than any fit takes (the longest is about an hour).
