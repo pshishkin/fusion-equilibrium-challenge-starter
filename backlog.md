@@ -112,6 +112,17 @@ For scale: the three extra SEEDS before them (attnseed1, convseed2, attnseed2) m
 members by +0.000001 — seeds are saturated, a different target is not. Adopted; full-data
 versions (`runs/full_conv_p70`, `runs/full_attn_p70`, five seeds each) queued.
 
+### `loss-reweight-capacity` — 2026-09-29: loss terms on the capacity members — REFUTED
+
+attn trunk1024 and mlp 3x512, folds 0-1, dS vs the same member with the default loss:
+cons_gain 2.0 attn -0.00034/-0.00013, mlp -0.00009/-0.00004; env_weight 1.0 attn
+-0.00047/-0.00004, mlp -0.00003/+0.00002; field_weight 0.3 attn -0.00010/-0.00022, mlp
++0.00029/-0.00009. Nothing on both folds; Consistency does not move with the loss weights. Closed.
+
+Library, linear ridge basis 70, 5 folds: 18 members 0.994346 -> 22 (+ attn/GRU/LSTM/attn-PCA70
+trunk1024) 0.994386 (+0.00004, 5/5) -> 24 (+ conv-PCA70 trunk1024, mlp-PCA70 3x512) 0.994437
+(+0.00005, 5/5).
+
 ### `member-capacity` — 2026-09-28: wider/deeper members, fold 0 single-model screen
 
 Native S on fold 0, one seed each (single-net sd is about 0.001, so these are signals only):
