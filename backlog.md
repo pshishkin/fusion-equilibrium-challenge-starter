@@ -112,6 +112,12 @@ For scale: the three extra SEEDS before them (attnseed1, convseed2, attnseed2) m
 members by +0.000001 — seeds are saturated, a different target is not. Adopted; full-data
 versions (`runs/full_conv_p70`, `runs/full_attn_p70`, five seeds each) queued.
 
+### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
+
+Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
+(linear only 0.994868 / 0.994552 / 0.994169: GBM +0.000110). Depth 8 needs 35 GB of GPU on 24
+members' 3808 features — impossible on the 24 GB RTX 3090. 2000 iterations at lr 0.05 running.
+
 ### `loss-reweight-capacity` — 2026-09-29: loss terms on the capacity members — REFUTED
 
 attn trunk1024 and mlp 3x512, folds 0-1, dS vs the same member with the default loss:
