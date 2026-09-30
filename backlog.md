@@ -116,7 +116,9 @@ versions (`runs/full_conv_p70`, `runs/full_attn_p70`, five seeds each) queued.
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
 (linear only 0.994868 / 0.994552 / 0.994169: GBM +0.000110). Depth 8 needs 35 GB of GPU on 24
-members' 3808 features — impossible on the 24 GB RTX 3090. 2000 iterations at lr 0.05 running.
+members' 3808 features — impossible on the 24 GB RTX 3090. 2000 iterations at lr 0.05:
+0.994915 / 0.994753 / 0.994316 (+0.000022, 2/3) — noise; the stage stays at depth 6, 1000
+iterations. Extra seeds 5-9 for the full-data members queued (variance only, ~27 h of GPU).
 
 ### `loss-reweight-capacity` — 2026-09-29: loss terms on the capacity members — REFUTED
 
