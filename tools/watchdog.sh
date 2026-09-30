@@ -21,7 +21,9 @@ oom=$(journalctl -k --since "-16min" --no-pager 2>/dev/null | grep -i "killed pr
 
 queued=$(grep -v '^#' runs/queue.txt 2>/dev/null | grep -cv '^\s*$')
 last=$(grep -a -E '^(START|DONE|queue empty)' runs/queue.log | tail -1)
-[ "$queued" -eq 0 ] && [[ "$last" == "queue empty"* || "$last" == DONE* ]] \
+# An empty training queue is fine while something else (a CatBoost stage fit) holds the GPU.
+gpu_apps=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null | grep -c .)
+[ "$queued" -eq 0 ] && [ "$gpu_apps" -eq 0 ] && [[ "$last" == "queue empty"* || "$last" == DONE* ]] \
   && problems+=("training queue is empty, the GPU has no work: $last")
 
 # GPU idle: three samples over 20 s, all under 5%, while the last job started over 15 min ago.
