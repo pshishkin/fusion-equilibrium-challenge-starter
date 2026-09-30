@@ -194,7 +194,7 @@ def main() -> int:
         cols = [column_stats(s, m, k) for s in train]
         groups = [np.arange(a, min(a + 10, k)) for a in range(0, k, 10)]
         W_ridge = fit_ridge_cv(cols, groups)          # (M, K) psi columns
-        ws = {"equal": np.full(m * k, 1.0 / m), "ridgecv_block": W_ridge.T.reshape(-1)}
+        ws = {"equal": np.full(m * k, 1.0 / m), "ridgecv_block": W_ridge.reshape(-1)}  # m*K + j
         ws["metric_free"], lam_f = fit_cv(train, Mt, m, E_free)
         ws["metric_block"], lam_b = fit_cv(train, Mt, m, E_block)
         weights[f] = ws
