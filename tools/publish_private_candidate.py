@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-REPO = "pshishkin/fusion-eq-predictions"
+REPO = "pshishkin/fusion"
 FILENAME = "diii_d_public_test.npz"
 EVIDENCE = Path("results/public_diii_d_candidate_20260923.json")
 RECEIPT = Path("results/private_hf_candidate_20260923.json")
