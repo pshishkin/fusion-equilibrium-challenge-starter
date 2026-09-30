@@ -128,7 +128,12 @@ versions (`runs/full_conv_p70`, `runs/full_attn_p70`, five seeds each) queued.
   current-peaking error inside the plasma; fixing the boundary cannot help it.
 - Astra's critique: the stack (ridge, GBM) minimises per-coefficient MSE while the base models
   train on the full Jacobian metric (off-diagonal); the GBM even LOWERED li on fold 2. Gate A
-  (`tools/stack_metric_weights.py`: member weights fitted jointly under M) is running.
+  (`tools/stack_metric_weights.py`: member weights fitted jointly under M) — **REFUTED at the
+  proxy**: held-out metric loss vs ridgecv_block, folds 0-4: metric_free 1.017 / 1.009 / 0.990 /
+  1.021 / 1.018, metric_block 1.008 / 1.000 / 1.006 / 1.016 / 1.007 — worse on its OWN objective
+  on 4/5 folds. The Jacobian block is 99.8% of M's trace and its linearisation over-states the
+  scalar responses 1.12-1.49x (`linear_over_actual`); weights fitted to it overfit. Native scoring
+  stopped as pointless. The GBM-with-metric variant is untested but inherits the same M.
 - Strategic: the labels are EFIT fits to the same magnetics we get as inputs, so li is in
   principle a deterministic function of them through a Grad-Shafranov solve — plausibly what the
   leader ("SCPN-FEC ... calibration-trained boundary heads") does. Gate before any build: does a
