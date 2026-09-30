@@ -142,6 +142,13 @@ versions (`runs/full_conv_p70`, `runs/full_attn_p70`, five seeds each) queued.
   ramp rate, time on flat-top) should carry li. Today's features carry Te and ne only as summaries
   and the detailed profile as the product Te*ne. Next gate: do Te-shape and Ip-history features
   explain the stack's li residual beyond the current feature set (per-scalar HistGBM, folds)?
+  **Result (`tools/li_feature_gate.py`, 5 folds, residual of the 11-member linear map):** the new
+  block (Te and Te^1.5 profile shape, ne shape, Ip history with aligned Ip time) adds to the
+  residual model's R2_cons li +0.00106, volume +0.00112, Z_axis/kappa/R_axis ~+0.0003, tri 0 —
+  mean dS +0.000085. For li the residual model on the base features HURTS (-0.00108) and the new
+  block only brings it back to zero: no absolute li correction. The interior current profile is
+  not recoverable from these inputs beyond what the members already extract. Closed as a lever;
+  a +0.0001 volume/Z_axis feature add is possible but not worth a library retrain now.
 
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
