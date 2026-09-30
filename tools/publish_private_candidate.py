@@ -92,8 +92,13 @@ def _scope(who: dict[str, Any], permission: str) -> bool:
     if auth.get("role") != "fineGrained":
         return False
     scopes = (auth.get("fineGrained") or {}).get("scoped") or []
+    # Writing may also come from a scope over the owner's whole namespace (the repository was
+    # recreated, and a namespace scope survives that); reading must stay scoped to this repo.
+    owner = REPO.split("/")[0]
     return any(
-        (scope.get("entity") or {}).get("name") == REPO
+        ((scope.get("entity") or {}).get("name") == REPO
+         or (permission == "write" and (scope.get("entity") or {}).get("type") == "user"
+             and (scope.get("entity") or {}).get("name") == owner))
         and any(permission in p for p in (scope.get("permissions") or []))
         for scope in scopes
     )
