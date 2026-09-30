@@ -203,9 +203,23 @@ from the saved statistics (`runs/linvar_fc24/stats.npz`, exact held-out error, s
 A member that makes held-out MSE WORSE under a ridge towards equal weights means its presence
 drags the shrinkage target (1/M of it), not that it carries no signal. The proxy ignores
 Consistency, which is read off the map; native scoring of no_mlp1024 (23), no_attn (18) and
-greedy20 queued (`runs/ablation_native.sh`, unit fusion-ablation). If a subset wins natively,
-the GBM stage is re-checked on it before a submission, and the attn verdict is re-read once the
-hp-round attn members (t3x1024) exist.
+greedy20 queued (`runs/ablation_native.sh`, unit fusion-ablation).
+
+**Native, 2026-10-01 (linear ridgecv_block, 5 folds, vs all 24: 0.994868 / 0.994552 / 0.994169 /
+0.994354 / 0.994242, mean 0.994437):**
+- no_mlp1024 (23): mean 0.994408, **-0.000029, 1/5** — the proxy's best single drop is WRONG
+  natively: cap_mlp_1024 costs psi MSE and pays in Consistency.
+- greedy20 (20): 0.994377, **-0.000060, 1/5** — the greedy psi selection overfits the proxy.
+- no_attn (18): 0.994459, **+0.000022, 4/5** (-0.000021 / +0.000061 / +0.000017 / +0.000028 /
+  +0.000023). The six attn members add nothing to the linear stage; within noise the stack is as
+  good or slightly better without them.
+
+Reading: psi MSE is not a proxy for member selection (it ranks Consistency-carrying members
+backwards); only native scores decide. The attn class is redundant IN ITS CURRENT FORM — but the
+hp-round attn t3x1024 is a much stronger single member (+0.0027 / +0.0003 / +0.0019 on folds 0-2
+over t1024, on a par with the best mlp), so the class is not dropped from production yet: the
+question is re-asked as "18 non-attn + attn t3x1024 members" once those exist on PCA-70. Fewer
+members also shrink the GBM stage's GPU memory (24 members needed 35 GB for depth 8).
 
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
