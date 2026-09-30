@@ -112,6 +112,28 @@ For scale: the three extra SEEDS before them (attnseed1, convseed2, attnseed2) m
 members by +0.000001 — seeds are saturated, a different target is not. Adopted; full-data
 versions (`runs/full_conv_p70`, `runs/full_attn_p70`, five seeds each) queued.
 
+### `consistency-diagnosis` — 2026-09-30 (with Astra, thread thr_uej75jmtd5)
+
+- **Consistency loss sits in a tail.** 11-member linear map, 5 folds: the worst 5% of shots hold
+  ~55% of the SSE of li / Z_axis / volume, the worst 1% of frames 69% (li), 59% (Z_axis). Not
+  isolated glitches: the error's lag-1 autocorrelation within a shot is 0.6-0.76, and outlier
+  frames are rarely truth-only or prediction-only spikes. Worst shots sit at +-3-5 sd of the true
+  value with large within-shot swings (vertical excursions, wall-limited phases).
+- **Temporal smoothing of the stacked coefficients: REFUTED** — window 3/5/9 multiplies the psi
+  coefficient error by 1.4 / 1.8 / 2.6 (fold 0 and 1).
+- **li is the FIELD, not the contour** (`tools/li_decompose.py`, 150 fold-0 shots, oracle swap):
+  predicted field with the TRUE contour keeps 1.01 of the scored li SSE; true field with the
+  PREDICTED contour has 0.03. Of the field error (true contour), the interior <Bp^2>_V carries
+  var 0.00368 of the log-error and the boundary loop term 0.00067 (corr +0.18). li is a
+  current-peaking error inside the plasma; fixing the boundary cannot help it.
+- Astra's critique: the stack (ridge, GBM) minimises per-coefficient MSE while the base models
+  train on the full Jacobian metric (off-diagonal); the GBM even LOWERED li on fold 2. Gate A
+  (`tools/stack_metric_weights.py`: member weights fitted jointly under M) is running.
+- Strategic: the labels are EFIT fits to the same magnetics we get as inputs, so li is in
+  principle a deterministic function of them through a Grad-Shafranov solve — plausibly what the
+  leader ("SCPN-FEC ... calibration-trained boundary heads") does. Gate before any build: does a
+  discrete GS solve reproduce the scorer-native li of TRUE maps from their own boundary data?
+
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
