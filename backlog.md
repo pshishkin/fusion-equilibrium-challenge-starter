@@ -123,7 +123,8 @@ Library, linear ridge basis 70, 5 folds: 18 members 0.994346 -> 22 (+ attn/GRU/L
 trunk1024) 0.994386 (+0.00004, 5/5) -> 24 (+ conv-PCA70 trunk1024, mlp-PCA70 3x512) 0.994437
 (+0.00005, 5/5). -> 26 (+ GRU/LSTM-PCA70 trunk1024) 0.994442 (+0.000005, 3/5): the library is saturated;
 full24 is the final member set. Next axis: members that see DIFFERENT INPUTS (no Thomson, no
-derivatives, raw coil field) for decorrelated errors (`runs/div_attn_*`).
+derivatives, raw coil field) for decorrelated errors (`runs/div_attn_*`). **Result 2026-09-30: no.** 24 + the three
+input-diversity attn members 0.994444 vs 0.994437 (+0.000007, 3/5) — noise. Closed.
 
 ### `member-capacity` — 2026-09-28: wider/deeper members, fold 0 single-model screen
 
