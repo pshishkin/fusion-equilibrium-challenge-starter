@@ -134,10 +134,14 @@ versions (`runs/full_conv_p70`, `runs/full_attn_p70`, five seeds each) queued.
   on 4/5 folds. The Jacobian block is 99.8% of M's trace and its linearisation over-states the
   scalar responses 1.12-1.49x (`linear_over_actual`); weights fitted to it overfit. Native scoring
   stopped as pointless. The GBM-with-metric variant is untested but inherits the same M.
-- Strategic: the labels are EFIT fits to the same magnetics we get as inputs, so li is in
-  principle a deterministic function of them through a Grad-Shafranov solve — plausibly what the
-  leader ("SCPN-FEC ... calibration-trained boundary heads") does. Gate before any build: does a
-  discrete GS solve reproduce the scorer-native li of TRUE maps from their own boundary data?
+- ~~Strategic: the labels are EFIT fits to the same magnetics we get as inputs~~ — WRONG: the
+  challenge WITHHOLDS the magnetic diagnostic array (README_ORIGINAL "What blind really means");
+  inputs are commanded coil currents, Ip and Thomson Te/ne. EFIT's inverse problem cannot be
+  replayed. The physical handle on the interior current profile (li) is current DIFFUSION:
+  conductivity ~ Te^1.5, so the Te profile's peaking and the Ip history (time since breakdown,
+  ramp rate, time on flat-top) should carry li. Today's features carry Te and ne only as summaries
+  and the detailed profile as the product Te*ne. Next gate: do Te-shape and Ip-history features
+  explain the stack's li residual beyond the current feature set (per-scalar HistGBM, folds)?
 
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
