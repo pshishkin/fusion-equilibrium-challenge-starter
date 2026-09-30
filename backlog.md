@@ -184,6 +184,29 @@ Priors: dropout 0.1 at seq_hidden 256 underfit badly under the old early-stopped
 (`seq-dropout`, -0.0039), and old capacity/regulariser grids were all negative — but those nets
 were 4x smaller and early-stopped; the fixed-cosine members at 1024 wide are a different regime.
 
+### `stack-member-ablation` — user's idea 2026-09-30: does the stack need every model class?
+
+24 members in five classes (mlp 7, GRU 3, LSTM 2, conv 6, attn 6). Every member was added because
+it helped ON TOP of the rest, never removed; a class may now be redundant or add noise to the
+linear weights. `tools/stack_ablation.py` refits the ridgecv_block linear stage on member subsets
+from the saved statistics (`runs/linvar_fc24/stats.npz`, exact held-out error, seconds).
+
+**Proxy (held-out psi MSE vs all 24; q95 / betaN), 2026-09-30, `runs/ablation_fc24.log`:**
+- drop a class: attn **0.9935 (5/5 better)**, q95 0.993, betaN 1.003; lstm 1.003; gru 1.012;
+  conv 1.035 (betaN 0.864!); mlp 1.075 (q95 1.50, betaN 1.42). mlp is the backbone of q95/betaN,
+  conv of psi; attn is the one class the proxy says the stack is better without.
+- drop one member: cap_mlp_1024 **0.9903 (5/5)**, cap_conv_trunk1024 0.9915 (3/5, betaN 1.03),
+  fc_convseed1 0.9946; the most needed: cap_mlp_3x512 1.0098, cap_mlp_p70_3x512 1.0083 (q95 1.048).
+- greedy backward elimination stops at 20 members (psi 0.9844): minus cap_mlp_1024,
+  cap_conv_trunk1024, fc_mlpseed1, cap_attn_p70_t1024 — but betaN worsens 5%.
+
+A member that makes held-out MSE WORSE under a ridge towards equal weights means its presence
+drags the shrinkage target (1/M of it), not that it carries no signal. The proxy ignores
+Consistency, which is read off the map; native scoring of no_mlp1024 (23), no_attn (18) and
+greedy20 queued (`runs/ablation_native.sh`, unit fusion-ablation). If a subset wins natively,
+the GBM stage is re-checked on it before a submission, and the attn verdict is re-read once the
+hp-round attn members (t3x1024) exist.
+
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
