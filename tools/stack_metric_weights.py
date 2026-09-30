@@ -178,8 +178,9 @@ def main() -> int:
     tables, stats = {}, {}
     for f in folds:
         t = load_fold(args.campaign, members, f, basis, args.jobs)
-        del t["Y"], t["member_coef"]
+        del t["Y"]
         t["members_T"] = member_targets(t)
+        del t["member_coef"], t["member_qb"]
         t["truth"] = np.column_stack([t["true_coef"], t["S"]])
         stats[f] = fold_stats(t["members_T"], t["truth"], k)
         if args.score:
