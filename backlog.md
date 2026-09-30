@@ -121,7 +121,9 @@ cons_gain 2.0 attn -0.00034/-0.00013, mlp -0.00009/-0.00004; env_weight 1.0 attn
 
 Library, linear ridge basis 70, 5 folds: 18 members 0.994346 -> 22 (+ attn/GRU/LSTM/attn-PCA70
 trunk1024) 0.994386 (+0.00004, 5/5) -> 24 (+ conv-PCA70 trunk1024, mlp-PCA70 3x512) 0.994437
-(+0.00005, 5/5).
+(+0.00005, 5/5). -> 26 (+ GRU/LSTM-PCA70 trunk1024) 0.994442 (+0.000005, 3/5): the library is saturated;
+full24 is the final member set. Next axis: members that see DIFFERENT INPUTS (no Thomson, no
+derivatives, raw coil field) for decorrelated errors (`runs/div_attn_*`).
 
 ### `member-capacity` — 2026-09-28: wider/deeper members, fold 0 single-model screen
 
