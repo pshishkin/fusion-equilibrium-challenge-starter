@@ -149,6 +149,40 @@ versions (`runs/full_conv_p70`, `runs/full_attn_p70`, five seeds each) queued.
   block only brings it back to zero: no absolute li correction. The interior current profile is
   not recoverable from these inputs beyond what the members already extract. Closed as a lever;
   a +0.0001 volume/Z_axis feature add is possible but not worth a library retrain now.
+- **The basis holds the tail** (`tools/tail_repr_gate.py`: true maps projected through PCA-70,
+  reconstruction SSE / stacked-map SSE of each scalar). Tail shots: li 0.01, Z_axis 0.01, volume
+  0.00, kappa 0.10, tri 0.13-0.23 — the tail error is the regression's, not the basis's. Random
+  shots: kappa 0.33, tri 0.30-0.33 — on normal shots a third of the kappa/tri error IS truncation,
+  which is the case for PCA-100 members (mlp 3x512 and attn t1024 on 5 folds, running 2026-09-30).
+- **Regime-gated linear stage** (`tools/stack_regime_gate.py`, 24 members, separate ridgecv_block
+  weights for the tail — top q of max |z| of the predicted R_axis/Z_axis/kappa/volume/li — and the
+  rest; held-out psi MSE gated/single): q 0.05 pooled gain +0.4%, q 0.10 +0.7%, q 0.20 +0.7%;
+  fold 2 WORSE at every q (1.031 / 1.014 / 1.012), the tail itself improves on 3/5 folds at best,
+  and betaN on fold 0 worsens 10-13%. The small gain comes from the normal frames, i.e. from
+  fitting on a cleaner subset, not from tail-specific weights. Below the 1%-and-tail-on-most-folds
+  bar set before the run: closed without native scoring. Members do not weigh differently in the
+  rare regimes; together with the li gate, the tail needs better base models, not a better stack.
+
+### `hp-round` — user's request 2026-09-30: capacity and regularisation of attn, conv, mlp
+
+**Found unrecorded (run 2026-09-29, scored, never read):** attn trunk [1024,1024,1024] vs
+[1024,1024], same seed, PCA-50: fold 0 0.992241 vs 0.989512 (**+0.00273**), fold 1 0.992116 vs
+0.991793 (+0.00032). attn trunk [2048,2048]: -0.00017 / -0.00034; seed 15 of t1024: -0.00010 /
+-0.00001 (so a seed moves this member by ~0.0001 and the 3x1024 gain is not seed noise). So for
+attn DEPTH of the per-frame trunk helps where width stops; mlp 4x512 was flat against 3x512.
+
+Queued after the PCA-100 attn (`runs/hp_sweep.sh`, PCA-50, default seed, paired per fold against
+the scored 5-fold bases cap_attn_t1024 / cap_conv_trunk1024 / cap_mlp_3x512; screen on folds 0-1,
+winners to 5 folds, then PCA-70/100 versions as stack members):
+- attn t3x1024 folds 2-4 (completes the 5-fold verdict); attn t4x1024; dropout 0.05 / 0.1;
+  steps x2 (82k); lr x2 (0.002); two attention layers.
+- conv t3x1024; dropout 0.05; steps x2 (120k).
+- mlp 3x512 with dropout 0.05 / 0.1; steps x2 (154k); lr x2 / x0.5; batch 8192; 6x512 residual +
+  layer norm; weight decay 1e-5.
+
+Priors: dropout 0.1 at seq_hidden 256 underfit badly under the old early-stopped protocol
+(`seq-dropout`, -0.0039), and old capacity/regulariser grids were all negative — but those nets
+were 4x smaller and early-stopped; the fixed-cosine members at 1024 wide are a different regime.
 
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
