@@ -212,8 +212,12 @@ and of the PCA-100 members (basis 70 and 100) running (`runs/stack_round.sh`).
 - 18 non-attn + attn-PCA70 t3x1024: 0.994463 (+0.000026; 18 alone 0.994459) — one strong attn
   replaces six weak ones, no more.
 - 24 + mlp/attn PCA-100 members, basis 70: 0.994448 (+0.000011).
-- same, basis 100: fold 0 0.994923 (+0.000055 over the 26 on basis 70); the run OOMed at 60G
-  after fold 0, rerun at 85G (`runs/stack_round_b100.sh`).
+- **same, basis 100: 0.994923 / 0.994594 / 0.994171 / 0.994417 / 0.994309, mean 0.994483 —
+  +0.000035 over the same 26 on basis 70 (5/5), +0.000046 over the 24 (5/5).** The basis, not the
+  members, is the lever: the extra 30 components carry the kappa/tri truncation `tail_repr_gate`
+  measured on normal shots, and only members trained on 100 components can fill them. Queued:
+  full-data mlp/attn PCA-100 (5 seeds each), the full26 GBM stack on basis 100 and its submission
+  (`runs/full26b100.sh`, holds the training queue while it runs), conv PCA-100 t1024 (5 folds).
 
 **Reading: single-member gains do not transfer to the saturated stack.** A member +0.0011 better
 alone moves the 24-member linear stage by +0.000003. Further single-member tuning is worth it only
