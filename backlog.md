@@ -205,6 +205,21 @@ from a little weight decay, not from dropout. Round 2 (`runs/hp_round2.sh`): att
 6x1024; conv t4x1024, conv t3 + wd. Stack check of attn-PCA70 t3x1024 (24+1, and 18 non-attn + 1)
 and of the PCA-100 members (basis 70 and 100) running (`runs/stack_round.sh`).
 
+**Stack check, 2026-10-01** (linear ridgecv_block, native, 5 folds; all 24 on basis 70 = 0.994868 /
+0.994552 / 0.994169 / 0.994354 / 0.994242, mean 0.994437):
+- 24 + attn-PCA70 t3x1024: 0.994440 (**+0.000003**, 2/5). The best single sequence member we have
+  adds NOTHING to the 24: what it learned better, the library already covers.
+- 18 non-attn + attn-PCA70 t3x1024: 0.994463 (+0.000026; 18 alone 0.994459) — one strong attn
+  replaces six weak ones, no more.
+- 24 + mlp/attn PCA-100 members, basis 70: 0.994448 (+0.000011).
+- same, basis 100: fold 0 0.994923 (+0.000055 over the 26 on basis 70); the run OOMed at 60G
+  after fold 0, rerun at 85G (`runs/stack_round_b100.sh`).
+
+**Reading: single-member gains do not transfer to the saturated stack.** A member +0.0011 better
+alone moves the 24-member linear stage by +0.000003. Further single-member tuning is worth it only
+if it buys the stack something: the next hp checks are judged by adding the member to the stack,
+not by its own score.
+
 Priors: dropout 0.1 at seq_hidden 256 underfit badly under the old early-stopped protocol
 (`seq-dropout`, -0.0039), and old capacity/regulariser grids were all negative — but those nets
 were 4x smaller and early-stopped; the fixed-cosine members at 1024 wide are a different regime.
