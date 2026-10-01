@@ -180,6 +180,31 @@ winners to 5 folds, then PCA-70/100 versions as stack members):
 - mlp 3x512 with dropout 0.05 / 0.1; steps x2 (154k); lr x2 / x0.5; batch 8192; 6x512 residual +
   layer norm; weight decay 1e-5.
 
+**Round 1 result, 2026-10-01** (native S of the single member minus its base, per fold):
+
+| arm | f0 | f1 | more | verdict |
+|---|---|---|---|---|
+| attn t3x1024 | +0.00273 | +0.00032 | f2 +0.00189, f3 +0.00062, f4 +0.00004 | **+0.00112, 5/5** |
+| attn t4x1024 | +0.00265 | +0.00052 | | **best**, folds 2-4 queued |
+| attn dropout 0.1 | +0.00130 | +0.00048 | Cons +0.0023/+0.0026 | win |
+| attn dropout 0.05 | +0.00116 | +0.00030 | | win |
+| attn 2 attention layers | +0.00108 | +0.00021 | | win |
+| attn lr x2 / steps x2 | +0.00033 / -0.00046 | -0.00110 / -0.00076 | | worse |
+| conv t3x1024 | +0.00048 | +0.00002 | | small |
+| conv dropout 0.05 / steps x2 | -0.00130 / -0.00026 | -0.00027 / -0.00124 | | worse |
+| mlp 6x512 residual + layer norm | +0.00067 | +0.00042 | | win, folds 2-4 queued |
+| mlp weight decay 1e-5 | +0.00036 | +0.00058 | Cons +0.0021/+0.0030 | win, folds 2-4 queued |
+| mlp steps x2 / lr x0.5 | +0.00009 / +0.00014 | +0.00012 / +0.00003 | | flat |
+| mlp dropout 0.05 / 0.1, lr x2, batch 8192 | | | | worse or flat |
+
+The attn member was UNDER-regularised and too shallow: depth, dropout and a second attention layer
+each help, and its Consistency gains most. Longer training hurts attn and conv (overfitting at
+fixed cosine), which is the same message. mlp gains from a deep residual trunk with layer norm and
+from a little weight decay, not from dropout. Round 2 (`runs/hp_round2.sh`): attn t4 + dropout 0.1
+(+ 2 layers, + wd), attn t6x1024, attn dropout 0.2; mlp res6ln + wd, wd 1e-4, res 10x512, res
+6x1024; conv t4x1024, conv t3 + wd. Stack check of attn-PCA70 t3x1024 (24+1, and 18 non-attn + 1)
+and of the PCA-100 members (basis 70 and 100) running (`runs/stack_round.sh`).
+
 Priors: dropout 0.1 at seq_hidden 256 underfit badly under the old early-stopped protocol
 (`seq-dropout`, -0.0039), and old capacity/regulariser grids were all negative — but those nets
 were 4x smaller and early-stopped; the fixed-cosine members at 1024 wide are a different regime.
