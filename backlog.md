@@ -281,7 +281,14 @@ ridgecv_block, against 24 + mlp/attn p100 on basis 100 (0.994483):
 - only100_b100: the seven p100 members alone;
 - strong + the p150 pair, on basis 150 and on basis 100.
 Memory: 31 members on basis 100 is about 65 GB for the linear stage; the all-fold GBM fit of a
-wide stack needs rows every 3rd (`full26b100.sh`).
+wide stack needs rows every 4th (every 2nd OOMed host RAM, every 3rd asked 18.7 GB of GPU) (`full26b100.sh`).
+
+**Re-ordered 2026-10-02 (user): first decide PCA-100 vs 150, then use it for EVERY member and the
+stack basis.** Same architectures at both sizes (mlp 3x512, attn t1024, 5 folds); `runs/basis_choice.sh`
+scores 24 + p150 pair on basis 150 and on basis 100, and 24 + both pairs on basis 150, against 24 +
+p100 pair on basis 100 (0.994483); single-member scores of the four on folds 0-1 alongside. The
+strong-member batch waits in `runs/queue.pending_basis` (to be re-written to the winning n_pca),
+`compact_stack.sh` is stopped until then.
 
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
