@@ -6,6 +6,11 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Built, not published (2026-10-02):** `submit_full26b100_stack` — the 24 full-data members +
+  mlp 3x512 / attn t1024 trained on PCA-100 (five seeds each), stack basis PCA-100, ridgecv_block +
+  CatBoost 1000 iterations on every 4th OOF row (wider rows ran out of host RAM, then GPU memory).
+  Linear CV 0.994483 vs 0.994346 for full18's member set (+0.000137, 5/5); expected public
+  ~0.9957 (0.99563-0.99577 on the full11->full18 CV-to-public ratio). Publication on request.
 - **Current best public, 2026-09-28 16:49:** **950254 `submit_full18_stack` S 0.995494** (R2_psi
   0.999875, R2_qb 0.997131, D_LCFS 0.009161, Consistency 0.984547): 18 full-data members (13 +
   conv/attn PCA-70 + conv trunk1024, mlp 1024, mlp 3x512), basis-70 ridge + CatBoost 1000 iterations;
