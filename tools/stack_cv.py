@@ -416,8 +416,12 @@ def main() -> int:
             ev = 1 if thin_early else args.every
             Fa = np.concatenate([tables[j]["F"][::ev] for j in folds])
             Ra = np.concatenate([tables[j]["R"][::ev] for j in folds])
-        models = fit_stage2(Fa, Ra, args.iters, 1,
-                            np.concatenate([tables[j]["truth"][::ev] for j in folds]))
+        Ta = np.concatenate([tables[j]["truth"][::ev] for j in folds])
+        # The concatenated copies are all the fit reads: drop the per-fold tables before it, or
+        # both live at once (26 members on basis 100 peaked over 110 GB and were OOM-killed).
+        for j in folds:
+            tables[j].clear()
+        models = fit_stage2(Fa, Ra, args.iters, 1, Ta)
         joblib.dump(models, args.out / "models_all.joblib")
         (args.out / "config.json").write_text(json.dumps(
             {"members": members, "linear": args.linear, "context": not args.no_context,
