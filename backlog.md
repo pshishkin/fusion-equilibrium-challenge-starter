@@ -265,6 +265,24 @@ over t1024, on a par with the best mlp), so the class is not dropped from produc
 question is re-asked as "18 non-attn + attn t3x1024 members" once those exist on PCA-70. Fewer
 members also shrink the GBM stage's GPU memory (24 members needed 35 GB for depth 8).
 
+### `compact-stack-wide-basis` — user's idea 2026-10-02: drop the weak members AND widen the basis
+
+Two findings meet here: single-member capacity gains no longer reach the 24-member stack (attn
+t3x1024 +0.0011 alone, +0.000003 in the stack), while the stack basis does (PCA-100 +0.000046,
+5/5) — and only members trained on 100+ components fill the new directions. So: fewer, stronger
+members, trained on the wide basis. Queued on the GPU first (5 folds each): attn t4x1024 + wd 1e-5,
+mlp 6x512 residual + layer norm, conv t1024, GRU t1024, LSTM t1024 on PCA-100; mlp 3x512 and attn
+t4x1024 + wd on PCA-150. `runs/compact_stack.sh` (unit fusion-compact) then scores natively, linear
+ridgecv_block, against 24 + mlp/attn p100 on basis 100 (0.994483):
+- strong_b100: 15 members — the capacity members of every class at every basis size, no old seeds
+  and no old attn (mlp 3x512 / 1024 / p70 3x512, conv t1024 / p70 t1024, GRU/LSTM t1024, attn p70
+  t3x1024, and the seven p100 members);
+- all_b100: all 24 + the seven p100 members (31);
+- only100_b100: the seven p100 members alone;
+- strong + the p150 pair, on basis 150 and on basis 100.
+Memory: 31 members on basis 100 is about 65 GB for the linear stage; the all-fold GBM fit of a
+wide stack needs rows every 3rd (`full26b100.sh`).
+
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
