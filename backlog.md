@@ -290,6 +290,23 @@ p100 pair on basis 100 (0.994483); single-member scores of the four on folds 0-1
 strong-member batch waits in `runs/queue.pending_basis` (to be re-written to the winning n_pca),
 `compact_stack.sh` is stopped until then.
 
+**Basis verdict, 2026-10-03 (native linear ridgecv_block, 5 folds):**
+
+| set | basis | folds | mean | vs 24+p100 on b100 |
+|---|---|---|---|---|
+| 24 + {mlp,attn} p100 | 100 | 0.994923 / 0.994594 / 0.994171 / 0.994417 / 0.994309 | 0.994483 | ref |
+| 24 + {mlp,attn} p150 | 150 | 0.994935 / 0.994610 / 0.994206 / 0.994421 / 0.994295 | 0.994493 | +0.000010, 4/5 |
+| 24 + {mlp,attn} p150 | 100 | 0.994926 / 0.994602 / 0.994198 / 0.994429 / 0.994282 | 0.994487 | +0.000004 |
+| 24 + both pairs | 150 | 0.994939 / 0.994631 / 0.994192 / 0.994449 / 0.994323 | 0.994507 | +0.000024, 5/5 (28 members) |
+
+70 -> 100 bought +0.000035 (same members); 100 -> 150 buys +0.000006 (basis, same members) and
++0.000010 (members and basis): the truncation gain is used up at 100. **PCA-100 chosen** for every
+member and the stack basis: 150's edge is within fold noise, while its 26x50x2 extra GBM features
+would force the all-fold CatBoost fit to thin its rows again (already every 4th at 100). The extra
+pair helping (+0.000024 with both) says more members ON the wide basis still pay — the strong p100
+batch (attn t4x1024+wd, mlp res6ln, GRU, LSTM; conv done) is released, `compact_stack.sh` re-run
+on basis 100 only.
+
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
