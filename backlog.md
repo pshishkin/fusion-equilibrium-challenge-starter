@@ -307,6 +307,22 @@ pair helping (+0.000024 with both) says more members ON the wide basis still pay
 batch (attn t4x1024+wd, mlp res6ln, GRU, LSTM; conv done) is released, `compact_stack.sh` re-run
 on basis 100 only.
 
+**Compact vs full, 2026-10-03 (basis 100, native linear, vs 24 + p100 pair = 0.994483):**
+
+| set | members | folds | mean | delta |
+|---|---|---|---|---|
+| strong | 15 | 0.995056 / 0.994582 / 0.994374 / 0.994452 / 0.994265 | **0.994546** | +0.000063, 3/5 |
+| all | 31 | 0.994957 / 0.994624 / 0.994316 / 0.994476 / 0.994349 | **0.994544** | +0.000061, 5/5 |
+| only p100 | 7 | 0.994672 / 0.994478 / 0.994177 / 0.994270 / 0.994143 | 0.994348 | -0.000135 |
+
+**The user's idea holds: 15 strong members = 31 members** (strong - all: +0.000002, 2/5). The old
+seeds and the six old attn members carry nothing the strong set lacks, while the p100-only set
+loses: the p50/p70 members still bring diversity. The compact set is also the practical one: its
+all-fold GBM fits at rows every 2nd (about 3350 features, like full24), where 26+ members had to be
+thinned to every 4th. Full-data versions of the six new members queued (~12 h GPU);
+`runs/full15.sh` builds `submit_full15b100_stack` when they exist. `runs/compact_stack2.sh` checks
+whether old conv / mlp / GRU+LSTM members still add to the strong set (their full versions exist).
+
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
