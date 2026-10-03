@@ -282,6 +282,13 @@ class TorchSeqModel(TargetModel):
     # inference always see whole shots.
     input_noise: float = 0.0
     crop_min_frames: int = 0
+    # The per-frame trunks (`head` and `enc`) as `build_mlp` builds them for the MLP: `norm`
+    # `none` or `layer` (batch norm takes 2-D input only), `residual` a skip around every block of
+    # matching width. Added 2026-10-03: the residual + layer-norm MLP is the one p100 member the
+    # stack cannot do without (-0.0001 on 5/5 folds when dropped); this asks whether the sequence
+    # members gain the same way. Defaults keep every earlier artifact and config as it was.
+    norm: str = "none"
+    residual: bool = False
     _state: dict[str, np.ndarray] | None = field(default=None, init=False, repr=False)
     _ema_wins: int = field(default=0, init=False, repr=False)
     _n_in: int = field(default=0, init=False, repr=False)
@@ -305,9 +312,12 @@ class TorchSeqModel(TargetModel):
         class Net(torch.nn.Module):
             def __init__(self, cfg: TorchSeqModel) -> None:
                 super().__init__()
-                self.head = build_mlp(n_in, cfg.hidden_sizes, n_out, cfg.activation, cfg.dropout)
+                if cfg.norm == "batch":
+                    raise ValueError("torch_seq: norm 'batch' needs 2-D input; use 'none' or 'layer'")
+                self.head = build_mlp(n_in, cfg.hidden_sizes, n_out, cfg.activation, cfg.dropout,
+                                      cfg.norm, cfg.residual)
                 self.enc = build_mlp(n_in, cfg.hidden_sizes, cfg.seq_hidden, cfg.activation,
-                                     cfg.dropout)
+                                     cfg.dropout, cfg.norm, cfg.residual)
                 if cfg.seq_cell not in SEQ_CELLS:
                     raise ValueError(f"torch_seq: seq_cell {cfg.seq_cell!r}, known {SEQ_CELLS}")
                 # `self.packed` says whether the mixer consumes a PackedSequence. A plain bool, so

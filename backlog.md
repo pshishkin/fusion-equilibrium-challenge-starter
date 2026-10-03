@@ -328,6 +328,21 @@ member change: the noise of a subset comparison is ~0.00005 on the mean, and all
 it. Subset selection at this resolution overfits CV; the strong 15 stay the production set
 (`full15.sh`), strong 15 + old mlp (19, full versions exist) is a spare candidate.
 
+### `capacity-in-stack-p100` — user's question 2026-10-03: redo the capacity round on PCA-100?
+
+Free check first: the strong 15 (0.994546) hold a weak and a strong p100 variant of attn and mlp;
+drop each (native linear, 5 folds): attn t1024 -0.000009, attn t4x1024+wd -0.000010, mlp 3x512
+-0.000003, **mlp 6x512 residual + layer norm -0.000096 (-164 / -26 / -149 / -104 / -34 e-6, 5/5)**.
+Capacity as such does not reach the stack (the two attn are interchangeable), but the residual +
+layer-norm TRUNK does: it is the one p100 member with a share nothing else covers — a different
+architecture errs differently. So no full capacity rerun; instead a targeted round along that axis.
+
+Code: `TorchSeqModel` gained `norm` / `residual` for its per-frame trunks (`head`, `enc`), passed to
+`build_mlp` exactly as the MLP does; defaults `none` / `false` keep every earlier artifact; keys added
+to `runs/cv5/params_aug.yaml` (models.seq). Queued after the full15 members, 5 folds each, PCA-100:
+mlp res 10x512 (+0.00078 alone on p50), mlp res6ln + wd 1e-5 (+0.00076), attn t4x1024 + wd + res +
+LN, GRU t4x1024 res + LN, conv t4x1024 res + LN. `runs/resln_in_stack.sh` scores strong 15 + each.
+
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
