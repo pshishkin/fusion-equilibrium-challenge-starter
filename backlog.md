@@ -322,6 +322,11 @@ all-fold GBM fits at rows every 2nd (about 3350 features, like full24), where 26
 thinned to every 4th. Full-data versions of the six new members queued (~12 h GPU);
 `runs/full15.sh` builds `submit_full15b100_stack` when they exist. `runs/compact_stack2.sh` checks
 whether old conv / mlp / GRU+LSTM members still add to the strong set (their full versions exist).
+**Result:** strong 15 + 4 old conv 0.994510 (-0.000036; fold 0 -0.000194), + 4 old mlp 0.994585
+(+0.000039, 3/5), + 3 old GRU/LSTM 0.994562 (+0.000016, 2/5). Fold 0 swings +-0.0002 with any
+member change: the noise of a subset comparison is ~0.00005 on the mean, and all three are inside
+it. Subset selection at this resolution overfits CV; the strong 15 stay the production set
+(`full15.sh`), strong 15 + old mlp (19, full versions exist) is a spare candidate.
 
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
