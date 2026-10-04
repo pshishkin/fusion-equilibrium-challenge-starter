@@ -6,6 +6,11 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Built, not published (2026-10-04):** `submit_full15b100_stack` — the compact strong 15
+  (capacity members of every class at PCA-50/70/100, no old seeds, no old attn; mlp res6ln is the
+  irreplaceable one), stack basis PCA-100, ridgecv_block + CatBoost 1000 iterations on every 2nd OOF
+  row. Linear CV 0.994546: +0.000063 over full26b100's set, +0.000200 over full18's. Expected
+  public ~0.9958 (0.99570-0.99583). Publication on request.
 - **Built, not published (2026-10-02):** `submit_full26b100_stack` — the 24 full-data members +
   mlp 3x512 / attn t1024 trained on PCA-100 (five seeds each), stack basis PCA-100, ridgecv_block +
   CatBoost 1000 iterations on every 4th OOF row (wider rows ran out of host RAM, then GPU memory).
