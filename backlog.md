@@ -345,8 +345,17 @@ D_LCFS, it goes straight into the next submission (no retraining).
 
 Premise check first: uniform shrink of components >70 / >50 does NOT help on CV — **closed, 5 folds:
 cut70 x0.7 -0.000008, x0.4 -0.000026, cut50 x0.7 -0.000022, x0.4 -0.000066, each 0/5**; li moves
-<0.00015, kappa and D_LCFS lose — the high components carry signal. Delta-shrink (item 1) running:
-`tools/stack_delta_shrink.py`, `runs/dshrink_s15` (old = strong 15 on basis 70). Astra's
+<0.00015, kappa and D_LCFS lose — the high components carry signal.
+**Item 1, delta-shrink, closed 2026-10-05** (`tools/stack_delta_shrink.py`, strong 15, linear, 5 folds):
+old (basis 70) 0.994521, li 0.963390; old + Delta_low = old (the wide basis's correction lies
+entirely beyond the first 70 components); alpha 0.5 0.994535, li 0.963463; new (basis 100)
+0.994546, li 0.963547 — monotone in alpha, 0/5 folds for any shrink, and li RISES with the
+correction. On CV the linear stage shows no basis-vs-li conflict at all. The public li drop is
+not the linear stage's: left are the GBM stage (older CV runs show it moving li by +-0.002 per
+fold, fold 3 negative every time), the full-data refits, and the test set. The GBM part needs a
+held GPU (stack_cv eval folds, ~3 h); to be done with the next submission's stage fit.
+Field-energy per unit coefficient of the basis-100 components (scorer envelope, |grad|^2/R):
+components 1-50 0.27, 51-70 1.15, 71-100 2.12 of the mean — the high components ARE fine-scale. Astra's
 points: full18 -> full26 also changed members and GBM thinning, so the -0.0016 li is not isolated
 to the basis; PCA order is variance, not spatial frequency; li is a ratio (interior energy over the
 boundary field squared) with a cross term, so shrinking need not lower it; the whole li loss is
