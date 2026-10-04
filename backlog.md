@@ -343,8 +343,10 @@ D_LCFS, it goes straight into the next submission (no retraining).
 
 ### `li-beyond-pca` — user + Astra, 2026-10-04: how to exploit "high components hurt li", in and beyond PCA
 
-Premise check first: uniform shrink of components >70 / >50 does NOT help on CV (folds 0-1: S down
-at every alpha, li barely moves, kappa and D_LCFS lose) — the high components carry signal. Astra's
+Premise check first: uniform shrink of components >70 / >50 does NOT help on CV — **closed, 5 folds:
+cut70 x0.7 -0.000008, x0.4 -0.000026, cut50 x0.7 -0.000022, x0.4 -0.000066, each 0/5**; li moves
+<0.00015, kappa and D_LCFS lose — the high components carry signal. Delta-shrink (item 1) running:
+`tools/stack_delta_shrink.py`, `runs/dshrink_s15` (old = strong 15 on basis 70). Astra's
 points: full18 -> full26 also changed members and GBM thinning, so the -0.0016 li is not isolated
 to the basis; PCA order is variance, not spatial frequency; li is a ratio (interior energy over the
 boundary field squared) with a cross term, so shrinking need not lower it; the whole li loss is
