@@ -328,6 +328,19 @@ member change: the noise of a subset comparison is ~0.00005 on the mean, and all
 it. Subset selection at this resolution overfits CV; the strong 15 stay the production set
 (`full15.sh`), strong 15 + old mlp (19, full versions exist) is a spare candidate.
 
+### `li-wide-basis` — 2026-10-04: the PCA-100 basis costs li on the public test
+
+Public, three stacks: full18 (basis 70) 0.995494, li 0.968765, kappa 0.975720, D_LCFS 0.009161;
+full26 (basis 100, 26 members, GBM rows every 4th) 0.995529, li 0.967198, kappa 0.976810, D_LCFS
+0.008879; full15 (basis 100, strong 15, rows every 2nd) **0.995578**, li 0.966546, kappa 0.977017,
+D_LCFS 0.008690. Compaction paid on the test (+0.00005 over full26) for a further -0.0007 of li; the
+basis move itself cost li -0.0016 (CV said -0.0003). li is <B_p^2>, the integral of the squared flux
+GRADIENT; the components 71-100 are fine-scale, their noisy predictions cost little flux MSE (what
+ridge minimises) and a lot of gradient. Test (`tools/stack_highcomp_shrink.py`, `runs/shrink_s15`):
+scale the final map's global components from 70 (or 50) on by alpha 0.7 / 0.4, native, 5 folds,
+strong 15. One parameter, little room to overfit; if li returns without giving back kappa and
+D_LCFS, it goes straight into the next submission (no retraining).
+
 ### `capacity-in-stack-p100` — user's question 2026-10-03: redo the capacity round on PCA-100?
 
 Free check first: the strong 15 (0.994546) hold a weak and a strong p100 variant of attn and mlp;
