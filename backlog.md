@@ -341,6 +341,28 @@ scale the final map's global components from 70 (or 50) on by alpha 0.7 / 0.4, n
 strong 15. One parameter, little room to overfit; if li returns without giving back kappa and
 D_LCFS, it goes straight into the next submission (no retraining).
 
+### `li-beyond-pca` — user + Astra, 2026-10-04: how to exploit "high components hurt li", in and beyond PCA
+
+Premise check first: uniform shrink of components >70 / >50 does NOT help on CV (folds 0-1: S down
+at every alpha, li barely moves, kappa and D_LCFS lose) — the high components carry signal. Astra's
+points: full18 -> full26 also changed members and GBM thinning, so the -0.0016 li is not isolated
+to the basis; PCA order is variance, not spatial frequency; li is a ratio (interior energy over the
+boundary field squared) with a cross term, so shrinking need not lower it; the whole li loss is
+worth only +0.000063 S. The organisers' alternatives (MODELING_GUIDE: PCA, direct 65x65 CNN/U-Net,
+autoencoder latent) are all tried in some form (mapnet/upconv, OOF residual U-Net, learned-basis);
+none is justified again before a gate. Ranked plan:
+1. Delta-shrink: psi = psi_b70 + Delta_<=70 + alpha * Delta_>70, Delta = psi_b100 - psi_b70, same
+   members and GBM settings, linear and linear+GBM, alpha 0 / 0.5 / 1 (alpha 0 must reproduce b70
+   exactly); decompose the li change into interior energy and boundary denominator. Hours, no fits.
+2. Energy-norm error directions: G_ij = int grad V_i . grad V_j / R over the plasma, OOF error
+   covariance in G-directions, one regularised shrink of the expensive and unpredictable ones
+   (a predictability-ordered basis). Pure rotations change nothing. Hours.
+3. Oracle for a small interior-local residual basis (splines vanishing with their derivative
+   before the LCFS): can 5-20 interior directions lift li without moving the boundary? Only then
+   ask whether inputs predict them. The one idea with a budget above +0.0003, low odds.
+4. Energy POD with the ENERGY projection (shaped-basis used a Euclidean projection of a Sobolev
+   subspace; the oblique projection was never tested). Last.
+
 ### `capacity-in-stack-p100` — user's question 2026-10-03: redo the capacity round on PCA-100?
 
 Free check first: the strong 15 (0.994546) hold a weak and a strong p100 variant of attn and mlp;
