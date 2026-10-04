@@ -355,7 +355,19 @@ not the linear stage's: left are the GBM stage (older CV runs show it moving li 
 fold, fold 3 negative every time), the full-data refits, and the test set. The GBM part needs a
 held GPU (stack_cv eval folds, ~3 h); to be done with the next submission's stage fit.
 Field-energy per unit coefficient of the basis-100 components (scorer envelope, |grad|^2/R):
-components 1-50 0.27, 51-70 1.15, 71-100 2.12 of the mean — the high components ARE fine-scale. Astra's
+components 1-50 0.27, 51-70 1.15, 71-100 2.12 of the mean — the high components ARE fine-scale.
+**Item 2, energy-norm directions, closed 2026-10-05** (`tools/stack_energy_dirs.py`): in G-whitened
+coordinates the linear stack's field-error energy is concentrated (top direction 53-55%, top 5
+~85%), but every direction is already calibrated — least-squares scale s = 0.998-1.002, held-out
+R^2 of the direction 0.976-1.000. Rescaling the top 5 / 10 / 20: -0.000003 / -0.000005 / -0.000005,
+0/5 folds. Nothing to shrink.
+**Items 3 and 4 closed without a run:** `tail_repr_gate` already showed that PCA-70 projections of
+the TRUE maps reproduce li with 1% of the stacked map's li error (tail shots; normal shots similar)
+— the representation is not what limits li, the prediction is. An interior-local basis or an
+energy POD can only change the representation; their oracles would show headroom the PCA oracle
+already shows, and say nothing about predictability. The li line ends here: li improves only
+through better predictors (the residual-LN mlp family) — and the public li drop remains to be
+checked against the GBM stage. Astra's
 points: full18 -> full26 also changed members and GBM thinning, so the -0.0016 li is not isolated
 to the basis; PCA order is variance, not spatial frequency; li is a ratio (interior energy over the
 boundary field squared) with a cross term, so shrinking need not lower it; the whole li loss is
