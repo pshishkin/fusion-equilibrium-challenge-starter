@@ -6,7 +6,7 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
-- **Published to private HF 2026-10-04 (revision 5bdc43ae), pointer zip ready:** `submit_full15b100_stack` — the compact strong 15
+- **Public 2026-10-04 12:33: 960052 `submit_full15b100_stack` S 0.9956** (rounded; expected ~0.9958) — about +0.0001 over full18, half or less of the CV gain. Published to private HF (revision 5bdc43ae): — the compact strong 15
   (capacity members of every class at PCA-50/70/100, no old seeds, no old attn; mlp res6ln is the
   irreplaceable one), stack basis PCA-100, ridgecv_block + CatBoost 1000 iterations on every 2nd OOF
   row. Linear CV 0.994546: +0.000063 over full26b100's set, +0.000200 over full18's. Expected
