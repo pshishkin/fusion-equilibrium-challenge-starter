@@ -356,6 +356,13 @@ to `runs/cv5/params_aug.yaml` (models.seq). Queued after the full15 members, 5 f
 mlp res 10x512 (+0.00078 alone on p50), mlp res6ln + wd 1e-5 (+0.00076), attn t4x1024 + wd + res +
 LN, GRU t4x1024 res + LN, conv t4x1024 res + LN. `runs/resln_in_stack.sh` scores strong 15 + each.
 
+**Result, 2026-10-04** (strong 15 + one member, native linear, basis 100, vs 0.994546):
+mlp res6ln + wd **+0.000086 (5/5)**, mlp res10ln **+0.000062 (5/5)**, attn t4 res+LN+wd +0.000034
+(4/5), conv t4 res+LN +0.000021 (4/5, fold 0 -0.00015), GRU t4 res+LN -0.000009. The residual +
+layer-norm MLP family keeps paying in the stack, the sequence members barely. Queued: full-data
+res6lnwd and res10ln (submission), four more of the family (res 6x1024 + wd, res10 + wd, res6 + wd
+second seed, res6 + wd on PCA-70), full attn t4resln; `runs/resmlp_combo.sh` scores combinations.
+
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
