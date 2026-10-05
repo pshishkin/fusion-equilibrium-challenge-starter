@@ -6,6 +6,11 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Built, not published (2026-10-05):** `submit_full22b100_stack` — strong 15 + six residual+LN
+  mlps (PCA-100 res6lnwd / res10ln / res6x1024lnwd / res10lnwd / res6lnwd seed 2, PCA-70 res6lnwd) +
+  attn t4x1024 res+LN+wd; stack basis PCA-100, ridgecv_block + CatBoost 1000 iterations on every 3rd
+  OOF row (4900 features). Linear CV 0.994780: +0.000234 over full15's set (5/5), li +0.0004.
+  Expected public 0.99567-0.99581 (CV-to-public ratio 0.4-1.0; full15 transferred at ~0.4).
 - **Public 2026-10-04 12:33: 960052 `submit_full15b100_stack` S 0.995578, 8th** (expected ~0.9958): +0.000084 over full18. R2_psi 0.99987, R2_qb 0.997267, D_LCFS 0.008690, Consistency 0.984644 (kappa 0.977017, tri 0.994264 / 0.992834, R_axis 0.982309, Z_axis 0.99075, volume 0.988789, **li 0.966546**). Against full18 the PCA-100 basis paid as CV said (D_LCFS -0.00047, kappa +0.0013, tri +0.0004) but li fell -0.0022 (CV: -0.0009), about -0.00006 of S. On CV li falls with the basis (24 b70 -> 26 b100 -0.0003) and more with compaction (31 members -0.0005, 15 -0.0009 vs 18 b70): dropped members held li. Board 2026-10-04: kimsunjoong 0.9963, heavy4evy 0.9963, seantang 0.9962, dmitryzhevn 0.9961, dgaytanv 0.9961, anulum fortis 0.9960, shansiming 0.9957, **pshishkin 0.9956**. `submit_full26b100_stack` published (revision c4ceca4b) as the diagnostic: same basis, all old members. Published to private HF (revision 5bdc43ae): — the compact strong 15
   (capacity members of every class at PCA-50/70/100, no old seeds, no old attn; mlp res6ln is the
   irreplaceable one), stack basis PCA-100, ridgecv_block + CatBoost 1000 iterations on every 2nd OOF
