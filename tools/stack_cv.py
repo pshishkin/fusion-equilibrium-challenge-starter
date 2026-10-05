@@ -283,6 +283,9 @@ def main() -> int:
                     help="folds to fit and score a held-out stage for (default: all --folds)")
     ap.add_argument("--all-only", action="store_true",
                     help="fit only the all-fold stage a submission applies (no held-out folds)")
+    ap.add_argument("--thin-train", action="store_true",
+                    help="with --eval-folds and --no-context: thin the folds NOT evaluated to every "
+                         "`every`-th row as they load (the held-out fold stays whole)")
     ap.add_argument("--stacked-only", action="store_true",
                     help="score only the corrected blend, not the base and linear references")
     ap.add_argument("--no-context", action="store_true")
@@ -319,11 +322,19 @@ def main() -> int:
     weights = weights / weights.sum()
     basis = load_basis(args.campaign, args.basis_from)
     thin_early = args.all_only and args.no_context and args.every > 1
+    eval_folds = ([] if args.all_only else
+                  [int(x) for x in args.eval_folds.split(",")] if args.eval_folds else folds)
+    # 22 members on basis 100 held five whole folds of features at ~90 GB and were OOM-killed:
+    # the folds only trained on can be thinned as they load, exactly as the all-fold fit does.
+    thin_train = args.thin_train and args.no_context and args.every > 1 and bool(args.eval_folds)
+    if args.thin_train and not thin_train:
+        raise ValueError("--thin-train needs --eval-folds, --no-context and --every > 1")
+    thinned = {k for k in folds if thin_early or (thin_train and k not in eval_folds)}
     tables = {}
     for k in folds:
         t = load_fold(args.campaign, members, k, basis, args.jobs)
         del t["Y"]
-        if thin_early:
+        if k in thinned:
             # The all-fold fit reads every `every`-th row only: thin before the feature table is
             # built, which halves the peak memory. Held-out scoring needs every row, so this is
             # restricted to --all-only without context features (they need whole shots).
@@ -340,8 +351,6 @@ def main() -> int:
         print(f"fold {k}: {len(F)} frames, {F.shape[1]} features", flush=True)
     report = {"members": members, "weights": weights.tolist(), "iters": args.iters,
               "every": args.every, "folds": {}}
-    eval_folds = ([] if args.all_only else
-                  [int(x) for x in args.eval_folds.split(",")] if args.eval_folds else folds)
     for k in eval_folds:
         others = [j for j in folds if j != k]
         t0 = time.time()
@@ -355,12 +364,12 @@ def main() -> int:
         else:
             shifts = {j: 0.0 for j in folds}
         # Rows are thinned per fold BEFORE concatenation: the full four-fold table is never built.
-        ev = args.every
-        Fo = np.concatenate([np.column_stack([tables[j]["F"][::ev],
-                                              (tables[j]["stage1"] + shifts[j])[::ev]])
-                             if args.linear else tables[j]["F"][::ev] for j in others])
-        Ro = np.concatenate([(tables[j]["R"] - shifts[j])[::ev] for j in others])
-        To = np.concatenate([tables[j]["truth"][::ev] for j in others])
+        evs = {j: 1 if j in thinned else args.every for j in others}
+        Fo = np.concatenate([np.column_stack([tables[j]["F"][::evs[j]],
+                                              (tables[j]["stage1"] + shifts[j])[::evs[j]]])
+                             if args.linear else tables[j]["F"][::evs[j]] for j in others])
+        Ro = np.concatenate([(tables[j]["R"] - shifts[j])[::evs[j]] for j in others])
+        To = np.concatenate([tables[j]["truth"][::evs[j]] for j in others])
         t = tables[k]
         Fk = (np.column_stack([t["F"], t["stage1"] + shifts[k]]) if args.linear else t["F"])
         entry: dict[str, Any] = {}
