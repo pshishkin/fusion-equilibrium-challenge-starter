@@ -419,6 +419,10 @@ stack gain since the 70-component basis, and not saturated. **22 = 21 + attn t4r
 +0.000234 over the strong 15 (5/5), +0.000016 over 21 (4/5) with li +0.00043** (0.963983 vs
 0.963555) — kept, li being the term the public test punished; `runs/full22.sh` builds `submit_full22b100_stack` when the full versions exist.
 Five more of the family queued (res 8x768, res 14x512, res6 on PCA-50, res10 seed 2, res6 + dropout).
+**Round 2 vs the 22 (0.994780), 2026-10-05:** + res6lnwd dropout 0.05 +0.000033 (5/5), + res14 +0.000020
+(5/5), + res8x768 +0.000008, + p50 res6 +0.000006 (2/5), + res10 seed 2 +0.000004; **all five (27)
+0.994834, +0.000054 (4/5)**. The family saturates: six members bought +0.000218, the next five
++0.000054. The most useful newcomer is the regularised one (dropout), again a diversity signal.
 
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
