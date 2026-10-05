@@ -408,6 +408,15 @@ layer-norm MLP family keeps paying in the stack, the sequence members barely. Qu
 res6lnwd and res10ln (submission), four more of the family (res 6x1024 + wd, res10 + wd, res6 + wd
 second seed, res6 + wd on PCA-70), full attn t4resln; `runs/resmlp_combo.sh` scores combinations.
 
+**Combinations, 2026-10-05** (strong 15 = 0.994546; native linear, basis 100, 5 folds):
++ res6lnwd + res10ln (17) 0.994672 (+0.000126, 5/5); + attn t4resln (18) 0.994703 (+0.000158, 5/5,
+**li +0.0006** — the only member that lifts li); the two + res10lnwd 0.994726 (+0.000180), + p70
+res6lnwd 0.994712, + res6lnwd seed 2 0.994704, + res6x1024lnwd 0.994695 (each 5/5); **all six
+residual mlps (21) 0.994764, +0.000218, 5/5** (+248 / +229 / +232 / +141 / +242 e-6) — the largest
+stack gain since the 70-component basis, and not saturated. 22 = 21 + attn t4resln scoring
+(`runs/rmc_s22`); `runs/full22.sh` builds `submit_full22b100_stack` when the full versions exist.
+Five more of the family queued (res 8x768, res 14x512, res6 on PCA-50, res10 seed 2, res6 + dropout).
+
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
