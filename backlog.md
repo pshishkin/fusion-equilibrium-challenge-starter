@@ -413,8 +413,9 @@ second seed, res6 + wd on PCA-70), full attn t4resln; `runs/resmlp_combo.sh` sco
 **li +0.0006** — the only member that lifts li); the two + res10lnwd 0.994726 (+0.000180), + p70
 res6lnwd 0.994712, + res6lnwd seed 2 0.994704, + res6x1024lnwd 0.994695 (each 5/5); **all six
 residual mlps (21) 0.994764, +0.000218, 5/5** (+248 / +229 / +232 / +141 / +242 e-6) — the largest
-stack gain since the 70-component basis, and not saturated. 22 = 21 + attn t4resln scoring
-(`runs/rmc_s22`); `runs/full22.sh` builds `submit_full22b100_stack` when the full versions exist.
+stack gain since the 70-component basis, and not saturated. **22 = 21 + attn t4resln: 0.994780,
++0.000234 over the strong 15 (5/5), +0.000016 over 21 (4/5) with li +0.00043** (0.963983 vs
+0.963555) — kept, li being the term the public test punished; `runs/full22.sh` builds `submit_full22b100_stack` when the full versions exist.
 Five more of the family queued (res 8x768, res 14x512, res6 on PCA-50, res10 seed 2, res6 + dropout).
 
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
