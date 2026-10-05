@@ -300,8 +300,10 @@ strong-member batch waits in `runs/queue.pending_basis` (to be re-written to the
 | 24 + both pairs | 150 | 0.994939 / 0.994631 / 0.994192 / 0.994449 / 0.994323 | 0.994507 | +0.000024, 5/5 (28 members) |
 
 70 -> 100 bought +0.000035 (same members); 100 -> 150 buys +0.000006 (basis, same members) and
-+0.000010 (members and basis): the truncation gain is used up at 100. **PCA-100 chosen** for every
-member and the stack basis: 150's edge is within fold noise, while its 26x50x2 extra GBM features
++0.000010 (members and basis): the truncation gain is used up at 100. **PCA-100 chosen** for the
+stack basis and as the default for new members (rule amended by the user 2026-10-05: members MAY
+use other bases — 50 / 70 / 100 — for diversity, since a p100-only stack loses -0.0002 and the
+p70 residual mlp was the second-best family addition; the stack basis stays 100): 150's edge is within fold noise, while its 26x50x2 extra GBM features
 would force the all-fold CatBoost fit to thin its rows again (already every 4th at 100). The extra
 pair helping (+0.000024 with both) says more members ON the wide basis still pay — the strong p100
 batch (attn t4x1024+wd, mlp res6ln, GRU, LSTM; conv done) is released, `compact_stack.sh` re-run
