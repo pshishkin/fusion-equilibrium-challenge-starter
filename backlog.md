@@ -429,6 +429,9 @@ linear-only 0.995354 / 0.994829 / 0.994602, + CatBoost 0.995298 / 0.994934 / 0.9
 -0.000056 / +0.000105 / +0.000056 (mean +0.000035), li -0.0026 / +0.00001 / +0.00037. On a strong
 linear stack the GBM stage is worth little and can wreck li on a fold (fold 0). The public pair
 full22 stack vs full22 linear decides which variant ships.
+SiLU res6 and PCA-70 res10 against the 27: -0.000008 (2/5) and -0.000001 (3/5) — the plain family
+is saturated at 27. Dropout variants (res10 + 0.05, PCA-70 res6 + 0.05, res6 + 0.1, attn t4resln +
+0.05) training; `runs/rmc4.sh` scores them against the 27.
 
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
