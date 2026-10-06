@@ -6,6 +6,10 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Built, not published (2026-10-06):** `submit_full27b100_stack` — the shipped 22 + five residual+LN
+  mlps (res 8x768, res 14x512, PCA-50 res6, res10 seed 2, res6 + dropout 0.05); linear stage on 27,
+  CatBoost features from the first 22 (`--gbm-members 22`, the shipped stage's 4900 columns, rows
+  every 3rd). Linear CV 0.994834 vs 0.994780 (+0.000054, 4/5). Expected public ~0.99580 (0.99578-0.99583).
 - **Current best public, 2026-10-06 13:14: 964529 `submit_full22b100_stack` S 0.995776** (9th):
   R2_psi 0.999872, R2_qb 0.997537, D_LCFS 0.008585, Consistency 0.985369 (li 0.969307, kappa
   0.977586, volume 0.989786, R_axis 0.982369, Z_axis 0.991268, tri 0.994378 / 0.992887). +0.000198
