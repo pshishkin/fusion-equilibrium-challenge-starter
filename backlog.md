@@ -367,6 +367,11 @@ off in every current member) on the residual mlp, PCA-100; (3) a phase feature f
 / +0.000024 (mean -0.000007), li down on 4/5 folds (fold 0 -0.0035). With ~10k ramp-down frames per
 fold the 22x102 weights overfit, and no member is better there: the ramp-down error is shared by
 all members — missing information, not mis-weighting. Next: (2) vessel features (training).
+**(2) vessel features, 2026-10-07** (res6lnwd mlp on PCA-100 with features.vessel, vs the saturated
+27 = 0.994834): **poloidal +0.000088 (5/5**, li +0.0002, volume +0.00034), driving +0.000040 (5/5,
+volume +0.00038). A new axis where the plain family had stopped paying (SiLU / PCA-70 res10 / four
+dropout variants: -0.000008 / -0.000001 / +0.000005). Queued: full versions of both, four more
+vessel-poloidal mlps, attn t4resln with vessel driving (done); `runs/vessel_combo.sh` scores sets.
 
 ### `li-beyond-pca` — user + Astra, 2026-10-04: how to exploit "high components hurt li", in and beyond PCA
 
