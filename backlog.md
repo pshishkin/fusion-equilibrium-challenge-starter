@@ -424,6 +424,12 @@ Five more of the family queued (res 8x768, res 14x512, res6 on PCA-50, res10 see
 0.994834, +0.000054 (4/5)**. The family saturates: six members bought +0.000218, the next five
 +0.000054. The most useful newcomer is the regularised one (dropout), again a diversity signal.
 
+**GBM stage on the 22 (`runs/gbmli_fc22_f*`, folds 0-2, training folds thinned every 3rd):**
+linear-only 0.995354 / 0.994829 / 0.994602, + CatBoost 0.995298 / 0.994934 / 0.994658 — GBM
+-0.000056 / +0.000105 / +0.000056 (mean +0.000035), li -0.0026 / +0.00001 / +0.00037. On a strong
+linear stack the GBM stage is worth little and can wreck li on a fold (fold 0). The public pair
+full22 stack vs full22 linear decides which variant ships.
+
 ### `stack-gbm-24` — 2026-09-30: the CatBoost stage on 24 members
 
 Depth 6, 1000 iterations, rows every 3rd, folds 0-2 stacked S 0.994955 / 0.994740 / 0.994224
