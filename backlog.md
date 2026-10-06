@@ -362,6 +362,11 @@ pressure-information gap; full Thomson profiles deferred. Tests: (1) phase-gated
 separate weights for ramp-down frames read off Ip (`tools/stack_phase_gate.py`, runs/phase_gate22);
 (2) vessel-current features (`features.vessel` driving / poloidal — +0.0004 as members in August,
 off in every current member) on the residual mlp, PCA-100; (3) a phase feature for the GBM stage.
+**(1) closed 2026-10-06:** separate ridgecv_block weights for ramp-down frames (22 members, native,
+5 folds): psi MSE on the ramp-down frames -2% to +5% by fold, S -0.000063 / 0 / +0.000002 / +0.000001
+/ +0.000024 (mean -0.000007), li down on 4/5 folds (fold 0 -0.0035). With ~10k ramp-down frames per
+fold the 22x102 weights overfit, and no member is better there: the ramp-down error is shared by
+all members — missing information, not mis-weighting. Next: (2) vessel features (training).
 
 ### `li-beyond-pca` — user + Astra, 2026-10-04: how to exploit "high components hurt li", in and beyond PCA
 
