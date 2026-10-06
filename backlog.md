@@ -343,6 +343,26 @@ scale the final map's global components from 70 (or 50) on by alpha 0.7 / 0.4, n
 strong 15. One parameter, little room to overfit; if li returns without giving back kappa and
 D_LCFS, it goes straight into the next submission (no retraining).
 
+### `rampdown` — 2026-10-06: the error the leaders don't make sits in the current ramp-down
+
+Public leaders vs us (964529, 0.995776): 75% of the gap is Consistency — R_axis +0.0036, Z_axis
++0.0027, volume +0.0029, li +0.0039, kappa +0.0016; triangularity equal; their flux error is 1.75x
+smaller (1 - R2_psi 7.3e-5 vs 1.28e-4). PCA truncation is not it (true maps through PCA-100: 1.5e-8).
+`tools/error_regimes.py` (11-member linear stack, 5 folds; SSE share / frame share):
+
+| phase | frames | R_axis | Z_axis | volume | li | kappa |
+|---|---|---|---|---|---|---|
+| ramp-up | 0.197 | 1.03 | 1.13 | 0.98 | 0.34 | 0.98 |
+| flat-top | 0.773 | 0.86 | 0.56 | 0.67 | 0.44 | 0.86 |
+| **ramp-down** | **0.030** | 4.46 | 11.55 | 9.67 | **19.83** | 4.72 |
+
+3% of frames (after |Ip| last exceeds 90% of its shot maximum) carry ~60% of li SSE, ~35% of
+Z_axis, ~29% of volume. By beta_N the error FALLS with pressure (li x0.41 at high beta) — not a
+pressure-information gap; full Thomson profiles deferred. Tests: (1) phase-gated linear stack,
+separate weights for ramp-down frames read off Ip (`tools/stack_phase_gate.py`, runs/phase_gate22);
+(2) vessel-current features (`features.vessel` driving / poloidal — +0.0004 as members in August,
+off in every current member) on the residual mlp, PCA-100; (3) a phase feature for the GBM stage.
+
 ### `li-beyond-pca` — user + Astra, 2026-10-04: how to exploit "high components hurt li", in and beyond PCA
 
 Premise check first: uniform shrink of components >70 / >50 does NOT help on CV — **closed, 5 folds:

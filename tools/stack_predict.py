@@ -27,8 +27,8 @@ from experiments import DEFAULT_LOCAL_DATA_DIR
 from my_experiments import baseline_model as B
 import json
 
-from stack_cv import (apply_stage2, features, linear_blend, load_basis, member_targets,
-                      project)
+from stack_cv import (apply_stage2, features, gbm_features, linear_blend, load_basis,
+                      member_targets, project)
 from toolkit.parallel import pmap, resolve_jobs
 
 
@@ -103,7 +103,8 @@ def main() -> int:
             maps_blend += np.float32(w) * maps
             del maps
         t = {"X": X, "lengths": lengths, "member_coef": coefs, "member_qb": qbs}
-        F, stage1 = features(t, weights, cfg["context"], cfg["disagreement"])
+        F, stage1 = gbm_features(t, weights, cfg["context"], cfg["disagreement"],
+                                 int(cfg.get("gbm_members", 0)))
         if W is not None:
             t["members_T"] = member_targets(t)
             shift = linear_blend(t, W) - stage1
