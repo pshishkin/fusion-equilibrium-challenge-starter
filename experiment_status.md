@@ -6,6 +6,15 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Current best public, 2026-10-06 13:14: 964529 `submit_full22b100_stack` S 0.995776** (9th):
+  R2_psi 0.999872, R2_qb 0.997537, D_LCFS 0.008585, Consistency 0.985369 (li 0.969307, kappa
+  0.977586, volume 0.989786, R_axis 0.982369, Z_axis 0.991268, tri 0.994378 / 0.992887). +0.000198
+  over full15 (CV said +0.000234). Its linear-only twin 964525 scored 0.995523 (li 0.965703): **the
+  GBM stage is worth +0.000253 on the test** — li +0.0036, D_LCFS -0.00026 — while CV on folds 0-2
+  credited it +0.000035 and a li loss on fold 0. CV under-reads the stage (it corrects full-refit
+  members it never saw); the GBM variant stays the shipped one. Board: seantang 0.9964, heavy4evy
+  0.9964, kimsunjoong / dmitryzhevn / dgaytanv 0.9963, anulum fortis 0.9960, argonclouds 0.9959,
+  shansiming 0.9958, **pshishkin 0.9958**.
 - **Built, not published (2026-10-05):** `submit_full22b100_stack` — strong 15 + six residual+LN
   mlps (PCA-100 res6lnwd / res10ln / res6x1024lnwd / res10lnwd / res6lnwd seed 2, PCA-70 res6lnwd) +
   attn t4x1024 res+LN+wd; stack basis PCA-100, ridgecv_block + CatBoost 1000 iterations on every 3rd
