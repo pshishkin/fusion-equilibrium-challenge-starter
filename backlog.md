@@ -394,6 +394,13 @@ holds ~60% of li SSE on CV (`rampdown`).
 members): do the vessel members fix the long-ramp-down shots? (`tools/shot_compare.py`.) If yes,
 that is full34's expected public gain; if not, a dedicated approach — a member trained with extra
 weight on long-ramp-down shots / frames, judged in the stack.
+**Result 2026-10-07 (`runs/shotcmp_22_34`):** pooled flux SSE 34 / 22 = 0.846; by ramp-down share
+of the shot: 0 (3446 shots, 47% of SSE) 0.822, (0, 0.1) 0.852, [0.1, 0.3) 0.824, **>= 0.3 (182 shots,
+6.7% -> 7.9% of SSE) 1.001** — the mean per-shot R2 there improves (0.9727 -> 0.9812) but the worst
+long-ramp-down shots do not (one with 85% ramp-down x1.41). The vessel members fix everything EXCEPT
+the long ramp-downs. Next, as agreed: `models.mlp.rampdown_strength` (frame weight 1 + s on ramp-down
+frames, mask from raw Ip, `frame_weight.rampdown_mask`; smoke: 3.2% of training frames) on the
+vessel-poloidal res6 mlp, s = 3 and 10; `runs/rd_eval.sh` scores them against the 34 and per shot.
 
 ### `li-beyond-pca` — user + Astra, 2026-10-04: how to exploit "high components hurt li", in and beyond PCA
 
