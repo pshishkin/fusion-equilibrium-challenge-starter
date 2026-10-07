@@ -674,6 +674,11 @@ class TorchMLPModel(TargetModel):
     composite_every_steps: int = 2000
     # Training-only augmentation: N(0, sd^2) added to the standardized inputs of every batch.
     input_noise: float = 0.0
+    # Up-weight current ramp-down frames by `1 + rampdown_strength` (mean-normalised); 0.0 is off.
+    # The mask comes from the caller (`baseline_model` sets `_rampdown` from the raw Ip column),
+    # see `frame_weight.rampdown_mask` for why. Defaulted: older artifacts and configs keep 0.
+    rampdown_strength: float = 0.0
+    _rampdown: np.ndarray | None = field(default=None, init=False, repr=False)
     _state: dict[str, np.ndarray] | None = field(default=None, init=False, repr=False)
     _n_in: int = field(default=0, init=False, repr=False)
     _n_out: int = field(default=0, init=False, repr=False)
@@ -1003,6 +1008,17 @@ class TorchMLPModel(TargetModel):
                 raise ValueError(f"torch_mlp(seed={self.seed}): frame weight has {w.size} entries "
                                  f"against {len(X)} training rows")
             w_t = torch.as_tensor(w, dtype=torch.float32, device=dev)
+        if self.rampdown_strength:
+            if self._rampdown is None or len(self._rampdown) != len(X):
+                raise ValueError(f"torch_mlp(seed={self.seed}): rampdown_strength is "
+                                 f"{self.rampdown_strength} but no ramp-down mask of {len(X)} "
+                                 f"rows was set by the caller")
+            wr = 1.0 + self.rampdown_strength * np.asarray(self._rampdown, dtype=np.float64)
+            if w_t is not None:
+                wr = wr * w_t.detach().cpu().numpy()
+            w_t = torch.as_tensor(wr / wr.mean(), dtype=torch.float32, device=dev)
+            print(f"  ramp-down weight: {float(np.mean(self._rampdown)):.1%} of training frames "
+                  f"x{1 + self.rampdown_strength:g} (mean-normalised)")
         for name, value in (("max_steps", self.max_steps),
                             ("eval_every_steps", self.eval_every_steps)):
             if value < 1:

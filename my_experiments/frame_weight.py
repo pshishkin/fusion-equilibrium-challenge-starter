@@ -89,3 +89,26 @@ def ends_weight(shots: npt.NDArray[np.integer], strength: float, edge: float = 0
     p = position_in_shot(shots)
     w = np.where((p <= edge) | (p >= 1.0 - edge), 1.0 + strength, 1.0)
     return w / w.mean()
+
+
+def rampdown_mask(ip: FloatArray, shots: npt.NDArray[np.integer], level: float = 0.9) -> FloatArray:
+    """1.0 on a shot's current ramp-down frames, 0.0 elsewhere, one value per frame.
+
+    Ramp-down = after the last kept frame whose |Ip| reaches `level` of the shot's maximum |Ip|
+    (`tools/error_regimes.py` uses the same definition). Measured 2026-10-06 on the 11-member stack:
+    3% of frames, ~60% of li SSE, ~35% of Z_axis SSE; and on long-ramp-down shots the vessel
+    members, which cut the flux SSE 15-18% everywhere else, leave the pooled SSE unchanged.
+    """
+    lens = np.asarray(shots, dtype=np.int64)
+    a = np.abs(np.asarray(ip, dtype=np.float64))
+    if lens.sum() != len(a):
+        raise ValueError(f"shot counts sum to {lens.sum()}, Ip has {len(a)} frames")
+    out = np.zeros(len(a))
+    start = 0
+    for n in lens:
+        seg = a[start:start + n]
+        hi = np.flatnonzero(seg >= level * seg.max()) if seg.max() > 0 else np.array([], int)
+        if len(hi):
+            out[start + hi[-1] + 1:start + n] = 1.0
+        start += n
+    return out

@@ -1641,6 +1641,16 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
     # and the PCA keeps its own components. At production Y and Yv are over 3 GiB together, which
     # is the difference between fitting in RAM and fitting against swap — and the fit is the
     # longest stage, so it is the worst place to be paging.
+    if any(getattr(m, "rampdown_strength", 0) for m in params.models.values()):
+        from my_experiments.frame_weight import rampdown_mask
+        ip = X[:, D3D_MAGNETICS_SIGNALS.index("plasma_current")]
+        if not 100 < np.abs(ip).max() < 1e4:
+            raise ValueError(f"raw Ip column peaks at {np.abs(ip).max():.3g}: not kA, "
+                             f"the column layout is not what rampdown_mask assumes")
+        mask = rampdown_mask(ip, shots)
+        for m in params.models.values():
+            if getattr(m, "rampdown_strength", 0):
+                m._rampdown = mask
     print(f"  releasing {(Y.nbytes + Yv.nbytes) / 2 ** 30:.2f} GiB of flux arrays before fitting")
     del X, Y, S, Xv, Yv, Sv, F, Fv
     # And the reader pool with them. Its workers hold far more than the data does — parquet decode
