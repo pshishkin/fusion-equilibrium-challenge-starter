@@ -6,6 +6,12 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Published to private HF 2026-10-07 (revision 6b2eeae3), pointer zip ready:** `submit_full34b100_stack`
+  — full27's 27 + seven vessel-feature members (res6 vessel poloidal / driving, res10 / PCA-70 res6 /
+  res6 seed 2 / res 8x768 vessel poloidal, attn t4resln vessel driving); linear stage on 34, CatBoost
+  features from the first 22 (as shipped), rows every 3rd. Linear CV 0.995092: +0.000312 over the
+  shipped 22's set (q95/betaN +0.00065, kappa +0.0017, li +0.0017, volume +0.0014). Expected public
+  0.99600-0.99608.
 - **Built, not published (2026-10-06):** `submit_full27b100_stack` — the shipped 22 + five residual+LN
   mlps (res 8x768, res 14x512, PCA-50 res6, res10 seed 2, res6 + dropout 0.05); linear stage on 27,
   CatBoost features from the first 22 (`--gbm-members 22`, the shipped stage's 4900 columns, rows
