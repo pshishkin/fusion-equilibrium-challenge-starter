@@ -6,6 +6,14 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Current best public, 2026-10-07 21:17: 967520 `submit_full34b100_stack` S 0.995979** (10th; board
+  moved: seantang / kimsunjoong / heavy4evy 0.9964, gwangsan / dmitryzhevn / dgaytanv 0.9963,
+  argonclouds / anulum fortis 0.9962, shansiming 0.9960). +0.000203 over full22 (CV +0.000312):
+  R2_psi 0.999890, R2_qb 0.997878, D_LCFS 0.008327, Consistency 0.985950 (R_axis 0.983058, Z_axis
+  0.992360, kappa 0.978462, tri 0.994566 / 0.993263, volume 0.990913, li 0.969032). li is now at the
+  leader's level (967345: 0.969075); the gap moved to Z_axis -0.0025, kappa -0.0023, volume -0.0017,
+  tri_bot -0.0014, D_LCFS +0.0008. Worst shots unchanged as CV predicted: 0621 0.9860 (long ramp-down),
+  0718 0.9923 (7-frame fragment), 0046 0.9935; the leader has no shot below 0.997.
 - **Published to private HF 2026-10-07 (revision 6b2eeae3), pointer zip ready:** `submit_full34b100_stack`
   — full27's 27 + seven vessel-feature members (res6 vessel poloidal / driving, res10 / PCA-70 res6 /
   res6 seed 2 / res 8x768 vessel poloidal, attn t4resln vessel driving); linear stage on 34, CatBoost
