@@ -47,6 +47,7 @@ def build_maps(campaign: Path, members: list[str], basis_from: Path, cache: Path
     """Per fold: the linear stack's maps (N, 65, 65) float32 and q95/betaN, cached as .npy."""
     if all((cache / f"maps_fold{f}.npy").exists() for f in FOLDS):
         return
+    # Resume: folds already cached (an OOM-killed run leaves them) are not rebuilt.
     cache.mkdir(parents=True, exist_ok=True)
     basis = load_basis(campaign, basis_from)
     k = basis["pca"].n_components
@@ -58,6 +59,8 @@ def build_maps(campaign: Path, members: list[str], basis_from: Path, cache: Path
         del t
         print(f"{basis_from.name}: fold {f} statistics", flush=True)
     for f in FOLDS:
+        if (cache / f"maps_fold{f}.npy").exists() and (cache / f"lengths_fold{f}.npy").exists():
+            continue
         W = fit_ridge_cv([stats[j] for j in FOLDS if j != f], groups(k))
         t = load_fold(campaign, members, f, basis, jobs)
         del t["Y"]

@@ -207,6 +207,9 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--score", default="", help="comma list of variants to score natively")
     ap.add_argument("--jobs", type=int, default=30)
+    ap.add_argument("--lowmem", action="store_true",
+                    help="keep no fold tables: reload each fold when scoring (35 members held all "
+                         "five at ~85 GB and were OOM-killed)")
     ap.add_argument("--stats-from", type=Path,
                     help="stats.npz of an earlier run: skip the table load (no --score)")
     args = ap.parse_args()
@@ -231,8 +234,9 @@ def main() -> int:
         t["members_T"] = member_targets(t)
         t["truth"] = np.column_stack([t["true_coef"], t["S"]])
         stats[f] = fold_stats(t["members_T"], t["truth"])
-        if to_score:
+        if to_score and not args.lowmem:
             tables[f] = t
+        del t
         print(f"fold {f}: {stats[f][3]} frames, {M} members, {k} basis components", flush=True)
     np.savez(args.out / "stats.npz", **{f"{n}_{f}": a for f, st in stats.items()
                                         for n, a in zip(("G", "b", "yy", "n"), st)})
@@ -265,7 +269,12 @@ def main() -> int:
         d.mkdir(exist_ok=True)
         entry: dict[str, Any] = {}
         for f in folds:
-            t = tables[f]
+            if args.lowmem:
+                t = load_fold(args.campaign, members, f, basis, args.jobs)
+                del t["Y"]
+                t["members_T"] = member_targets(t)
+            else:
+                t = tables[f]
             W = fits[name]([stats[j] for j in folds if j != f])
             stage1 = sum(w * m for w, m in zip(equal, t["members_T"], strict=True))
             shift = linear_blend(t, W) - stage1
@@ -273,6 +282,8 @@ def main() -> int:
             (r,) = score_fold(t["files"], payload, args.jobs)["results"].values()
             del payload
             entry[f] = r
+            if args.lowmem:
+                del t
             print(f"{name} fold {f}: S {r['S']:.6f}", flush=True)
             report["variants"][name]["native"] = entry
             (args.out / "report.json").write_text(json.dumps(report, indent=1, default=float))
