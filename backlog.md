@@ -372,6 +372,13 @@ all members — missing information, not mis-weighting. Next: (2) vessel feature
 volume +0.00038). A new axis where the plain family had stopped paying (SiLU / PCA-70 res10 / four
 dropout variants: -0.000008 / -0.000001 / +0.000005). Queued: full versions of both, four more
 vessel-poloidal mlps, attn t4resln with vessel driving (done); `runs/vessel_combo.sh` scores sets.
+**Vessel combinations, 2026-10-07** (native linear, basis 100, 5 folds): 29 = 27 + both vessel mlps
+0.994949 (+0.000116 vs 27, 5/5); + attn t4resln vessel-driving 0.994961; each further vessel-poloidal
+mlp on 29: res8x768 +0.000072, res10 +0.000058, PCA-70 res6 +0.000055, res6 seed 2 +0.000047 (all
+5/5); **all (34) 0.995092: +0.000259 over the 27, +0.000312 over the shipped 22's set, li 0.965643
+(+0.0017 over the 22's)** — not saturated. The li gain is the ramp-down information the vessel
+integrals carry. Queued: full versions of the five, PCA-50 and res14 vessel mlps, and vessel-poloidal
+conv / GRU / LSTM / attn.
 
 ### `li-beyond-pca` — user + Astra, 2026-10-04: how to exploit "high components hurt li", in and beyond PCA
 
