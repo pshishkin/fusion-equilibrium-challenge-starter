@@ -65,6 +65,7 @@ def main() -> int:
                          "sse_b": float(((mb[a:b] - y) ** 2).sum()), "sst": float(sst)})
         del Y
         print(f"fold {f}: {len(files)} shots", flush=True)
+    (args.out / "rows.json").write_text(json.dumps(rows))
     sa = sum(r["sse_a"] for r in rows)
     sb = sum(r["sse_b"] for r in rows)
     print(f"\npooled SSE b / a = {sb / sa:.4f}  ({len(rows)} shots)")
@@ -77,8 +78,9 @@ def main() -> int:
         if not sel:
             continue
         ea, eb = sum(r["sse_a"] for r in sel), sum(r["sse_b"] for r in sel)
-        r2a = np.mean([1 - r["sse_a"] / r["sst"] for r in sel])
-        r2b = np.mean([1 - r["sse_b"] / r["sst"] for r in sel])
+        # single-frame shots have no own-mean spread: left out of the per-shot mean only
+        r2a = np.mean([1 - r["sse_a"] / r["sst"] for r in sel if r["sst"] > 0])
+        r2b = np.mean([1 - r["sse_b"] / r["sst"] for r in sel if r["sst"] > 0])
         label = "0" if hi == 0 else f"[{lo:.1f}, {min(hi, 1):.1f})"
         print(f"{label:>16s} {len(sel):6d} {ea / sa:12.3f} {eb / sb:12.3f} {eb / ea:7.3f} "
               f"{r2a:14.6f} {r2b:14.6f}")
