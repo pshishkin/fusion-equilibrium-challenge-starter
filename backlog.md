@@ -380,6 +380,21 @@ mlp on 29: res8x768 +0.000072, res10 +0.000058, PCA-70 res6 +0.000055, res6 seed
 integrals carry. Queued: full versions of the five, PCA-50 and res14 vessel mlps, and vessel-poloidal
 conv / GRU / LSTM / attn.
 
+### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
+
+Codabench detail pages (per-shot R2_psi histogram + worst 20 shots) of three leaders vs ours (964529):
+their 20th-worst shot is 0.9993-0.9994, ours 0.9987; our worst, **shot_0621 0.9858 (D_LCFS 0.067),
+is not in 963664's worst 20 at all (>0.9994)**; shot_0046 (ours 0.9940) is in nobody else's worst 20.
+Shared hard shots: 0139, 0718, 0114, 0070. Inputs (`/tmp/shot_inspect.py` logic): 0621 spends 56% of
+its frames in the current ramp-down, 0139 69% (training: 95th pct 11%, 99th 72%); 0718 is a 7-frame
+fragment starting at 3260 ms with 2/3 of its steps gaps; 0046 is unremarkable by these features.
+The pooled R2_psi gap is concentrated in a handful of long-ramp-down shots — the same phase that
+holds ~60% of li SSE on CV (`rampdown`).
+**Agreed next step (user):** per-shot CV comparison, linear stack of the 22 vs the 34 (vessel
+members): do the vessel members fix the long-ramp-down shots? (`tools/shot_compare.py`.) If yes,
+that is full34's expected public gain; if not, a dedicated approach — a member trained with extra
+weight on long-ramp-down shots / frames, judged in the stack.
+
 ### `li-beyond-pca` — user + Astra, 2026-10-04: how to exploit "high components hurt li", in and beyond PCA
 
 Premise check first: uniform shrink of components >70 / >50 does NOT help on CV — **closed, 5 folds:
