@@ -415,6 +415,19 @@ the rest, |Ip|/max, ramp-down flag, share after the Ip peak):** its CV check on 
 >100 GB per fold (base fold 0 finished: stacked 0.995644; the block arm hit the 100 GB cgroup limit)
 — not feasible on this shared box. Judged on the public test instead: `runs/full34blk.sh` builds
 `submit_full34blk_stack` (full34 + the block), started by a supervisor when >= 95 GB is free.
+**Memory (user's suggestion, Astra's audit), 2026-10-08:** Astra found the copies, not the data, made
+the peak: strided views kept full arrays alive, `column_stack` with the float64 linear prediction
+promoted the whole feature table, `F[np.arange(...)]` copied it again, Fo was built from a list of
+per-fold copies, member predictions were held twice, and the held-out fold's features were built
+before the fit. Fixed in `stack_cv` (compact copies on thinning, slice in `fit_stage2`, preallocated
+Fo, training tables freed BEFORE the fit, held-out features built 8192 rows at a time after it, the
+split member representation dropped). Check on 34 members fold 0: **stacked S 0.995644, identical to
+the old code; unit peak 101.8 -> 73.6 GB**. Polars / memmap / split processes / quantized pool are the
+next steps only if needed. Vessel seq members + two vessel mlps on top of the 34: +0.000023 (4/5) —
+the vessel family is saturated too.
+**Item 3 started: `features.ipnorm`** — coil currents and dIp/dt over max(|Ip|, 100 kA) plus a low-Ip
+flag, computed in `build_inputs` (no cache rebuild). Members queued: res6lnwd vessel-poloidal + ipnorm,
+res6lnwd ipnorm only, attn t4resln vessel + ipnorm; `runs/ipn_eval.sh` scores them against the 34.
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
