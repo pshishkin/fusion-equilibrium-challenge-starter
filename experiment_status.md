@@ -8,11 +8,12 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 - **Deadlines (Codabench API, 2026-10-08):** Development phase 29580 (public test) ends 2026-10-18,
   5 submissions/day, 100 total; **Final phase 29581 (private test) 2026-10-19..26, 3 submissions per
-  person in total.** Submitted 2026-10-08 by the agent on the user's approval: `submit_full34blk_stack`
-  (full34 + vessel-group GBM block). The first, apparently failed, API attempt did create a submission
-  (969954), the retry made a duplicate (969973) — two of the day's five. **969954: S 0.995987, +0.000008
-  over full34 (967520)** — R_axis +0.00015, Z_axis +0.00012, kappa +0.00009, tri_bot +0.00008, li
-  -0.00030; neutral overall. The vessel-group block does not move the GBM stage.
+  person in total.** `submit_full34blk_stack` (full34 + vessel-group GBM block) was submitted by the
+  user by hand as 969954 and, the same hour, by the agent's new tool as 969973 (a duplicate of the
+  same file; one earlier tool attempt broke off after creating its dataset — whether it also created
+  a submission is unverified). **969954: S 0.995987, +0.000008 over full34 (967520)** — R_axis +0.00015,
+  Z_axis +0.00012, kappa +0.00009, tri_bot +0.00008, li -0.00030; neutral overall. The vessel-group
+  block does not move the GBM stage.
 - **Current best public, 2026-10-07 21:17: 967520 `submit_full34b100_stack` S 0.995979** (10th; board
   moved: seantang / kimsunjoong / heavy4evy 0.9964, gwangsan / dmitryzhevn / dgaytanv 0.9963,
   argonclouds / anulum fortis 0.9962, shansiming 0.9960). +0.000203 over full22 (CV +0.000312):
