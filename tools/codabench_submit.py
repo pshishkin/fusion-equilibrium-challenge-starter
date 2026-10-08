@@ -9,6 +9,9 @@ CSRF), create a submission dataset (returns a presigned upload URL), PUT the zip
 dataset complete, create the submission in the phase. Prints the submission id; the score is read
 later from the public leaderboard / detail endpoints.
 
+A failed run may still have created the submission (2026-10-08: the first attempt errored after
+the submission existed, and a retry made a duplicate) — check the leaderboard before retrying.
+
 Phase 29580 = Development (public test, 5 per day, ends 2026-10-18); 29581 = Final (private test,
 3 per person in total, 2026-10-19..26) — never submit there without an explicit decision.
 """
