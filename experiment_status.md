@@ -6,6 +6,10 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Deadlines (Codabench API, 2026-10-08):** Development phase 29580 (public test) ends 2026-10-18,
+  5 submissions/day, 100 total; **Final phase 29581 (private test) 2026-10-19..26, 3 submissions per
+  person in total.** Submitted 2026-10-08 by the agent on the user's approval: 969973
+  `submit_full34blk_stack` (full34 + vessel-group GBM block; compare with 967520).
 - **Current best public, 2026-10-07 21:17: 967520 `submit_full34b100_stack` S 0.995979** (10th; board
   moved: seantang / kimsunjoong / heavy4evy 0.9964, gwangsan / dmitryzhevn / dgaytanv 0.9963,
   argonclouds / anulum fortis 0.9962, shansiming 0.9960). +0.000203 over full22 (CV +0.000312):
