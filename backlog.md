@@ -380,6 +380,29 @@ mlp on 29: res8x768 +0.000072, res10 +0.000058, PCA-70 res6 +0.000055, res6 seed
 integrals carry. Queued: full versions of the five, PCA-50 and res14 vessel mlps, and vessel-poloidal
 conv / GRU / LSTM / attn.
 
+### `time-and-geometry` — user + Astra, 2026-10-08: what the leaders likely do differently
+
+Gap to the leader (967345 vs our 967520): ~0.00026 S in the five geometric scalars (Z_axis -0.0025,
+kappa -0.0023, volume -0.0017, tri_bot -0.0014, R_axis -0.0011), 0.00008 in D_LCFS, 0.00005 in
+q95/betaN; li is level. The worst-shot evidence is R2_psi, not S; fixing 0621's LCFS alone is worth
+0.0000077 — a fix must act on a group of shots and several terms. Astra's hypotheses (not claims):
+1. **Sequence members read frame index, not physical time**: attention positions are frame numbers,
+   conv distances are frames, gap features are clipped at 5 steps (100 ms) — a 120 ms and a 2.58 s gap
+   look alike; GRU makes one step across any gap (0718: 2/3 of its steps are gaps). Gate, no training:
+   predict trained seq members on a dense 20 ms grid between the first and last frame with inputs
+   computed from the raw signals, read the original times back; 50-100 CV shots with gaps + controls.
+2. **GBM never sees the vessel members directly** (`gbm_features` uses the first 22 members; the seven
+   vessel members enter only through the linear blend). Gate: a compact block — vessel-group mean
+   coefficients in the common basis, its difference from the rest, a few geometric functionals,
+   physical time since max Ip, continuous relative decay; same GBM budget.
+3. **Coil field relative to Ip**: during the ramp-down the external-field-to-Ip ratio matters more than
+   absolute currents. Gate: Ip-normalised coil-field components at a few fixed points, vessel analogues,
+   dIp/dt / Ip (guarded near small Ip), into the GBM corrector.
+4. **History audit**: the vessel filter uses the raw signal's MEDIAN step even on irregular sampling;
+   sequence members see no history before the EFIT window. Audit first (raw time regularity, filter vs
+   exact-dt recursion, missing pre-window history), then physical-window history features if needed.
+Order chosen: 4 (audit) and 2 (GBM block) first — no member training; then 1.
+
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
 Codabench detail pages (per-shot R2_psi histogram + worst 20 shots) of three leaders vs ours (964529):
