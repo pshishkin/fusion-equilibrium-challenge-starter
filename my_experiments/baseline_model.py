@@ -445,6 +445,8 @@ PROBE_FRACTIONS = np.array([0.15, 0.30, 0.45, 0.60, 0.75, 0.90])
 # longest shot, and the spacing is geometric because a time constant is a ratio. Four numbers, not
 # a fit — the model weights them.
 VESSEL_TAUS_MS = (20.0, 100.0, 500.0, 2500.0)
+# features.ipnorm: |Ip| floor in kA (the raw Ip column is in kA; flat-tops sit near 1000 kA).
+IPNORM_FLOOR_KA = 100.0
 N_VESSEL = N_SIGNALS * len(VESSEL_TAUS_MS)
 FEATURE_WIDTH = (N_SIGNALS * (1 + len(DERIV_BLOCKS)) + N_GAPS + N_VESSEL
                  + 27 + 2 * 16)   # = N_THOMSON_BLOCK
@@ -852,6 +854,7 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         "derivatives": params.derivatives,
         "derivative_signals": params.derivative_signals,
         "vessel": params.vessel,
+        "ipnorm": params.ipnorm,
         "fast_magnetics": [{"signal": signal, "halfwidth_ms": width}
                            for signal, width in params.fast_magnetics],
         "thomson": params.thomson, "frame_gaps": params.frame_gaps,
@@ -947,6 +950,16 @@ def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
             len(feats), N_SIGNALS, len(VESSEL_TAUS_MS))
         keep = [D3D_MAGNETICS_SIGNALS.index(s) for s in DERIV_SIGNAL_SETS[plan["vessel"]]]
         tail += [vessel[:, keep, :].reshape(len(feats), -1)]
+    if plan.get("ipnorm", False):
+        # Coil currents and dIp/dt relative to the plasma current, floored at IPNORM_FLOOR_KA so the
+        # ratios stay bounded as Ip falls, plus the flag that says the floor is active.
+        ip_i = D3D_MAGNETICS_SIGNALS.index("plasma_current")
+        ip = np.abs(levels[:, ip_i].astype(np.float64))
+        den = np.maximum(ip, IPNORM_FLOOR_KA)[:, None]
+        coils = [i for i in range(N_SIGNALS) if i != ip_i]
+        dip = feats[:, N_SIGNALS * (1 + DERIV_BLOCKS.index("interp")) + ip_i].astype(np.float64)
+        tail += [np.hstack([levels[:, coils] / den, (dip[:, None] / den),
+                            (ip < IPNORM_FLOOR_KA)[:, None].astype(np.float64)])]
     tail += ([feats[:, -N_THOMSON_BLOCK:][:, thomson_columns(plan["thomson"])]]
              if plan["thomson"] else [])
     if want == "none":
@@ -1412,7 +1425,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
           f"derivatives={plan['derivatives']}/{plan['derivative_signals']}, "
           f"thomson={plan['thomson'] or 'off'}, "
           f"frame_gaps={'on' if plan['frame_gaps'] else 'off'}, "
-          f"vessel={plan.get('vessel', 'none')}, "
+          f"vessel={plan.get('vessel', 'none')}, ipnorm={plan.get('ipnorm', False)}, "
           f"fast_magnetics={plan['fast_magnetics']})")
     if plan["thomson"]:
         # The validity flag sits at the end of the SUMMARY part of the Thomson block, before the raw

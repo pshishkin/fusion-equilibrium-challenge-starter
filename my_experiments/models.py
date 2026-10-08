@@ -1451,6 +1451,10 @@ class Params:
     # file's text, so a screening run records the configuration it actually fitted instead of the
     # one that happens to be on disk. Identical to the file when nothing was overridden.
     effective_yaml: str
+    # Coil currents and dIp/dt divided by |Ip| (floored), plus a low-Ip flag, appended to the inputs
+    # (Astra 2026-10-08: through the current ramp-down the external-field-to-Ip ratio, not the
+    # absolute currents, sets position and shape). Defaulted: configs and artifacts before it are off.
+    ipnorm: bool = False
 
     @property
     def cons_weights(self) -> Any:
@@ -1653,8 +1657,10 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                     "frame_gaps", "vessel"}
     # The key is optional only for artifacts/configs written before fast magnetics existed;
     # absence has a precise meaning, zero extra columns. Every new arm declares it explicitly.
+    # `ipnorm` likewise: optional for configs written before it, absent means off.
     _require_keys(doc["features"], feature_keys | ({"fast_magnetics"}
-                   if "fast_magnetics" in doc["features"] else set()), "features", path)
+                   if "fast_magnetics" in doc["features"] else set())
+                  | ({"ipnorm"} if "ipnorm" in doc["features"] else set()), "features", path)
     from my_experiments.fast_magnetics import normalize_spec
     fast_magnetics = normalize_spec(doc["features"].get("fast_magnetics", []),
                                    f"{path}: features.fast_magnetics")
@@ -1748,4 +1754,5 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   n_coil_pca=int(doc["features"]["n_coil_pca"]),
                   models=models,
                   ensemble={k: float(v) / total for k, v in weights.items()}, path=path,
-                  effective_yaml=yaml.safe_dump(doc, sort_keys=False))
+                  effective_yaml=yaml.safe_dump(doc, sort_keys=False),
+                  ipnorm=bool(doc["features"].get("ipnorm", False)))

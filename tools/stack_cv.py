@@ -268,7 +268,8 @@ GBM_DEPTH, GBM_LR = 6, 0.08
 def fit_stage2(F: np.ndarray, R: np.ndarray, iters: int, every: int,
                truth: np.ndarray | None = None) -> Any:
     from sklearn.ensemble import HistGradientBoostingRegressor
-    rows = np.arange(0, len(F), every)
+    # A slice, not an index array: `F[np.arange(...)]` copies the whole table even at every=1.
+    rows = slice(None, None, every) if every > 1 else slice(None)
     if GBM == "catboost":
         scale = None if truth is None else target_scale(TARGET_SCALE, truth, R)
         return CatBoostStage2(iters, depth=GBM_DEPTH, lr=GBM_LR, scale=scale).fit(F[rows], R[rows])
@@ -398,17 +399,23 @@ def main() -> int:
             # The all-fold fit reads every `every`-th row only: thin before the feature table is
             # built, which halves the peak memory. Held-out scoring needs every row, so this is
             # restricted to --all-only without context features (they need whole shots).
+            # Compact copies: a strided view keeps the whole source array alive (~12 GB of member
+            # coefficients over four training folds at 34 members).
             r = slice(None, None, args.every)
-            t["X"], t["S"], t["true_coef"] = t["X"][r], t["S"][r], t["true_coef"][r]
-            t["member_coef"] = [c[r] for c in t["member_coef"]]
-            t["member_qb"] = [q[r] for q in t["member_qb"]]
+            t["X"], t["S"], t["true_coef"] = (np.ascontiguousarray(t["X"][r]),
+                                             np.ascontiguousarray(t["S"][r]),
+                                             np.ascontiguousarray(t["true_coef"][r]))
+            t["member_coef"] = [np.ascontiguousarray(c[r]) for c in t["member_coef"]]
+            t["member_qb"] = [np.ascontiguousarray(q[r]) for q in t["member_qb"]]
             if "gblock" in t:
-                t["gblock"] = t["gblock"][r]
+                t["gblock"] = np.ascontiguousarray(t["gblock"][r])
         F, stage1 = gbm_features(t, weights, not args.no_context, args.disagreement,
                                  args.gbm_members, gbm_group)
         t["F"], t["stage1"] = F, stage1
         t["truth"] = np.column_stack([t["true_coef"], t["S"]])
         t["members_T"] = member_targets(t)
+        # members_T holds the same numbers (coef | qb); nothing downstream reads the split form.
+        del t["member_coef"], t["member_qb"]
         t["R"] = t["truth"] - stage1
         tables[k] = t
         print(f"fold {k}: {len(F)} frames, {F.shape[1]} features", flush=True)
@@ -427,14 +434,43 @@ def main() -> int:
         else:
             shifts = {j: 0.0 for j in folds}
         # Rows are thinned per fold BEFORE concatenation: the full four-fold table is never built.
+        # Fo is preallocated and filled fold by fold (a list of per-fold column_stacks would hold
+        # every intermediate beside the result); its dtype is what column_stack gave before.
         evs = {j: 1 if j in thinned else args.every for j in others}
-        Fo = np.concatenate([np.column_stack([tables[j]["F"][::evs[j]],
-                                              (tables[j]["stage1"] + shifts[j])[::evs[j]]])
-                             if args.linear else tables[j]["F"][::evs[j]] for j in others])
+        sizes = [len(tables[j]["F"][::evs[j]]) for j in others]
+        f0 = tables[others[0]]
+        width = f0["F"].shape[1] + (f0["stage1"].shape[1] if args.linear else 0)
+        dt = (np.result_type(f0["F"].dtype, f0["stage1"].dtype, np.asarray(shifts[others[0]]).dtype)
+              if args.linear else f0["F"].dtype)
+        Fo = np.empty((sum(sizes), width), dtype=dt)
+        pos = 0
+        for j, n in zip(others, sizes, strict=True):
+            Fo[pos:pos + n, :tables[j]["F"].shape[1]] = tables[j]["F"][::evs[j]]
+            if args.linear:
+                Fo[pos:pos + n, tables[j]["F"].shape[1]:] = (tables[j]["stage1"] + shifts[j])[::evs[j]]
+            pos += n
         Ro = np.concatenate([(tables[j]["R"] - shifts[j])[::evs[j]] for j in others])
         To = np.concatenate([tables[j]["truth"][::evs[j]] for j in others])
         t = tables[k]
-        Fk = (np.column_stack([t["F"], t["stage1"] + shifts[k]]) if args.linear else t["F"])
+        if len(scales) == 1 and len(eval_folds) == 1:
+            # One held-out fold, one scaling: the other folds' tables are not read again — free
+            # them before the fit, not after it.
+            for j in others:
+                tables[j].clear()
+
+        def apply_chunked(models: Any) -> np.ndarray:
+            """The held-out fold's stage-2 output, its feature rows built 8192 at a time instead of
+            one full (N x ~5000) float64 table held through the fit."""
+            out = None
+            for a in range(0, len(t["F"]), 8192):
+                b = min(a + 8192, len(t["F"]))
+                Fc = (np.column_stack([t["F"][a:b], t["stage1"][a:b] + shifts[k][a:b]])
+                      if args.linear else t["F"][a:b])
+                pc = apply_stage2(models, Fc)
+                if out is None:
+                    out = np.empty((len(t["F"]), pc.shape[1]), dtype=pc.dtype)
+                out[a:b] = pc
+            return out
         entry: dict[str, Any] = {}
         # Several target scalings share one table load; the first is the stage's own.
         for i, scale in enumerate(scales):
@@ -442,15 +478,12 @@ def main() -> int:
             tag = "" if i == 0 else f"_{scale}"
             models = fit_stage2(Fo, Ro, args.iters, 1, To)
             joblib.dump(models, args.out / f"models{tag}_fold{k}.joblib")
-            delta = apply_stage2(models, Fk) + shifts[k]
             if len(scales) == 1 and len(eval_folds) == 1:
-                # One held-out fold, one scaling: nothing below reads the training rows or the
-                # other folds' tables again — free them before the scorer builds its maps (34
-                # members peaked at 102 GB in scoring and were OOM-killed on a shared box).
-                del Fo, Ro, To, models
-                for j in others:
-                    tables[j].clear()
+                del Fo, Ro, To
                 Fo = Ro = To = None
+            delta = apply_chunked(models) + (shifts[k] if args.linear else 0.0)
+            if len(scales) == 1 and len(eval_folds) == 1:
+                del models
             expl = 1 - ((t["R"] - delta) ** 2).mean(0) / (t["R"] ** 2).mean(0)
             print(f"fold {k} [{scale}]: stage 2 fitted in {time.time() - t0:.0f} s; explained "
                   f"median {np.median(expl):+.3f}", flush=True)
