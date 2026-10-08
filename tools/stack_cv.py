@@ -443,6 +443,14 @@ def main() -> int:
             models = fit_stage2(Fo, Ro, args.iters, 1, To)
             joblib.dump(models, args.out / f"models{tag}_fold{k}.joblib")
             delta = apply_stage2(models, Fk) + shifts[k]
+            if len(scales) == 1 and len(eval_folds) == 1:
+                # One held-out fold, one scaling: nothing below reads the training rows or the
+                # other folds' tables again — free them before the scorer builds its maps (34
+                # members peaked at 102 GB in scoring and were OOM-killed on a shared box).
+                del Fo, Ro, To, models
+                for j in others:
+                    tables[j].clear()
+                Fo = Ro = To = None
             expl = 1 - ((t["R"] - delta) ** 2).mean(0) / (t["R"] ** 2).mean(0)
             print(f"fold {k} [{scale}]: stage 2 fitted in {time.time() - t0:.0f} s; explained "
                   f"median {np.median(expl):+.3f}", flush=True)
