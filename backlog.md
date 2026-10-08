@@ -402,6 +402,19 @@ q95/betaN; li is level. The worst-shot evidence is R2_psi, not S; fixing 0621's 
    sequence members see no history before the EFIT window. Audit first (raw time regularity, filter vs
    exact-dt recursion, missing pre-window history), then physical-window history features if needed.
 Order chosen: 4 (audit) and 2 (GBM block) first — no member training; then 1.
+**Item 4, audit, 2026-10-08: no defect.** Coil signals are on a uniform 0.05 ms grid, Ip on 0.5 ms, no
+gaps or duplicates on the worst CV and test shots; the median-step vessel filter matches the exact
+per-interval recursion to 0.3%; the signals start ~4 s before the EFIT window, so the vessel features
+carry the pre-window history. Side finding: test shot 0718 (7 frames, 3260-3600 ms) is the one shot
+where both Ip axes cover every frame; the coverage rule takes the template axis, the loop-voltage
+correlation (dIp/dt vs -dECOILA/dt) says the re-origined one (0.50 vs 0.08) — Ip is probably shifted
+3.2 s there. Seven frames: negligible. (As a general rule the loop-voltage test is weaker than
+coverage: 94% vs 98% agreement with q95 on 670 train shots.)
+**Item 2, GBM vessel block (`--gbm-group`, 207 columns: vessel-group mean targets, difference from
+the rest, |Ip|/max, ramp-down flag, share after the Ip peak):** its CV check on 34 members needs
+>100 GB per fold (base fold 0 finished: stacked 0.995644; the block arm hit the 100 GB cgroup limit)
+— not feasible on this shared box. Judged on the public test instead: `runs/full34blk.sh` builds
+`submit_full34blk_stack` (full34 + the block), started by a supervisor when >= 95 GB is free.
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
