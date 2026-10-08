@@ -104,7 +104,7 @@ def main() -> int:
             del maps
         t = {"X": X, "lengths": lengths, "member_coef": coefs, "member_qb": qbs}
         F, stage1 = gbm_features(t, weights, cfg["context"], cfg["disagreement"],
-                                 int(cfg.get("gbm_members", 0)))
+                                 int(cfg.get("gbm_members", 0)), cfg.get("gbm_group") or None)
         if W is not None:
             t["members_T"] = member_targets(t)
             shift = linear_blend(t, W) - stage1

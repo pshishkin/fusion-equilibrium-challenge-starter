@@ -158,8 +158,36 @@ def features(t: dict[str, Any], weights: np.ndarray, context: bool = True,
     return np.column_stack([np.asarray(p, dtype=np.float32) for p in parts]), stage1
 
 
+IP_COLUMN = 20  # plasma_current in the raw input block (D3D_MAGNETICS_SIGNALS order)
+
+
+def group_block(t: dict[str, Any], group: list[int]) -> np.ndarray:
+    """Compact stage-2 columns for a member group the trees would otherwise see only through the
+    linear blend (Astra 2026-10-08): the group's mean targets, their difference from the other
+    members' mean, |Ip| / shot max |Ip|, a ramp-down flag and the share of the shot after the Ip
+    peak — the last three read off the raw Ip input, per shot."""
+    T = member_targets(t)
+    gm = np.mean([T[i] for i in group], axis=0)
+    rest = [i for i in range(len(T)) if i not in set(group)]
+    om = np.mean([T[i] for i in rest], axis=0)
+    ip = np.abs(np.asarray(t["X"][:, IP_COLUMN], dtype=np.float64))
+    rel, flag, after = np.zeros(len(ip)), np.zeros(len(ip)), np.zeros(len(ip))
+    start = 0
+    for n in np.asarray(t["lengths"], dtype=np.int64):
+        seg = ip[start:start + n]
+        mx = max(seg.max(), 1e-9)
+        rel[start:start + n] = seg / mx
+        hi = np.flatnonzero(seg >= 0.9 * mx)
+        if len(hi):
+            flag[start + hi[-1] + 1:start + n] = 1.0
+        pk = int(np.argmax(seg))
+        after[start:start + n] = np.clip((np.arange(n) - pk) / max(n - 1, 1), 0, None)
+        start += n
+    return np.column_stack([gm, gm - om, rel, flag, after]).astype(np.float32)
+
+
 def gbm_features(t: dict[str, Any], weights: np.ndarray, context: bool, disagreement: bool | str,
-                 n_gbm: int) -> tuple[np.ndarray, np.ndarray]:
+                 n_gbm: int, group: list[int] | None = None) -> tuple[np.ndarray, np.ndarray]:
     """`features` of the first `n_gbm` members (all when 0) and the stage-1 blend of ALL members.
 
     27 members on basis 100 make ~5700 stage-2 columns, more than the GPU fits at the row share the
@@ -167,11 +195,16 @@ def gbm_features(t: dict[str, Any], weights: np.ndarray, context: bool, disagree
     and the residual they correct use every member.
     """
     if not n_gbm or n_gbm >= len(t["member_coef"]):
-        return features(t, weights, context, disagreement)
-    sub = {"X": t["X"], "lengths": t["lengths"], "member_coef": t["member_coef"][:n_gbm],
-           "member_qb": t["member_qb"][:n_gbm]}
-    F, _ = features(sub, np.full(n_gbm, 1.0 / n_gbm), context, disagreement)
-    stage1 = sum(w * m for w, m in zip(weights, member_targets(t), strict=True))
+        F, stage1 = features(t, weights, context, disagreement)
+    else:
+        sub = {"X": t["X"], "lengths": t["lengths"], "member_coef": t["member_coef"][:n_gbm],
+               "member_qb": t["member_qb"][:n_gbm]}
+        F, _ = features(sub, np.full(n_gbm, 1.0 / n_gbm), context, disagreement)
+        stage1 = sum(w * m for w, m in zip(weights, member_targets(t), strict=True))
+    if group:
+        # computed on whole shots before any row thinning (`gblock`), else here
+        gb = t["gblock"] if "gblock" in t else group_block(t, group)
+        F = np.column_stack([F, gb])
     return F, stage1
 
 
@@ -303,6 +336,9 @@ def main() -> int:
     ap.add_argument("--gbm-members", type=int, default=0,
                     help="build the stage-2 features from the first N members only (the linear "
                          "stage and the residual still use all of them); 0 = all")
+    ap.add_argument("--gbm-group", default="",
+                    help="comma list of member indices: add their compact group block "
+                         "(mean, difference from the rest, Ip phase) to the stage-2 features")
     ap.add_argument("--thin-train", action="store_true",
                     help="with --eval-folds and --no-context: thin the folds NOT evaluated to every "
                          "`every`-th row as they load (the held-out fold stays whole)")
@@ -341,6 +377,7 @@ def main() -> int:
                else np.full(len(members), 1.0 / len(members)))
     weights = weights / weights.sum()
     basis = load_basis(args.campaign, args.basis_from)
+    gbm_group = [int(x) for x in args.gbm_group.split(",") if x.strip()]
     thin_early = args.all_only and args.no_context and args.every > 1
     eval_folds = ([] if args.all_only else
                   [int(x) for x in args.eval_folds.split(",")] if args.eval_folds else folds)
@@ -354,6 +391,9 @@ def main() -> int:
     for k in folds:
         t = load_fold(args.campaign, members, k, basis, args.jobs)
         del t["Y"]
+        if gbm_group:
+            # per-shot Ip phase needs whole shots: build the block before the rows are thinned
+            t["gblock"] = group_block(t, gbm_group)
         if k in thinned:
             # The all-fold fit reads every `every`-th row only: thin before the feature table is
             # built, which halves the peak memory. Held-out scoring needs every row, so this is
@@ -362,8 +402,10 @@ def main() -> int:
             t["X"], t["S"], t["true_coef"] = t["X"][r], t["S"][r], t["true_coef"][r]
             t["member_coef"] = [c[r] for c in t["member_coef"]]
             t["member_qb"] = [q[r] for q in t["member_qb"]]
+            if "gblock" in t:
+                t["gblock"] = t["gblock"][r]
         F, stage1 = gbm_features(t, weights, not args.no_context, args.disagreement,
-                                 args.gbm_members)
+                                 args.gbm_members, gbm_group)
         t["F"], t["stage1"] = F, stage1
         t["truth"] = np.column_stack([t["true_coef"], t["S"]])
         t["members_T"] = member_targets(t)
@@ -457,7 +499,7 @@ def main() -> int:
             {"members": members, "linear": args.linear, "context": not args.no_context,
              "disagreement": args.disagreement, "gbm": args.gbm,
              "target_scale": scales[0], "linear_variant": args.linear_variant,
-             "gbm_members": args.gbm_members,
+             "gbm_members": args.gbm_members, "gbm_group": gbm_group,
              "basis_from": str(args.basis_from) if args.basis_from else None}, indent=1))
     return 0
 
