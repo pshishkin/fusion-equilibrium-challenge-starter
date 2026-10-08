@@ -401,6 +401,15 @@ long-ramp-down shots do not (one with 85% ramp-down x1.41). The vessel members f
 the long ramp-downs. Next, as agreed: `models.mlp.rampdown_strength` (frame weight 1 + s on ramp-down
 frames, mask from raw Ip, `frame_weight.rampdown_mask`; smoke: 3.2% of training frames) on the
 vessel-poloidal res6 mlp, s = 3 and 10; `runs/rd_eval.sh` scores them against the 34 and per shot.
+**Ramp-down weighting closed, 2026-10-08:** against the 34 (0.995092): s = 10 +0.000008 (4/5), s = 3
++0.000018 (5/5) — noise. Per shot (34 vs 34 + rd10): pooled 0.995; ramp-down share >= 0.3 (182 shots)
+**1.027, worse**; one 82%-ramp-down shot x1.43. Up-weighting the hard frames does not help: every
+member errs the same way there — missing information or mis-processed inputs, not attention. The
+leaders do not fail on these shots, so they have something we don't. Hypothesis to check first:
+the Ip time axis is a shared template on ~70% of shots and we align it ourselves
+(`B.align_ip_times`); if the alignment drifts on early-ramp-down shots, every Ip-derived feature
+(phase, dIp/dt, vessel integrals) is shifted exactly where we fail. Next: frame-by-frame look at the
+worst long-ramp-down CV shots (errors over time; Ip alignment against the coil signals).
 
 ### `li-beyond-pca` — user + Astra, 2026-10-04: how to exploit "high components hurt li", in and beyond PCA
 
