@@ -434,6 +434,11 @@ code is the command's.
   one-off analysis units keep the default preference, so THEY are oomd's victims; never give them
   `ManagedOOMPreference=avoid` (only the long-lived `fusion-train`/`fusion-score` queues have it).
   MemorySwapMax=2G keeps a runaway job from thrashing swap, which raises pressure for everyone.
+- **MemoryHigh throttles before MemoryMax kills.** A command living just under its MemoryHigh is
+  not failing, it is crawling: on 2026-10-10 a 3-fold `cv_oof.py score` at 26 of 30G sat at 20-23%
+  memory pressure and took twice as long. Check `memory.pressure` of the `heavy-*.scope` when a
+  command is slow; give such jobs 1.5x their measured peak, or raise a running scope with
+  `systemctl --user set-property --runtime <scope> MemoryHigh=.. MemoryMax=..` after a MemAvailable check.
 - **After an OOM kill, do not retry automatically** — not bare, and not with a higher limit. Find
   out what used the memory (fewer workers, chunking, freeing tables before a fit), then rerun with
   the same limit; raising it is a decision with a stated reason and a MemAvailable check.
