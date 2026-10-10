@@ -452,6 +452,11 @@ columns verified bit-identical, old artifacts unaffected): the highest Z at whic
 12-point grid over Z 0.55-0.825, and Te, ne, Z of the highest live channel. Smoke: the 50 eV height
 is 0.76 m median on one shot and 0.67 on another. Queued: res6lnwd vessel-poloidal mlp + edge, attn
 t4resln vessel-poloidal + edge; `runs/edge_eval.sh` scores them against the 34 (0.995092).
+**Single model, 2026-10-10** (res6lnwd vessel-poloidal mlp with vs without edge, native, folds 0-2):
+**S 0.993486 -> 0.993956, +0.00047, 3/3 folds** (+0.00033 / +0.00071 / +0.00038) — Z_axis +0.0047,
+kappa +0.0035, volume +0.0026, li +0.0016, R_axis +0.0012, D_LCFS 0.01045 -> 0.01029: the scalars
+of the gap to the leaders, and the largest single-feature gain since the vessel block (+0.0001 in
+the stack). Queue reordered: edge versions of res10, attn t4resln, res8x768, PCA-70 res6 first.
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
