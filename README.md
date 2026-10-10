@@ -390,7 +390,7 @@ improve the compact ensemble on this split.
 Its separate fixed-weight addition to the recovered old five is recorded in
 [`results/historical_five_conv_20260922.json`](results/historical_five_conv_20260922.json).
 The fast feature bank is an artifact-owned YAML setting backed by separate full-shot sidecars;
-the 208-column base shot cache remains reusable. The frozen two-feature CPU smoke and exact
+the base shot cache (`FEATURE_WIDTH` columns) remains reusable. The frozen two-feature CPU smoke and exact
 unchanged-model scorer identity are recorded in
 [`results/fast_signal_smoke_20260922.json`](results/fast_signal_smoke_20260922.json) and
 [`results/fast_signal_identity_20260922.json`](results/fast_signal_identity_20260922.json).

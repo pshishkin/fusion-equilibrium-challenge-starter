@@ -1,6 +1,6 @@
 """Artifact-owned centered raw-current features and a separate full-shot sidecar cache.
 
-The 208-column base shot cache is independent of this module. Each sidecar stores only the extra
+The base shot cache (FEATURE_WIDTH columns) is independent of this module. Each sidecar stores only the extra
 columns for one explicit YAML specification, before per-shot frame thinning. A scored row can
 instead carry the same small columns under ``FAST_KEY`` after its raw traces are discarded.
 """

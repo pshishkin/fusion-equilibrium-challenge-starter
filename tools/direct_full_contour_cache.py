@@ -1,4 +1,4 @@
-"""Freeze and build target-stripped 209-input / true-512-contour shot caches.
+"""Freeze and build target-stripped (FEATURE_WIDTH + 1)-input / true-512-contour shot caches.
 
 Only compact TRAIN and validation filenames are accepted. The original salt-0
 tail is excluded by exact artifact/scorer filename comparison before any target
@@ -30,6 +30,9 @@ from toolkit.records import file_hash, write_json
 from tools.diagnose_direct_contour_representation import _canonical_true, _name_hash
 from tools.geometry_map_smoke import _frozen_modules
 
+# The base features plus the within-shot phase.
+INPUT_WIDTH = baseline_model.FEATURE_WIDTH + 1
+
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = Path("experiments/direct-full-contour-mlp-review.json")
 YAML = Path("baselines/direct-full-contour-mlp.review.params.yaml")
@@ -40,7 +43,7 @@ FULL_VALIDATION_FRAMES = 296053
 
 
 def allowed_input_features(row: Any) -> np.ndarray:
-    """Build only 208 existing permitted inputs plus one within-shot phase."""
+    """Build only the FEATURE_WIDTH existing permitted inputs plus one within-shot phase."""
     slim = baseline_model.slim_row(row)
     forbidden = [name for name in slim if name.startswith("efit_")
                  and name not in ("efit_times", "efit_grid_R", "efit_grid_Z")]
@@ -52,16 +55,16 @@ def allowed_input_features(row: Any) -> np.ndarray:
     if len(times) > 1 and np.any(np.diff(times) <= 0):
         raise ValueError("efit_times must increase strictly within a shot")
     base = np.asarray(baseline_model.features_for_row(slim), dtype=np.float32)
-    if base.shape != (len(times), 208) or not np.isfinite(base).all():
+    if base.shape != (len(times), baseline_model.FEATURE_WIDTH) or not np.isfinite(base).all():
         raise ValueError(f"permitted features shape/nonfinite {base.shape}/"
-                         f"{int((~np.isfinite(base)).sum())}, expected ({len(times)},208)/0")
+                         f"{int((~np.isfinite(base)).sum())}, expected ({len(times)},{baseline_model.FEATURE_WIDTH})/0")
     phase = np.zeros(len(times), dtype=np.float32) if len(times) == 1 else (
         (times - times[0]) / (times[-1] - times[0])
     ).astype(np.float32)
     result = np.column_stack([base, phase])
-    if result.shape != (len(times), 209) or not np.isfinite(result).all():
+    if result.shape != (len(times), INPUT_WIDTH) or not np.isfinite(result).all():
         raise ValueError(f"allowed input shape/nonfinite {result.shape}/"
-                         f"{int((~np.isfinite(result)).sum())}, expected ({len(times)},209)/0")
+                         f"{int((~np.isfinite(result)).sum())}, expected ({len(times)},{INPUT_WIDTH})/0")
     return result
 
 
@@ -73,7 +76,7 @@ def _verify_spec(origin: Path) -> tuple[dict[str, Any], dict[str, Any], list[str
     plan = yaml.safe_load(params.read_text())
     if (plan["data"]["train_frame_share"] != 0.2
             or plan["data"]["validation_frame_share"] != 0.2
-            or plan["input"]["total_width"] != 209
+            or plan["input"]["total_width"] != INPUT_WIDTH
             or plan["target"]["output_width"] != 1024):
         raise ValueError(f"{params}: fixed cache input/target shares differ")
     artifact = origin / ARTIFACT
@@ -279,7 +282,7 @@ def _cache_one(task: tuple[str, str, str, str, str, dict[str, Any]]
             with np.load(cache, allow_pickle=False) as saved:
                 features, targets, indices = saved["features"], saved["contours"], saved["indices"]
                 full_frames = int(saved["full_frames"])
-            if (features.shape == (len(indices), 209)
+            if (features.shape == (len(indices), INPUT_WIDTH)
                     and targets.shape == (len(indices), 512, 2)
                     and features.dtype == np.float32 and targets.dtype == np.float32
                     and np.array_equal(indices, baseline_model.thin_frames(
@@ -292,9 +295,9 @@ def _cache_one(task: tuple[str, str, str, str, str, dict[str, Any]]
     times = np.asarray(row["efit_times"], dtype=np.float64)
     indices = baseline_model.thin_frames(len(times), 0.2)
     full_inputs = allowed_input_features(row)
-    if full_inputs.shape != (len(times), 209):
+    if full_inputs.shape != (len(times), INPUT_WIDTH):
         raise ValueError(f"{name}: full input shape {full_inputs.shape}, expected "
-                         f"({len(times)},209)")
+                         f"({len(times)},{INPUT_WIDTH})")
     local_score, lcfs, mask, mask_r, mask_z = _numeric_scorer(origin, spec)
     R = np.asarray(row["efit_grid_R"], dtype=np.float64)
     Z = np.asarray(row["efit_grid_Z"], dtype=np.float64)
@@ -316,10 +319,10 @@ def _cache_one(task: tuple[str, str, str, str, str, dict[str, Any]]
             raise ValueError(f"{name} frame {frame}: {exc}") from exc
     features = full_inputs[indices].astype(np.float32)
     target = np.stack(contours)
-    if (features.shape != (len(indices), 209) or target.shape != (len(indices), 512, 2)
+    if (features.shape != (len(indices), INPUT_WIDTH) or target.shape != (len(indices), 512, 2)
             or not np.isfinite(features).all() or not np.isfinite(target).all()):
         raise ValueError(f"{name}: cache feature/target shape/finiteness differs from "
-                         f"({len(indices)},209)/({len(indices)},512,2)")
+                         f"({len(indices)},{INPUT_WIDTH})/({len(indices)},512,2)")
     _save_atomic(cache, features, target, indices.astype(np.int32), len(times))
     info = {
         "shot": name, "window": window, "source_sha256": source_hash,

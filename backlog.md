@@ -429,6 +429,30 @@ the vessel family is saturated too.
 flag, computed in `build_inputs` (no cache rebuild). Members queued: res6lnwd vessel-poloidal + ipnorm,
 res6lnwd ipnorm only, attn t4resln vessel + ipnorm; `runs/ipn_eval.sh` scores them against the 34.
 
+**Item 1, dense 20 ms grid, closed 2026-10-10** (`tools/seq_dense_gate.py`, fold 0, 100 shots with
+the most gap time + 50 gap-free controls; 1096 of 1409 fold-0 shots have a gap > 30 ms): filling
+every gap with 20 ms frames whose inputs come from the raw signals, keeping only the original
+frames' predictions, makes every sequence member WORSE — pooled flux SSE dense / orig: attn t4resln
+1.093 (40/100 shots better), GRU 1.114 (36/100), conv 1.231 (35/100); q95 / betaN worse too.
+Controls 1.000 exactly (the recomputed features match the shot cache). The members use the gap
+pattern as it is; the frame-index view of time is not a defect to fix.
+
+### `thomson-edge` — 2026-10-10: the top of the plasma is MEASURED, and no member sees it
+
+The 44 core Thomson channels sit at R = 1.94 from Z = 0.03 to 0.825, spaced 5-7 mm above Z = 0.55:
+they cross the pedestal and the upper boundary (one test shot at 2.5 s: Te 165 eV at Z 0.75, 0 by
+0.80). Where Te and ne fall off is a direct measurement of the top of the plasma — kappa, Z_axis,
+volume, tri_top, exactly the scalars of the gap to the leaders (`time-and-geometry`). Our Thomson
+inputs miss it: the summaries describe the PEAK (`pos` = where the peak sits, measured as nearly
+constant), and the raw pressure profile spaces its 16 points 5 cm apart over the whole chord (and
+lost -0.0012 in the August single-model screen, never retried in the stack era).
+`features.thomson_edge` (34 columns, in the cached block right after the vessel columns; old
+columns verified bit-identical, old artifacts unaffected): the highest Z at which Te reaches
+50/100/200/400 eV and ne 0.5/1/2 e19 (interpolated to the next live channel), log Te and ne on a
+12-point grid over Z 0.55-0.825, and Te, ne, Z of the highest live channel. Smoke: the 50 eV height
+is 0.76 m median on one shot and 0.67 on another. Queued: res6lnwd vessel-poloidal mlp + edge, attn
+t4resln vessel-poloidal + edge; `runs/edge_eval.sh` scores them against the 34 (0.995092).
+
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
 Codabench detail pages (per-shot R2_psi histogram + worst 20 shots) of three leaders vs ours (964529):

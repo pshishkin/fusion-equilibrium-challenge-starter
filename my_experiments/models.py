@@ -1455,6 +1455,9 @@ class Params:
     # (Astra 2026-10-08: through the current ramp-down the external-field-to-Ip ratio, not the
     # absolute currents, sets position and shape). Defaulted: configs and artifacts before it are off.
     ipnorm: bool = False
+    # Top-of-plasma heights and the fine top profile from the core Thomson chord
+    # (baseline_model.N_EDGE columns, see EDGE_TE_EV). Defaulted: earlier configs/artifacts are off.
+    thomson_edge: bool = False
 
     @property
     def cons_weights(self) -> Any:
@@ -1660,7 +1663,9 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     # `ipnorm` likewise: optional for configs written before it, absent means off.
     _require_keys(doc["features"], feature_keys | ({"fast_magnetics"}
                    if "fast_magnetics" in doc["features"] else set())
-                  | ({"ipnorm"} if "ipnorm" in doc["features"] else set()), "features", path)
+                  | ({"ipnorm"} if "ipnorm" in doc["features"] else set())
+                  | ({"thomson_edge"} if "thomson_edge" in doc["features"] else set()),
+                  "features", path)
     from my_experiments.fast_magnetics import normalize_spec
     fast_magnetics = normalize_spec(doc["features"].get("fast_magnetics", []),
                                    f"{path}: features.fast_magnetics")
@@ -1755,4 +1760,5 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   models=models,
                   ensemble={k: float(v) / total for k, v in weights.items()}, path=path,
                   effective_yaml=yaml.safe_dump(doc, sort_keys=False),
-                  ipnorm=bool(doc["features"].get("ipnorm", False)))
+                  ipnorm=bool(doc["features"].get("ipnorm", False)),
+                  thomson_edge=bool(doc["features"].get("thomson_edge", False)))

@@ -448,7 +448,19 @@ VESSEL_TAUS_MS = (20.0, 100.0, 500.0, 2500.0)
 # features.ipnorm: |Ip| floor in kA (the raw Ip column is in kA; flat-tops sit near 1000 kA).
 IPNORM_FLOOR_KA = 100.0
 N_VESSEL = N_SIGNALS * len(VESSEL_TAUS_MS)
-FEATURE_WIDTH = (N_SIGNALS * (1 + len(DERIV_BLOCKS)) + N_GAPS + N_VESSEL
+# features.thomson_edge (2026-10-10): where the plasma ENDS along the core Thomson chord. The 44
+# core channels sit at R = 1.94 from Z = 0.03 to 0.825, 5-7 mm apart above Z = 0.55: they cross the
+# pedestal and the upper boundary, so the height at which Te and ne fall off is a direct measurement
+# of the top of the plasma (kappa, Z_axis, volume). The 16-point raw profile spaces its points 5 cm
+# apart and the summaries describe the peak, so neither carries it. Per Thomson sample: the highest
+# Z at which Te still reaches each of EDGE_TE_EV and ne each of EDGE_NE_1E19 (interpolated towards
+# the next live channel above; the lowest channel's Z if none does), Te (log) and ne on a fine grid
+# over the top of the chord, and Te, ne and Z of the highest live channel.
+EDGE_TE_EV = (50.0, 100.0, 200.0, 400.0)
+EDGE_NE_1E19 = (0.5, 1.0, 2.0)
+EDGE_GRID_Z = tuple(float(z) for z in np.linspace(0.55, 0.825, 12))
+N_EDGE = len(EDGE_TE_EV) + len(EDGE_NE_1E19) + 2 * len(EDGE_GRID_Z) + 3
+FEATURE_WIDTH = (N_SIGNALS * (1 + len(DERIV_BLOCKS)) + N_GAPS + N_VESSEL + N_EDGE
                  + 27 + 2 * 16)   # = N_THOMSON_BLOCK
 
 
@@ -716,6 +728,55 @@ def _profile_raw(values: FloatArray, dens: FloatArray, coord: FloatArray) -> Flo
     return out
 
 
+def _crossing_height(vals: FloatArray, z: FloatArray, thr: float) -> float:
+    """The highest Z (live channels, ascending) where `vals` >= thr, interpolated upwards."""
+    above = np.nonzero(vals >= thr)[0]
+    if not len(above):
+        return float(z[0])
+    i = int(above[-1])
+    if i == len(z) - 1:
+        return float(z[i])
+    # Linear between channel i (>= thr) and the next live channel up (< thr).
+    f = (vals[i] - thr) / (vals[i] - vals[i + 1])
+    return float(z[i] + f * (z[i + 1] - z[i]))
+
+
+def _edge_stats(te: FloatArray, ne: FloatArray, z: FloatArray) -> FloatArray:
+    """(n_times, N_EDGE) the top-of-plasma columns of `features.thomson_edge`; nan if < 3 live."""
+    out = np.full((len(te), N_EDGE), np.nan, dtype=np.float64)
+    grid = np.asarray(EDGE_GRID_Z)
+    for t in range(len(te)):
+        m = (te[t] != 0) & (ne[t] != 0)
+        if m.sum() < THOMSON_MIN_LIVE:
+            continue
+        zt, tt, nn = z[m], te[t, m], ne[t, m] / 1e19
+        row = [_crossing_height(tt, zt, thr) for thr in EDGE_TE_EV]
+        row += [_crossing_height(nn, zt, thr) for thr in EDGE_NE_1E19]
+        row += list(np.interp(grid, zt, np.log1p(np.maximum(tt, 0.0))))
+        row += list(np.interp(grid, zt, nn))
+        row += [np.log1p(max(tt[-1], 0.0)), nn[-1], zt[-1]]
+        out[t] = row
+    return out
+
+
+def _thomson_edge(row: Row, efit_times: FloatArray) -> FloatArray:
+    """(T, N_EDGE) — `_edge_stats` on the core system, put on the EFIT frames; zeros if none."""
+    names = [str(x) for x in np.asarray(row["thomson_chord_name"])]
+    chord_Z = np.asarray(row["thomson_chord_Z"], dtype=np.float64)
+    te = np.stack([np.asarray(x, dtype=np.float64) for x in row["thomson_core_Te"]])
+    ne = np.stack([np.asarray(x, dtype=np.float64) for x in row["thomson_core_ne"]])
+    n_ch = te.shape[1]
+    if not all(n.startswith("TS_core") for n in names[:n_ch]):
+        raise ValueError(f"chords 0..{n_ch} are {names[:3]}..., expected TS_core*")
+    order = np.argsort(chord_Z[:n_ch])
+    stats = _edge_stats(te[:, order], ne[:, order], chord_Z[:n_ch][order])
+    # Same convention as the Thomson block: a diagnostic that never fired gives zeros, and the
+    # Thomson validity flag (in that block) says so.
+    out, _ = _fill_in_time(stats, np.asarray(row["thomson_core_times"], dtype=np.float64),
+                           efit_times)
+    return out
+
+
 def _fill_in_time(feats: FloatArray, src_times: FloatArray,
                   efit_times: FloatArray) -> tuple[FloatArray, bool]:
     """Put a per-Thomson-sample feature series onto the EFIT frames, and say whether it is real.
@@ -792,6 +853,7 @@ def features_for_row(row: Row) -> FloatArray:
                        _interp_derivatives(levels, shot["efit_times"]),
                        _frame_gaps(shot["efit_times"]),
                        _vessel_currents(shot),
+                       _thomson_edge(row, shot["efit_times"]),
                        _thomson_features(row, shot["efit_times"])])
     if feats.shape != (len(shot["efit_times"]), FEATURE_WIDTH):
         raise ValueError(f"features {feats.shape}, expected "
@@ -855,6 +917,7 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         "derivative_signals": params.derivative_signals,
         "vessel": params.vessel,
         "ipnorm": params.ipnorm,
+        "thomson_edge": params.thomson_edge,
         "fast_magnetics": [{"signal": signal, "halfwidth_ms": width}
                            for signal, width in params.fast_magnetics],
         "thomson": params.thomson, "frame_gaps": params.frame_gaps,
@@ -960,6 +1023,10 @@ def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
         dip = feats[:, N_SIGNALS * (1 + DERIV_BLOCKS.index("interp")) + ip_i].astype(np.float64)
         tail += [np.hstack([levels[:, coils] / den, (dip[:, None] / den),
                             (ip < IPNORM_FLOOR_KA)[:, None].astype(np.float64)])]
+    if plan.get("thomson_edge", False):
+        # Right after the vessel block, addressed from the front; absent in older artifacts = off.
+        e0 = gaps + N_GAPS + N_VESSEL
+        tail += [feats[:, e0:e0 + N_EDGE]]
     tail += ([feats[:, -N_THOMSON_BLOCK:][:, thomson_columns(plan["thomson"])]]
              if plan["thomson"] else [])
     if want == "none":
@@ -1021,6 +1088,7 @@ def _shot_code_key() -> str:
         interpolate_magnetics_to_efit, _as_psirz_stack,
         _raw_derivatives, _interp_derivatives, _frame_gaps, _vessel_currents,
         _thomson_features, _profile_stats, _fill_in_time,
+        _thomson_edge, _edge_stats, _crossing_height,
         extra=f"{D3D_MAGNETICS_SIGNALS}|{SUBMITTED_SCALARS}|{FEATURE_WIDTH}|{RAW_DERIV_HALF_MS}|{VESSEL_TAUS_MS}",
     )
 
@@ -1426,6 +1494,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
           f"thomson={plan['thomson'] or 'off'}, "
           f"frame_gaps={'on' if plan['frame_gaps'] else 'off'}, "
           f"vessel={plan.get('vessel', 'none')}, ipnorm={plan.get('ipnorm', False)}, "
+          f"thomson_edge={plan.get('thomson_edge', False)}, "
           f"fast_magnetics={plan['fast_magnetics']})")
     if plan["thomson"]:
         # The validity flag sits at the end of the SUMMARY part of the Thomson block, before the raw

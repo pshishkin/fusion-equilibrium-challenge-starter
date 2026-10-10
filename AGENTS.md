@@ -380,7 +380,7 @@ idle for 45 h).
 
 Optional fast magnetics columns live in a full-shot sidecar keyed by explicit artifact-owned YAML
 descriptors, producer/dependency identity and each pinned source parquet hash. They must not
-invalidate or silently alter the 208-column base shot cache. A centered window outside a raw
+invalidate or silently alter the base shot cache (`FEATURE_WIDTH` columns). A centered window outside a raw
 signal's support is an error naming its shot, signal, width and bounds. Slim scored rows carry the
 union of descriptors required by their artifacts; each artifact selects only its own columns.
 

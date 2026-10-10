@@ -10,6 +10,7 @@ import joblib
 import numpy as np
 import torch
 
+from my_experiments.baseline_model import FEATURE_WIDTH
 from toolkit.records import file_hash
 from tools.direct_full_contour_cache import _save_atomic, allowed_input_features
 from tools.direct_full_contour_predict import predict_polygons
@@ -23,7 +24,7 @@ class _PoisonTruth:
 
 class DirectFullContourTests(unittest.TestCase):
     def test_209_inputs_ignore_target_fields_and_keep_phase(self) -> None:
-        ready = np.arange(416, dtype=np.float32).reshape(2, 208)
+        ready = np.arange(2 * FEATURE_WIDTH, dtype=np.float32).reshape(2, FEATURE_WIDTH)
         row: dict[str, object] = {
             "source": "DIII-D",
             "efit_times": np.array([200.0, 225.0]),
@@ -36,9 +37,9 @@ class DirectFullContourTests(unittest.TestCase):
             "efit_psirz": _PoisonTruth(), "efit_li": _PoisonTruth(),
         }
         X = allowed_input_features(row)
-        self.assertEqual(X.shape, (2, 209))
-        np.testing.assert_array_equal(X[:, :208], ready)
-        np.testing.assert_array_equal(X[:, 208], [0.0, 1.0])
+        self.assertEqual(X.shape, (2, FEATURE_WIDTH + 1))
+        np.testing.assert_array_equal(X[:, :FEATURE_WIDTH], ready)
+        np.testing.assert_array_equal(X[:, FEATURE_WIDTH], [0.0, 1.0])
 
     def test_fixed_worst_vertex_loss_and_gradients(self) -> None:
         prediction = torch.zeros((1, 1024), requires_grad=True)
