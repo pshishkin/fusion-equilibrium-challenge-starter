@@ -10,6 +10,8 @@ export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
 THREAD=${WATCHDOG_THREAD:-thr_kcjvptiji9}
 STATE=runs/.watchdog_last
 problems=()
+# Read by tools/boot_recover.sh after a reboot: which one-off units were lost.
+systemctl --user list-units 'fusion-*' --state=active --no-legend --plain | awk '{print $1}' > runs/.active_units
 
 failed=$(systemctl --user list-units 'fusion-*' --failed --no-legend --plain | awk '{print $1}')
 [ -n "$failed" ] && problems+=("failed units: $(echo $failed)")

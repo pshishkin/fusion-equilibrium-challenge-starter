@@ -373,7 +373,10 @@ single-threaded detours such as writing a multi-GB file only to read it back (ha
 in memory), and whole-array temporaries (`astype(float64)`, `.std()`, `np.concatenate` of a
 list of parts) on the 20 GB flux: chunk them. Heavy jobs run as `systemd-run --user` units with
 `MemoryMax`, so an OOM kills the job, not the session; share the GPU deliberately (CatBoost
-`gpu_ram_part`) with whatever trains beside it.
+`gpu_ram_part`) with whatever trains beside it. Transient units do not survive a reboot: the enabled user unit
+`fusion-boot-recover.service` (`tools/boot_recover.sh`) relaunches the training queue and its log
+mirror at boot and reports which one-off units were lost (2026-10-08: a hard reset left the GPU
+idle for 45 h).
 
 Optional fast magnetics columns live in a full-shot sidecar keyed by explicit artifact-owned YAML
 descriptors, producer/dependency identity and each pinned source parquet hash. They must not
