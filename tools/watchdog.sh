@@ -18,8 +18,12 @@ failed=$(systemctl --user list-units 'fusion-*' --failed --no-legend --plain | a
 
 systemctl --user is-active -q ${WATCHDOG_TRAIN_UNIT:-fusion-train} || problems+=("fusion-train (training queue) is not running")
 
-oom=$(journalctl -k --since "-16min" --no-pager 2>/dev/null | grep -i "killed process" | tail -3)
-[ -n "$oom" ] && problems+=("kernel OOM kills in the last 15 min: $oom")
+# Only kills in OUR cgroups (fusion-* units, heavy-* scopes, the BB tmux scope, or a global OOM):
+# the user's other projects run their own memory-capped scopes on this box (2026-10-10:
+# knopka-g5v2-*.scope hit its own MemoryMax), and those are not ours to report or touch.
+oom=$(journalctl -k --since "-16min" --no-pager 2>/dev/null | grep -o "oom-kill:.*task_memcg=[^,]*" \
+  | grep -E "task_memcg=[^,]*(fusion-|heavy-|tmux-spawn-)|CONSTRAINT_NONE" | tail -3)
+[ -n "$oom" ] && problems+=("kernel OOM kills in our cgroups in the last 15 min: $oom")
 
 queued=$(grep -v '^#' runs/queue.txt 2>/dev/null | grep -cv '^\s*$')
 last=$(grep -a -E '^(START|DONE|queue empty)' runs/queue.log | tail -1)
