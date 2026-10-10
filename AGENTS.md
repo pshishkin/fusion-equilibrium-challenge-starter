@@ -371,8 +371,8 @@ model fitting on the GPU when a GPU path exists (torch, CatBoost `task_type="GPU
 per-fold work through `pimap` with every free core, BLAS without an artificial thread cap. Avoid
 single-threaded detours such as writing a multi-GB file only to read it back (hand arrays over
 in memory), and whole-array temporaries (`astype(float64)`, `.std()`, `np.concatenate` of a
-list of parts) on the 20 GB flux: chunk them. Heavy jobs run as `systemd-run --user` units with
-`MemoryMax`, so an OOM kills the job, not the session; share the GPU deliberately (CatBoost
+list of parts) on the 20 GB flux: chunk them. Heavy jobs run in their own cgroup with
+`MemoryMax` (next section), so an OOM kills the job, not the session; share the GPU deliberately (CatBoost
 `gpu_ram_part`) with whatever trains beside it. Transient units do not survive a reboot: the enabled user unit
 `fusion-boot-recover.service` (`tools/boot_recover.sh`) relaunches the training queue and its log
 mirror at boot and reports which one-off units were lost (2026-10-08: a hard reset left the GPU
@@ -383,6 +383,64 @@ descriptors, producer/dependency identity and each pinned source parquet hash. T
 invalidate or silently alter the 208-column base shot cache. A centered window outside a raw
 signal's support is an error naming its shot, signal, width and bounds. Slim scored rows carry the
 union of descriptors required by their artifacts; each artifact selects only its own columns.
+
+## Memory-hungry commands run in their own cgroup, never bare (user's rule, 2026-10-10)
+
+BB, the agent and its shell live in a `tmux-spawn-*.scope` under `user@1000.service`. A command
+started bare from the agent's shell lands in that same scope, so when it eats the machine, the
+kernel OOM killer or systemd-oomd can take BB down with it (oomd killed the BB scope on
+2026-10-05). Anything that may use more than a few GB therefore runs in a separate cgroup with a
+memory limit.
+
+**Must go through the wrapper:** builds, large test runs, data processing (reading shots, the
+shot cache, CV scoring, stack builds, OOF dumps), `train.py` outside the queue, anything with
+`--jobs`/several parallel workers or a process pool, and anything whose peak you have not measured.
+Plain `git`, `grep`, `sed`, file reads and short scripts on small data do not need it.
+
+**Foreground commands (output and exit code come back to the shell):**
+
+    tools/heavy.sh <MemoryMax> <command> <args...>
+    tools/heavy.sh 16G uv run python tools/shot_compare.py ... --jobs 8
+
+which is exactly
+
+    systemd-run --user --scope -q --unit=heavy-<stamp> \
+      -p MemoryHigh=<85% of max> -p MemoryMax=<max> -p MemorySwapMax=2G -- <command> <args...>
+
+**Long jobs (hours, survive the agent's turn):** `tools/fusion_run.sh <unit> <MemoryMax>
+<MemorySwapMax> <command...>`, a transient service with an OnFailure alert.
+
+Verified on this host 2026-10-10 (cgroup v2, systemd 259, memory controller delegated to the user
+manager; the agent's Bash has the user bus at `/run/user/1000/bus`): the command, its children and
+grandchildren (`uv` -> `python`) all sit in
+`user@1000.service/app.slice/heavy-*.scope` with `memory.high`, `memory.max` and
+`memory.swap.max` set as asked, while the agent shell stays in its `tmux-spawn-*.scope`; the exit
+code is the command's.
+
+- **The limit is on the whole process tree** — every worker, subprocess and pool child counts
+  against the same MemoryMax, so size it for `workers x per-worker peak`, not for one process. If
+  it does not fit, cut `--jobs` first.
+- **Sizes.** 121 GB RAM, 32 cores, 135 GB swap. The training queue (`fusion-train`, MemoryMax 100G)
+  peaks at 46-77 GB and the user runs other projects in the same box (~27 GB at times), BB itself
+  needs ~4-6 GB. Default 16G; up to 40G for a one-off analysis while training runs; 60-95G only with
+  training paused and `MemAvailable` checked. The wrapper refuses a MemoryMax above MemAvailable
+  minus 8G. Concurrent limits must add up to less than the RAM: the parent `user@1000.service` has
+  no memory limit of its own, so the real ceiling above a scope is the machine.
+- **Parents and oomd.** A child cgroup does not protect against a kill of its parent or a global
+  OOM. `user@1000.service` has `ManagedOOMMemoryPressure=kill` (50% for 20 s): under pressure oomd
+  kills a whole descendant cgroup. BB scopes are excluded by the drop-in
+  `~/.config/systemd/user/tmux-spawn-.scope.d/50-protect-bb.conf` (`ManagedOOMPreference=omit`,
+  `MemoryLow=6G`; xattr `user.oomd_omit=1` verified on the agent's scope). Heavy scopes and
+  one-off analysis units keep the default preference, so THEY are oomd's victims; never give them
+  `ManagedOOMPreference=avoid` (only the long-lived `fusion-train`/`fusion-score` queues have it).
+  MemorySwapMax=2G keeps a runaway job from thrashing swap, which raises pressure for everyone.
+- **After an OOM kill, do not retry automatically** — not bare, and not with a higher limit. Find
+  out what used the memory (fewer workers, chunking, freeing tables before a fit), then rerun with
+  the same limit; raising it is a decision with a stated reason and a MemAvailable check.
+- **If isolation is unavailable** (no user bus — e.g. a sandboxed command, where `systemd-run`
+  fails with "Failed to connect to user scope bus"; `heavy.sh` then exits 75 without running
+  anything): say so and do not run the heavy command bare. Ask for the command to run outside the
+  sandbox (bus at `/run/user/1000/bus` reachable) or for the user to run it.
 
 ## The core count must not change the score. The device does, and that is a different rule
 
