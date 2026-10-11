@@ -1108,15 +1108,24 @@ def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
     if chord != "none":
         # Right after the edge block; profiles (Te, ne, coverage per grid point), then the pedestal
         # position and the height rates. `log` takes log1p of the Te and ne columns only.
+        # `log` / `linear` alone take every part; `log:tang,ped` only the named ones.
         c0 = gaps + N_GAPS + N_VESSEL + N_EDGE
         block = feats[:, c0:c0 + N_CHORD].astype(np.float64)
-        if chord == "log":
-            nz, nr = len(CHORD_GRID_Z), len(TANG_GRID_R)
+        scale, _, which = chord.partition(":")
+        nz, nr = len(CHORD_GRID_Z), len(TANG_GRID_R)
+        if scale == "log":
             cols = np.r_[0:2 * nz, 3 * nz:3 * nz + 2 * nr]
             block[:, cols] = np.log1p(np.maximum(block[:, cols], 0.0))
-        elif chord != "linear":
-            raise ValueError(f"features.thomson_chord {chord!r}; known: none, log, linear")
-        tail += [block]
+        elif scale != "linear":
+            raise ValueError(f"features.thomson_chord {chord!r}; known: none, log, linear[:parts]")
+        parts = {"core": np.r_[0:3 * nz], "tang": np.r_[3 * nz:3 * nz + 3 * nr],
+                 "ped": np.r_[N_CHORD_PROF:N_CHORD_PROF + 2],
+                 "rate": np.r_[N_CHORD_PROF + 2:N_CHORD]}
+        names = which.split(",") if which else list(parts)
+        unknown = [n for n in names if n not in parts]
+        if unknown:
+            raise ValueError(f"features.thomson_chord parts {unknown}; known: {sorted(parts)}")
+        tail += [block[:, np.concatenate([parts[n] for n in names])]]
     tail += ([feats[:, -N_THOMSON_BLOCK:][:, thomson_columns(plan["thomson"])]]
              if plan["thomson"] else [])
     if want == "none":

@@ -492,7 +492,15 @@ position + time derivative of the heights; A' = A with linear instead of log val
 old columns bit-identical):** core chord Te/ne/coverage on 32 Z points 0.03-0.93, tangential on 10 R
 points 1.68-2.06, pedestal position (steepest Te / ne drop above Z 0.5), d/dt of the seven heights;
 cached linear, the log applied in `build_inputs`. Screen queued: log vs linear on the seed-120 edge
-mlp, folds 0-2 (`runs/chord_screen.sh`). Screened on
+mlp, folds 0-2 (`runs/chord_screen.sh`).
+**v2 screen, 2026-10-11** (single model, folds 0-2, vs edge alone 0.993956): **log 0.993933 (-0.000023,
+1/3); linear 0.993822 (-0.000134, 0/3)** — the log matters (answer to the user's question), the whole
+chord adds nothing in sum. Inside the log arm: R_axis +0.0014 and volume +0.0006 (the tangential
+profile's Shafranov shift, as expected), against D_LCFS +0.00024 worse, tri_top -0.0009, q95/betaN
+-0.0002: 135 noisy columns cost elsewhere. `thomson_chord` now takes parts (`log:tang,ped`); queued:
+tangential only, tangential + pedestal (folds 0-2), and folds 3-4 of the whole-chord log member for
+a stack-diversity check; `runs/edge_round2.sh` also scores the 39 + five more edge members (res14,
+res6 s2, PCA-50, conv, GRU). Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
