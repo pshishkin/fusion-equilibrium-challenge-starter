@@ -482,6 +482,10 @@ channel index means different heights in different shots — a fixed-Z resamplin
 v2 arms (user's question 2026-10-11, raw vs log): A = edge + the whole core chord on a fixed grid
 (32 points, Z 0.03-0.93, log Te and log ne, plus a coverage mask for heights outside the shot's
 channels) + the tangential system on its R grid (Shafranov shift, R_axis); B = A + pedestal
+(full39e, 2026-10-11: the stage fitted, 87.7 GB peak; prediction stopped because I queued only
+the fold4 seed of each edge full member — a full member is five all-data fits, fold0..fold4, and
+stack_predict averages them. The 20 missing fits are queued first (~8 h); `runs/full39e_predict.sh`
+then builds from the fitted stage. The v2 features wait for it: they change the input width.)
 position + time derivative of the heights; A' = A with linear instead of log values. Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
