@@ -460,7 +460,17 @@ EDGE_TE_EV = (50.0, 100.0, 200.0, 400.0)
 EDGE_NE_1E19 = (0.5, 1.0, 2.0)
 EDGE_GRID_Z = tuple(float(z) for z in np.linspace(0.55, 0.825, 12))
 N_EDGE = len(EDGE_TE_EV) + len(EDGE_NE_1E19) + 2 * len(EDGE_GRID_Z) + 3
-FEATURE_WIDTH = (N_SIGNALS * (1 + len(DERIV_BLOCKS)) + N_GAPS + N_VESSEL + N_EDGE
+# features.thomson_chord (2026-10-11, v2 of the edge block): the WHOLE core chord on a fixed Z grid
+# (channel sets differ by shot — 40/42/44/54 channels, top channel at Z 0.68..0.93 — so a channel
+# index is not a height), the tangential system on a fixed R grid (Shafranov shift), a coverage
+# mask for grid points outside the sample's live channels, the pedestal position (steepest Te / ne
+# drop above Z 0.5), and d/dt of the seven edge heights. Cached LINEAR (Te keV, ne 1e19 m^-3);
+# `build_inputs` applies the log when the plan asks for it.
+CHORD_GRID_Z = tuple(float(z) for z in np.linspace(0.03, 0.93, 32))
+TANG_GRID_R = tuple(float(r) for r in np.linspace(1.68, 2.06, 10))
+N_CHORD_PROF = 3 * len(CHORD_GRID_Z) + 3 * len(TANG_GRID_R)    # Te, ne, mask per grid point
+N_CHORD = N_CHORD_PROF + 2 + len(EDGE_TE_EV) + len(EDGE_NE_1E19)
+FEATURE_WIDTH = (N_SIGNALS * (1 + len(DERIV_BLOCKS)) + N_GAPS + N_VESSEL + N_EDGE + N_CHORD
                  + 27 + 2 * 16)   # = N_THOMSON_BLOCK
 
 
@@ -777,6 +787,71 @@ def _thomson_edge(row: Row, efit_times: FloatArray) -> FloatArray:
     return out
 
 
+def _grid_profile(te: FloatArray, ne: FloatArray, coord: FloatArray,
+                  grid: FloatArray) -> FloatArray:
+    """(n_times, 3*len(grid)) Te [keV], ne [1e19] and coverage on `grid`; nan rows if < 3 live."""
+    g = len(grid)
+    out = np.full((len(te), 3 * g), np.nan, dtype=np.float64)
+    for t in range(len(te)):
+        m = (te[t] != 0) & (ne[t] != 0)
+        if m.sum() < THOMSON_MIN_LIVE:
+            continue
+        c = coord[m]
+        out[t, :g] = np.interp(grid, c, np.maximum(te[t, m], 0.0) / 1000.0)
+        out[t, g:2 * g] = np.interp(grid, c, np.maximum(ne[t, m], 0.0) / 1e19)
+        out[t, 2 * g:] = ((grid >= c[0]) & (grid <= c[-1])).astype(np.float64)
+    return out
+
+
+def _pedestal_position(te: FloatArray, ne: FloatArray, z: FloatArray) -> FloatArray:
+    """(n_times, 2) Z of the steepest Te and ne drop between live channels above Z 0.5."""
+    out = np.full((len(te), 2), np.nan, dtype=np.float64)
+    for t in range(len(te)):
+        m = (te[t] != 0) & (ne[t] != 0) & (z > 0.5)
+        if m.sum() < THOMSON_MIN_LIVE:
+            continue
+        zz = z[m]
+        mid = 0.5 * (zz[1:] + zz[:-1])
+        dz = np.maximum(np.diff(zz), 1e-4)
+        for j, v in enumerate((te[t, m], ne[t, m])):
+            out[t, j] = mid[int(np.argmin(np.diff(v) / dz))]
+    return out
+
+
+def _thomson_chord(row: Row, efit_times: FloatArray, edge: FloatArray) -> FloatArray:
+    """(T, N_CHORD) — see CHORD_GRID_Z; `edge` is this shot's `_thomson_edge` block."""
+    names = [str(x) for x in np.asarray(row["thomson_chord_name"])]
+    chord_Z = np.asarray(row["thomson_chord_Z"], dtype=np.float64)
+    chord_R = np.asarray(row["thomson_chord_R"], dtype=np.float64)
+    parts = []
+    start = 0
+    for prefix, key, coords, grid in (("TS_core", "thomson_core", chord_Z, CHORD_GRID_Z),
+                                      ("TS_tangential", "thomson_edge", chord_R, TANG_GRID_R)):
+        te = np.stack([np.asarray(x, dtype=np.float64) for x in row[f"{key}_Te"]])
+        ne = np.stack([np.asarray(x, dtype=np.float64) for x in row[f"{key}_ne"]])
+        n_ch = te.shape[1]
+        if not all(n.startswith(prefix) for n in names[start:start + n_ch]):
+            raise ValueError(f"chords {start}..{start + n_ch} are {names[start:start + 3]}..., "
+                             f"expected {prefix}*")
+        c = coords[start:start + n_ch]
+        order = np.argsort(c)
+        times = np.asarray(row[f"{key}_times"], dtype=np.float64)
+        prof, _ = _fill_in_time(_grid_profile(te[:, order], ne[:, order], c[order],
+                                              np.asarray(grid)), times, efit_times)
+        parts.append(prof)
+        if prefix == "TS_core":
+            ped, _ = _fill_in_time(_pedestal_position(te[:, order], ne[:, order], c[order]),
+                                   times, efit_times)
+            core_ped = ped
+        start += n_ch
+    heights = edge[:, :len(EDGE_TE_EV) + len(EDGE_NE_1E19)].astype(np.float64)
+    t = np.asarray(efit_times, dtype=np.float64)
+    # m/s; a one-frame shot has no rate.
+    rate = (np.gradient(heights, t, axis=0) * 1000.0 if len(t) > 1
+            else np.zeros_like(heights))
+    return np.hstack([*parts, core_ped, rate]).astype(np.float32)
+
+
 def _fill_in_time(feats: FloatArray, src_times: FloatArray,
                   efit_times: FloatArray) -> tuple[FloatArray, bool]:
     """Put a per-Thomson-sample feature series onto the EFIT frames, and say whether it is real.
@@ -853,7 +928,8 @@ def features_for_row(row: Row) -> FloatArray:
                        _interp_derivatives(levels, shot["efit_times"]),
                        _frame_gaps(shot["efit_times"]),
                        _vessel_currents(shot),
-                       _thomson_edge(row, shot["efit_times"]),
+                       edge := _thomson_edge(row, shot["efit_times"]),
+                       _thomson_chord(row, shot["efit_times"], edge),
                        _thomson_features(row, shot["efit_times"])])
     if feats.shape != (len(shot["efit_times"]), FEATURE_WIDTH):
         raise ValueError(f"features {feats.shape}, expected "
@@ -918,6 +994,7 @@ def coil_plan(basis: CoilBasis, params: Params, X: FloatArray, Y: FloatArray) ->
         "vessel": params.vessel,
         "ipnorm": params.ipnorm,
         "thomson_edge": params.thomson_edge,
+        "thomson_chord": params.thomson_chord,
         "fast_magnetics": [{"signal": signal, "halfwidth_ms": width}
                            for signal, width in params.fast_magnetics],
         "thomson": params.thomson, "frame_gaps": params.frame_gaps,
@@ -1027,6 +1104,19 @@ def build_inputs(plan: CoilPlan, feats: FloatArray) -> FloatArray:
         # Right after the vessel block, addressed from the front; absent in older artifacts = off.
         e0 = gaps + N_GAPS + N_VESSEL
         tail += [feats[:, e0:e0 + N_EDGE]]
+    chord = plan.get("thomson_chord", "none")
+    if chord != "none":
+        # Right after the edge block; profiles (Te, ne, coverage per grid point), then the pedestal
+        # position and the height rates. `log` takes log1p of the Te and ne columns only.
+        c0 = gaps + N_GAPS + N_VESSEL + N_EDGE
+        block = feats[:, c0:c0 + N_CHORD].astype(np.float64)
+        if chord == "log":
+            nz, nr = len(CHORD_GRID_Z), len(TANG_GRID_R)
+            cols = np.r_[0:2 * nz, 3 * nz:3 * nz + 2 * nr]
+            block[:, cols] = np.log1p(np.maximum(block[:, cols], 0.0))
+        elif chord != "linear":
+            raise ValueError(f"features.thomson_chord {chord!r}; known: none, log, linear")
+        tail += [block]
     tail += ([feats[:, -N_THOMSON_BLOCK:][:, thomson_columns(plan["thomson"])]]
              if plan["thomson"] else [])
     if want == "none":
@@ -1089,6 +1179,7 @@ def _shot_code_key() -> str:
         _raw_derivatives, _interp_derivatives, _frame_gaps, _vessel_currents,
         _thomson_features, _profile_stats, _fill_in_time,
         _thomson_edge, _edge_stats, _crossing_height,
+        _thomson_chord, _grid_profile, _pedestal_position,
         extra=f"{D3D_MAGNETICS_SIGNALS}|{SUBMITTED_SCALARS}|{FEATURE_WIDTH}|{RAW_DERIV_HALF_MS}|{VESSEL_TAUS_MS}",
     )
 
@@ -1495,6 +1586,7 @@ def train(share: str, val_share: str, local_data_dir: Path, config: str,
           f"frame_gaps={'on' if plan['frame_gaps'] else 'off'}, "
           f"vessel={plan.get('vessel', 'none')}, ipnorm={plan.get('ipnorm', False)}, "
           f"thomson_edge={plan.get('thomson_edge', False)}, "
+          f"thomson_chord={plan.get('thomson_chord', 'none')}, "
           f"fast_magnetics={plan['fast_magnetics']})")
     if plan["thomson"]:
         # The validity flag sits at the end of the SUMMARY part of the Thomson block, before the raw

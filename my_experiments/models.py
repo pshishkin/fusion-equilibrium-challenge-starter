@@ -1458,6 +1458,9 @@ class Params:
     # Top-of-plasma heights and the fine top profile from the core Thomson chord
     # (baseline_model.N_EDGE columns, see EDGE_TE_EV). Defaulted: earlier configs/artifacts are off.
     thomson_edge: bool = False
+    # The whole Thomson chord on fixed grids + pedestal position + edge-height rates
+    # (baseline_model.N_CHORD columns): "none", "log" or "linear". Defaulted: earlier = none.
+    thomson_chord: str = "none"
 
     @property
     def cons_weights(self) -> Any:
@@ -1664,7 +1667,8 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
     _require_keys(doc["features"], feature_keys | ({"fast_magnetics"}
                    if "fast_magnetics" in doc["features"] else set())
                   | ({"ipnorm"} if "ipnorm" in doc["features"] else set())
-                  | ({"thomson_edge"} if "thomson_edge" in doc["features"] else set()),
+                  | ({"thomson_edge"} if "thomson_edge" in doc["features"] else set())
+                  | ({"thomson_chord"} if "thomson_chord" in doc["features"] else set()),
                   "features", path)
     from my_experiments.fast_magnetics import normalize_spec
     fast_magnetics = normalize_spec(doc["features"].get("fast_magnetics", []),
@@ -1761,4 +1765,5 @@ def load_params(path: Path = DEFAULT_PARAMS_PATH, salt: int | None = None,
                   ensemble={k: float(v) / total for k, v in weights.items()}, path=path,
                   effective_yaml=yaml.safe_dump(doc, sort_keys=False),
                   ipnorm=bool(doc["features"].get("ipnorm", False)),
-                  thomson_edge=bool(doc["features"].get("thomson_edge", False)))
+                  thomson_edge=bool(doc["features"].get("thomson_edge", False)),
+                  thomson_chord=str(doc["features"].get("thomson_chord", "none")))

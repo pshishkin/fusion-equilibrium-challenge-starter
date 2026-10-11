@@ -486,7 +486,13 @@ channels) + the tangential system on its R grid (Shafranov shift, R_axis); B = A
 the fold4 seed of each edge full member — a full member is five all-data fits, fold0..fold4, and
 stack_predict averages them. The 20 missing fits are queued first (~8 h); `runs/full39e_predict.sh`
 then builds from the fitted stage. The v2 features wait for it: they change the input width.)
-position + time derivative of the heights; A' = A with linear instead of log values. Screened on
+position + time derivative of the heights; A' = A with linear instead of log values.
+**full39e built 2026-10-11 21:11** (`runs/submit_full39e_stack`, validated, not published).
+**v2 implemented as `features.thomson_chord` (none / log / linear, 135 columns after the edge block;
+old columns bit-identical):** core chord Te/ne/coverage on 32 Z points 0.03-0.93, tangential on 10 R
+points 1.68-2.06, pedestal position (steepest Te / ne drop above Z 0.5), d/dt of the seven heights;
+cached linear, the log applied in `build_inputs`. Screen queued: log vs linear on the seed-120 edge
+mlp, folds 0-2 (`runs/chord_screen.sh`). Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
