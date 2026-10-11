@@ -464,6 +464,14 @@ held most of the single model's geometry gain, but not all, and two members are 
 Running: 34 + all five edge members (`runs/edge5_eval.sh`); full-data edge members queued;
 `runs/full39e.sh` builds the 39-member candidate (its stage-2 trees also see the edge inputs) —
 built only, not published.
+**34 + all five edge members, 2026-10-11: 0.995234, +0.000141 over the 34 (5/5**: +0.000098 /
++0.000170 / +0.000131 / +0.000158 / +0.000150); volume +0.00097, kappa +0.00085, li +0.00081, R_axis
++0.00055, Z_axis +0.00047, tri_bot +0.00029, D_LCFS -0.00009. Two members gave +0.000065, five
++0.000141: not saturated. Queued: edge versions of res14, res6 seed 2, PCA-50 res6, conv and GRU
+(all vessel-poloidal). Next, AFTER full39e is built (a feature-width change between its stage fit
+and its prediction would break the trees' inputs): `thomson_edge` v2 — the whole chord on a fine
+grid (interior Te/ne shape for li), pedestal position (max -dTe/dZ, -dne/dZ above Z 0.5), and the
+time derivative of the heights (vertical motion); single-model screen on folds 0-2 first.
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
