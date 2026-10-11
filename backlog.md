@@ -500,7 +500,12 @@ profile's Shafranov shift, as expected), against D_LCFS +0.00024 worse, tri_top 
 -0.0002: 135 noisy columns cost elsewhere. `thomson_chord` now takes parts (`log:tang,ped`); queued:
 tangential only, tangential + pedestal (folds 0-2), and folds 3-4 of the whole-chord log member for
 a stack-diversity check; `runs/edge_round2.sh` also scores the 39 + five more edge members (res14,
-res6 s2, PCA-50, conv, GRU). Screened on
+res6 s2, PCA-50, conv, GRU). **Tangential arms, 2026-10-12** (folds 0-2 vs edge 0.993956): tangential only
+0.993992 (+0.000035, 2/3; R_axis +0.0012, volume +0.0017, Z_axis -0.0010, li -0.0009); tangential +
+pedestal 0.993792 (-0.000164). Single-seed noise is ~0.0001: the chord block does not pay for a
+single model in any cut; left is whether a chord member adds diversity to the stack (s45_chordlog).
+Full versions of the five newer edge members queued (25 fits). GRU edge fold 1 had died in a shot
+cache race during the v2 edit (README) — requeued. Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs

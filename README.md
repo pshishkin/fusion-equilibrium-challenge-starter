@@ -280,6 +280,12 @@ hash of the source text of every function that shapes the arrays, so editing any
 what it has to. `make clean-cache` drops it by hand, which is only needed for a change the hash
 cannot see, such as a numpy upgrade that decodes a value differently.
 
+**One key per shot, so two code versions fight over it.** Editing a cached function while another
+process is reading shots makes both rebuild the same entries under different keys; on 2026-10-11 a
+queued GRU fold started during such an edit and died with "shot cache entry missing right after it
+was built". Land feature-code edits between queue jobs (or hold the queue), and requeue any fold
+that failed that way — the failure is transient.
+
 **Prefer `--source local` over streaming.** `experiments.py --source hf` fills a shuffle buffer of
 up to 500 rows, and a row costs ~420 MB as a Python dict — measured, not estimated. `--n-shots 50`
 therefore asks for ~200 GB and gets OOM-killed before the first shot loads.
