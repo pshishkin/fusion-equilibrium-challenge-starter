@@ -428,6 +428,10 @@ the vessel family is saturated too.
 **Item 3 started: `features.ipnorm`** — coil currents and dIp/dt over max(|Ip|, 100 kA) plus a low-Ip
 flag, computed in `build_inputs` (no cache rebuild). Members queued: res6lnwd vessel-poloidal + ipnorm,
 res6lnwd ipnorm only, attn t4resln vessel + ipnorm; `runs/ipn_eval.sh` scores them against the 34.
+**ipnorm closed 2026-10-11** (native linear vs the 34 = 0.995092): all three +0.000035 (4/5); res6
+vessel + ipnorm +0.000021 (5/5), attn + ipnorm +0.000016 (4/5), res6 ipnorm alone -0.000004 (2/5) —
+noise next to `thomson-edge` (+0.000141 for five members). The coil-to-Ip ratio adds nothing the
+members do not already form.
 
 **Item 1, dense 20 ms grid, closed 2026-10-10** (`tools/seq_dense_gate.py`, fold 0, 100 shots with
 the most gap time + 50 gap-free controls; 1096 of 1409 fold-0 shots have a gap > 30 ms): filling
