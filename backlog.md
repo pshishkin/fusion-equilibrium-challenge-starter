@@ -476,6 +476,14 @@ built only, not published.
 and its prediction would break the trees' inputs): `thomson_edge` v2 — the whole chord on a fine
 grid (interior Te/ne shape for li), pedestal position (max -dTe/dZ, -dne/dZ above Z 0.5), and the
 time derivative of the heights (vertical motion); single-model screen on folds 0-2 first.
+Raw per-channel inputs are not an option: the core system has 40 / 42 / 44 / 54 channels depending
+on the shot and its top channel sits anywhere from Z 0.68 to 0.93 m (118 sampled train shots), so a
+channel index means different heights in different shots — a fixed-Z resampling is the raw form.
+v2 arms (user's question 2026-10-11, raw vs log): A = edge + the whole core chord on a fixed grid
+(32 points, Z 0.03-0.93, log Te and log ne, plus a coverage mask for heights outside the shot's
+channels) + the tangential system on its R grid (Shafranov shift, R_axis); B = A + pedestal
+position + time derivative of the heights; A' = A with linear instead of log values. Screened on
+the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
