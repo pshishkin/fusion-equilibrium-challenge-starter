@@ -457,6 +457,13 @@ t4resln vessel-poloidal + edge; `runs/edge_eval.sh` scores them against the 34 (
 kappa +0.0035, volume +0.0026, li +0.0016, R_axis +0.0012, D_LCFS 0.01045 -> 0.01029: the scalars
 of the gap to the leaders, and the largest single-feature gain since the vessel block (+0.0001 in
 the stack). Queue reordered: edge versions of res10, attn t4resln, res8x768, PCA-70 res6 first.
+**In the stack, 2026-10-11** (native linear, basis 100, vs the 34 = 0.995092): + res6 edge mlp
++0.000044 (5/5), + attn edge +0.000034 (4/5), **+ both 0.995158, +0.000065 (5/5)**; volume +0.00052,
+li +0.00044, kappa +0.00040, R_axis +0.00031, Z_axis +0.00028, D_LCFS -0.00004. The stack already
+held most of the single model's geometry gain, but not all, and two members are not saturated.
+Running: 34 + all five edge members (`runs/edge5_eval.sh`); full-data edge members queued;
+`runs/full39e.sh` builds the 39-member candidate (its stage-2 trees also see the edge inputs) —
+built only, not published.
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
