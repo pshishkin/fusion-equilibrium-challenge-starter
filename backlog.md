@@ -511,7 +511,7 @@ cache race during the v2 edit (README) — requeued.
 <= 0.0002); **45 = 44 + whole-chord log mlp 0.995287, +0.000054 over the 39 (4/5), +0.000195 over
 the 34 (5/5)** — the chord member adds +0.000015 as diversity. The edge family saturates near +0.0002
 over the 34. `runs/full45e.sh` builds the 45-member candidate once the full members are done (no
-cached-feature edits until it has predicted: its trees read the current input width). Screened on
+cached-feature edits until it has predicted: its trees read the current input width). User 2026-10-12: full39e is not submitted; wait for full45e. Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
