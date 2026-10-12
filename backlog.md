@@ -514,7 +514,11 @@ over the 34. `runs/full45e.sh` builds the 45-member candidate once the full memb
 cached-feature edits until it has predicted: its trees read the current input width). User 2026-10-12: full39e is not submitted; wait for full45e.
 **Pruning the 45 (user 2026-10-12, the `compact-stack-wide-basis` principle):** `runs/prune45.sh`
 scores natively vs all 45 (0.995287): nosup33 (without the 12 plain residual mlps that now have
-vessel/edge twins), edgevessel18 (edge/chord + vessel members), edgeonly11. Screened on
+vessel/edge twins), edgevessel18 (edge/chord + vessel members), edgeonly11.
+**Result 2026-10-12: every cut loses, 0/5 folds each** — nosup33 0.995245 (-0.000042), edgevessel18
+0.995128 (-0.000159), edgeonly11 0.995071 (-0.000216). Unlike the 31 -> 15 cut of 2026-10-03 (old
+seeds and old attn were pure duplicates), the plain residual mlps and the older classes still carry
+errors the edge members do not share. All 45 stay (`full45e`). Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
