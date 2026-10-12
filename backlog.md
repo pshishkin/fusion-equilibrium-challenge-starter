@@ -537,7 +537,11 @@ First variant, `runs/full45s.sh`: trees on the strongest 22 (11 edge/chord, 7 ve
 conv p100, GRU p100, mlp 3x512) instead of the first 22 — the trees have never seen the edge or
 vessel members directly. Stage fitted 19:39-20:18; the first prediction fills the member cache
 (~2 h, CPU). GPU meanwhile: capacity check of the edge members — res6x1024 mlp and attn t6x1024
-(single-model gains used to stop at t4 / 512; cheap to re-ask with the edge inputs). Screened on
+(single-model gains used to stop at t4 / 512; cheap to re-ask with the edge inputs).
+Built 2026-10-12/13, not published (await the user's approval): `submit_full45s_stack` (trees on the
+strongest 22; vs full45e mean |psi| difference 1.4e-4, scalars 0.0037) and `submit_full45s2_stack`
+(the same with 2000 iterations; from the member cache in 1 h 38 min, peak 93.6 GB). Further stage
+variants wait for their public scores. Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
