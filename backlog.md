@@ -535,7 +535,9 @@ shots: no cache = fill = hit), so a new stage on the same 45 predicts in minutes
 --gbm-select` gives the trees an explicit member subset without reordering the members.
 First variant, `runs/full45s.sh`: trees on the strongest 22 (11 edge/chord, 7 vessel, attn t4resln,
 conv p100, GRU p100, mlp 3x512) instead of the first 22 — the trees have never seen the edge or
-vessel members directly. Screened on
+vessel members directly. Stage fitted 19:39-20:18; the first prediction fills the member cache
+(~2 h, CPU). GPU meanwhile: capacity check of the edge members — res6x1024 mlp and attn t6x1024
+(single-model gains used to stop at t4 / 512; cheap to re-ask with the edge inputs). Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
