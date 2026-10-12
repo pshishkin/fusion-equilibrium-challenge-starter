@@ -521,7 +521,12 @@ seeds and old attn were pure duplicates), the plain residual mlps and the older 
 errors the edge members do not share. All 45 stay (`full45e`). full45e's stage fitted in 40 min (11:18-12:00);
 prediction runs on the CPU. GPU meanwhile: edge versions of the classes that have none yet (LSTM
 p100, attn PCA-70 t3x1024, conv PCA-70; all vessel-poloidal) — the pruning says old classes carry
-diversity, so their edge twins may too. Screened on
+diversity, so their edge twins may too. Done 2026-10-12 18:00; `runs/edge_old3.sh` scores 45 + the three (s48)
+natively; their full versions queued meanwhile (15 fits, used only if s48 pays).
+**Public, 2026-10-12: full39e 0.996025, full45e 0.996016** — the six extra members are neutral on the
+public test (CV +0.000054): volume +0.00035, D_LCFS better, li -0.00071. The li sign flip between CV
+and the public test is the second one (`li-wide-basis`); no labels on the test, so it is read off
+the next submissions only. Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
