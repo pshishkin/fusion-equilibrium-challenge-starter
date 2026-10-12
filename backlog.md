@@ -505,7 +505,13 @@ res6 s2, PCA-50, conv, GRU). **Tangential arms, 2026-10-12** (folds 0-2 vs edge 
 pedestal 0.993792 (-0.000164). Single-seed noise is ~0.0001: the chord block does not pay for a
 single model in any cut; left is whether a chord member adds diversity to the stack (s45_chordlog).
 Full versions of the five newer edge members queued (25 fits). GRU edge fold 1 had died in a shot
-cache race during the v2 edit (README) — requeued. Screened on
+cache race during the v2 edit (README) — requeued.
+**Round 2 stacks, 2026-10-12** (native linear): 44 = 39 + res14 / res6 s2 / PCA-50 / conv / GRU edge
+**0.995273, +0.000039 over the 39 (3/5)**, +0.000180 over the 34 (5/5; li +0.0006 vs 39, the rest
+<= 0.0002); **45 = 44 + whole-chord log mlp 0.995287, +0.000054 over the 39 (4/5), +0.000195 over
+the 34 (5/5)** — the chord member adds +0.000015 as diversity. The edge family saturates near +0.0002
+over the 34. `runs/full45e.sh` builds the 45-member candidate once the full members are done (no
+cached-feature edits until it has predicted: its trees read the current input width). Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
