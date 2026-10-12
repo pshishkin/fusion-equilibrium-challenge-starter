@@ -6,6 +6,12 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **2026-10-12 16:33: 980602 `submit_full45e_stack` S 0.996016, -0.000009 vs full39e (neutral)**
+  (HF d8a439ff; approved by the user). Linear CV said +0.000054. volume +0.00035, R_axis +0.00011,
+  D_LCFS 0.008268 -> 0.008209, but **li -0.00071** (0.969226 -> 0.968512), Z_axis / kappa -0.00007;
+  0621 0.9885 -> 0.9877. CV had li +0.0006 for the same members: li again moves the other way on the
+  public test (as in `li-wide-basis`). The leaderboard shows the latest submission (11th, 0.9960);
+  full39e stays the best public candidate.
 - **Current best public, 2026-10-12 08:30: 979841 `submit_full39e_stack` S 0.996025** (11th of the
   board; submitted by the agent on the user's approval; HF revision a087b770). full34 + five
   `thomson_edge` members, trees on the first 22 members + raw inputs that now carry the edge columns.
