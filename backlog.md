@@ -526,7 +526,16 @@ natively; their full versions queued meanwhile (15 fits, used only if s48 pays).
 **Public, 2026-10-12: full39e 0.996025, full45e 0.996016** — the six extra members are neutral on the
 public test (CV +0.000054): volume +0.00035, D_LCFS better, li -0.00071. The li sign flip between CV
 and the public test is the second one (`li-wide-basis`); no labels on the test, so it is read off
-the next submissions only. Screened on
+the next submissions only.
+**s48 = 45 + LSTM / attn PCA-70 / conv PCA-70 edge: 0.995297, +0.000009 (3/5) — noise, the edge
+family is saturated; its full fits dropped from the queue.**
+**Stage-2 variants judged on the public test** (the GBM CV needs >100 GB; the stage fits in 40 min):
+`stack_predict --member-cache` stores the members' per-fold test predictions (bit-identical on 20
+shots: no cache = fill = hit), so a new stage on the same 45 predicts in minutes. `stack_cv
+--gbm-select` gives the trees an explicit member subset without reordering the members.
+First variant, `runs/full45s.sh`: trees on the strongest 22 (11 edge/chord, 7 vessel, attn t4resln,
+conv p100, GRU p100, mlp 3x512) instead of the first 22 — the trees have never seen the edge or
+vessel members directly. Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs

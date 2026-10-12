@@ -187,14 +187,23 @@ def group_block(t: dict[str, Any], group: list[int]) -> np.ndarray:
 
 
 def gbm_features(t: dict[str, Any], weights: np.ndarray, context: bool, disagreement: bool | str,
-                 n_gbm: int, group: list[int] | None = None) -> tuple[np.ndarray, np.ndarray]:
+                 n_gbm: int, group: list[int] | None = None,
+                 select: list[int] | None = None) -> tuple[np.ndarray, np.ndarray]:
     """`features` of the first `n_gbm` members (all when 0) and the stage-1 blend of ALL members.
 
     27 members on basis 100 make ~5700 stage-2 columns, more than the GPU fits at the row share the
     shipped 22-member stage used; the trees keep the 22 members' features while the linear stage
     and the residual they correct use every member.
     """
-    if not n_gbm or n_gbm >= len(t["member_coef"]):
+    if select:
+        # An explicit member subset for the trees (2026-10-12), so a stage variant keeps the member
+        # ORDER (and the stack_predict member cache) of the build it varies.
+        sub = {"X": t["X"], "lengths": t["lengths"],
+               "member_coef": [t["member_coef"][i] for i in select],
+               "member_qb": [t["member_qb"][i] for i in select]}
+        F, _ = features(sub, np.full(len(select), 1.0 / len(select)), context, disagreement)
+        stage1 = sum(w * m for w, m in zip(weights, member_targets(t), strict=True))
+    elif not n_gbm or n_gbm >= len(t["member_coef"]):
         F, stage1 = features(t, weights, context, disagreement)
     else:
         sub = {"X": t["X"], "lengths": t["lengths"], "member_coef": t["member_coef"][:n_gbm],
@@ -337,6 +346,9 @@ def main() -> int:
     ap.add_argument("--gbm-members", type=int, default=0,
                     help="build the stage-2 features from the first N members only (the linear "
                          "stage and the residual still use all of them); 0 = all")
+    ap.add_argument("--gbm-select", default="",
+                    help="comma list of member indices whose features the trees get (instead of "
+                         "--gbm-members' first N)")
     ap.add_argument("--gbm-group", default="",
                     help="comma list of member indices: add their compact group block "
                          "(mean, difference from the rest, Ip phase) to the stage-2 features")
@@ -379,6 +391,11 @@ def main() -> int:
     weights = weights / weights.sum()
     basis = load_basis(args.campaign, args.basis_from)
     gbm_group = [int(x) for x in args.gbm_group.split(",") if x.strip()]
+    gbm_select = [int(x) for x in args.gbm_select.split(",") if x.strip()]
+    if gbm_select and args.gbm_members:
+        raise ValueError("--gbm-select and --gbm-members are exclusive")
+    if any(not 0 <= i < len(members) for i in gbm_select):
+        raise ValueError(f"--gbm-select indices outside 0..{len(members) - 1}")
     thin_early = args.all_only and args.no_context and args.every > 1
     eval_folds = ([] if args.all_only else
                   [int(x) for x in args.eval_folds.split(",")] if args.eval_folds else folds)
@@ -410,7 +427,7 @@ def main() -> int:
             if "gblock" in t:
                 t["gblock"] = np.ascontiguousarray(t["gblock"][r])
         F, stage1 = gbm_features(t, weights, not args.no_context, args.disagreement,
-                                 args.gbm_members, gbm_group)
+                                 args.gbm_members, gbm_group, gbm_select or None)
         t["F"], t["stage1"] = F, stage1
         t["truth"] = np.column_stack([t["true_coef"], t["S"]])
         t["members_T"] = member_targets(t)
@@ -540,7 +557,7 @@ def main() -> int:
             {"members": members, "linear": args.linear, "context": not args.no_context,
              "disagreement": args.disagreement, "gbm": args.gbm,
              "target_scale": scales[0], "linear_variant": args.linear_variant,
-             "gbm_members": args.gbm_members, "gbm_group": gbm_group,
+             "gbm_members": args.gbm_members, "gbm_group": gbm_group, "gbm_select": gbm_select,
              "basis_from": str(args.basis_from) if args.basis_from else None}, indent=1))
     return 0
 

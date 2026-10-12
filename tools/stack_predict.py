@@ -9,10 +9,17 @@ the global basis exactly as in tools/stack_cv.py, `models_all.joblib` supplies t
 correction, and the corrected fold predictions are averaged over the folds. `--base-out` writes
 the same average without the correction, for a paired comparison. Shots are written as
 shot_%04d in sorted filename order, the order of the existing public submissions.
+
+`--member-cache DIR` (2026-10-12): the members' part of a fold — the weighted map blend, every
+member's global-basis coefficients and q95/betaN — depends only on the member list, the weights,
+the basis and the test files, not on the stage. It is stored per fold under a key of exactly those
+(plus each artifact's size and mtime) and reused, so a new stage on the same members predicts in
+minutes instead of hours. Arrays are stored at their computed dtypes: bit-identical to recomputing.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
 from pathlib import Path
 
@@ -53,6 +60,8 @@ def main() -> int:
     ap.add_argument("--base-out", type=Path)
     ap.add_argument("--max-shots", type=int, default=0)
     ap.add_argument("--jobs", type=int, default=30)
+    ap.add_argument("--member-cache", type=Path,
+                    help="reuse/store the members' per-fold predictions here (see the docstring)")
     ap.add_argument("--linear-only", action="store_true",
                     help="apply only the stage's linear member weights, not its GBM")
     args = ap.parse_args()
@@ -83,9 +92,31 @@ def main() -> int:
     acc_qb = np.zeros((len(X), 2))
     base_maps = np.zeros((len(X), 65, 65), dtype=np.float64) if args.base_out else None
     base_qb = np.zeros((len(X), 2))
+    cache_dir = None
+    if args.member_cache:
+        h = hashlib.sha256()
+        for m in members:
+            src, _, name = m.rpartition(":")
+            for f in folds:
+                a = (Path(src) if src else args.campaign) / f"fold{f}" / "baseline.joblib"
+                st = a.stat()
+                h.update(f"{m}|{f}|{st.st_size}|{st.st_mtime_ns}".encode())
+        h.update(np.asarray(weights, dtype=np.float64).tobytes())
+        h.update(f"{cfg.get('basis_from')}|{args.config}|{[x.name for x in files]}|{len(X)}".encode())
+        cache_dir = args.member_cache / h.hexdigest()[:16]
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        print(f"member cache: {cache_dir}")
     for fold in folds:
         coefs, qbs, maps_blend = [], [], np.zeros((len(X), 65, 65), dtype=np.float32)
-        for w, m in zip(weights, members, strict=True):
+        hit = cache_dir is not None and (cache_dir / f"done_fold{fold}").exists()
+        if hit:
+            maps_blend = np.load(cache_dir / f"maps_blend_fold{fold}.npy")
+            cf = np.load(cache_dir / f"coefs_fold{fold}.npy", mmap_mode="r")
+            qq = np.load(cache_dir / f"qbs_fold{fold}.npy")
+            coefs = [np.asarray(cf[i]) for i in range(len(members))]
+            qbs = [qq[i] for i in range(len(members))]
+            print(f"fold {fold}: members from the cache", flush=True)
+        for w, m in ([] if hit else zip(weights, members, strict=True)):
             src, _, name = m.rpartition(":")
             art = joblib.load((Path(src) if src else args.campaign) / f"fold{fold}"
                               / "baseline.joblib")
@@ -102,9 +133,15 @@ def main() -> int:
             qbs.append(T[:, n:n + 2])
             maps_blend += np.float32(w) * maps
             del maps
+        if cache_dir is not None and not hit:
+            np.save(cache_dir / f"maps_blend_fold{fold}.npy", maps_blend)
+            np.save(cache_dir / f"coefs_fold{fold}.npy", np.stack(coefs))
+            np.save(cache_dir / f"qbs_fold{fold}.npy", np.stack(qbs))
+            (cache_dir / f"done_fold{fold}").touch()
         t = {"X": X, "lengths": lengths, "member_coef": coefs, "member_qb": qbs}
         F, stage1 = gbm_features(t, weights, cfg["context"], cfg["disagreement"],
-                                 int(cfg.get("gbm_members", 0)), cfg.get("gbm_group") or None)
+                                 int(cfg.get("gbm_members", 0)), cfg.get("gbm_group") or None,
+                                 cfg.get("gbm_select") or None)
         if W is not None:
             t["members_T"] = member_targets(t)
             shift = linear_blend(t, W) - stage1
