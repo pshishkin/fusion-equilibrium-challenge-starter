@@ -6,6 +6,14 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Current best public, 2026-10-12 08:30: 979841 `submit_full39e_stack` S 0.996025** (11th of the
+  board; submitted by the agent on the user's approval; HF revision a087b770). full34 + five
+  `thomson_edge` members, trees on the first 22 members + raw inputs that now carry the edge columns.
+  vs full34 (967520): **+0.000046** (linear CV said +0.000141) — Consistency +0.00015 (kappa +0.00031,
+  volume +0.00032, li +0.00019, Z_axis +0.00012, tri_bot +0.00010, R_axis -0.00002), R2_qb +0.00006,
+  D_LCFS 0.008327 -> 0.008268, R2_psi +0.000003; worst shot 0621 0.9860 -> 0.9885. The board moved:
+  argonclouds 0.9967, heavy4evy / kimsunjoong / yangyiliu 0.9965, five at 0.9964, gwangsan / anulum
+  fortis 0.9963; their Consistency 0.9872-0.9881 vs our 0.9861, D_LCFS 0.0068-0.0084 vs 0.0083.
 - **Deadlines (Codabench API, 2026-10-08):** Development phase 29580 (public test) ends 2026-10-18,
   5 submissions/day, 100 total; **Final phase 29581 (private test) 2026-10-19..26, 3 submissions per
   person in total.** `submit_full34blk_stack` (full34 + vessel-group GBM block) was submitted by the
