@@ -541,7 +541,11 @@ vessel members directly. Stage fitted 19:39-20:18; the first prediction fills th
 Built 2026-10-12/13, not published (await the user's approval): `submit_full45s_stack` (trees on the
 strongest 22; vs full45e mean |psi| difference 1.4e-4, scalars 0.0037) and `submit_full45s2_stack`
 (the same with 2000 iterations; from the member cache in 1 h 38 min, peak 93.6 GB). Further stage
-variants wait for their public scores. Screened on
+variants wait for their public scores.
+**Edge capacity, closed 2026-10-13** (single model folds 0-2; stack native): res6x1024 vs res6 edge
+-0.000142 (1/3); attn t6 vs t4 edge +0.000023 (2/3); 45 + both 0.995289, +0.000002 (3/5). Neither width
+nor depth pays; their full fits dropped. The member side is saturated on CV and on the public test
+(full45e = full39e); what is left is the stage (full45s / full45s2, awaiting submission). Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
