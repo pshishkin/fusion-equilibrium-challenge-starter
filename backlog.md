@@ -577,6 +577,13 @@ kappa / volume (li, R_axis, tri held), +0.0039 targeting all nine.** Without the
 full step overshot everywhere (the functionals are piecewise smooth). Running: the cross-fitted
 corrector (`tools/scalar_correct_learn.py`: HistGBM per target on folds 1-4, fold 0 steered) and
 the oracle on the same 150-shot sample.
+**Result, 2026-10-13 (fold 0, 150 shots / 10.4k frames):** oracle geo dS_est +0.00115, D_LCFS
+0.00775 -> 0.00559 (all nine targets +0.0024). **Cross-fitted: R2 of the predicted error Z_top 0.125,
+Z_bot 0.120, kappa 0.099, Z_axis 0.058, volume 0.001 -> dS_est +0.000014 (shrink 0.5), -0.000018
+(shrink 1). Closed: the map is steerable, but the vertical-extent error is not predictable from
+the raw inputs (incl. edge heights), the map's functionals and its coefficients** — the same
+conclusion as the September `cons-scalar-stage` gate, now on a far better map. Asked Astra which
+derivatives of the same raw signals could carry the X-point height.
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
