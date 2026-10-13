@@ -584,6 +584,14 @@ Z_bot 0.120, kappa 0.099, Z_axis 0.058, volume 0.001 -> dS_est +0.000014 (shrink
 the raw inputs (incl. edge heights), the map's functionals and its coefficients** — the same
 conclusion as the September `cons-scalar-stage` gate, now on a far better map. Asked Astra which
 derivatives of the same raw signals could carry the X-point height.
+**Controller trace (Astra's block 1), 2026-10-13:** up-down antisymmetric coil combinations
+I_nA - I_nB (n = 1..9), mean change over [-100,-20], [-20,-5], [5,20], [20,100] ms around the frame,
+from the raw 0.05 ms signals vs the same from the EFIT frames only (control). R2 of the predicted
+error none / raw / frames: Z_bot 0.120 / 0.121 / 0.116, Z_top 0.125 / 0.126 / 0.126, kappa 0.099 /
+0.101 / 0.096, **Z_axis 0.058 / 0.104 / 0.068**, volume 0.001 / 0.028 / 0.027. The fast controller
+trace does carry vertical POSITION (Z_axis +0.036 over the control) but not the extent (Z_bot,
+Z_top, kappa unchanged; the gate asked for +0.05 on Z_bot). Worth at most ~+0.00001 S through
+Z_axis. Branch closed.
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
