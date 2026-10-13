@@ -40,6 +40,43 @@ from stack_cv import load_basis  # noqa: E402
 from toolkit.parallel import pmap  # noqa: E402
 
 TARGETS = ["Z_top", "Z_bot", "Z_axis", "kappa", "volume"]
+# Astra 2026-10-13: the vertical-position controller acts on hidden sensors, so its commands may
+# carry the information the map lacks. Up-down antisymmetric coil combinations u_n = I_nA - I_nB
+# (A sits at +Z, B at its mirror -Z), and their mean change over windows around the frame —
+# past and FUTURE (offline inputs) — relative to the frame's value.
+PAIRS = [(f"F{n}A", f"F{n}B") for n in range(1, 10)]
+WINDOWS_MS = [(-100.0, -20.0), (-20.0, -5.0), (5.0, 20.0), (20.0, 100.0)]
+
+
+def window_increments(t: np.ndarray, u: np.ndarray, at: np.ndarray) -> np.ndarray:
+    """(len(at), len(WINDOWS_MS)) mean of u over [at+a, at+b] minus u(at), on u's own time base."""
+    c = np.concatenate([[0.0], np.cumsum(u)])
+    u0 = np.interp(at, t, u)
+    out = np.empty((len(at), len(WINDOWS_MS)))
+    for j, (a, b) in enumerate(WINDOWS_MS):
+        lo = np.searchsorted(t, at + a)
+        hi = np.searchsorted(t, at + b)
+        n = np.maximum(hi - lo, 1)
+        mean = np.where(hi > lo, (c[hi] - c[lo]) / n, u0)   # outside the signal: no change
+        out[:, j] = mean - u0
+    return out
+
+
+def pair_features(args: tuple) -> np.ndarray:
+    """Raw-signal (0.05 ms) pair increments for the frames `local` of one shot file."""
+    path, local, mode, levels, ef = args
+    if mode == "frames":
+        # Control: the same windows from the EFIT-frame series only (no fast signal).
+        cols = [levels[:, B.D3D_MAGNETICS_SIGNALS.index(a)] - levels[:, B.D3D_MAGNETICS_SIGNALS.index(b)]
+                for a, b in PAIRS]
+        return np.hstack([window_increments(ef, u.astype(np.float64), ef[local]) for u in cols])
+    row = pd.read_parquet(path, columns=["magnetics_time", "efit_times"]
+                          + [f"magnetics_{x}" for p in PAIRS for x in p]).iloc[0]
+    t = np.asarray(row["magnetics_time"], dtype=np.float64)
+    at = np.asarray(row["efit_times"], dtype=np.float64)[local]
+    return np.hstack([window_increments(t, np.asarray(row[f"magnetics_{a}"], np.float64)
+                                        - np.asarray(row[f"magnetics_{b}"], np.float64), at)
+                      for a, b in PAIRS])
 
 
 def label_task(args: tuple) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -62,25 +99,45 @@ def label_task(args: tuple) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 
 def fold_table(campaign: Path, maps: Path, fold: int, every: int, comps: np.ndarray,
-               ctx: dict, jobs: int, shots: np.ndarray | None = None) -> dict:
+               ctx: dict, jobs: int, shots: np.ndarray | None = None,
+               cache: Path | None = None, extra: str = "none") -> dict:
     files = _fold_files(joblib.load(campaign / f"fold{fold}" / "baseline.joblib"))
     X, Y, _, L = B._read_shots(files, f"fold{fold}", 1.0, 16)
     P = np.load(maps / f"maps_fold{fold}.npy", mmap_mode="r")
     b = np.concatenate([[0], np.cumsum(L)])
-    sel = range(len(L)) if shots is None else shots
-    idx, pos, tasks = [], [], []
+    sel = list(range(len(L))) if shots is None else list(shots)
+    idx, pos, shot_of = [], [], []
     for i in sel:
         fr = np.arange(b[i], b[i + 1])[::every]
         idx.append(fr)
         pos.append((fr - b[i]) / max(L[i] - 1, 1))
-        tasks.append((Y[fr].astype(np.float64), np.asarray(P[fr], dtype=np.float64), ctx))
-    out = pmap(label_task, tasks, jobs)
-    idx, pos = np.concatenate(idx), np.concatenate(pos)
-    ok = np.concatenate([o[0] for o in out])
-    base = np.concatenate([o[1] for o in out])
-    truth = np.concatenate([o[2] for o in out])
+        shot_of.append(np.full(len(fr), i))
+    idx, pos, shot_of = np.concatenate(idx), np.concatenate(pos), np.concatenate(shot_of)
+    cf = cache / f"labels_fold{fold}_{every}_{len(sel)}.npz" if cache else None
+    if cf is not None and cf.exists():
+        z = np.load(cf)
+        ok, base, truth = z["ok"], z["base"], z["truth"]
+    else:
+        tasks = [(Y[idx[shot_of == i]].astype(np.float64),
+                  np.asarray(P[idx[shot_of == i]], dtype=np.float64), ctx) for i in sel]
+        out = pmap(label_task, tasks, jobs)
+        ok = np.concatenate([o[0] for o in out])
+        base = np.concatenate([o[1] for o in out])
+        truth = np.concatenate([o[2] for o in out])
+        if cf is not None:
+            np.savez(cf, ok=ok, base=base, truth=truth)
     coef = np.asarray(P[idx], dtype=np.float64).reshape(len(idx), -1) @ comps.reshape(len(comps), -1).T
-    F = np.column_stack([X[idx], base, coef, pos])
+    parts = [X[idx], base, coef, pos]
+    if extra != "none":
+        ef_all = {}
+        tasks = []
+        for i in sel:
+            loc = idx[shot_of == i] - b[i]
+            ef = np.asarray(pd.read_parquet(files[i], columns=["efit_times"]).iloc[0]["efit_times"],
+                            np.float64)
+            tasks.append((files[i], loc, extra, X[b[i]:b[i + 1], :B.N_SIGNALS], ef))
+        parts.append(np.concatenate(pmap(pair_features, tasks, jobs)))
+    F = np.column_stack(parts)
     return {"F": F[ok], "base": base[ok], "truth": truth[ok], "idx": idx[ok],
             "Y": Y, "P": P}
 
@@ -97,6 +154,10 @@ def main() -> int:
     ap.add_argument("--test-every", type=int, default=3)
     ap.add_argument("--k", type=int, default=30)
     ap.add_argument("--shrink", default="0.5,1.0")
+    ap.add_argument("--cache", type=Path, help="labels (map / truth functionals) cached here")
+    ap.add_argument("--extra", default="none", choices=["none", "raw", "frames"],
+                    help="add the up-down coil pair increments (raw 0.05 ms or EFIT-frame control)")
+    ap.add_argument("--no-steer", action="store_true", help="report the R2 of the errors only")
     ap.add_argument("--jobs", type=int, default=24)
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
@@ -115,7 +176,8 @@ def main() -> int:
     for f in range(5):
         if f == args.test_fold:
             continue
-        t = fold_table(args.campaign, args.maps, f, args.train_every, comps, ctx, args.jobs)
+        t = fold_table(args.campaign, args.maps, f, args.train_every, comps, ctx, args.jobs,
+                       cache=args.cache, extra=args.extra)
         trains.append((t["F"], t["truth"][:, tj] - t["base"][:, tj]))
         del t
         print(f"fold {f}: {len(trains[-1][0])} training frames", flush=True)
@@ -126,7 +188,7 @@ def main() -> int:
     nL = len(_fold_files(joblib.load(args.campaign / f"fold{args.test_fold}" / "baseline.joblib")))
     shots = rng.choice(nL, min(args.test_shots, nL), replace=False)
     te = fold_table(args.campaign, args.maps, args.test_fold, args.test_every, comps, ctx,
-                    args.jobs, shots)
+                    args.jobs, shots, cache=args.cache, extra=args.extra)
     Dte = te["truth"][:, tj] - te["base"][:, tj]
     pred = np.empty_like(Dte)
     rep: dict = {"train_frames": len(Ftr), "test_frames": len(Dte), "r2_delta": {}}
@@ -138,6 +200,9 @@ def main() -> int:
         r2 = 1 - ((Dte[:, j] - pred[:, j]) ** 2).sum() / ((Dte[:, j] - Dte[:, j].mean()) ** 2).sum()
         rep["r2_delta"][name] = float(r2)
         print(f"{name}: R2 of the predicted error {r2:+.3f}", flush=True)
+    if args.no_steer:
+        (args.out / "summary.json").write_text(json.dumps(rep, indent=1))
+        return 0
     truth_all, base_all = te["truth"], te["base"]
     sst = ((truth_all - truth_all.mean(0)) ** 2).sum(0)
     fr = te["idx"]
