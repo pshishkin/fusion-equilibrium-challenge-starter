@@ -545,7 +545,14 @@ variants wait for their public scores.
 **Edge capacity, closed 2026-10-13** (single model folds 0-2; stack native): res6x1024 vs res6 edge
 -0.000142 (1/3); attn t6 vs t4 edge +0.000023 (2/3); 45 + both 0.995289, +0.000002 (3/5). Neither width
 nor depth pays; their full fits dropped. The member side is saturated on CV and on the public test
-(full45e = full39e); what is left is the stage (full45s / full45s2, awaiting submission). Screened on
+(full45e = full39e); what is left is the stage (full45s / full45s2, awaiting submission).
+**Stage member choice on CV fold 0, 2026-10-13** (45 members, thinned training folds as in production):
+linear only 0.995860 (li 0.971464); trees on the first 22 (= full45e) 0.995847 (li 0.971403); **trees
+on the strongest 22 (= full45s) 0.995765, li 0.969206 (-0.0022)**. The strong-22 trees cost li on
+CV just as the public test showed for full45e — the edge/vessel members' features are what the trees
+overfit li on. CV has always under-stated the stage (full22: +0.000035 CV, +0.00025 public), so
+"linear >= stage" on one fold does not retire the stage; but strong22 < first22 by 0.00008 with li
+-0.0022 is enough to keep full45s / full45s2 unsubmitted. Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
