@@ -6,6 +6,15 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Final-phase rule 6 (read 2026-10-13 from the competition pages):** every Final submission
+  must carry, AT SUBMISSION TIME, a public reproduction package (git repo at a pinned SHA on a
+  public forge, or an archive with SHA256): source, pinned environment, the trained weights used,
+  a from-scratch training entrypoint, an inference entrypoint, a per-machine data-provenance
+  statement, and a declared training budget; **training must be reproducible within 24 GPU-hours
+  on one 80 GB A100**. Organizers rebuild the top five per challenge. Measured from queue.log,
+  full39e's 39 members cost ~115 wall hours on the RTX 3090 (CV folds for the stack 51 h, five
+  full-data seeds per member 64 h) — about 4-5x over the cap as built. Weights are small (3 GB
+  full members + 51 MB stage). The private test inputs are not out yet (Final opens 2026-10-19).
 - **2026-10-12 16:33: 980602 `submit_full45e_stack` S 0.996016, -0.000009 vs full39e (neutral)**
   (HF d8a439ff; approved by the user). Linear CV said +0.000054. volume +0.00035, R_axis +0.00011,
   D_LCFS 0.008268 -> 0.008209, but **li -0.00071** (0.969226 -> 0.968512), Z_axis / kappa -0.00007;
