@@ -555,6 +555,29 @@ overfit li on. CV has always under-stated the stage (full22: +0.000035 CV, +0.00
 -0.0022 is enough to keep full45s / full45s2 unsubmitted. Screened on
 the res6 vessel edge mlp, folds 0-2, against edge alone (0.993956).
 
+### `scalar-corrector` — user + Astra, 2026-10-13: steer the map to predicted geometric functionals
+
+The member side is saturated (edge family, capacity, pruning, stage member choice: all neutral);
+the gap to the leaders is Consistency (0.9861 vs 0.9874-0.9897) and D_LCFS (0.0083 vs 0.0067-0.0075).
+**D_LCFS is a symmetric Hausdorff distance / Rgeo, and its worst point is at the very bottom of
+the LCFS (X-point region: 47% of frames, 51% of the D sum) or the very top (43% / 43%)**; the rest
+of the contour carries 6% (300 fold-0 shots, 21.6k frames, 34-member linear maps). Top 10% of
+frames hold 35% of the sum; mean boundary error 3.8 mm vs 14 mm at the worst point. So D_LCFS,
+Z_axis and kappa are one error: the vertical extent. The edge features fixed part of the top; the
+X-point height has no direct measurement.
+Astra's ranking (thread thr_uej75jmtd5): (1) scalar corrector with a LOCAL Jacobian, li / R_axis
+held; (2) soft GS projection as a small delta-psi with the domain boundary frozen (gate on TRUE maps
+first); (3) a small geometry-aware fine-tuned corrector. GS check (mine): the predicted maps carry
+little spurious current in the vacuum region (|dGS| 0.011 vs EFIT's own 0.043 there); the error
+is the in-plasma current distribution (~2.4%), so a vacuum clean-up has little to gain.
+**Oracle gate (`tools/scalar_correct_gate.py`, 12 shots / 526 frames, truth functionals as targets,
+ridge Gauss-Newton on the first 30 global PCA components with a line search): the map is
+steerable — D_LCFS 0.00976 -> 0.00703 (-28%), dS_est +0.0021 targeting Z_top / Z_bot / Z_axis /
+kappa / volume (li, R_axis, tri held), +0.0039 targeting all nine.** Without the line search the
+full step overshot everywhere (the functionals are piecewise smooth). Running: the cross-fitted
+corrector (`tools/scalar_correct_learn.py`: HistGBM per target on folds 1-4, fold 0 steered) and
+the oracle on the same 150-shot sample.
+
 ### `rampdown-shots` — user + public detail pages, 2026-10-07: the leaders don't fail on long ramp-downs
 
 Codabench detail pages (per-shot R2_psi histogram + worst 20 shots) of three leaders vs ours (964529):
