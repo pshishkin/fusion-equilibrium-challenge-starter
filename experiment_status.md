@@ -13,7 +13,14 @@ Historical explanations and negative results remain in `experiments_history.md`,
   statement, and a declared training budget; **training must be reproducible within 24 GPU-hours
   on one 80 GB A100**. Organizers rebuild the top five per challenge. Measured from queue.log,
   full39e's 39 members cost ~115 wall hours on the RTX 3090 (CV folds for the stack 51 h, five
-  full-data seeds per member 64 h) — about 4-5x over the cap as built. Weights are small (3 GB
+  full-data seeds per member 64 h) — about 4-5x over the cap as built. Per member (5 CV folds + one full seed, RTX 3090
+  wall incl. data loading and the OOF dump): cheap mlps 0.6 h, residual mlps 0.9-2.3 h, seq
+  members 1.1-3.8 h; all 45 with one seed ~75 h. Compact rosters under evaluation
+  (`runs/compact24.sh`): A, 17 members, ~21.6 h (six edge/chord mlps, attn + conv edge, three vessel
+  mlps, four cheap old mlps, conv p100, LSTM p100); B = A + res14 edge, 23.8 h (reference only).
+  Plan agreed with the user 2026-10-15: a compact candidate to Development first; package prepared
+  privately; after 2026-10-19 the private fold predicted, the package pinned and made public, and
+  submitted — publication only on the user's explicit yes. Weights are small (3 GB
   full members + 51 MB stage). The private test inputs are not out yet (Final opens 2026-10-19).
 - **2026-10-12 16:33: 980602 `submit_full45e_stack` S 0.996016, -0.000009 vs full39e (neutral)**
   (HF d8a439ff; approved by the user). Linear CV said +0.000054. volume +0.00035, R_axis +0.00011,
