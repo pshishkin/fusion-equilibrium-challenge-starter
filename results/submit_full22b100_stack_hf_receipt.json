@@ -1,0 +1,22 @@
+{
+  "repo_id": "pshishkin/fusion",
+  "private": true,
+  "variant": "float32",
+  "parent_revision": "c4ceca4bbf1cc4e364bc231ee1e153bee9dc949b",
+  "revision": "ea608a38aed28a8144e81facd230b485efb9a8d0",
+  "uploaded_file": "diii_d_public_test.npz",
+  "bytes": 3270008146,
+  "sha256": "c98ef5495235fd1a9639f797f3ae3a572a432e20ccc6bccb01e910f147762fb7",
+  "mast_preserved": true,
+  "non_target_files_preserved": [
+    ".gitattributes",
+    "mast_public_test.npz"
+  ],
+  "pinned_read_token_download_verified": true,
+  "pointer_path": "submissions/submission_pointer_20261005T122233Z.zip",
+  "pointer_bytes": 255,
+  "pointer_sha256": "c160f8a97d25d83f6610b94384bd23ad31714fc438b75ea7c1e8080f6f788645",
+  "evidence_path": "results/submit_full22b100_stack_candidate.json",
+  "evidence_sha256": "fb04ff4e0eee0da29d4e9b0c2efe880b568622f10c80190da6d53a098fc6a760",
+  "token_values_recorded": false
+}

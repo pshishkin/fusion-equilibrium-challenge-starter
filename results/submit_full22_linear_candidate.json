@@ -1,0 +1,10 @@
+{
+ "variant": "float32",
+ "candidate": "submit_full22_linear",
+ "final_npz": {
+  "path": "runs/submit_full22_linear/diii_d_public_test.npz",
+  "bytes": 3270008146,
+  "sha256": "288e001d6f17e6455f44f554be85c5c6e47db2241be833bd14c9e46e5190cd1e",
+  "shots": 874
+ }
+}

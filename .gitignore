@@ -22,7 +22,7 @@ baseline_*.joblib
 
 # Decoded shots, rebuilt on demand — see my_experiments/shot_cache.py. Tens of GB, and keyed by
 # the source parquet's mtime, so it is worthless to anyone else's checkout.
-.shot_cache/
+/.shot_cache
 # Optional centered raw-current columns, cached separately so the base 208-column shots stay
 # reusable across feature screens. The sidecars are derived from pinned parquets and YAML specs.
 .fast_magnetics_cache/
@@ -61,5 +61,5 @@ submission_*/
 .blend_cache/
 
 # Immutable local experiment snapshots, fits, logs and per-run JSON metrics.
-runs/
+/runs
 catboost_info/

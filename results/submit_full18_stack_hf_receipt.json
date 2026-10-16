@@ -1,0 +1,22 @@
+{
+  "repo_id": "pshishkin/fusion-eq-predictions",
+  "private": true,
+  "variant": "float32",
+  "parent_revision": "f2ac62a0c319fb829356f0c50360679adcc93c92",
+  "revision": "c364fd23963bfa821ee6a3802b8b9030a30bfca8",
+  "uploaded_file": "diii_d_public_test.npz",
+  "bytes": 3270008146,
+  "sha256": "8ac02642443664012d6fdca1fcf1219790f46cada98b946fdda33e5bdd0c743a",
+  "mast_preserved": true,
+  "non_target_files_preserved": [
+    ".gitattributes",
+    "mast_public_test.npz"
+  ],
+  "pinned_read_token_download_verified": true,
+  "pointer_path": "submissions/submission_pointer_20260928T101846Z.zip",
+  "pointer_bytes": 266,
+  "pointer_sha256": "5f34ccf4a21c33a1ad9c8706a0000a58e5b1005ee3afa21ab7233322906f5439",
+  "evidence_path": "results/submit_full18_stack_candidate.json",
+  "evidence_sha256": "5ebd976ff3de4f18ad16f7337b404b9d338b03245afea8db87ce0f41fc82ed10",
+  "token_values_recorded": false
+}
