@@ -20,7 +20,11 @@ Historical explanations and negative results remain in `experiments_history.md`,
   mlps, four cheap old mlps, conv p100, LSTM p100); B = A + res14 edge, 23.8 h (reference only).
   Plan agreed with the user 2026-10-15: a compact candidate to Development first; package prepared
   privately; after 2026-10-19 the private fold predicted, the package pinned and made public, and
-  submitted — publication only on the user's explicit yes. Weights are small (3 GB
+  submitted — publication only on the user's explicit yes.
+- **compactA built 2026-10-17 07:01** (`runs/submit_compactA_stack`, validated, not published): roster
+  A (17 members, ~21.6 GPU-h with one full seed), trees on its 9 non-edge members, predicted from
+  seed 0 only; stage + prediction 45 min, peak 71 GB. vs full39e mean |psi| difference 3.5e-4,
+  scalars 0.0107 (one seed instead of five shows here). Linear CV 0.995151 (full39e's set 0.995234). Weights are small (3 GB
   full members + 51 MB stage). The private test inputs are not out yet (Final opens 2026-10-19).
 - **2026-10-12 16:33: 980602 `submit_full45e_stack` S 0.996016, -0.000009 vs full39e (neutral)**
   (HF d8a439ff; approved by the user). Linear CV said +0.000054. volume +0.00035, R_axis +0.00011,
