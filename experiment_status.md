@@ -17,6 +17,15 @@ Historical explanations and negative results remain in `experiments_history.md`,
   `align_ip_times` does the same and is what the models were trained with, so it is kept.
   Development closed 2026-10-18 without a compactA submission (no approval given in time).
   Running: full39e on the private DIII-D fold (`runs/final_predict.sh`), not published.
+  **Bug caught before submitting (2026-10-19):** the first private prediction of full39e had GBM
+  corrections 4.6x (coefficients) and 9x (q95) the public ones. Inputs were not the cause (Ip axis
+  identical to the organizers' fix on 100% of shots, feature shift |z| 0.042 vs public 0.040, members
+  agree better on private). Cause: full39e's stage was fitted on 242-wide inputs (5036 stage
+  features); `thomson_chord` later made them 377 wide and CatBoost silently read the leading 5036 of
+  5171 columns. Fix: `CatBoostStage2.predict` now raises on a width mismatch; `stack_predict
+  --pre-chord` drops the chord block for stages fitted before it. Check: --pre-chord on 30 public
+  shots reproduces the submitted full39e npz bit-exactly (max |diff| 0). full45e / compactA were
+  fitted on 377-wide inputs and are unaffected. Private full39e re-running.
 - **Final-phase rule 6 (read 2026-10-13 from the competition pages):** every Final submission
   must carry, AT SUBMISSION TIME, a public reproduction package (git repo at a pinned SHA on a
   public forge, or an archive with SHA256): source, pinned environment, the trained weights used,
