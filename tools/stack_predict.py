@@ -60,6 +60,8 @@ def main() -> int:
     ap.add_argument("--base-out", type=Path)
     ap.add_argument("--max-shots", type=int, default=0)
     ap.add_argument("--jobs", type=int, default=30)
+    ap.add_argument("--pre-chord", action="store_true",
+                    help="drop the thomson_chord block: for stages fitted before it existed (full39e)")
     ap.add_argument("--member-cache", type=Path,
                     help="reuse/store the members' per-fold predictions here (see the docstring)")
     ap.add_argument("--linear-only", action="store_true",
@@ -72,6 +74,12 @@ def main() -> int:
     lengths = np.array([len(f) for f in feats])
     X = np.concatenate(feats)
     print(f"{len(files)} shots, {len(X)} frames")
+    if args.pre_chord:
+        # Stages fitted before `features.thomson_chord` existed (before 2026-10-11 evening, e.g.
+        # full39e) saw the input block without the chord columns; their members never read them.
+        c0 = B.N_SIGNALS * (1 + len(B.DERIV_BLOCKS)) + B.N_GAPS + B.N_VESSEL + B.N_EDGE
+        X = np.delete(X, np.s_[c0:c0 + B.N_CHORD], axis=1)
+        print(f"pre-chord layout: inputs {X.shape[1]} wide")
     members = args.members.split(",")
     weights = (np.array([float(x) for x in args.weights.split(",")]) if args.weights
                else np.full(len(members), 1.0 / len(members)))

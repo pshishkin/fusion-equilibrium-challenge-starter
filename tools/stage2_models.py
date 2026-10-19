@@ -37,4 +37,10 @@ class CatBoostStage2:
 
     def predict(self, F: np.ndarray) -> np.ndarray:
         assert self.scale is not None
+        # CatBoost silently accepts EXTRA columns and reads the leading ones (2026-10-19: full39e's
+        # stage, fitted on 242-wide inputs, got 377-wide ones after thomson_chord was added and its
+        # private-test corrections came out 4-9x too large). A width mismatch is an error.
+        want = len(self.model.feature_names_)
+        if F.shape[1] != want:
+            raise ValueError(f"stage-2 features: got {F.shape[1]} columns, the trees were fitted on {want}")
         return np.asarray(self.model.predict(F)) * self.scale
