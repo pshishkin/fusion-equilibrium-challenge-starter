@@ -199,7 +199,7 @@ def publish(
         repo_type="dataset",
         token=write,
         parent_commit=parent,
-        commit_message=f"Publish validated {variant} DIII-D public predictions",
+        commit_message=f"Publish validated {variant} {FILENAME}",
     )
     sha = commit.oid
     if not isinstance(sha, str) or not SHA_RE.fullmatch(sha):
@@ -266,7 +266,12 @@ def main() -> int:
     parser.add_argument("--receipt", type=Path, default=RECEIPT)
     parser.add_argument("--expected-parent")
     parser.add_argument("--variant", choices=("float32", "float16-probe"), default="float32")
+    parser.add_argument("--filename", choices=("diii_d_public_test.npz", "diii_d_private_test.npz"),
+                        default=FILENAME,
+                        help="file name in the repo root; the Final phase scores diii_d_private_test.npz")
     args = parser.parse_args()
+    global FILENAME
+    FILENAME = args.filename
     try:
         if args.mode == "publish":
             from huggingface_hub import HfApi, hf_hub_download

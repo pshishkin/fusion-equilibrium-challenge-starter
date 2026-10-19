@@ -13,7 +13,7 @@ A run that fails after the dataset step may or may not have created the submissi
 attempt broke off with an HTML error page after its dataset existed) — check before retrying, and
 ask the user whether they already submitted the same zip by hand.
 
-Phase 29580 = Development (public test, 5 per day, ends 2026-10-18); 29581 = Final (private test,
+Phase 29580 = Development (public test, 5 per day, closed 2026-10-18); 29581 = Final (private test, `--final`,
 3 per person in total, 2026-10-19..26) — never submit there without an explicit decision.
 """
 from __future__ import annotations
@@ -73,10 +73,15 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("zip", type=Path)
     ap.add_argument("--phase", type=int, default=29580)
+    ap.add_argument("--final", action="store_true",
+                    help="submit to the Final phase (29581): 3 submissions in total, scored on the "
+                         "private fold — only on the user's explicit approval of THIS candidate")
     ap.add_argument("--env", type=Path, default=Path(__file__).resolve().parent.parent / ".env")
     args = ap.parse_args()
-    if args.phase != 29580:
-        raise SystemExit("only the Development phase (29580) is allowed from this tool")
+    if args.final:
+        args.phase = 29581
+    elif args.phase != 29580:
+        raise SystemExit("only the Development phase (29580), or the Final phase with --final")
     if not args.zip.is_file():
         raise SystemExit(f"{args.zip}: no such file")
     user, password = creds(args.env)
