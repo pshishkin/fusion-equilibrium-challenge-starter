@@ -6,6 +6,17 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **Final phase, 2026-10-19 (pages re-read): the package is NOT attached to Final submissions any
+  more** ("Nothing extra is attached to a Final submission"): only the top five per challenge are
+  asked for a reproduction package within 7 days after the close; a pipeline that "genuinely cannot
+  fit" 24 A100 GPU-hours says so and gets a case-by-case check; a rebuild passes within 0.01 S.
+  Best score across a team's (max 3) Final submissions counts. Private-test inputs:
+  `ganatma/fusion-equilibrium-challenge-final` (the organizers' Final repo, the starter kit's
+  FINAL_REPO_ID): 879 DIII-D shots (7.5 GB), 1205 MAST shots; shot_i in sorted (streaming) order as
+  in Development; `data_fixes.py` (upstream, later) fixes the Ip axis (#6) — our own
+  `align_ip_times` does the same and is what the models were trained with, so it is kept.
+  Development closed 2026-10-18 without a compactA submission (no approval given in time).
+  Running: full39e on the private DIII-D fold (`runs/final_predict.sh`), not published.
 - **Final-phase rule 6 (read 2026-10-13 from the competition pages):** every Final submission
   must carry, AT SUBMISSION TIME, a public reproduction package (git repo at a pinned SHA on a
   public forge, or an archive with SHA256): source, pinned environment, the trained weights used,
