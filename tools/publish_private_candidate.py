@@ -260,6 +260,7 @@ def publish(
 
 
 def main() -> int:
+    global FILENAME
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=["plan", "preflight", "publish"])
     parser.add_argument("--evidence", type=Path, default=EVIDENCE)
@@ -270,7 +271,6 @@ def main() -> int:
                         default=FILENAME,
                         help="file name in the repo root; the Final phase scores diii_d_private_test.npz")
     args = parser.parse_args()
-    global FILENAME
     FILENAME = args.filename
     try:
         if args.mode == "publish":
