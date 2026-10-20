@@ -1,0 +1,12 @@
+{
+ "variant": "float32",
+ "candidate": "final_full45e",
+ "phase": "Final",
+ "stage": "runs/stackcv_fc45e",
+ "final_npz": {
+  "path": "runs/final_full45e/diii_d_private_test.npz",
+  "bytes": 3319756112,
+  "sha256": "081e53a7e87604ac8ab07edc7965601804b1ff10014794da778652ca2293a765",
+  "shots": 879
+ }
+}

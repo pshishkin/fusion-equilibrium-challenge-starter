@@ -1,0 +1,12 @@
+{
+ "variant": "float32",
+ "candidate": "final_compactA",
+ "phase": "Final",
+ "stage": "runs/stackcv_compactA (seed 0 only)",
+ "final_npz": {
+  "path": "runs/final_compactA/diii_d_private_test.npz",
+  "bytes": 3319756112,
+  "sha256": "757e0f2fa36c16254541e823e247792195b78a81d6eb977153b0a7f1e62c5811",
+  "shots": 879
+ }
+}
