@@ -1,0 +1,50 @@
+[
+  {
+    "candidate": "full39e",
+    "revision": "959807363e4781c6bd1d669be466fcf125e2f857",
+    "http": 200,
+    "response": {
+      "ok": true,
+      "receiptId": "FW-EFD7751C",
+      "receivedAt": "2026-10-23T21:08:12Z",
+      "hfCheck": "verified",
+      "filesFound": [
+        "diii_d_private_test.npz"
+      ],
+      "websiteEntries": 1,
+      "mailed": true
+    }
+  },
+  {
+    "candidate": "full45e",
+    "revision": "f806e8d0a05edbe53f48b0770a558bc2984d46e6",
+    "http": 200,
+    "response": {
+      "ok": true,
+      "receiptId": "FW-046CCF62",
+      "receivedAt": "2026-10-23T21:08:20Z",
+      "hfCheck": "verified",
+      "filesFound": [
+        "diii_d_private_test.npz"
+      ],
+      "websiteEntries": 2,
+      "mailed": true
+    }
+  },
+  {
+    "candidate": "compactA",
+    "revision": "820d633a3d6ba8a382fbe0ba24599c0d11a18e2c",
+    "http": 200,
+    "response": {
+      "ok": true,
+      "receiptId": "FW-E7074232",
+      "receivedAt": "2026-10-23T21:08:21Z",
+      "hfCheck": "verified",
+      "filesFound": [
+        "diii_d_private_test.npz"
+      ],
+      "websiteEntries": 3,
+      "mailed": true
+    }
+  }
+]

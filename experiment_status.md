@@ -6,6 +6,13 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **2026-10-23 21:08 UTC: ALL THREE FINAL SLOTS USED, via the organizers' website** (Codabench down;
+  organizers' email moved Final entries to /final-submission/ and extended the close to 2026-10-28
+  00:00 UTC). `tools/final_web_submit.py`, user approved: full39e FW-EFD7751C (95980736), full45e
+  FW-046CCF62 (f806e8d0), compactA FW-E7074232 (820d633a); each "hfCheck: verified", receipt mailed
+  (`results/final_web_receipts.json`). The Codabench auto-submitter was stopped first; nothing went
+  through Codabench. No more Final submissions are possible. Keep the HF repo, these commits and the
+  read token in place until results are published.
 - **2026-10-23: Final revisions cleaned (organizers' guide s.3, user approved).** The scorer downloads
   every file it recognises, so each candidate now has a revision holding only
   `diii_d_private_test.npz` (`tools/hf_final_cleanup.py`, server-side LFS copy, nothing re-uploaded,
