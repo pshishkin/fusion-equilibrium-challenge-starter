@@ -6,6 +6,14 @@ Historical explanations and negative results remain in `experiments_history.md`,
 
 ## Public submissions and iteration control
 
+- **2026-10-23: Final revisions cleaned (organizers' guide s.3, user approved).** The scorer downloads
+  every file it recognises, so each candidate now has a revision holding only
+  `diii_d_private_test.npz` (`tools/hf_final_cleanup.py`, server-side LFS copy, nothing re-uploaded,
+  verified with the read token): compactA 820d633a, full39e 95980736, full45e f806e8d0
+  (receipts `results/final_*_hf_clean_receipt.json`). `submissions/final_*_pointer.zip` point at them;
+  the old ones are kept as `*_v1.zip`. The auto-submitter (fusion-submit-final) still waits for
+  Codabench (Paris-Saclay inbound block, codalab/codabench#2679) and reads the new pointers. Keep
+  code, env and weights of all three: any may be the rebuilt one (best S counts).
 - **Final phase, 2026-10-19 (pages re-read): the package is NOT attached to Final submissions any
   more** ("Nothing extra is attached to a Final submission"): only the top five per challenge are
   asked for a reproduction package within 7 days after the close; a pipeline that "genuinely cannot
